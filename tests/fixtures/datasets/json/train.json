@@ -1,0 +1,29 @@
+{
+    "annotations": {
+        "entities": "LabeledSpan"
+    },
+    "documents": [
+        {
+            "text": "Jane lives in Berlin, Germany.",
+            "entities": [
+                {"start": 0, "end": 4, "label": "PER"},
+                {"start": 14, "end": 20, "label": "LOC"},
+                {"start": 22, "end": 29, "label": "LOC"}
+            ]
+        },
+        {
+            "text": "John works at Hamboldt University.",
+            "entities": [
+                {"start": 0, "end": 4, "label": "PER"},
+                {"start": 14, "end": 33, "label": "ORG"}
+            ]
+        },
+        {
+            "text": "Jim works at Hamburg University.",
+            "entities": [
+                {"start": 0, "end": 3, "label": "PER"},
+                {"start": 13, "end": 31, "label": "ORG"}
+            ]
+        }
+    ]
+}
