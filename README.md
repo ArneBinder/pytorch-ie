@@ -6,7 +6,7 @@
 pip install git+ssh://git@github.com/ChristophAlt/pytorch-ie.git
 ```
 
-## Example (Span-classification-based Named Entity Recognition)
+## Example: Span-classification-based Named Entity Recognition
 
 ```python
 from pytorch_ie.taskmodules.transformer_span_classification import TransformerSpanClassificationTaskModule
@@ -33,6 +33,41 @@ for entity in document.predictions("entities"):
 # IndieBio -> ORG
 # Po Bronson -> PER
 # SOSV -> ORG
+```
+
+## Example: Text-classification-based Relation Extraction
+
+```python
+from pytorch_ie.taskmodules.transformer_re_text_classification import TransformerRETextClassificationTaskModule
+from pytorch_ie.models.transformer_text_classification import TransformerTextClassificationModel
+from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.data.document import Document, LabeledSpan
+
+model_name_or_path = "pie/example-re-textclf-tacred"
+re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
+re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
+
+re_pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
+
+document = Document("“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio.")
+
+for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
+    document.add_annotation("entities", LabeledSpan(start, end, label))
+
+re_pipeline(document, predict_field="relations")
+
+for relation in document.predictions("relations"):
+    head, tail = relation.head, relation.tail
+    head_text = document.text[head.start: head.end]
+    tail_text = document.text[tail.start: tail.end]
+    label = relation.label
+    print(f"({head_text} -> {tail_text}) -> {label}")
+
+# Result:
+# (Po Bronson -> SOSV) -> per:employee_of
+# (Po Bronson -> IndieBio) -> per:employee_of
+# (SOSV -> Po Bronson) -> org:top_members/employees
+# (IndieBio -> Po Bronson) -> org:top_members/employees
 ```
 
 ## Development Setup
