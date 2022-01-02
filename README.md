@@ -10,10 +10,9 @@ pip install git+ssh://git@github.com/ChristophAlt/pytorch-ie.git
 ### Span-classification-based Named Entity Recognition
 
 ```python
-from pytorch_ie.taskmodules.transformer_span_classification import TransformerSpanClassificationTaskModule
-from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
-from pytorch_ie.pipeline import Pipeline
-from pytorch_ie.data.document import Document
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+from pytorch_ie.models import TransformerSpanClassificationModel
+from pytorch_ie import Pipeline, Document
 
 model_name_or_path = "pie/example-ner-spanclf-conll03"
 ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
@@ -39,10 +38,10 @@ for entity in document.predictions("entities"):
 ### Text-classification-based Relation Extraction
 
 ```python
-from pytorch_ie.taskmodules.transformer_re_text_classification import TransformerRETextClassificationTaskModule
-from pytorch_ie.models.transformer_text_classification import TransformerTextClassificationModel
-from pytorch_ie.pipeline import Pipeline
-from pytorch_ie.data.document import Document, LabeledSpan
+from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
+from pytorch_ie.models import TransformerTextClassificationModel
+from pytorch_ie import Pipeline
+from pytorch_ie.data import Document, LabeledSpan
 
 model_name_or_path = "pie/example-re-textclf-tacred"
 re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
