@@ -5,8 +5,9 @@
 ```sh
 pip install git+ssh://git@github.com/ChristophAlt/pytorch-ie.git
 ```
+## ⚡&nbsp;&nbsp;Examples
 
-## Example: Span-classification-based Named Entity Recognition
+### Span-classification-based Named Entity Recognition
 
 ```python
 from pytorch_ie.taskmodules.transformer_span_classification import TransformerSpanClassificationTaskModule
@@ -35,7 +36,7 @@ for entity in document.predictions("entities"):
 # SOSV -> ORG
 ```
 
-## Example: Text-classification-based Relation Extraction
+### Text-classification-based Relation Extraction
 
 ```python
 from pytorch_ie.taskmodules.transformer_re_text_classification import TransformerRETextClassificationTaskModule
