@@ -35,7 +35,7 @@ use_parentheses = true
 line_length = 99
 
 [tool.mypy]
-files = "pytorch_ie,test"
+files = "pytorch_ie,tests"
 ignore_missing_imports = true
 
 [tool.pytest]
