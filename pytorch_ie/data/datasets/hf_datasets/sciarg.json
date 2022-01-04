@@ -1,0 +1,8 @@
+{
+  "description": "This dataset is an extension of the Dr. Inventor corpus (Fisas et al., 2015, 2016) with an annotation layer containing \nfine-grained argumentative components and relations. It is the first argument-annotated corpus of scientific \npublications (in English), which allows for joint analyses of argumentation and other rhetorical dimensions of \nscientific writing.",
+  "citation": "@inproceedings{lauscher2018b,\n  title = {An argument-annotated corpus of scientific publications},\n  booktitle = {Proceedings of the 5th Workshop on Mining Argumentation},\n  publisher = {Association for Computational Linguistics},\n  author = {Lauscher, Anne and Glava\u000b{s}, Goran and Ponzetto, Simone Paolo},\n  address = {Brussels, Belgium},\n  year = {2018},\n  pages = {40\u201346}\n}",
+  "homepage": "https://github.com/anlausch/ArguminSci",
+  "url": "http://data.dws.informatik.uni-mannheim.de/sci-arg/compiled_corpus.zip",
+  "subdirectory_mapping": {"compiled_corpus": "train"},
+  "file_name_blacklist": ["A28"]
+}
