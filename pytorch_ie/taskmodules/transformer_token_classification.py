@@ -190,7 +190,7 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
     def decoded_output_to_annotations(
         self,
-        decoded_output: Dict[str, Any],
+        output: Dict[str, Any],
         encoding: TaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
@@ -203,7 +203,7 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
             tag_sequence = [
                 "O" if stm else tag
-                for tag, stm in zip(decoded_output["tags"], metadata["special_tokens_mask"])
+                for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
             ]
 
             spans = bio_tags_to_spans(tag_sequence)
@@ -221,7 +221,7 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
             tag_sequence = [
                 "O" if stm else tag
-                for tag, stm in zip(decoded_output["tags"], metadata["special_tokens_mask"])
+                for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
             ]
 
             spans = bio_tags_to_spans(tag_sequence)

@@ -105,7 +105,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
         for encoding, decoded_output in zip(encodings, outputs):
             document = document_mapping[encoding.document]
             for annotation_type, annotation in self.decoded_output_to_annotations(
-                decoded_output=decoded_output, encoding=encoding
+                output=decoded_output, encoding=encoding
             ):
                 document.add_prediction(annotation_type, annotation)
         if not inplace:
@@ -113,7 +113,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
 
     def decoded_output_to_annotations(
         self,
-        decoded_output: DecodedModelOutput,
+        output: DecodedModelOutput,
         encoding: TaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         raise NotImplementedError()

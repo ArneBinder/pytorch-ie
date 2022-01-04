@@ -390,12 +390,12 @@ class TransformerRETextClassificationTaskModule(TaskModule):
 
     def decoded_output_to_annotations(
         self,
-        decoded_output: Dict[str, Any],
+        output: Dict[str, Any],
         encoding: TaskEncoding,
     ) -> None:
         metadata = encoding.metadata
-        labels = decoded_output["labels"]
-        probabilities = decoded_output["probabilities"]
+        labels = output["labels"]
+        probabilities = output["probabilities"]
         heads = metadata["head"]
         tails = metadata["tail"]
 

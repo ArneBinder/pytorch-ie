@@ -190,7 +190,7 @@ class TransformerSpanClassificationTaskModule(TaskModule):
 
     def decoded_output_to_annotations(
         self,
-        decoded_output: Dict[str, Any],
+        output: Dict[str, Any],
         encoding: TaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
@@ -207,7 +207,7 @@ class TransformerSpanClassificationTaskModule(TaskModule):
             # ]
 
             # spans = bio_tags_to_spans(tag_sequence)
-            spans = decoded_output["tags"]
+            spans = output["tags"]
             for label, (start, end) in spans:
                 yield (
                     self.entity_annotation,
@@ -227,7 +227,7 @@ class TransformerSpanClassificationTaskModule(TaskModule):
             # ]
 
             # spans = bio_tags_to_spans(tag_sequence)
-            spans = decoded_output["tags"]
+            spans = output["tags"]
             for label, (start, end) in spans:
                 yield (
                     self.entity_annotation,
