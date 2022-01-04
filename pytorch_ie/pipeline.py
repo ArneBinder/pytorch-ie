@@ -10,7 +10,7 @@ from packaging import version
 from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data.document import Document
+from pytorch_ie.data.document import Document, AnnotationCollection
 from pytorch_ie.taskmodules.taskmodule import TaskModule
 
 logger = logging.getLogger(__name__)
@@ -229,7 +229,7 @@ class Pipeline:
         batch_size: int = 1,
         num_workers: int = 8,
         **kwargs,
-    ) -> Union[Document, List[Document]]:
+    ) -> Union[AnnotationCollection, Dict[Document, AnnotationCollection]]:
         if args:
             logger.warning(f"Ignoring args : {args}")
         preprocess_params, forward_params, postprocess_params = self._sanitize_parameters(**kwargs)
@@ -268,7 +268,10 @@ class Pipeline:
                 processed_output = self.postprocess(output, **postprocess_params)
                 outputs.extend(processed_output)
 
-        annotated_documents = self.taskmodule.combine(encodings=dataset, decoded_outputs=outputs, documents=documents)
+        # this produces a mapping from input documents to actual predictions
+        predictions = self.taskmodule.combine(encodings=dataset, decoded_outputs=outputs)
+        # TODO: or copy all documents and set their predictions? (could easily be done here)
         if single_document:
-            annotated_documents = annotated_documents[0]
-        return annotated_documents
+            return predictions[documents[0]]
+        else:
+            return predictions
