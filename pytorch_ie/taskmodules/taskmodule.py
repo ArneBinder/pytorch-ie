@@ -97,21 +97,20 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     def combine(
         self,
         encodings: List[TaskEncoding],
-        decoded_outputs: List[DecodedModelOutput],
-    ) -> Dict[Document, AnnotationCollection]:
-        predictions = {}
-        for encoding, decoded_output in zip(encodings, decoded_outputs):
-            if encoding.document not in predictions:
-                predictions[encoding.document] = {}
+        outputs: List[DecodedModelOutput],
+        input_documents: List[Document],
+        inplace: bool,
+    ) -> Optional[List[Document]]:
+        document_mapping = {d: d if inplace else copy.deepcopy(d) for d in input_documents}
+        for encoding, decoded_output in zip(encodings, outputs):
+            document = document_mapping[encoding.document]
             for annotation_type, annotation in self.decoded_output_to_annotations(
                 decoded_output=decoded_output, encoding=encoding
             ):
-                if annotation_type not in predictions[encoding.document]:
-                    predictions[encoding.document][annotation_type] = []
-                predictions[encoding.document][annotation_type].append(annotation)
-        return predictions
+                document.add_prediction(annotation_type, annotation)
+        if not inplace:
+            return list(document_mapping.values())
 
-    @abstractmethod
     def decoded_output_to_annotations(
         self,
         decoded_output: DecodedModelOutput,
