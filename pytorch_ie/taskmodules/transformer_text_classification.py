@@ -166,10 +166,10 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
     def decoded_output_to_annotations(
         self,
-        decoded_output: Dict[str, Any],
+        output: Dict[str, Any],
         encoding: TaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
-        for labels, probabilities in zip(decoded_output["labels"], decoded_output["probabilities"]):
+        for labels, probabilities in zip(output["labels"], output["probabilities"]):
             yield (
                 self.annotation,
                 Label(
