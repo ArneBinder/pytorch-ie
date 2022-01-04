@@ -388,34 +388,32 @@ class TransformerRETextClassificationTaskModule(TaskModule):
 
         return decoded_output
 
-    def combine(
+    def decoded_output_to_annotations(
         self,
-        encodings: List[TaskEncoding],
-        outputs: List[Dict[str, Any]],
+        decoded_output: Dict[str, Any],
+        encoding: TaskEncoding,
     ) -> None:
-        for encoding, output in zip(encodings, outputs):
-            document = encoding.document
-            metadata = encoding.metadata
-            labels = output["labels"]
-            probabilities = output["probabilities"]
-            heads = metadata["head"]
-            tails = metadata["tail"]
+        metadata = encoding.metadata
+        labels = decoded_output["labels"]
+        probabilities = decoded_output["probabilities"]
+        heads = metadata["head"]
+        tails = metadata["tail"]
 
-            if self.multi_label:
-                raise NotImplementedError
+        if self.multi_label:
+            raise NotImplementedError
 
-            else:
-                for head, tail, label, probability in zip(heads, tails, labels, probabilities):
-                    if label != "no_relation":
-                        document.add_prediction(
-                            self.relation_annotation,
-                            BinaryRelation(
-                                head=head,
-                                tail=tail,
-                                label=label,
-                                score=probability,
-                            ),
-                        )
+        else:
+            for head, tail, label, probability in zip(heads, tails, labels, probabilities):
+                if label != "no_relation":
+                    yield (
+                        self.relation_annotation,
+                        BinaryRelation(
+                            head=head,
+                            tail=tail,
+                            label=label,
+                            score=probability,
+                        ),
+                    )
 
     def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
         input_features = [encoding.input for encoding in encodings]

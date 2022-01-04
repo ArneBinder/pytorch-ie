@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
 
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Document, LabeledSpan
+from pytorch_ie.data.document import Document, LabeledSpan, Annotation
 from pytorch_ie.data.span_utils import bio_tags_to_spans
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
@@ -188,55 +188,52 @@ class TransformerTokenClassificationTaskModule(TaskModule):
         tags = [[self.id_to_label[e] for e in b] for b in indices]
         return [{"tags": t, "probabilities": p} for t, p in zip(tags, probabilities)]
 
-    def combine(
+    def decoded_output_to_annotations(
         self,
-        encodings: List[TaskEncoding],
-        outputs: List[Dict[str, Any]],
-    ) -> None:
+        decoded_output: Dict[str, Any],
+        encoding: TaskEncoding,
+    ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
-            for encoding, output in zip(encodings, outputs):
-                document = encoding.document
-                metadata = encoding.metadata
+            document = encoding.document
+            metadata = encoding.metadata
 
-                sentence = document.annotations(self.sentence_annotation)[
-                    metadata["sentence_index"]
-                ]
+            sentence = document.annotations(self.sentence_annotation)[
+                metadata["sentence_index"]
+            ]
 
-                tag_sequence = [
-                    "O" if stm else tag
-                    for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-                ]
+            tag_sequence = [
+                "O" if stm else tag
+                for tag, stm in zip(decoded_output["tags"], metadata["special_tokens_mask"])
+            ]
 
-                spans = bio_tags_to_spans(tag_sequence)
-                for label, (start, end) in spans:
-                    document.add_prediction(
-                        self.entity_annotation,
-                        LabeledSpan(
-                            sentence.start + metadata["offset_mapping"][start][0],
-                            sentence.start + metadata["offset_mapping"][end][1],
-                            label,
-                        ),
-                    )
+            spans = bio_tags_to_spans(tag_sequence)
+            for label, (start, end) in spans:
+                yield (
+                    self.entity_annotation,
+                    LabeledSpan(
+                        sentence.start + metadata["offset_mapping"][start][0],
+                        sentence.start + metadata["offset_mapping"][end][1],
+                        label,
+                    ),
+                )
         else:
-            for encoding, output in zip(encodings, outputs):
-                document = encoding.document
-                metadata = encoding.metadata
+            metadata = encoding.metadata
 
-                tag_sequence = [
-                    "O" if stm else tag
-                    for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-                ]
+            tag_sequence = [
+                "O" if stm else tag
+                for tag, stm in zip(decoded_output["tags"], metadata["special_tokens_mask"])
+            ]
 
-                spans = bio_tags_to_spans(tag_sequence)
-                for label, (start, end) in spans:
-                    document.add_prediction(
-                        self.entity_annotation,
-                        LabeledSpan(
-                            metadata["offset_mapping"][start][0],
-                            metadata["offset_mapping"][end][1],
-                            label,
-                        ),
-                    )
+            spans = bio_tags_to_spans(tag_sequence)
+            for label, (start, end) in spans:
+                yield (
+                    self.entity_annotation,
+                    LabeledSpan(
+                        metadata["offset_mapping"][start][0],
+                        metadata["offset_mapping"][end][1],
+                        label,
+                    ),
+                )
 
     def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
         input_features = [encoding.input for encoding in encodings]
