@@ -229,7 +229,7 @@ class Pipeline:
         batch_size: int = 1,
         num_workers: int = 8,
         **kwargs,
-    ):
+    ) -> Union[Document, List[Document]]:
         if args:
             logger.warning(f"Ignoring args : {args}")
         preprocess_params, forward_params, postprocess_params = self._sanitize_parameters(**kwargs)
@@ -246,7 +246,9 @@ class Pipeline:
                 UserWarning,
             )
 
+        single_document = False
         if isinstance(documents, Document):
+            single_document = True
             documents = [documents]
 
         dataset = self.preprocess(documents, **preprocess_params)
@@ -266,4 +268,7 @@ class Pipeline:
                 processed_output = self.postprocess(output, **postprocess_params)
                 outputs.extend(processed_output)
 
-        self.taskmodule.combine(dataset, outputs)
+        annotated_documents = self.taskmodule.combine(encodings=dataset, decoded_outputs=outputs, documents=documents)
+        if single_document:
+            annotated_documents = annotated_documents[0]
+        return annotated_documents
