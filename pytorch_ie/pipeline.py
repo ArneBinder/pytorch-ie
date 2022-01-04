@@ -10,7 +10,7 @@ from packaging import version
 from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data.document import Document, AnnotationCollection
+from pytorch_ie.data.document import Document
 from pytorch_ie.taskmodules.taskmodule import TaskModule
 
 logger = logging.getLogger(__name__)
@@ -269,7 +269,6 @@ class Pipeline:
                 processed_output = self.postprocess(output, **postprocess_params)
                 outputs.extend(processed_output)
 
-        # this produces a mapping from input documents to actual predictions
         documents = self.taskmodule.combine(
             encodings=dataset, outputs=outputs, input_documents=documents, inplace=inplace
         )
