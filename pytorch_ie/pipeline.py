@@ -228,8 +228,9 @@ class Pipeline:
         *args,
         batch_size: int = 1,
         num_workers: int = 8,
+        inplace: bool = True,
         **kwargs,
-    ) -> Union[AnnotationCollection, Dict[Document, AnnotationCollection]]:
+    ) -> Union[Document, List[Document]]:
         if args:
             logger.warning(f"Ignoring args : {args}")
         preprocess_params, forward_params, postprocess_params = self._sanitize_parameters(**kwargs)
@@ -269,9 +270,11 @@ class Pipeline:
                 outputs.extend(processed_output)
 
         # this produces a mapping from input documents to actual predictions
-        predictions = self.taskmodule.combine(encodings=dataset, decoded_outputs=outputs)
-        # TODO: or copy all documents and set their predictions? (could easily be done here)
-        if single_document:
-            return predictions[documents[0]]
-        else:
-            return predictions
+        documents = self.taskmodule.combine(
+            encodings=dataset, outputs=outputs, input_documents=documents, inplace=inplace
+        )
+        if not inplace:
+            if single_document:
+                return documents[0]
+            else:
+                return documents
