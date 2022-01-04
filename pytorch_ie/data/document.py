@@ -138,3 +138,8 @@ class Document:
 
     def __repr__(self) -> str:
         return f"Document(text={self.text}, annotations={self._annotations}, predictions={self._predictions}, metadata={self.metadata})"
+
+
+# just for now as types
+AnnotationLayer = List[Annotation]
+AnnotationCollection = Dict[str, List[Annotation]]
