@@ -96,16 +96,16 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
 
     def combine(
         self,
-        encodings: List[TaskEncoding],
+        inputs: List[TaskEncoding],
         outputs: List[DecodedModelOutput],
-        input_documents: List[Document],
+        documents: List[Document],
         inplace: bool,
     ) -> Optional[List[Document]]:
-        document_mapping = {d: d if inplace else copy.deepcopy(d) for d in input_documents}
-        for encoding, decoded_output in zip(encodings, outputs):
-            document = document_mapping[encoding.document]
+        document_mapping = {d: d if inplace else copy.deepcopy(d) for d in documents}
+        for model_input, model_output in zip(inputs, outputs):
+            document = document_mapping[model_input.document]
             for annotation_type, annotation in self.decoded_output_to_annotations(
-                output=decoded_output, encoding=encoding
+                output=model_output, encoding=model_input
             ):
                 document.add_prediction(annotation_type, annotation)
         if not inplace:
