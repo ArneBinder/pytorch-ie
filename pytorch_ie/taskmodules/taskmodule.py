@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
-from pytorch_ie.data.document import Document, Annotation
+from pytorch_ie.data.document import Document, Annotation, AnnotationCollection
 
 InputEncoding = Dict[str, Any]
 Metadata = Dict[str, Any]
@@ -98,18 +98,18 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
         self,
         encodings: List[TaskEncoding],
         decoded_outputs: List[DecodedModelOutput],
-        # documents is required to maintain the original order
-        # (an alternative would be to return a dict: original doc -> doc with predictions)
-        documents: List[Document],
-    ) -> List[Document]:
-        document_mapping = {d: copy.deepcopy(d) for d in documents}
+    ) -> Dict[Document, AnnotationCollection]:
+        predictions = {}
         for encoding, decoded_output in zip(encodings, decoded_outputs):
-            document = document_mapping[encoding.document]
+            if encoding.document not in predictions:
+                predictions[encoding.document] = {}
             for annotation_type, annotation in self.decoded_output_to_annotations(
                 decoded_output=decoded_output, encoding=encoding
             ):
-                document.add_prediction(annotation_type, annotation)
-        return [document_mapping[d] for d in documents]
+                if annotation_type not in predictions[encoding.document]:
+                    predictions[encoding.document][annotation_type] = []
+                predictions[encoding.document][annotation_type].append(annotation)
+        return predictions
 
     @abstractmethod
     def decoded_output_to_annotations(
