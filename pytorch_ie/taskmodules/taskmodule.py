@@ -98,13 +98,18 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
         self,
         encodings: List[TaskEncoding],
         decoded_outputs: List[DecodedModelOutput],
-    ) -> None:
+        # documents is required to maintain the original order
+        # (an alternative would be to return a dict: original doc -> doc with predictions)
+        documents: List[Document],
+    ) -> List[Document]:
+        document_mapping = {d: copy.deepcopy(d) for d in documents}
         for encoding, decoded_output in zip(encodings, decoded_outputs):
-            document = encoding.document
+            document = document_mapping[encoding.document]
             for annotation_type, annotation in self.decoded_output_to_annotations(
                 decoded_output=decoded_output, encoding=encoding
             ):
                 document.add_prediction(annotation_type, annotation)
+        return [document_mapping[d] for d in documents]
 
     @abstractmethod
     def decoded_output_to_annotations(
