@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 
 class Annotation:
@@ -75,6 +75,25 @@ class LabeledSpan(Annotation):
 
     @classmethod
     def from_dict(cls, dct: Dict[str, Any]) -> "LabeledSpan":
+        return cls(**dct)
+
+
+class LabeledMultiSpan(Annotation):
+    def __init__(
+        self,
+        slices: List[Tuple[int, int]],
+        label: Union[str, List[str]],
+        score: Optional[Union[float, List[float]]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(label=label, score=score, metadata=metadata)
+        self.slices = slices
+
+    def __repr__(self) -> str:
+        return f"LabeledMultiSpan(slices={self.slices}, label={self.label}, metadata={self.metadata})"
+
+    @classmethod
+    def from_dict(cls, dct: Dict[str, Any]) -> "LabeledMultiSpan":
         return cls(**dct)
 
 
