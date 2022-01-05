@@ -87,19 +87,28 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     ) -> List[TargetEncoding]:
         raise NotImplementedError()
 
-    def decode(self, output: ModelOutput) -> List[DecodedModelOutput]:
-        return self.decode_output(output)
+    #def decode(self, output: ModelOutput) -> List[DecodedModelOutput]:
+    #    return self.decode_output(output)
 
     @abstractmethod
-    def decode_output(self, output: ModelOutput) -> List[DecodedModelOutput]:
+    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
+        outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the
+        same length as all model inputs.
+        """
         raise NotImplementedError()
 
-    def combine(
+    def decode(
         self,
         encodings: List[TaskEncoding],
         decoded_outputs: List[DecodedModelOutput],
         inplace: bool = True,
     ) -> List[Document]:
+        """
+        This method takes the model inputs and (unbatched) model outputs and creates a list of documents that hold the
+        new annotations created from model predictions.
+        """
         if not inplace:
             copied_documents: Dict[Document, Document] = {}
             copied_encodings: List[TaskEncoding] = []
@@ -136,10 +145,10 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
         encoding: TaskEncoding,
         output: ModelOutput,
     ):
-        for annotation_name, annotation in self.decoded_output_to_annotations(encoding=encoding, output=output):
+        for annotation_name, annotation in self.create_annotations_from_output(encoding=encoding, output=output):
             encoding.document.add_prediction(name=annotation_name, prediction=annotation)
 
-    def decoded_output_to_annotations(
+    def create_annotations_from_output(
         self,
         encoding: TaskEncoding,
         output: DecodedModelOutput,
