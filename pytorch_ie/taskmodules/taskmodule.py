@@ -96,25 +96,53 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
 
     def combine(
         self,
-        inputs: List[TaskEncoding],
-        outputs: List[DecodedModelOutput],
-        documents: List[Document],
-        inplace: bool,
+        encodings: List[TaskEncoding],
+        decoded_outputs: List[DecodedModelOutput],
+        inplace: bool = True,
     ) -> Optional[List[Document]]:
-        document_mapping = {d: d if inplace else copy.deepcopy(d) for d in documents}
-        for model_input, model_output in zip(inputs, outputs):
-            document = document_mapping[model_input.document]
-            for annotation_type, annotation in self.decoded_output_to_annotations(
-                output=model_output, encoding=model_input
-            ):
-                document.add_prediction(annotation_type, annotation)
+        all_documents = None
         if not inplace:
-            return list(document_mapping.values())
+            copied_documents: Dict[Document, Document] = {}
+            copied_encodings: List[TaskEncoding] = []
+            for encoding in encodings:
+                if encoding.document not in copied_documents:
+                    copied_documents[encoding.document] = copy.deepcopy(encoding.document)
+
+                copied_encodings.append(
+                    TaskEncoding(
+                        input=encoding.input,
+                        document=copied_documents[encoding.document],
+                        target=encoding.target,
+                        metadata=encoding.metadata,
+                    )
+                )
+            all_documents = list(copied_documents.values())
+            encodings = copied_encodings
+
+        self.combine_outputs(encodings, decoded_outputs)
+        if not inplace:
+            return all_documents
+
+    def combine_outputs(
+        self,
+        encodings: List[TaskEncoding],
+        outputs: List[ModelOutput],
+    ):
+        for encoding, output in zip(encodings, outputs):
+            self.combine_output(encoding=encoding, output=output)
+
+    def combine_output(
+        self,
+        encoding: TaskEncoding,
+        output: ModelOutput,
+    ):
+        for annotation_name, annotation in self.decoded_output_to_annotations(encoding=encoding, output=output):
+            encoding.document.add_prediction(name=annotation_name, prediction=annotation)
 
     def decoded_output_to_annotations(
         self,
-        output: DecodedModelOutput,
         encoding: TaskEncoding,
+        output: DecodedModelOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         raise NotImplementedError()
 

@@ -279,10 +279,9 @@ class Pipeline:
             f'length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]'
 
         # This creates annotations from the model outputs and attaches them to the correct documents.
+        # IMPORTANT: This does not return the documents in the same order as the input documents!
         # TODO: Should be named to postprocess and internally call taskmodule.decode (has to be implemented/adapted)
-        documents = self.taskmodule.combine(
-            inputs=model_inputs, outputs=model_outputs, documents=documents, inplace=inplace
-        )
+        documents = self.taskmodule.combine(encodings=model_inputs, decoded_outputs=model_outputs, inplace=inplace)
         if not inplace:
             if single_document:
                 return documents[0]
