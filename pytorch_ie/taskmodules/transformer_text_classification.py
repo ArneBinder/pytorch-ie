@@ -128,7 +128,7 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
         return target
 
-    def decode_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -164,7 +164,7 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
         return decoded_output
 
-    def decoded_output_to_annotations(
+    def create_annotations_from_output(
         self,
         output: Dict[str, Any],
         encoding: TaskEncoding,
