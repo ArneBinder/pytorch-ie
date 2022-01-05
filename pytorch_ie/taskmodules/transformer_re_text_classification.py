@@ -369,7 +369,7 @@ class TransformerRETextClassificationTaskModule(TaskModule):
 
         return target
 
-    def decode_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)

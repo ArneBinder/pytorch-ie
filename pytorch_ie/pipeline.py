@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.document import Document
-from pytorch_ie.taskmodules.taskmodule import TaskModule, TaskEncoding
+from pytorch_ie.taskmodules.taskmodule import TaskModule, TaskEncoding, DecodedModelOutput
 
 logger = logging.getLogger(__name__)
 
@@ -195,13 +195,16 @@ class Pipeline:
         """
         return self.model(input_tensors[0])
 
-    def postprocess(self, model_outputs: Dict, **postprocess_parameters: Dict) -> Any:
+    def postprocess(self, model_inputs: List[TaskEncoding], model_outputs: List[DecodedModelOutput],
+                    **postprocess_parameters: Dict) -> Any:
         """
-        Postprocess will receive the raw outputs of the `_forward` method, generally tensors, and reformat them into
+        Postprocess will receive the model inputs and (unbatched) model outputs, and reformat them into
         something more friendly. Generally it will output a list or a dict or results (containing just strings and
         numbers).
         """
-        return self.taskmodule.decode_output(model_outputs)
+        # This creates annotations from the model outputs and attaches them to the correct documents.
+        # IMPORTANT: This does not return the documents in the same order as the input documents!
+        return self.taskmodule.decode(encodings=model_inputs, decoded_outputs=model_outputs, **postprocess_parameters)
 
     def get_inference_context(self):
         inference_context = (
@@ -254,7 +257,6 @@ class Pipeline:
 
         # This creates encodings from the documents. It modifies the documents and may produce multiple entries per
         # document.
-        # (Calls: self.taskmodule.encode(documents, encode_target=False))
         model_inputs = self.preprocess(documents, **preprocess_params)
 
         dataloader = DataLoader(
@@ -271,17 +273,12 @@ class Pipeline:
                 output = self.forward(batch, **forward_params)
                 # converts: dict of lists -> list of dicts. This ensures that model_outputs will have the same length
                 # as model_inputs.
-                # (calls: self.taskmodule.decode_output(model_outputs))
-                # TODO: Should directly call self.taskmodule.decode_output(model_outputs).
-                processed_output = self.postprocess(output, **postprocess_params)
+                processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
         assert len(model_inputs) == len(model_outputs), \
             f'length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]'
 
-        # This creates annotations from the model outputs and attaches them to the correct documents.
-        # IMPORTANT: This does not return the documents in the same order as the input documents!
-        # TODO: Should be named to postprocess and internally call taskmodule.decode (has to be implemented/adapted)
-        documents = self.taskmodule.combine(encodings=model_inputs, decoded_outputs=model_outputs, inplace=inplace)
+        documents = self.postprocess(model_inputs=model_inputs, model_outputs=model_outputs, **postprocess_params)
         if not inplace:
             if single_document:
                 return documents[0]

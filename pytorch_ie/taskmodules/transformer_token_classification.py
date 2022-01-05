@@ -181,7 +181,7 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
         return target
 
-    def decode_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()

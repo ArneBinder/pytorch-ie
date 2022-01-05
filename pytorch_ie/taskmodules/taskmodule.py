@@ -87,19 +87,18 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     ) -> List[TargetEncoding]:
         raise NotImplementedError()
 
-    def decode(self, output: ModelOutput) -> List[DecodedModelOutput]:
-        return self.decode_output(output)
-
     @abstractmethod
-    def decode_output(self, output: ModelOutput) -> List[DecodedModelOutput]:
+    def unbatch_output(self, output: ModelOutput) -> List[DecodedModelOutput]:
         raise NotImplementedError()
 
-    def combine(
+    def decode(
         self,
         encodings: List[TaskEncoding],
         decoded_outputs: List[DecodedModelOutput],
         inplace: bool = True,
     ) -> Optional[List[Document]]:
+        assert len(encodings) == len(decoded_outputs), \
+            f'number of encodings [{len(encodings)}] has to match number of decoded_outputs [{len(decoded_outputs)}]'
         all_documents = None
         if not inplace:
             copied_documents: Dict[Document, Document] = {}

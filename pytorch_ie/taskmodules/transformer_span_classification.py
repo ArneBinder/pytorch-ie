@@ -166,7 +166,7 @@ class TransformerSpanClassificationTaskModule(TaskModule):
 
         return target
 
-    def decode_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
         logits = output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
