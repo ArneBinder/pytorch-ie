@@ -100,7 +100,6 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
         decoded_outputs: List[DecodedModelOutput],
         inplace: bool = True,
     ) -> List[Document]:
-        all_documents = None
         if not inplace:
             copied_documents: Dict[Document, Document] = {}
             copied_encodings: List[TaskEncoding] = []
@@ -118,6 +117,8 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
                 )
             all_documents = list(copied_documents.values())
             encodings = copied_encodings
+        else:
+            all_documents = list(set((encoding.document for encoding in encodings)))
 
         self.combine_outputs(encodings, decoded_outputs)
         return all_documents
