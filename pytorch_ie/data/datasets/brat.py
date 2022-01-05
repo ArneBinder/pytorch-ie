@@ -4,6 +4,7 @@ from typing import List, Dict, Optional, Any
 from datasets import load_dataset, Dataset
 
 from pytorch_ie import Document
+from pytorch_ie.data.datasets import HF_DATASETS_ROOT
 from pytorch_ie.data.document import LabeledMultiSpan, BinaryRelation, LabeledSpan
 
 
@@ -77,10 +78,8 @@ def convert_brat_dataset_to_documents(
 def load_brat(
     train_test_split: Optional[Dict[str, Any]] = None, conversion_kwargs: Dict[str, Any] = {}, **kwargs
 ) -> Dict[str, List[Document]]:
-    current_dir = dirname(abspath(__file__))
-    brat_script_path = join(current_dir, 'hf_datasets', 'brat.py')
     # This will create a DatasetDict with a single split "train"
-    data = load_dataset(path=brat_script_path, **kwargs)
+    data = load_dataset(path=HF_DATASETS_ROOT / "brat.py", **kwargs)
     if train_test_split is not None:
         data = data["train"].train_test_split(**train_test_split)
 
