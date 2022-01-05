@@ -13,69 +13,80 @@ def has_overlap(span1: LabeledSpan, span2: LabeledSpan) -> bool:
     return span1.start <= span2.start < span1.end or span1.start < span2.end <= span1.end
 
 
-def get_sections(
+def get_partitions_with_regex(
     doc: Document,
-    section_pattern: str = r"<([^>/]+)>.*</\1>",
-    section_label_whitelist: Optional[List[str]] = None,
+    split_pattern: str,  # = r"<([^>/]+)>.*</\1>",
+    label_group_id: Optional[int] = None,  # = 1,
+    label_whitelist: Optional[List[str]] = None,
+    skip_initial_partition: bool = False,  # = True
 ) -> Iterator[LabeledSpan]:
     """
-    Spans are created starting with the first matching entry end ending with the start of the next matching one or
-    the end of the document. Entries with xml node names that are not in section_label_whitelist, if it is set, will
+    Spans are created starting with the beginning of matching entries end ending with the start of the next matching
+    one or the end of the document. Entries with xml node names that are not in label_whitelist, if it is set, will
     not be considered as match, i.e. their content will be added to the previous matching entry.
+    If label_group_id is set, the content of the respective match group will be taken as label. Otherwise, it is set to
+    None. If the flag skip_initial_partition is enabled, the content before the first match is not added as a partition.
+    Note that the initial partition will get None as label since no matched element is available.
     """
-    previous_start = previous_header_type = previous_header_text = None
-    for match in re.finditer(pattern=section_pattern, string=doc.text):
-        header_type = doc.text[match.start(1): match.end(1)]
-        if section_label_whitelist is None or header_type in section_label_whitelist:
+    previous_start = previous_label = previous_match_text = None
+    if not skip_initial_partition:
+        previous_start = 0
+    for match in re.finditer(pattern=split_pattern, string=doc.text):
+        if label_group_id is not None:
+            label = doc.text[match.start(label_group_id): match.end(label_group_id)]
+        else:
+            label = None
+        if label_whitelist is None or label in label_whitelist:
             if previous_start is not None:
                 end = match.start()
                 span = LabeledSpan(
-                    start=previous_start, end=end, label=previous_header_type,
-                    metadata={"text": doc.text[previous_start:end], "header_text": previous_header_text}
+                    start=previous_start, end=end, label=previous_label,
+                    metadata={"text": doc.text[previous_start:end], "header_text": previous_match_text}
                 )
                 yield span
 
-            previous_header_text = doc.text[match.start(): match.end()]
-            previous_header_type = header_type
+            previous_match_text = doc.text[match.start(): match.end()]
+            previous_label = label
             previous_start = match.start()
 
     if previous_start is not None:
         end = len(doc.text)
         span = LabeledSpan(
-            start=previous_start, end=end, label=previous_header_type,
-            metadata={"text": doc.text[previous_start:end], "header_text": previous_header_text}
+            start=previous_start, end=end, label=previous_label,
+            metadata={"text": doc.text[previous_start:end], "header_text": previous_match_text}
         )
         yield span
 
 
-def annotate_with_sections(
-    doc: Document, section_label_whitelist: Optional[List[str]] = None, section_label_stats: Optional[Counter] = None
+def annotate_document_with_partitions(
+    doc: Document,
+    annotation_name: str,
+    label_stats: Optional[Counter] = None,
+    **kwargs,
 ):
-    sections_for_doc = []
-    for section in get_sections(doc, section_label_whitelist=section_label_whitelist):
-        for s in sections_for_doc:
-            if has_overlap(s, section):
-                print(f'WARNING: overlap: {section} with {s}')
-        if section_label_stats is not None:
-            section_label_stats[section.label] += 1
-        doc.add_annotation(name="sections", annotation=section)
-        sections_for_doc.append(section)
-    return sections_for_doc
+    partitions_for_doc = []
+    for partition in get_partitions_with_regex(doc, **kwargs):
+        for s in partitions_for_doc:
+            if has_overlap(s, partition):
+                print(f'WARNING: overlap: {partition} with {s}')
+        if label_stats is not None:
+            label_stats[partition.label] += 1
+        doc.add_annotation(name=annotation_name, annotation=partition)
+        partitions_for_doc.append(partition)
+    return partitions_for_doc
 
 
-def annotate_dataset_with_sections(
+def annotate_dataset_with_partitions(
     dataset: Dataset,
-    section_label_whitelist: Optional[List[str]] = ["Title", "Abstract", "H1"],
     inplace: bool = True,
+    **kwargs
 ):
     if not inplace:
         dataset = copy.deepcopy(dataset)
-    section_label_stats = Counter()
+    partition_label_stats = Counter()
     for doc in dataset:
-        annotate_with_sections(
-            doc=doc, section_label_whitelist=section_label_whitelist, section_label_stats=section_label_stats
-        )
-    print(f'identified sections: {section_label_stats}')
+        annotate_document_with_partitions(doc=doc, label_stats=partition_label_stats, **kwargs)
+    print(f'identified partitions: {partition_label_stats}')
     if not inplace:
         return dataset
 
