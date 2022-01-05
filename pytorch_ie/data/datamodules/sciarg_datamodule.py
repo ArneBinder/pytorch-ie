@@ -1,3 +1,4 @@
+import re
 from functools import partial
 from typing import Optional
 
@@ -15,7 +16,7 @@ class SciargDataModule(DataModule):
                 annotate_dataset_with_partitions,
                 annotation_name="sections",
                 label_whitelist=["Title", "Abstract", "H1"],
-                split_pattern=r"<([^>/]+)>.*</\1>",
+                matcher=lambda text: re.finditer(pattern=r"<([^>/]+)>.*</\1>", string=text),
                 label_group_id=1,
                 skip_initial_partition=True,
             ),
