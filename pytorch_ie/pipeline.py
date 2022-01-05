@@ -282,8 +282,7 @@ class Pipeline:
         # IMPORTANT: This does not return the documents in the same order as the input documents!
         # TODO: Should be named to postprocess and internally call taskmodule.decode (has to be implemented/adapted)
         documents = self.taskmodule.combine(encodings=model_inputs, decoded_outputs=model_outputs, inplace=inplace)
-        if not inplace:
-            if single_document:
-                return documents[0]
-            else:
-                return documents
+        if single_document:
+            return documents[0]
+        else:
+            return documents
