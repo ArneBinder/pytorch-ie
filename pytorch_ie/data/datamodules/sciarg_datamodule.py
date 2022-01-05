@@ -17,7 +17,7 @@ class SciargDataModule(DataModule):
                 label_whitelist=["Title", "Abstract", "H1"],
                 split_pattern=r"<([^>/]+)>.*</\1>",
                 label_group_id=1,
-                #skip_initial_partition=True,
+                skip_initial_partition=True,
             ),
             **kwargs
         )
