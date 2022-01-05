@@ -17,13 +17,12 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Install dependencies with pipenv
+      - name: Install dependencies with poetry
         run: |
-          pip install pipenv
-          pipenv install --deploy --dev
+          pip install poetry
+          poetry install
 
-      - run: pipenv run isort --recursive --diff .
-      - run: pipenv run black --check .
-      - run: pipenv run flake8
-      - run: pipenv run mypy
-      - run: pipenv run pytest --cov --cov-fail-under=100
+      - run: poetry run isort --recursive --diff .
+      - run: poetry run black --check .
+      - run: poetry run mypy
+      - run: poetry run pytest --cov --cov-fail-under=100
