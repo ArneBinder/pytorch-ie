@@ -79,7 +79,7 @@ def load_brat(
     train_test_split: Optional[Dict[str, Any]] = None, conversion_kwargs: Dict[str, Any] = {}, **kwargs
 ) -> Dict[str, List[Document]]:
     # This will create a DatasetDict with a single split "train"
-    data = load_dataset(path=HF_DATASETS_ROOT / "brat.py", **kwargs)
+    data = load_dataset(path=str(HF_DATASETS_ROOT / "brat.py"), **kwargs)
     if train_test_split is not None:
         data = data["train"].train_test_split(**train_test_split)
 
