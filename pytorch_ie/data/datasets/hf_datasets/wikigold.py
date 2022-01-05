@@ -61,9 +61,7 @@ class WikiGold(datasets.GeneratorBasedBuilder):
                     "id": datasets.Value("string"),
                     "tokens": datasets.features.Sequence(datasets.Value("string")),
                     "ner_tags": datasets.features.Sequence(
-                        datasets.features.ClassLabel(
-                            names=["O", "PER", "LOC", "ORG", "MISC"]
-                        )
+                        datasets.features.ClassLabel(names=["O", "PER", "LOC", "ORG", "MISC"])
                     ),
                 }
             ),

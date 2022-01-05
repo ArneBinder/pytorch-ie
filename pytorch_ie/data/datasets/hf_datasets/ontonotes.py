@@ -1,7 +1,7 @@
 import os
+
 import datasets
 from tqdm import tqdm
-
 
 _CITATION = """
 """
@@ -10,7 +10,9 @@ _DESCRIPTION = """
 OntoNotes 5.0
 """
 
-_URL = "https://cloud.dfki.de/owncloud/index.php/s/S8pB4xTBZ3zQEic/download/OntoNotes-5.0-NER-BIO.zip"
+_URL = (
+    "https://cloud.dfki.de/owncloud/index.php/s/S8pB4xTBZ3zQEic/download/OntoNotes-5.0-NER-BIO.zip"
+)
 
 _LICENCE = "LDC User Agreement for Non-Members"
 
@@ -107,15 +109,11 @@ class OntoNotes(datasets.GeneratorBasedBuilder):
             ),
             datasets.SplitGenerator(
                 name=datasets.Split.VALIDATION,
-                gen_kwargs={
-                    "filepath": os.path.join(urls_to_download, "onto.development.ner")
-                },
+                gen_kwargs={"filepath": os.path.join(urls_to_download, "onto.development.ner")},
             ),
             datasets.SplitGenerator(
                 name=datasets.Split.TEST,
-                gen_kwargs={
-                    "filepath": os.path.join(urls_to_download, "onto.test.ner")
-                },
+                gen_kwargs={"filepath": os.path.join(urls_to_download, "onto.test.ner")},
             ),
         ]
 

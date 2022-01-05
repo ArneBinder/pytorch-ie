@@ -7,7 +7,6 @@ import os
 
 import datasets
 
-
 _CITATION = """\
 @inproceedings{zhang-etal-2017-position,
     title = "Position-aware Attention and Supervised Data Improve Slot Filling",
@@ -109,7 +108,7 @@ _CLASS_LABELS = [
 
 
 def convert_ptb_token(token: str) -> str:
-    """ Convert PTB tokens to normal tokens """
+    """Convert PTB tokens to normal tokens"""
     return {
         "-lrb-": "(",
         "-rrb-": ")",
@@ -234,7 +233,7 @@ class TACRED(datasets.GeneratorBasedBuilder):
         ]
 
     def _generate_examples(self, filepath, patch_filepath):
-        """ Yields examples. """
+        """Yields examples."""
         # TODO: This method will receive as arguments the `gen_kwargs` defined in the previous `_split_generators` method.
         # It is in charge of opening the given file and yielding (key, example) tuples from the dataset
         # The key is not important, it's more here for legacy reason (legacy from tfds)

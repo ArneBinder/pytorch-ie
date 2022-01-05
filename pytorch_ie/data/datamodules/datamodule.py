@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Callable
+from typing import Callable, List, Optional
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
@@ -53,11 +53,7 @@ class DataModule(LightningDataModule):
     def num_train(self) -> int:
         return self.train_val_split[0]
 
-    def setup(
-        self,
-        stage: Optional[str] = None,
-        **kwargs
-    ):
+    def setup(self, stage: Optional[str] = None, **kwargs):
         if self.config_path is not None:
             load_kwargs = json.load(open(self.config_path))
             load_kwargs.update(kwargs)
@@ -79,7 +75,9 @@ class DataModule(LightningDataModule):
             elif split == "test":
                 self.data_test = self.task_module.encode(data, encode_target=True)
             else:
-                raise ValueError(f'Unknowns split identifier: "{split}". Use one of "train", "val", or "test".')
+                raise ValueError(
+                    f'Unknowns split identifier: "{split}". Use one of "train", "val", or "test".'
+                )
 
     def train_dataloader(self):
         return DataLoader(

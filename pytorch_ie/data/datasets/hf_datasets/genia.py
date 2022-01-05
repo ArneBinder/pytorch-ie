@@ -133,10 +133,7 @@ _DATA_URLs = {
     # "test": "http://www.nactem.ac.uk/GENIA/current/GENIA-corpus/Relation/GENIA_relation_annotation_test_data.tar.gz"
 }
 # TODO: Add class labels
-_CLASS_LABELS = [
-    "Subunit-Complex",
-    "Protein-Component"
-]
+_CLASS_LABELS = ["Subunit-Complex", "Protein-Component"]
 
 
 class Genia(datasets.GeneratorBasedBuilder):
@@ -197,7 +194,7 @@ class Genia(datasets.GeneratorBasedBuilder):
         ]
 
     def _generate_examples(self, filepath):
-        """ Yields examples. """
+        """Yields examples."""
         doc_ids, list_of_files = self._get_doc_ids_and_file_paths(filepath)
         processed_docs = self._get_processed_docs(doc_ids, list_of_files)
 
@@ -266,8 +263,10 @@ class Genia(datasets.GeneratorBasedBuilder):
             ssplit = True
         except OSError as e:
             print(e)
-            print("You have to download the model first to enable sentence splitting: "
-                  "\tpython -m spacy download en_core_web_sm")
+            print(
+                "You have to download the model first to enable sentence splitting: "
+                "\tpython -m spacy download en_core_web_sm"
+            )
             print("Resorting to tokenization only")
             nlp = English()
         processed_docs = []
@@ -303,7 +302,7 @@ class Genia(datasets.GeneratorBasedBuilder):
                 "text": text,
                 "tokens": tokens,
                 "entities": entities,
-                "relations": relations
+                "relations": relations,
             }
             if ssplit:
                 sentences = self._convert_sentences(doc.sents)
@@ -314,8 +313,10 @@ class Genia(datasets.GeneratorBasedBuilder):
                 for sent in sentences:
                     sent_rels = []
                     for idx, relation in enumerate(relations):
-                        if min(relation["head_start"], relation["tail_start"]) >= sent["start"] and max(
-                                relation["head_end"], relation["tail_end"]) <= sent["end"]:
+                        if (
+                            min(relation["head_start"], relation["tail_start"]) >= sent["start"]
+                            and max(relation["head_end"], relation["tail_end"]) <= sent["end"]
+                        ):
                             sent_rels.append(relation)
                             left_over_rels_indices[idx] = False
                     sentence_tokens.append(sent["tokens"])
@@ -325,7 +326,9 @@ class Genia(datasets.GeneratorBasedBuilder):
                     if indicator:
                         left_over_rels.append(relation)
                 if left_over_rels:
-                    print(f"Examples in doc {doc_id} where spaCy ssplit were not compatible with relation annotation:")
+                    print(
+                        f"Examples in doc {doc_id} where spaCy ssplit were not compatible with relation annotation:"
+                    )
                     print([list(sent) for sent in doc.sents])
                     print(sentences)
                     print(left_over_rels)
@@ -349,14 +352,11 @@ class Genia(datasets.GeneratorBasedBuilder):
             snippet_end = min(len(doc.text), end_char + 10)
             raise ValueError(
                 f"{doc_id} Could not retrieve span for character offsets: "
-                f"text[{start_char},{end_char}] = {doc.text[start_char:end_char]}\n" 
+                f"text[{start_char},{end_char}] = {doc.text[start_char:end_char]}\n"
                 f"{doc.text[snippet_start:snippet_end]}\n"
-                f"{list(doc)}")
-        return (entity_id, {
-            "start": start,
-            "end": end,
-            "entity_type": entity_type
-        })
+                f"{list(doc)}"
+            )
+        return (entity_id, {"start": start, "end": end, "entity_type": entity_type})
 
     def _retrieve_relation(self, line, entities):
         cols = line.strip().split()
@@ -371,7 +371,7 @@ class Genia(datasets.GeneratorBasedBuilder):
             "head_end": head_end,
             "tail_start": tail_start,
             "tail_end": tail_end,
-            "label": rel_type
+            "label": rel_type,
         }
 
     def _convert_sentences(self, sentences):
@@ -379,11 +379,7 @@ class Genia(datasets.GeneratorBasedBuilder):
         for sent in sentences:
             start, end = sent.start, sent.end
             tokens = [token.text for token in sent]
-            sentence_dicts.append({
-                "tokens": tokens,
-                "start": start,
-                "end": end
-            })
+            sentence_dicts.append({"tokens": tokens, "start": start, "end": end})
         return sentence_dicts
 
     def _fix_ssplit(self, doc_id, sentences):

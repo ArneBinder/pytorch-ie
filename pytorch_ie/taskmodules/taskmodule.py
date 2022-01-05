@@ -1,10 +1,10 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
-from pytorch_ie.data.document import Document, Annotation, AnnotationCollection
+from pytorch_ie.data.document import Annotation, AnnotationCollection, Document
 
 InputEncoding = Dict[str, Any]
 Metadata = Dict[str, Any]
@@ -87,7 +87,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     ) -> List[TargetEncoding]:
         raise NotImplementedError()
 
-    #def decode(self, output: ModelOutput) -> List[DecodedModelOutput]:
+    # def decode(self, output: ModelOutput) -> List[DecodedModelOutput]:
     #    return self.decode_output(output)
 
     @abstractmethod
@@ -145,7 +145,9 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
         encoding: TaskEncoding,
         output: ModelOutput,
     ):
-        for annotation_name, annotation in self.create_annotations_from_output(encoding=encoding, output=output):
+        for annotation_name, annotation in self.create_annotations_from_output(
+            encoding=encoding, output=output
+        ):
             encoding.document.add_prediction(name=annotation_name, prediction=annotation)
 
     def create_annotations_from_output(

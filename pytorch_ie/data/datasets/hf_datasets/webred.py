@@ -567,7 +567,7 @@ _CLASS_LABELS = [
     "location of first performance",
     "dialect of",
     "date of death",
-    "influenced by"
+    "influenced by",
 ]
 
 
@@ -575,13 +575,13 @@ class WebRedConfig(datasets.BuilderConfig):
     """BuilderConfig for WebRed."""
 
     def __init__(
-            self,
-            data_url,
-            citation,
-            url,
-            class_labels,
-            description,
-            **kwargs,
+        self,
+        data_url,
+        citation,
+        url,
+        class_labels,
+        description,
+        **kwargs,
     ):
         """BuilderConfig for WebRed.
         Args:
@@ -612,7 +612,8 @@ class WebRed(datasets.GeneratorBasedBuilder):
             citation=_CITATION_WEBRED,
             url=_HOMEPAGE,
             class_labels=_CLASS_LABELS,
-            description=_DESCRIPTION + "\nEach example in WebRED 5 was annotated by exactly 5 independent human annotators."
+            description=_DESCRIPTION
+            + "\nEach example in WebRED 5 was annotated by exactly 5 independent human annotators.",
         ),
         WebRedConfig(
             name="webred_21",
@@ -620,10 +621,11 @@ class WebRed(datasets.GeneratorBasedBuilder):
             citation=_CITATION_WEBRED,
             url=_HOMEPAGE,
             class_labels=_CLASS_LABELS,
-            description=_DESCRIPTION + "\nIn WebRED 2+1, each example was annotated by 2 independent annotators. If they "
-                                       "disagreed, an additional annotator (+1) was assigned to the example who also "
-                                       "provided a disambiguating annotation.",
-        )
+            description=_DESCRIPTION
+            + "\nIn WebRED 2+1, each example was annotated by 2 independent annotators. If they "
+            "disagreed, an additional annotator (+1) was assigned to the example who also "
+            "provided a disambiguating annotation.",
+        ),
     ]
 
     def _info(self):
@@ -671,7 +673,7 @@ class WebRed(datasets.GeneratorBasedBuilder):
         ]
 
     def _generate_examples(self, filepath):
-        """ Yields examples. """
+        """Yields examples."""
         dataset = tf.data.TFRecordDataset(filepath)
         idx = 0
         nlp = English()
@@ -688,8 +690,8 @@ class WebRed(datasets.GeneratorBasedBuilder):
             label = get_feature_value(example.features.feature, "relation_name")
 
             # 1. Find OBJ{} and SUBJ{} marker indices
-            subj = re.search('SUBJ{.+?}', sentence)
-            obj = re.search('OBJ{.+?}', sentence)
+            subj = re.search("SUBJ{.+?}", sentence)
+            obj = re.search("OBJ{.+?}", sentence)
             if not subj or not obj:
                 print(f"Did not find OBJ or SUBJ marker in sentence: {sentence}")
                 continue
@@ -706,18 +708,18 @@ class WebRed(datasets.GeneratorBasedBuilder):
             cleaned_sentence = ""
             if subj_start < obj_start:
                 cleaned_sentence += sentence[:subj_start]
-                cleaned_sentence += sentence[subj_start + 5:subj_end - 1]
+                cleaned_sentence += sentence[subj_start + 5 : subj_end - 1]
                 cleaned_sentence += sentence[subj_end:obj_start]
-                cleaned_sentence += sentence[obj_start + 4:obj_end - 1]
+                cleaned_sentence += sentence[obj_start + 4 : obj_end - 1]
                 cleaned_sentence += sentence[obj_end:]
                 subj_end -= 6
                 obj_start -= 6
                 obj_end -= 11
             else:
                 cleaned_sentence += sentence[:obj_start]
-                cleaned_sentence += sentence[obj_start + 4:obj_end - 1]
+                cleaned_sentence += sentence[obj_start + 4 : obj_end - 1]
                 cleaned_sentence += sentence[obj_end:subj_start]
-                cleaned_sentence += sentence[subj_start + 5:subj_end - 1]
+                cleaned_sentence += sentence[subj_start + 5 : subj_end - 1]
                 cleaned_sentence += sentence[subj_end:]
                 obj_end -= 5
                 subj_start -= 5

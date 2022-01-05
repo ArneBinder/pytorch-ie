@@ -1,11 +1,11 @@
-from os.path import dirname, abspath, join
-from typing import List, Dict, Optional, Any
+from os.path import abspath, dirname, join
+from typing import Any, Dict, List, Optional
 
-from datasets import load_dataset, Dataset
+from datasets import Dataset, load_dataset
 
 from pytorch_ie import Document
 from pytorch_ie.data.datasets import HF_DATASETS_ROOT
-from pytorch_ie.data.document import LabeledMultiSpan, BinaryRelation, LabeledSpan
+from pytorch_ie.data.document import BinaryRelation, LabeledMultiSpan, LabeledSpan
 
 
 def dl_to_ld(dl):
@@ -21,7 +21,7 @@ def convert_brat_dataset_to_documents(
     dataset: Dataset,
     head_argument_name: str = "Arg1",
     tail_argument_name: str = "Arg2",
-    convert_multi_spans: bool = True
+    convert_multi_spans: bool = True,
 ) -> List[Document]:
     docs = []
     for brat_doc in dataset:
@@ -36,11 +36,13 @@ def convert_brat_dataset_to_documents(
             if convert_multi_spans:
                 if len(locations) > 1:
                     added_fragments = [
-                        brat_doc["context"][locations[i]["end"]:locations[i+1]["start"]]
-                        for i in range(len(locations)-1)
+                        brat_doc["context"][locations[i]["end"] : locations[i + 1]["start"]]
+                        for i in range(len(locations) - 1)
                     ]
-                    print(f"WARNING: convert span with several slices to LabeledSpan! added text fragments: "
-                          f"{added_fragments}")
+                    print(
+                        f"WARNING: convert span with several slices to LabeledSpan! added text fragments: "
+                        f"{added_fragments}"
+                    )
                 span = LabeledSpan(
                     start=locations[0]["start"],
                     end=locations[-1]["end"],
@@ -53,13 +55,17 @@ def convert_brat_dataset_to_documents(
                     label=label,
                     metadata=metadata,
                 )
-            assert brat_span["id"] not in span_id_mapping, f'brat span id "{brat_span["id"]}" already exists'
+            assert (
+                brat_span["id"] not in span_id_mapping
+            ), f'brat span id "{brat_span["id"]}" already exists'
             span_id_mapping[brat_span["id"]] = span
             doc.add_annotation(name="entities", annotation=span)
 
         # add relations
         for brat_relation in dl_to_ld(brat_doc["relations"]):
-            brat_args = {arg["type"]: arg["target"] for arg in dl_to_ld(brat_relation["arguments"])}
+            brat_args = {
+                arg["type"]: arg["target"] for arg in dl_to_ld(brat_relation["arguments"])
+            }
             head = span_id_mapping[brat_args[head_argument_name]]
             tail = span_id_mapping[brat_args[tail_argument_name]]
             relation = BinaryRelation(label=brat_relation["type"], head=head, tail=tail)
@@ -76,11 +82,16 @@ def convert_brat_dataset_to_documents(
 
 
 def load_brat(
-    train_test_split: Optional[Dict[str, Any]] = None, conversion_kwargs: Dict[str, Any] = {}, **kwargs
+    train_test_split: Optional[Dict[str, Any]] = None,
+    conversion_kwargs: Dict[str, Any] = {},
+    **kwargs,
 ) -> Dict[str, List[Document]]:
     # This will create a DatasetDict with a single split "train"
     data = load_dataset(path=str(HF_DATASETS_ROOT / "brat.py"), **kwargs)
     if train_test_split is not None:
         data = data["train"].train_test_split(**train_test_split)
 
-    return {split: convert_brat_dataset_to_documents(dataset, **conversion_kwargs) for split, dataset in data.items()}
+    return {
+        split: convert_brat_dataset_to_documents(dataset, **conversion_kwargs)
+        for split, dataset in data.items()
+    }

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Document, LabeledSpan, Annotation
+from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
@@ -197,9 +197,7 @@ class TransformerTokenClassificationTaskModule(TaskModule):
             document = encoding.document
             metadata = encoding.metadata
 
-            sentence = document.annotations(self.sentence_annotation)[
-                metadata["sentence_index"]
-            ]
+            sentence = document.annotations(self.sentence_annotation)[metadata["sentence_index"]]
 
             tag_sequence = [
                 "O" if stm else tag

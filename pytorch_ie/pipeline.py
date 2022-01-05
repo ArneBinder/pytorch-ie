@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.document import Document
-from pytorch_ie.taskmodules.taskmodule import TaskModule, TaskEncoding, DecodedModelOutput
+from pytorch_ie.taskmodules.taskmodule import DecodedModelOutput, TaskEncoding, TaskModule
 
 logger = logging.getLogger(__name__)
 
@@ -195,8 +195,12 @@ class Pipeline:
         """
         return self.model(input_tensors[0])
 
-    def postprocess(self, model_inputs: List[TaskEncoding], model_outputs: List[DecodedModelOutput],
-                    **postprocess_parameters: Dict) -> List[Document]:
+    def postprocess(
+        self,
+        model_inputs: List[TaskEncoding],
+        model_outputs: List[DecodedModelOutput],
+        **postprocess_parameters: Dict,
+    ) -> List[Document]:
         """
         Postprocess will receive the model inputs and (unbatched) model outputs and reformat them into
         something more friendly. Generally it will output a list of documents.
@@ -273,10 +277,13 @@ class Pipeline:
                 output = self.forward(batch, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
-        assert len(model_inputs) == len(model_outputs), \
-            f'length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]'
+        assert len(model_inputs) == len(
+            model_outputs
+        ), f"length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]"
 
-        documents = self.postprocess(model_inputs=model_inputs, model_outputs=model_outputs, **postprocess_params)
+        documents = self.postprocess(
+            model_inputs=model_inputs, model_outputs=model_outputs, **postprocess_params
+        )
         if single_document:
             return documents[0]
         else:

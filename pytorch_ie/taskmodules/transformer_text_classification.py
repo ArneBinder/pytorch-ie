@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Document, Label, Annotation
+from pytorch_ie.data.document import Annotation, Document, Label
 from pytorch_ie.taskmodules.taskmodule import (
     InputEncoding,
     Metadata,

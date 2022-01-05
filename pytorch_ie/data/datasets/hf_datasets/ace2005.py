@@ -43,14 +43,7 @@ _HOMEPAGE = "https://catalog.ldc.upenn.edu/LDC2006T06"
 
 _LICENSE = """https://catalog.ldc.upenn.edu/license/ldc-non-members-agreement.pdf"""
 
-_CLASS_LABELS = [
-    "PHYS",
-    "ART",
-    "PART-WHOLE",
-    "ORG-AFF",
-    "GEN-AFF",
-    "PER-SOC"
-]
+_CLASS_LABELS = ["PHYS", "ART", "PART-WHOLE", "ORG-AFF", "GEN-AFF", "PER-SOC"]
 
 
 class ACE2004(datasets.GeneratorBasedBuilder):
@@ -114,26 +107,20 @@ class ACE2004(datasets.GeneratorBasedBuilder):
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN,
-                gen_kwargs={
-                    "filepath": os.path.join(data_dir, "train.ACE05.json")
-                },
+                gen_kwargs={"filepath": os.path.join(data_dir, "train.ACE05.json")},
             ),
             datasets.SplitGenerator(
                 name=datasets.Split.TEST,
-                gen_kwargs={
-                    "filepath": os.path.join(data_dir, "test.ACE05.json")
-                },
+                gen_kwargs={"filepath": os.path.join(data_dir, "test.ACE05.json")},
             ),
             datasets.SplitGenerator(
                 name=datasets.Split.VALIDATION,
-                gen_kwargs={
-                    "filepath": os.path.join(data_dir, "valid.ACE05.json")
-                },
+                gen_kwargs={"filepath": os.path.join(data_dir, "valid.ACE05.json")},
             ),
         ]
 
     def _generate_examples(self, filepath):
-        """ Yields examples. """
+        """Yields examples."""
         with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
             for example in data:

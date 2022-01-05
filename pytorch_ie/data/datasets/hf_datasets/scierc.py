@@ -7,7 +7,6 @@ import os
 
 import datasets
 
-
 _CITATION_SCIERC = """\
 @InProceedings{luan2018multitask,
      author = {Luan, Yi and He, Luheng and Ostendorf, Mari and Hajishirzi, Hannaneh},
@@ -105,7 +104,7 @@ class SCIERC(datasets.GeneratorBasedBuilder):
         ]
 
     def _generate_examples(self, filepath):
-        """ Yields examples. """
+        """Yields examples."""
         with open(filepath, encoding="utf-8") as f:
             idx = 0
             for line in f.readlines():

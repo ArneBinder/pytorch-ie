@@ -7,7 +7,6 @@ import re
 
 import datasets
 
-
 _CITATION_CHEMPROT = """\
 @article{article,
 author = {Kringelum, Jens and Kjaerulff, Sonny and Brunak, Søren and Lund, Ole and Oprea, Tudor and Taboureau, Olivier},
@@ -39,7 +38,7 @@ _LICENSE = ""
 _DATA_URLs = {
     "train": "https://raw.githubusercontent.com/allenai/scibert/master/data/text_classification/chemprot/train.txt",
     "dev": "https://raw.githubusercontent.com/allenai/scibert/master/data/text_classification/chemprot/dev.txt",
-    "test": "https://raw.githubusercontent.com/allenai/scibert/master/data/text_classification/chemprot/test.txt"
+    "test": "https://raw.githubusercontent.com/allenai/scibert/master/data/text_classification/chemprot/test.txt",
 }
 
 _CLASS_LABELS = [
@@ -55,7 +54,7 @@ _CLASS_LABELS = [
     "PRODUCT-OF",
     "SUBSTRATE",
     "SUBSTRATE_PRODUCT-OF",
-    "UPREGULATOR"
+    "UPREGULATOR",
 ]
 
 
@@ -118,7 +117,7 @@ class ChemProt(datasets.GeneratorBasedBuilder):
         ]
 
     def _generate_examples(self, filepath):
-        """ Yields examples. """
+        """Yields examples."""
         with open(filepath, encoding="utf-8") as f:
             for idx, line in enumerate(f.readlines()):
                 example = json.loads(line)
@@ -144,8 +143,9 @@ class ChemProt(datasets.GeneratorBasedBuilder):
 
                 tokens = raw_text.split(" ")
 
-                assert any(e in tokens for e in ["[[", "]]", "<<", ">>"]), f"Missing head/tail markers in " \
-                                                                           f"{example}\n Tokens: {tokens}"
+                assert any(e in tokens for e in ["[[", "]]", "<<", ">>"]), (
+                    f"Missing head/tail markers in " f"{example}\n Tokens: {tokens}"
+                )
 
                 # Get head/tail order before determining head/tail indices and popping markers
                 head_start = tokens.index("[[")

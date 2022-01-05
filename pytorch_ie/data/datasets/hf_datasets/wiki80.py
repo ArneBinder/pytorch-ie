@@ -6,7 +6,6 @@ import json
 
 import datasets
 
-
 _CITATION_WIKI80 = """\
 @inproceedings{han-etal-2019-opennre,
     title = "{O}pen{NRE}: An Open and Extensible Toolkit for Neural Relation Extraction",
@@ -35,7 +34,7 @@ _LICENSE = ""
 # This can be an arbitrary nested dict/list of URLs (see below in `_split_generators` method)
 _DATA_URLs = {
     "train": "https://thunlp.oss-cn-qingdao.aliyuncs.com/opennre/benchmark/wiki80/wiki80_train.txt",
-    "validation": "https://thunlp.oss-cn-qingdao.aliyuncs.com/opennre/benchmark/wiki80/wiki80_val.txt"
+    "validation": "https://thunlp.oss-cn-qingdao.aliyuncs.com/opennre/benchmark/wiki80/wiki80_val.txt",
 }
 
 _CLASS_LABELS = [
@@ -118,7 +117,7 @@ _CLASS_LABELS = [
     "mother",
     "member of",
     "child",
-    "main subject"
+    "main subject",
 ]
 
 
@@ -176,7 +175,7 @@ class Wiki80(datasets.GeneratorBasedBuilder):
         ]
 
     def _generate_examples(self, filepath):
-        """ Yields examples. """
+        """Yields examples."""
         with open(filepath, encoding="utf-8") as f:
             for idx, line in enumerate(f.readlines()):
                 example = json.loads(line)
