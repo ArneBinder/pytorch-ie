@@ -39,6 +39,11 @@ class Annotation:
         return not isinstance(self._label, str)
 
 
+# just for now as simple type shortcuts
+AnnotationLayer = List[Annotation]
+AnnotationCollection = Dict[str, List[Annotation]]
+
+
 class Label(Annotation):
     def __init__(
         self,
@@ -118,8 +123,8 @@ class Document:
         self._text = text
         self._id = doc_id
         self._metadata = {}
-        self._annotations: Dict[str, List[Annotation]] = {}
-        self._predictions: Dict[str, List[Annotation]] = {}
+        self._annotations: AnnotationCollection = {}
+        self._predictions: AnnotationCollection = {}
 
     @property
     def text(self) -> str:
@@ -145,10 +150,12 @@ class Document:
 
         self._predictions[name].append(prediction)
 
-    def annotations(self, name: str) -> Optional[List[Annotation]]:
+    # TODO: Why is this optional? looks like it could be never None...
+    def annotations(self, name: str) -> Optional[AnnotationLayer]:
         return self._annotations.get(name, [])
 
-    def predictions(self, name: str) -> Optional[List[Annotation]]:
+    # TODO: Why is this optional? looks like it could be never None...
+    def predictions(self, name: str) -> Optional[AnnotationLayer]:
         return self._predictions.get(name, [])
 
     def clear_predictions(self, name: str) -> None:

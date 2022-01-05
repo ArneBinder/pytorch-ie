@@ -1,10 +1,10 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
-from pytorch_ie.data.document import Document
+from pytorch_ie.data.document import Document, Annotation, AnnotationCollection
 
 InputEncoding = Dict[str, Any]
 Metadata = Dict[str, Any]
@@ -94,12 +94,56 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     def decode_output(self, output: ModelOutput) -> List[DecodedModelOutput]:
         raise NotImplementedError()
 
-    @abstractmethod
     def combine(
         self,
         encodings: List[TaskEncoding],
         decoded_outputs: List[DecodedModelOutput],
-    ) -> None:
+        inplace: bool = True,
+    ) -> List[Document]:
+        if not inplace:
+            copied_documents: Dict[Document, Document] = {}
+            copied_encodings: List[TaskEncoding] = []
+            for encoding in encodings:
+                if encoding.document not in copied_documents:
+                    copied_documents[encoding.document] = copy.deepcopy(encoding.document)
+
+                copied_encodings.append(
+                    TaskEncoding(
+                        input=encoding.input,
+                        document=copied_documents[encoding.document],
+                        target=encoding.target,
+                        metadata=encoding.metadata,
+                    )
+                )
+            all_documents = list(copied_documents.values())
+            encodings = copied_encodings
+        else:
+            all_documents = list(set((encoding.document for encoding in encodings)))
+
+        self.combine_outputs(encodings, decoded_outputs)
+        return all_documents
+
+    def combine_outputs(
+        self,
+        encodings: List[TaskEncoding],
+        outputs: List[ModelOutput],
+    ):
+        for encoding, output in zip(encodings, outputs):
+            self.combine_output(encoding=encoding, output=output)
+
+    def combine_output(
+        self,
+        encoding: TaskEncoding,
+        output: ModelOutput,
+    ):
+        for annotation_name, annotation in self.decoded_output_to_annotations(encoding=encoding, output=output):
+            encoding.document.add_prediction(name=annotation_name, prediction=annotation)
+
+    def decoded_output_to_annotations(
+        self,
+        encoding: TaskEncoding,
+        output: DecodedModelOutput,
+    ) -> Iterator[Tuple[str, Annotation]]:
         raise NotImplementedError()
 
     @abstractmethod

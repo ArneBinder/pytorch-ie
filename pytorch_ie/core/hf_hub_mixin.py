@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 TASKMODULE_CONFIG_NAME = "taskmodule_config.json"
 
 
-class PyTorchIEModelHubMixin:
+class PyTorchIEBaseModelHubMixin:
     """
     A Generic Base Model Hub Mixin. Define your own mixin for anything by inheriting from this class
     and overwriting _from_pretrained and _save_pretrained to define custom logic for saving/loading
@@ -292,7 +292,7 @@ class PyTorchIEModelHubMixin:
         return repo.git_push()
 
 
-class PyTorchIEModelHubMixin(PyTorchIEModelHubMixin):
+class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
     def __init__(self, *args, **kwargs):
         """
         Mix this class with your torch-model class for ease process of saving & loading from huggingface-hub
@@ -370,7 +370,7 @@ class PyTorchIEModelHubMixin(PyTorchIEModelHubMixin):
         return model
 
 
-class PyTorchIETaskmoduleModelHubMixin(PyTorchIEModelHubMixin):
+class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
     config_name = TASKMODULE_CONFIG_NAME
 
     def __init__(self, *args, **kwargs):

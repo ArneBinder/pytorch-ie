@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
 
 import numpy as np
 import torch
@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Document, Label
+from pytorch_ie.data.document import Document, Label, Annotation
 from pytorch_ie.taskmodules.taskmodule import (
     InputEncoding,
     Metadata,
@@ -164,22 +164,19 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
         return decoded_output
 
-    def combine(
+    def decoded_output_to_annotations(
         self,
-        encodings: List[TaskEncoding],
-        outputs: List[Dict[str, Any]],
-    ) -> None:
-        for encoding, output in zip(encodings, outputs):
-            document = encoding.document
-
-            for labels, probabilities in zip(output["labels"], output["probabilities"]):
-                document.add_prediction(
-                    self.annotation,
-                    Label(
-                        label=labels if self.multi_label else labels[0],
-                        score=probabilities if self.multi_label else probabilities[0],
-                    ),
-                )
+        output: Dict[str, Any],
+        encoding: TaskEncoding,
+    ) -> Iterator[Tuple[str, Annotation]]:
+        for labels, probabilities in zip(output["labels"], output["probabilities"]):
+            yield (
+                self.annotation,
+                Label(
+                    label=labels if self.multi_label else labels[0],
+                    score=probabilities if self.multi_label else probabilities[0],
+                ),
+            )
 
     def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
         input_features = [encoding.input for encoding in encodings]
