@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.document import Document
-from pytorch_ie.taskmodules.taskmodule import TaskModule
+from pytorch_ie.taskmodules.taskmodule import TaskModule, TaskEncoding
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ class Pipeline:
 
     def preprocess(
         self, documents: List[Document], **preprocess_parameters: Dict
-    ) -> Dict[str, torch.Tensor]:
+    ) -> List[TaskEncoding]:
         """
         Preprocess will take the `input_` of a specific pipeline and return a dictionnary of everything necessary for
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
@@ -228,8 +228,9 @@ class Pipeline:
         *args,
         batch_size: int = 1,
         num_workers: int = 8,
+        inplace: bool = True,
         **kwargs,
-    ):
+    ) -> Union[Document, List[Document]]:
         if args:
             logger.warning(f"Ignoring args : {args}")
         preprocess_params, forward_params, postprocess_params = self._sanitize_parameters(**kwargs)
@@ -246,24 +247,42 @@ class Pipeline:
                 UserWarning,
             )
 
+        single_document = False
         if isinstance(documents, Document):
+            single_document = True
             documents = [documents]
 
-        dataset = self.preprocess(documents, **preprocess_params)
+        # This creates encodings from the documents. It modifies the documents and may produce multiple entries per
+        # document.
+        # (Calls: self.taskmodule.encode(documents, encode_target=False))
+        model_inputs = self.preprocess(documents, **preprocess_params)
 
         dataloader = DataLoader(
-            dataset,
+            model_inputs,
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
             collate_fn=self.taskmodule.collate,
         )
 
-        outputs = []
+        model_outputs = []
         with torch.no_grad():
             for batch in dataloader:
                 output = self.forward(batch, **forward_params)
+                # converts: dict of lists -> list of dicts. This ensures that model_outputs will have the same length
+                # as model_inputs.
+                # (calls: self.taskmodule.decode_output(model_outputs))
+                # TODO: Should directly call self.taskmodule.decode_output(model_outputs).
                 processed_output = self.postprocess(output, **postprocess_params)
-                outputs.extend(processed_output)
+                model_outputs.extend(processed_output)
+        assert len(model_inputs) == len(model_outputs), \
+            f'length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]'
 
-        self.taskmodule.combine(dataset, outputs)
+        # This creates annotations from the model outputs and attaches them to the correct documents.
+        # IMPORTANT: This does not return the documents in the same order as the input documents!
+        # TODO: Should be named to postprocess and internally call taskmodule.decode (has to be implemented/adapted)
+        documents = self.taskmodule.combine(encodings=model_inputs, decoded_outputs=model_outputs, inplace=inplace)
+        if single_document:
+            return documents[0]
+        else:
+            return documents
