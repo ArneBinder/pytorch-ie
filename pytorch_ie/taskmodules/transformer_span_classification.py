@@ -10,7 +10,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
+from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata, InputEncoding, TargetEncoding
 
 
 class TransformerSpanClassificationTaskModule(TaskModule):
@@ -128,8 +128,11 @@ class TransformerSpanClassificationTaskModule(TaskModule):
         return input_, metadata, expanded_documents
 
     def encode_target(
-        self, documents: List[Document], input_: List[Dict[str, Any]]
-    ) -> Union[List[List[int]], List[Dict[str, Any]]]:
+        self,
+        documents: List[Document],
+        input_encodings: List[InputEncoding],
+        metadata: Optional[List[Metadata]],
+    ) -> List[TargetEncoding]:
         target = []
         if self.single_sentence:
             i = 0
@@ -146,8 +149,8 @@ class TransformerSpanClassificationTaskModule(TaskModule):
                         entity_start = entity.start - sentence.start
                         entity_end = entity.end - sentence.start
 
-                        start_idx = input_[i].char_to_token(entity_start)
-                        end_idx = input_[i].char_to_token(entity_end - 1)
+                        start_idx = input_encodings[i].char_to_token(entity_start)
+                        end_idx = input_encodings[i].char_to_token(entity_end - 1)
                         label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
 
                     target.append(label_ids)
@@ -158,8 +161,8 @@ class TransformerSpanClassificationTaskModule(TaskModule):
 
                 label_ids = []
                 for entity in entities:
-                    start_idx = input_[i].char_to_token(entity.start)
-                    end_idx = input_[i].char_to_token(entity.end - 1)
+                    start_idx = input_encodings[i].char_to_token(entity.start)
+                    end_idx = input_encodings[i].char_to_token(entity.end - 1)
                     label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
 
                 target.append(label_ids)
