@@ -1,25 +1,27 @@
-import json
-import os
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.taskmodules.taskmodule import (
-    InputEncoding,
     Metadata,
-    TargetEncoding,
     TaskEncoding,
     TaskModule,
+    BatchedModelOutput,
+    ModelOutput,
 )
 
+_InputEncoding = Dict[str, Any]
+_TargetEncoding = List[Tuple[int, int, int]]
 
-class TransformerSpanClassificationTaskModule(TaskModule):
+
+class TransformerSpanClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding]):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -83,12 +85,13 @@ class TransformerSpanClassificationTaskModule(TaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[Dict[str, Any]], Optional[List[Dict[str, Any]]], Optional[List[Document]]]:
+    ) -> Tuple[List[_InputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
         expanded_documents = None
         if self.single_sentence:
+            sent: LabeledSpan
             input_ = [
                 self.tokenizer(
-                    doc.text[sent.start : sent.end],
+                    doc.text[sent.start: sent.end],
                     padding=False,
                     truncation=self.truncation,
                     max_length=self.max_length,
@@ -136,9 +139,9 @@ class TransformerSpanClassificationTaskModule(TaskModule):
     def encode_target(
         self,
         documents: List[Document],
-        input_encodings: List[InputEncoding],
+        input_encodings: List[_InputEncoding],
         metadata: Optional[List[Metadata]],
-    ) -> List[TargetEncoding]:
+    ) -> List[_TargetEncoding]:
         input_encodings: List[BatchEncoding]
         target = []
         if self.single_sentence:
@@ -148,6 +151,7 @@ class TransformerSpanClassificationTaskModule(TaskModule):
                 sentence: LabeledSpan = document.annotations(self.sentence_annotation)[sentence_idx]
 
                 label_ids = []
+                entity: LabeledSpan
                 for entity in entities:
                     if entity.start < sentence.start or entity.end > sentence.end:
                         continue
@@ -174,7 +178,7 @@ class TransformerSpanClassificationTaskModule(TaskModule):
 
         return target
 
-    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:
         logits = output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -199,13 +203,13 @@ class TransformerSpanClassificationTaskModule(TaskModule):
     def create_annotations_from_output(
         self,
         output: Dict[str, Any],
-        encoding: TaskEncoding,
+        encoding: TaskEncoding[_InputEncoding, _TargetEncoding],
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
             document = encoding.document
             metadata = encoding.metadata
 
-            sentence = document.annotations(self.sentence_annotation)[metadata["sentence_index"]]
+            sentence: LabeledSpan = document.annotations(self.sentence_annotation)[metadata["sentence_index"]]
 
             # tag_sequence = [
             #     "O" if stm else tag
@@ -244,7 +248,9 @@ class TransformerSpanClassificationTaskModule(TaskModule):
                     ),
                 )
 
-    def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
+    def collate(
+        self, encodings: List[TaskEncoding[_InputEncoding, _TargetEncoding]]
+    ) -> tuple[Dict[str, Tensor], Optional[List[_TargetEncoding]], list[Metadata], list[Document]]:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]

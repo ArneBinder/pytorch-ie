@@ -1,26 +1,26 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, Generic, TypeVar
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data.document import Annotation, AnnotationCollection, Document
 
-InputEncoding = Dict[str, Any]
+InputEncoding = TypeVar('InputEncoding', bound=Dict[str, Any])
+TargetEncoding = TypeVar('TargetEncoding', bound=Dict[str, Any])
 Metadata = Dict[str, Any]
-TargetEncoding = Dict[str, Any]
+BatchedModelOutput = Dict[str, Any]
 ModelOutput = Dict[str, Any]
-DecodedModelOutput = Dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
 
-class TaskEncoding:
+class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
     def __init__(
         self,
-        input: Dict[str, Any],
+        input: InputEncoding,
         document: Document,
-        target: Optional[Dict[str, Any]] = None,
+        target: Optional[TargetEncoding] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.input = input
@@ -29,7 +29,7 @@ class TaskEncoding:
         self.metadata = metadata or {}
 
 
-class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
+class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, TargetEncoding]):
     def __init__(self, **kwargs):
         self.init_inputs = ()
         self.init_kwargs = copy.deepcopy(kwargs)
@@ -39,7 +39,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
 
     def encode(
         self, documents: Union[Document, List[Document]], encode_target: bool = False
-    ) -> List[TaskEncoding]:
+    ) -> List[TaskEncoding[InputEncoding, TargetEncoding]]:
         if isinstance(documents, Document):
             documents = [documents]
 
@@ -91,7 +91,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     #    return self.decode_output(output)
 
     @abstractmethod
-    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:
         """
         This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
         outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the
@@ -102,7 +102,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     def decode(
         self,
         encodings: List[TaskEncoding],
-        decoded_outputs: List[DecodedModelOutput],
+        decoded_outputs: List[ModelOutput],
         inplace: bool = True,
     ) -> List[Document]:
         """
@@ -153,7 +153,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin):
     def create_annotations_from_output(
         self,
         encoding: TaskEncoding,
-        output: DecodedModelOutput,
+        output: ModelOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         raise NotImplementedError()
 
