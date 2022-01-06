@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.taskmodules.taskmodule import (
@@ -139,28 +139,27 @@ class TransformerSpanClassificationTaskModule(TaskModule):
         input_encodings: List[InputEncoding],
         metadata: Optional[List[Metadata]],
     ) -> List[TargetEncoding]:
+        input_encodings: List[BatchEncoding]
         target = []
         if self.single_sentence:
-            i = 0
-            for document in documents:
+            for i, document in enumerate(documents):
                 entities = document.annotations(self.entity_annotation)
-                sentences = document.annotations(self.sentence_annotation)
+                sentence_idx = metadata[i]["sentence_index"]
+                sentence: LabeledSpan = document.annotations(self.sentence_annotation)[sentence_idx]
 
-                for sentence in sentences:
-                    label_ids = []
-                    for entity in entities:
-                        if entity.start < sentence.start or entity.end > sentence.end:
-                            continue
+                label_ids = []
+                for entity in entities:
+                    if entity.start < sentence.start or entity.end > sentence.end:
+                        continue
 
-                        entity_start = entity.start - sentence.start
-                        entity_end = entity.end - sentence.start
+                    entity_start = entity.start - sentence.start
+                    entity_end = entity.end - sentence.start
 
-                        start_idx = input_encodings[i].char_to_token(entity_start)
-                        end_idx = input_encodings[i].char_to_token(entity_end - 1)
-                        label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
+                    start_idx = input_encodings[i].char_to_token(entity_start)
+                    end_idx = input_encodings[i].char_to_token(entity_end - 1)
+                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
 
-                    target.append(label_ids)
-                    i += 1
+                target.append(label_ids)
         else:
             for i, document in enumerate(documents):
                 entities = document.annotations(self.entity_annotation)
