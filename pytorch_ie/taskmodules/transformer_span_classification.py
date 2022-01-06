@@ -10,7 +10,13 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata, InputEncoding, TargetEncoding
+from pytorch_ie.taskmodules.taskmodule import (
+    InputEncoding,
+    Metadata,
+    TargetEncoding,
+    TaskEncoding,
+    TaskModule,
+)
 
 
 class TransformerSpanClassificationTaskModule(TaskModule):

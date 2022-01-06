@@ -9,25 +9,32 @@ class Annotation:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._label = label
+        self._metadata = metadata or {}
 
-        if self.is_multilabel:
-            if score is not None and len(label) != len(score):
+        is_multilabel = isinstance(label, list)
+
+        if score is None:
+            score = [1.0] * len(self.label) if is_multilabel else 1.0
+
+        if is_multilabel:
+            if not isinstance(score, list):
+                raise ValueError("Multi-label requires score to be a list.")
+
+            if len(label) != len(score):
                 raise ValueError("Number of labels and scores must be equal.")
         else:
-            if score is not None and not isinstance(score, float):
-                raise ValueError("To many scores for label.")
+            if not isinstance(score, float):
+                raise ValueError("Too many scores for label.")
 
         self._score = score
-        self._metadata = metadata or {}
+        self._is_multilabel = is_multilabel
 
     @property
     def label(self) -> Union[str, List[str]]:
         return self._label
 
     @property
-    def score(self) -> Union[str, List[str]]:
-        if self._score is None:
-            return [1.0 for _ in self._label] if self.is_multilabel else 1.0
+    def score(self) -> Union[float, List[float]]:
         return self._score
 
     @property
@@ -36,7 +43,11 @@ class Annotation:
 
     @property
     def is_multilabel(self) -> bool:
-        return not isinstance(self._label, str)
+        return self._is_multilabel
+
+    @classmethod
+    def from_dict(cls, dct: Dict[str, Any]) -> "Annotation":
+        return cls(**dct)
 
 
 # just for now as simple type shortcuts
@@ -54,7 +65,7 @@ class Label(Annotation):
         super().__init__(label=label, score=score, metadata=metadata)
 
     def __repr__(self) -> str:
-        return f"Label(label={self.label}, score={self.score:.2f})"
+        return f"Label(label={self.label}, score={self.score})"
 
 
 class LabeledSpan(Annotation):
@@ -71,11 +82,10 @@ class LabeledSpan(Annotation):
         self.end = end
 
     def __repr__(self) -> str:
-        return f"LabeledSpan(start={self.start}, end={self.end}, label={self.label}, metadata={self.metadata})"
-
-    @classmethod
-    def from_dict(cls, dct: Dict[str, Any]) -> "LabeledSpan":
-        return cls(**dct)
+        return (
+            f"LabeledSpan(start={self.start}, end={self.end}, label={self.label}, "
+            f"score={self.score}, metadata={self.metadata})"
+        )
 
 
 class LabeledMultiSpan(Annotation):
@@ -91,12 +101,9 @@ class LabeledMultiSpan(Annotation):
 
     def __repr__(self) -> str:
         return (
-            f"LabeledMultiSpan(slices={self.slices}, label={self.label}, metadata={self.metadata})"
+            f"LabeledMultiSpan(slices={self.slices}, label={self.label}, "
+            f"score={self.score}, metadata={self.metadata})"
         )
-
-    @classmethod
-    def from_dict(cls, dct: Dict[str, Any]) -> "LabeledMultiSpan":
-        return cls(**dct)
 
 
 class BinaryRelation(Annotation):
@@ -113,18 +120,17 @@ class BinaryRelation(Annotation):
         self.tail = tail
 
     def __repr__(self) -> str:
-        return f"BinaryRelation(head={self.head}, tail={self.tail}, label={self.label}, metadata={self.metadata})"
-
-    @classmethod
-    def from_dict(cls, dct: Dict[str, Any]) -> "LabeledSpan":
-        return cls(**dct)
+        return (
+            f"BinaryRelation(head={self.head}, tail={self.tail}, label={self.label}, "
+            f"score={self.score}, metadata={self.metadata})"
+        )
 
 
 class Document:
     def __init__(self, text: str, doc_id: Optional[str] = None) -> None:
         self._text = text
         self._id = doc_id
-        self._metadata = {}
+        self._metadata: Dict[str, Any] = {}
         self._annotations: AnnotationCollection = {}
         self._predictions: AnnotationCollection = {}
 
@@ -152,12 +158,10 @@ class Document:
 
         self._predictions[name].append(prediction)
 
-    # TODO: Why is this optional? looks like it could be never None...
-    def annotations(self, name: str) -> Optional[AnnotationLayer]:
+    def annotations(self, name: str) -> AnnotationLayer:
         return self._annotations.get(name, [])
 
-    # TODO: Why is this optional? looks like it could be never None...
-    def predictions(self, name: str) -> Optional[AnnotationLayer]:
+    def predictions(self, name: str) -> AnnotationLayer:
         return self._predictions.get(name, [])
 
     def clear_predictions(self, name: str) -> None:
@@ -165,4 +169,7 @@ class Document:
             del self._predictions[name]
 
     def __repr__(self) -> str:
-        return f"Document(text={self.text}, annotations={self._annotations}, predictions={self._predictions}, metadata={self.metadata})"
+        return (
+            f"Document(text={self.text}, annotations={self._annotations}, "
+            f"predictions={self._predictions}, metadata={self.metadata})"
+        )
