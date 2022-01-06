@@ -14,14 +14,14 @@ from pytorch_ie.taskmodules.taskmodule import (
     TaskEncoding,
     TaskModule,
     BatchedModelOutput,
-    ModelOutput,
 )
 
 _InputEncoding = Dict[str, Any]
 _TargetEncoding = List[Tuple[int, int, int]]
+_ModelOutput = Dict[str, Any]
 
 
-class TransformerSpanClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding]):
+class TransformerSpanClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding, _ModelOutput]):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -178,7 +178,7 @@ class TransformerSpanClassificationTaskModule(TaskModule[_InputEncoding, _Target
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[_ModelOutput]:
         logits = output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()

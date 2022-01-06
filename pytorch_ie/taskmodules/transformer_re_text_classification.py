@@ -13,14 +13,14 @@ from pytorch_ie.taskmodules.taskmodule import (
     TaskEncoding,
     TaskModule,
     BatchedModelOutput,
-    ModelOutput,
 )
 
 _InputEncoding = Dict[str, Any]
 _TargetEncoding = List[int]
+_ModelOutput = Dict[str, Any]
 
 
-class TransformerRETextClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding]):
+class TransformerRETextClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding, _ModelOutput]):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -375,7 +375,7 @@ class TransformerRETextClassificationTaskModule(TaskModule[_InputEncoding, _Targ
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[_ModelOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -396,7 +396,7 @@ class TransformerRETextClassificationTaskModule(TaskModule[_InputEncoding, _Targ
 
     def create_annotations_from_output(
         self,
-        output: ModelOutput,
+        output: _ModelOutput,
         encoding: TaskEncoding[_InputEncoding, _TargetEncoding],
     ) -> None:
         metadata = encoding.metadata

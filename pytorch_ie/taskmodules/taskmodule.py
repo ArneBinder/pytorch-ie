@@ -8,9 +8,9 @@ from pytorch_ie.data.document import Annotation, AnnotationCollection, Document
 
 InputEncoding = TypeVar('InputEncoding', bound=Dict[str, Any])
 TargetEncoding = TypeVar('TargetEncoding', bound=Dict[str, Any])
+ModelOutput = TypeVar('ModelOutput', bound=Dict[str, Any])
 Metadata = Dict[str, Any]
 BatchedModelOutput = Dict[str, Any]
-ModelOutput = Dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
         self.metadata = metadata or {}
 
 
-class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, TargetEncoding]):
+class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, TargetEncoding, ModelOutput]):
     def __init__(self, **kwargs):
         self.init_inputs = ()
         self.init_kwargs = copy.deepcopy(kwargs)
@@ -86,9 +86,6 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, T
         metadata: Optional[List[Metadata]],
     ) -> List[TargetEncoding]:
         raise NotImplementedError()
-
-    # def decode(self, output: ModelOutput) -> List[DecodedModelOutput]:
-    #    return self.decode_output(output)
 
     @abstractmethod
     def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:

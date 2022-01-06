@@ -13,14 +13,14 @@ from pytorch_ie.taskmodules.taskmodule import (
     TaskEncoding,
     TaskModule,
     BatchedModelOutput,
-    ModelOutput,
 )
 
 _InputEncoding = Dict[str, Any]
 _TargetEncoding = List[int]
+_ModelOutput = Dict[str, Any]
 
 
-class TransformerTextClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding]):
+class TransformerTextClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding, _ModelOutput]):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -132,7 +132,7 @@ class TransformerTextClassificationTaskModule(TaskModule[_InputEncoding, _Target
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[_ModelOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -170,7 +170,7 @@ class TransformerTextClassificationTaskModule(TaskModule[_InputEncoding, _Target
 
     def create_annotations_from_output(
         self,
-        output: ModelOutput,
+        output: _ModelOutput,
         encoding: TaskEncoding[_InputEncoding, _TargetEncoding],
     ) -> Iterator[Tuple[str, Annotation]]:
         for labels, probabilities in zip(output["labels"], output["probabilities"]):

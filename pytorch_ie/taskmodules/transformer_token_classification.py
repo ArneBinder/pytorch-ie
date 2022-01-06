@@ -9,13 +9,14 @@ from transformers.tokenization_utils_base import TruncationStrategy, BatchEncodi
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata, BatchedModelOutput, ModelOutput
+from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata, BatchedModelOutput
 
 _InputEncoding = BatchEncoding
 _TargetEncoding = List[int]
+_ModelOutput = Dict[str, Any]
 
 
-class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding]):
+class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding, _ModelOutput]):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -189,7 +190,7 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[ModelOutput]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[_ModelOutput]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -198,7 +199,7 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
 
     def create_annotations_from_output(
         self,
-        output: ModelOutput,
+        output: _ModelOutput,
         encoding: TaskEncoding[_InputEncoding, _TargetEncoding],
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
