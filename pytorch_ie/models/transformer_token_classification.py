@@ -1,8 +1,13 @@
+from typing import Dict, Any
+
 import torch
 import torchmetrics
-from transformers import AutoConfig, AutoModelForTokenClassification
+from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+
+TransformerTokenClassificationModelBatchEncoding = BatchEncoding
+TransformerTokenClassificationModelBatchOutput = Dict[str, Any]
 
 
 class TransformerTokenClassificationModel(PyTorchIEModel):
@@ -28,7 +33,7 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(self, input_):
+    def forward(self, input_: TransformerTokenClassificationModelBatchEncoding) -> TransformerTokenClassificationModelBatchOutput:
         return self.model(**input_)
 
     def training_step(self, batch, batch_idx):

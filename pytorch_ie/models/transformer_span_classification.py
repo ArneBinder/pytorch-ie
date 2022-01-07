@@ -1,12 +1,15 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any, Dict
 
 import torch
 import torchmetrics
 from torch import nn
-from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup
+from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.models.modules.mlp import MLP
+
+TransformerSpanClassificationModelBatchEncoding = BatchEncoding
+TransformerSpanClassificationModelBatchOutput = Dict[str, Any]
 
 
 class TransformerSpanClassificationModel(PyTorchIEModel):
@@ -111,7 +114,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return torch.tensor(target)
 
-    def forward(self, input_):
+    def forward(self, input_: TransformerSpanClassificationModelBatchEncoding) -> TransformerSpanClassificationModelBatchOutput:
         output = self.model(**input_)
 
         batch_size, seq_length, hidden_dim = output.last_hidden_state.shape

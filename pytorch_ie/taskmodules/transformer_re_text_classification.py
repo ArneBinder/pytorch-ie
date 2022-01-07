@@ -8,25 +8,38 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
+from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
 from pytorch_ie.taskmodules.taskmodule import (
     Metadata,
     TaskEncoding,
     TaskModule,
-    BatchedModelOutput,
 )
 
 TransformerTextClassificationInputEncoding = Dict[str, Any]
 TransformerTextClassificationTargetEncoding = List[int]
-TransformerTextClassificationModelOutput = Dict[str, Any]
+TransformerTextClassificationTaskEncoding = TaskEncoding[
+    TransformerTextClassificationInputEncoding,
+    TransformerTextClassificationTargetEncoding
+]
+TransformerTextClassificationTaskBatchEncoding = Tuple[
+    Dict[str, Tensor],
+    Optional[Tensor],
+    List[Metadata],
+    List[Document]
+]
+TransformerTextClassificationTaskOutput = Dict[str, Any]
+_TransformerTextClassificationTaskModule = TaskModule[
+    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TransformerTextClassificationInputEncoding,
+    TransformerTextClassificationTargetEncoding,
+    TransformerTextClassificationTaskBatchEncoding,
+    TransformerTextClassificationTaskBatchEncoding,
+    TransformerTextClassificationModelBatchOutput,
+    TransformerTextClassificationTaskOutput,
+]
 
 
-class TransformerRETextClassificationTaskModule(
-    TaskModule[
-        TransformerTextClassificationInputEncoding,
-        TransformerTextClassificationTargetEncoding,
-        TransformerTextClassificationModelOutput
-    ]
-):
+class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -381,7 +394,7 @@ class TransformerRETextClassificationTaskModule(
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[TransformerTextClassificationModelOutput]:
+    def unbatch_output(self, output: TransformerTextClassificationModelBatchOutput) -> List[TransformerTextClassificationTaskOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -402,8 +415,8 @@ class TransformerRETextClassificationTaskModule(
 
     def create_annotations_from_output(
         self,
-        output: TransformerTextClassificationModelOutput,
-        encoding: TaskEncoding[TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding],
+        output: TransformerTextClassificationTaskOutput,
+        encoding: TransformerTextClassificationTaskEncoding,
     ) -> None:
         metadata = encoding.metadata
         labels = output["labels"]
@@ -428,8 +441,8 @@ class TransformerRETextClassificationTaskModule(
                     )
 
     def collate(
-        self, encodings: List[TaskEncoding[TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding]]
-    ) -> tuple[Dict[str, Tensor], Optional[Tensor], list[Any], list[Document]]:
+        self, encodings: List[TransformerTextClassificationTaskEncoding]
+    ) -> TransformerTextClassificationTaskBatchEncoding:
 
         input_features = [encoding.input for encoding in encodings]
         meta = [encoding.metadata for encoding in encodings]

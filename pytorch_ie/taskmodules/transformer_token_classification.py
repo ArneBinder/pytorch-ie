@@ -5,25 +5,39 @@ import torch.nn.functional as F
 from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
+from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata, BatchedModelOutput
+from pytorch_ie.models import TransformerTokenClassificationModelBatchOutput
+from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata
 
 
-TransformerTokenClassificationInputEncoding = BatchEncoding
+TransformerTokenClassificationInputEncoding = Dict[str, Any]
 TransformerTokenClassificationTargetEncoding = List[int]
-TransformerTokenClassificationModelOutput = Dict[str, Any]
+TransformerTokenClassificationTaskEncoding = TaskEncoding[
+    TransformerTokenClassificationInputEncoding,
+    TransformerTokenClassificationTargetEncoding
+]
+TransformerTokenClassificationTaskBatchEncoding = Tuple[
+    Dict[str, Tensor],
+    Optional[Tensor],
+    List[Metadata],
+    List[Document]
+]
+TransformerTokenClassificationTaskOutput = Dict[str, Any]
+_TransformerTokenClassificationTaskModule = TaskModule[
+    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TransformerTokenClassificationInputEncoding,
+    TransformerTokenClassificationTargetEncoding,
+    TransformerTokenClassificationTaskBatchEncoding,
+    TransformerTokenClassificationTaskBatchEncoding,
+    TransformerTokenClassificationModelBatchOutput,
+    TransformerTokenClassificationTaskOutput,
+]
 
 
-class TransformerTokenClassificationTaskModule(
-    TaskModule[
-        TransformerTokenClassificationInputEncoding,
-        TransformerTokenClassificationTargetEncoding,
-        TransformerTokenClassificationModelOutput
-    ]
-):
+class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -197,7 +211,8 @@ class TransformerTokenClassificationTaskModule(
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[TransformerTokenClassificationModelOutput]:
+    def unbatch_output(self, output: TransformerTokenClassificationModelBatchOutput) \
+        -> List[TransformerTokenClassificationTaskOutput]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -206,8 +221,8 @@ class TransformerTokenClassificationTaskModule(
 
     def create_annotations_from_output(
         self,
-        output: TransformerTokenClassificationModelOutput,
-        encoding: TaskEncoding[TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding],
+        output: TransformerTokenClassificationTaskOutput,
+        encoding: TransformerTokenClassificationTaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
             document = encoding.document
@@ -250,8 +265,8 @@ class TransformerTokenClassificationTaskModule(
                 )
 
     def collate(
-        self, encodings: List[TaskEncoding[TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding]]
-    ) -> tuple[Dict[str, Tensor], Optional[Tensor], list[Metadata], list[Document]]:
+        self, encodings: List[TransformerTokenClassificationTaskEncoding]
+    ) -> TransformerTokenClassificationTaskBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]
