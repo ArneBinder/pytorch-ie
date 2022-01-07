@@ -38,7 +38,6 @@ _TransformerTokenClassificationTaskModule = TaskModule[
     TransformerTokenClassificationInputEncoding,
     TransformerTokenClassificationTargetEncoding,
     TransformerTokenClassificationTaskBatchEncoding,
-    TransformerTokenClassificationTaskBatchEncoding,
     TransformerTokenClassificationModelBatchOutput,
     TransformerTokenClassificationTaskOutput,
 ]

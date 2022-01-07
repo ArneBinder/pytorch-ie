@@ -41,7 +41,6 @@ _TransformerTextClassificationTaskModule = TaskModule[
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
     TransformerTextClassificationTaskBatchEncoding,
-    TransformerTextClassificationTaskBatchEncoding,
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationTaskOutput,
 ]

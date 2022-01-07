@@ -42,7 +42,6 @@ TransformerSpanClassificationTaskModule = TaskModule[
     TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationTargetEncoding,
     TransformerSpanClassificationTaskBatchEncoding,
-    TransformerSpanClassificationTaskBatchEncoding,
     TransformerSpanClassificationModelBatchOutput,
     TransformerSpanClassificationTaskOutput,
 ]
@@ -205,7 +204,8 @@ class TransformerSpanClassificationTaskModule(TransformerSpanClassificationTaskM
 
         return target
 
-    def unbatch_output(self, output: TransformerSpanClassificationBatchOutput) -> List[TransformerSpanClassificationTaskOutput]:
+    def unbatch_output(self, output: TransformerSpanClassificationModelBatchOutput) \
+        -> List[TransformerSpanClassificationTaskOutput]:
         logits = output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
