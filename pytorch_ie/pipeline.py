@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.document import Document
-from pytorch_ie.taskmodules.taskmodule import DecodedModelOutput, TaskEncoding, TaskModule
+from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, ModelOutput
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +198,7 @@ class Pipeline:
     def postprocess(
         self,
         model_inputs: List[TaskEncoding],
-        model_outputs: List[DecodedModelOutput],
+        model_outputs: List[ModelOutput],
         **postprocess_parameters: Dict,
     ) -> List[Document]:
         """
