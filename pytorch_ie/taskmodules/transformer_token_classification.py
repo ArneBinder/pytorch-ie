@@ -11,12 +11,19 @@ from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata, BatchedModelOutput
 
-_InputEncoding = BatchEncoding
-_TargetEncoding = List[int]
-_ModelOutput = Dict[str, Any]
+
+TransformerTokenClassificationInputEncoding = BatchEncoding
+TransformerTokenClassificationTargetEncoding = List[int]
+TransformerTokenClassificationModelOutput = Dict[str, Any]
 
 
-class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _TargetEncoding, _ModelOutput]):
+class TransformerTokenClassificationTaskModule(
+    TaskModule[
+        TransformerTokenClassificationInputEncoding,
+        TransformerTokenClassificationTargetEncoding,
+        TransformerTokenClassificationModelOutput
+    ]
+):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -81,7 +88,7 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[_InputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[List[TransformerTokenClassificationInputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
         expanded_documents = None
         if self.single_sentence:
             sent: LabeledSpan
@@ -135,9 +142,9 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
     def encode_target(
         self,
         documents: List[Document],
-        input_encodings: List[_InputEncoding],
+        input_encodings: List[TransformerTokenClassificationInputEncoding],
         metadata: Optional[List[Metadata]],
-    ) -> List[_TargetEncoding]:
+    ) -> List[TransformerTokenClassificationTargetEncoding]:
         target = []
         if self.single_sentence:
             i = 0
@@ -190,7 +197,7 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
 
         return target
 
-    def unbatch_output(self, output: BatchedModelOutput) -> List[_ModelOutput]:
+    def unbatch_output(self, output: BatchedModelOutput) -> List[TransformerTokenClassificationModelOutput]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -199,8 +206,8 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
 
     def create_annotations_from_output(
         self,
-        output: _ModelOutput,
-        encoding: TaskEncoding[_InputEncoding, _TargetEncoding],
+        output: TransformerTokenClassificationModelOutput,
+        encoding: TaskEncoding[TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding],
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
             document = encoding.document
@@ -243,7 +250,7 @@ class TransformerTokenClassificationTaskModule(TaskModule[_InputEncoding, _Targe
                 )
 
     def collate(
-        self, encodings: List[TaskEncoding[_InputEncoding, _TargetEncoding]]
+        self, encodings: List[TaskEncoding[TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding]]
     ) -> tuple[Dict[str, Tensor], Optional[Tensor], list[Metadata], list[Document]]:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]

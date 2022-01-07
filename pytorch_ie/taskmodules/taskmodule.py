@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, Generic, TypeVar
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
-from pytorch_ie.data.document import Annotation, AnnotationCollection, Document
+from pytorch_ie.data.document import Annotation, Document
 
 InputEncoding = TypeVar('InputEncoding', bound=Dict[str, Any])
 TargetEncoding = TypeVar('TargetEncoding', bound=Dict[str, Any])
@@ -21,7 +21,7 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
         input: InputEncoding,
         document: Document,
         target: Optional[TargetEncoding] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[Metadata] = None,
     ) -> None:
         self.input = input
         self.document = document
