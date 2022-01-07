@@ -23,7 +23,7 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTextClassificationInputEncoding = Dict[str, Any]
+TransformerTextClassificationInputEncoding = Dict[str, List[int]]
 TransformerTextClassificationTargetEncoding = List[int]
 TransformerTextClassificationTaskEncoding = TaskEncoding[
     TransformerTextClassificationInputEncoding,

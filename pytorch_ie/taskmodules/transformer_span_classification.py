@@ -24,7 +24,7 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerSpanClassificationInputEncoding = Dict[str, Any]
+TransformerSpanClassificationInputEncoding = BatchEncoding
 TransformerSpanClassificationTargetEncoding = List[int]
 TransformerSpanClassificationTaskEncoding = TaskEncoding[
     TransformerSpanClassificationInputEncoding,
@@ -168,7 +168,6 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         input_encodings: List[TransformerSpanClassificationInputEncoding],
         metadata: Optional[List[Metadata]],
     ) -> List[TransformerSpanClassificationTargetEncoding]:
-        input_encodings: List[BatchEncoding]
         target = []
         if self.single_sentence:
             for i, document in enumerate(documents):

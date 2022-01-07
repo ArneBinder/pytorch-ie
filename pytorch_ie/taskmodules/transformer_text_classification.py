@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
 
 from pytorch_ie.data.document import Annotation, Document, Label
 from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
@@ -23,7 +23,7 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTextClassificationInputEncoding = Dict[str, Any]
+TransformerTextClassificationInputEncoding = BatchEncoding
 TransformerTextClassificationTargetEncoding = List[int]
 TransformerTextClassificationTaskEncoding = TaskEncoding[
     TransformerTextClassificationInputEncoding,

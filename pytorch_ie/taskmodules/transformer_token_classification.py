@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
@@ -20,7 +20,7 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTokenClassificationInputEncoding = Dict[str, Any]
+TransformerTokenClassificationInputEncoding = BatchEncoding
 TransformerTokenClassificationTargetEncoding = List[int]
 TransformerTokenClassificationTaskEncoding = TaskEncoding[
     TransformerTokenClassificationInputEncoding,
