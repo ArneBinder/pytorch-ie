@@ -67,7 +67,7 @@ def main():
         gpus=1,
         checkpoint_callback=False,
         # callbacks=[checkpoint_callback],
-        precision=16,
+        precision=32,
     )
     trainer.fit(model, train_dataloader, val_dataloader)
 
