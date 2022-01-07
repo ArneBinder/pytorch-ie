@@ -15,6 +15,14 @@ from pytorch_ie.taskmodules.taskmodule import (
     TaskModule,
 )
 
+"""
+workflow:
+    Document
+        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
+            -> ModelBatchEncoding -> ModelBatchOutput
+        -> TaskOutput
+    -> Document
+"""
 TransformerTextClassificationInputEncoding = Dict[str, Any]
 TransformerTextClassificationTargetEncoding = List[int]
 TransformerTextClassificationTaskEncoding = TaskEncoding[

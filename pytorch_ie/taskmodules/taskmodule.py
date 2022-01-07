@@ -7,7 +7,7 @@ from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data.document import Annotation, Document
 
 """
-Type workflow:
+workflow:
     Document
         -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
             -> ModelBatchEncoding -> ModelBatchOutput

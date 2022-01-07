@@ -12,7 +12,14 @@ from pytorch_ie.data.span_utils import bio_tags_to_spans
 from pytorch_ie.models import TransformerTokenClassificationModelBatchOutput
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata
 
-
+"""
+workflow:
+    Document
+        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
+            -> ModelBatchEncoding -> ModelBatchOutput
+        -> TaskOutput
+    -> Document
+"""
 TransformerTokenClassificationInputEncoding = Dict[str, Any]
 TransformerTokenClassificationTargetEncoding = List[int]
 TransformerTokenClassificationTaskEncoding = TaskEncoding[
