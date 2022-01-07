@@ -37,7 +37,7 @@ TransformerSpanClassificationTaskBatchEncoding = Tuple[
     List[Document]
 ]
 TransformerSpanClassificationTaskOutput = Dict[str, Any]
-TransformerSpanClassificationTaskModule = TaskModule[
+_TransformerSpanClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationTargetEncoding,
@@ -47,7 +47,7 @@ TransformerSpanClassificationTaskModule = TaskModule[
 ]
 
 
-class TransformerSpanClassificationTaskModule(TransformerSpanClassificationTaskModule):
+class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
