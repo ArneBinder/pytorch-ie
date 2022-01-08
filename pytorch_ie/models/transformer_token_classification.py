@@ -25,7 +25,7 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.learning_rate = learning_rate
         self.label_pad_token_id = label_pad_token_id
 
-        config = AutoConfig.from_pretrained(model_name_or_path)
+        config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_classes)
         self.model = AutoModelForTokenClassification.from_pretrained(
             model_name_or_path, config=config
         )
