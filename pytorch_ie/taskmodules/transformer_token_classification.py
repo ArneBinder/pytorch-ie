@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
@@ -37,6 +38,8 @@ _TransformerTokenClassificationTaskModule = TaskModule[
     TransformerTokenClassificationModelBatchOutput,
     TransformerTokenClassificationTaskOutput,
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
@@ -190,6 +193,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
                     start_idx = input_encodings[i].char_to_token(entity_start)
                     end_idx = input_encodings[i].char_to_token(entity_end - 1)
+                    # TODO: remove this is if case
+                    if start_idx is None or end_idx is None:
+                        logger.warning(f'Entity annotation does not start or end with a token, it will be skipped: {entity}')
+                        continue
+
                     for j in range(start_idx, end_idx + 1):
                         prefix = "B" if j == start_idx else "I"
                         label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
