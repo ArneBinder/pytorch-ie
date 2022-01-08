@@ -202,7 +202,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                         prefix = "B" if j == start_idx else "I"
                         label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
 
-                    target.append(label_ids)
+                target.append(label_ids)
         else:
             for i, document in enumerate(documents):
                 word_ids = input_encodings[i].word_ids()
