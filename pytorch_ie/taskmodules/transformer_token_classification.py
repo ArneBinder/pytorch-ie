@@ -170,29 +170,30 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             i = 0
             for document in documents:
                 entities = document.annotations(self.entity_annotation)
-                sentences = document.annotations(self.sentence_annotation)
+                sentence_idx = metadata[i]["sentence_index"]
+                sentence: LabeledSpan = document.annotations(self.sentence_annotation)[
+                    sentence_idx
+                ]
 
-                sentence: LabeledSpan
-                for sentence in sentences:
-                    word_ids = input_encodings[i].word_ids()
-                    label_ids = [
-                        self.label_pad_token_id if word_ids[j] is None else self.label_to_id["O"]
-                        for j in range(len(word_ids))
-                    ]
+                word_ids = input_encodings[i].word_ids()
+                label_ids = [
+                    self.label_pad_token_id if word_ids[j] is None else self.label_to_id["O"]
+                    for j in range(len(word_ids))
+                ]
 
-                    entity: LabeledSpan
-                    for entity in entities:
-                        if entity.start < sentence.start or entity.end > sentence.end:
-                            continue
+                entity: LabeledSpan
+                for entity in entities:
+                    if entity.start < sentence.start or entity.end > sentence.end:
+                        continue
 
-                        entity_start = entity.start - sentence.start
-                        entity_end = entity.end - sentence.start
+                    entity_start = entity.start - sentence.start
+                    entity_end = entity.end - sentence.start
 
-                        start_idx = input_encodings[i].char_to_token(entity_start)
-                        end_idx = input_encodings[i].char_to_token(entity_end - 1)
-                        for j in range(start_idx, end_idx + 1):
-                            prefix = "B" if j == start_idx else "I"
-                            label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
+                    start_idx = input_encodings[i].char_to_token(entity_start)
+                    end_idx = input_encodings[i].char_to_token(entity_end - 1)
+                    for j in range(start_idx, end_idx + 1):
+                        prefix = "B" if j == start_idx else "I"
+                        label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
 
                     target.append(label_ids)
                     i += 1
