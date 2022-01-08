@@ -9,11 +9,7 @@ from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
 from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
-from pytorch_ie.taskmodules.taskmodule import (
-    Metadata,
-    TaskEncoding,
-    TaskModule,
-)
+from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
 workflow:
@@ -26,14 +22,10 @@ workflow:
 TransformerTextClassificationInputEncoding = Dict[str, List[int]]
 TransformerTextClassificationTargetEncoding = List[int]
 TransformerTextClassificationTaskEncoding = TaskEncoding[
-    TransformerTextClassificationInputEncoding,
-    TransformerTextClassificationTargetEncoding
+    TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
 ]
 TransformerTextClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor],
-    Optional[Tensor],
-    List[Metadata],
-    List[Document]
+    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
 ]
 TransformerTextClassificationTaskOutput = Dict[str, Any]
 _TransformerTextClassificationTaskModule = TaskModule[
@@ -168,7 +160,11 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
     def _single_pair_insert_marker(
         self, documents: List[Document]
-    ) -> Tuple[List[TransformerTextClassificationInputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerTextClassificationInputEncoding],
+        Optional[List[Metadata]],
+        Optional[List[Document]],
+    ]:
         input_encoding = []
         metadata = []
         new_documents = []
@@ -302,7 +298,11 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[TransformerTextClassificationInputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerTextClassificationInputEncoding],
+        Optional[List[Metadata]],
+        Optional[List[Document]],
+    ]:
         return self._single_pair_insert_marker(documents)
 
         # input_encoding = []
@@ -401,7 +401,9 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
         return target
 
-    def unbatch_output(self, output: TransformerTextClassificationModelBatchOutput) -> List[TransformerTextClassificationTaskOutput]:
+    def unbatch_output(
+        self, output: TransformerTextClassificationModelBatchOutput
+    ) -> List[TransformerTextClassificationTaskOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)

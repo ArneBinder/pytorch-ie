@@ -1,7 +1,7 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, Generic, TypeVar
+from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data.document import Annotation, Document
@@ -15,13 +15,13 @@ workflow:
     -> Document
 """
 
-InputEncoding = TypeVar('InputEncoding', bound=Dict[str, Any])
-TargetEncoding = TypeVar('TargetEncoding', bound=Dict[str, Any])
+InputEncoding = TypeVar("InputEncoding", bound=Dict[str, Any])
+TargetEncoding = TypeVar("TargetEncoding", bound=Dict[str, Any])
 # TaskEncoding: defined below
-TaskBatchEncoding = TypeVar('TaskBatchEncoding')
+TaskBatchEncoding = TypeVar("TaskBatchEncoding")
 # ModelBatchEncoding: defined in models
-ModelBatchOutput = TypeVar('ModelBatchOutput', bound=Dict[str, Any])
-TaskOutput = TypeVar('TaskOutput', bound=Dict[str, Any])
+ModelBatchOutput = TypeVar("ModelBatchOutput", bound=Dict[str, Any])
+TaskOutput = TypeVar("TaskOutput", bound=Dict[str, Any])
 
 Metadata = Dict[str, Any]
 
@@ -43,7 +43,11 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
         self.metadata = metadata or {}
 
 
-class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, TargetEncoding, TaskBatchEncoding, ModelBatchOutput, TaskOutput]):
+class TaskModule(
+    ABC,
+    PyTorchIETaskmoduleModelHubMixin,
+    Generic[InputEncoding, TargetEncoding, TaskBatchEncoding, ModelBatchOutput, TaskOutput],
+):
     def __init__(self, **kwargs):
         self.init_inputs = ()
         self.init_kwargs = copy.deepcopy(kwargs)
@@ -71,7 +75,9 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, T
                 documents
             ), "'input_encoding', 'metadata', and 'documents' must be of same length."
             return [
-                TaskEncoding[InputEncoding, TargetEncoding](input=enc_inp, metadata=md, document=doc)
+                TaskEncoding[InputEncoding, TargetEncoding](
+                    input=enc_inp, metadata=md, document=doc
+                )
                 for enc_inp, md, doc in zip(input_encoding, metadata, documents)
             ]
 
@@ -82,7 +88,9 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, T
         ), "'input_encoding', 'metadata', 'target', and 'documents' must be of same length."
 
         return [
-            TaskEncoding[InputEncoding, TargetEncoding](input=enc_inp, document=doc, target=tgt, metadata=md)
+            TaskEncoding[InputEncoding, TargetEncoding](
+                input=enc_inp, document=doc, target=tgt, metadata=md
+            )
             for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
         ]
 
@@ -169,5 +177,7 @@ class TaskModule(ABC, PyTorchIETaskmoduleModelHubMixin, Generic[InputEncoding, T
         raise NotImplementedError()
 
     @abstractmethod
-    def collate(self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]) -> TaskBatchEncoding:
+    def collate(
+        self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]
+    ) -> TaskBatchEncoding:
         raise NotImplementedError()

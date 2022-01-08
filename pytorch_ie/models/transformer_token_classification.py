@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 import torch
 import torchmetrics
@@ -33,7 +33,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(self, input_: TransformerTokenClassificationModelBatchEncoding) -> TransformerTokenClassificationModelBatchOutput:
+    def forward(
+        self, input_: TransformerTokenClassificationModelBatchEncoding
+    ) -> TransformerTokenClassificationModelBatchOutput:
         return self.model(**input_)
 
     def training_step(self, batch, batch_idx):

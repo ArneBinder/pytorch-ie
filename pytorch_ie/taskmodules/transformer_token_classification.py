@@ -5,12 +5,12 @@ import torch.nn.functional as F
 from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
 from pytorch_ie.models import TransformerTokenClassificationModelBatchOutput
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, Metadata
+from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
 workflow:
@@ -23,14 +23,10 @@ workflow:
 TransformerTokenClassificationInputEncoding = BatchEncoding
 TransformerTokenClassificationTargetEncoding = List[int]
 TransformerTokenClassificationTaskEncoding = TaskEncoding[
-    TransformerTokenClassificationInputEncoding,
-    TransformerTokenClassificationTargetEncoding
+    TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding
 ]
 TransformerTokenClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor],
-    Optional[Tensor],
-    List[Metadata],
-    List[Document]
+    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
 ]
 TransformerTokenClassificationTaskOutput = Dict[str, Any]
 _TransformerTokenClassificationTaskModule = TaskModule[
@@ -108,13 +104,17 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[TransformerTokenClassificationInputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerTokenClassificationInputEncoding],
+        Optional[List[Metadata]],
+        Optional[List[Document]],
+    ]:
         expanded_documents = None
         if self.single_sentence:
             sent: LabeledSpan
             input_ = [
                 self.tokenizer(
-                    doc.text[sent.start: sent.end],
+                    doc.text[sent.start : sent.end],
                     padding=False,
                     truncation=False,
                     max_length=None,
@@ -217,8 +217,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         return target
 
-    def unbatch_output(self, output: TransformerTokenClassificationModelBatchOutput) \
-        -> List[TransformerTokenClassificationTaskOutput]:
+    def unbatch_output(
+        self, output: TransformerTokenClassificationModelBatchOutput
+    ) -> List[TransformerTokenClassificationTaskOutput]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -234,7 +235,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             document = encoding.document
             metadata = encoding.metadata
 
-            sentence: LabeledSpan = document.annotations(self.sentence_annotation)[metadata["sentence_index"]]
+            sentence: LabeledSpan = document.annotations(self.sentence_annotation)[
+                metadata["sentence_index"]
+            ]
 
             tag_sequence = [
                 "O" if stm else tag
