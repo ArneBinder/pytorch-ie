@@ -13,18 +13,20 @@ from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchEncoding,
     TransformerTokenClassificationModelBatchOutput,
 )
+from pytorch_ie.models.transformer_seq2seq import TransformerSeq2SeqModel
 
 __all__ = [
     # Models
     "TransformerSpanClassificationModel",
     "TransformerTextClassificationModel",
     "TransformerTokenClassificationModel",
+    "TransformerSeq2SeqModel",
     # Types - Input
-    TransformerSpanClassificationModelBatchEncoding,
-    TransformerTextClassificationModelBatchEncoding,
-    TransformerTokenClassificationModelBatchEncoding,
+    "TransformerSpanClassificationModelBatchEncoding",
+    "TransformerTextClassificationModelBatchEncoding",
+    "TransformerTokenClassificationModelBatchEncoding",
     # Types - Output
-    TransformerSpanClassificationModelBatchOutput,
-    TransformerTextClassificationModelBatchOutput,
-    TransformerTokenClassificationModelBatchOutput,
+    "TransformerSpanClassificationModelBatchOutput",
+    "TransformerTextClassificationModelBatchOutput",
+    "TransformerTokenClassificationModelBatchOutput",
 ]
