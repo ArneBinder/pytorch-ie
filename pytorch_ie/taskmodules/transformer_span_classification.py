@@ -234,9 +234,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             label = self.id_to_label[label_id]
             if label != "O":
                 tags[batch_idx].append((label, (start, end)))
-                probabilities[batch_idx].append(prob)
+                probabilities[batch_idx].append(prob[label_id])
 
-        # labels = [[self.id_to_label[e] for e in b] for b in label_ids]
         return [{"tags": t, "probabilities": p} for t, p in zip(tags, probabilities)]
 
     def create_annotations_from_output(

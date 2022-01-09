@@ -398,7 +398,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         """
 
     def _config(self) -> Optional[Dict[str, Any]]:
-        config = self.init_kwargs
+        config = dict(self.init_kwargs)
         config["taskmodule_type"] = self.__class__.__name__
         return config
 

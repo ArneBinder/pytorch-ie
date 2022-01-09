@@ -29,6 +29,7 @@ requires = ["poetry-core @ git+https://github.com/python-poetry/poetry-core.git@
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
+profile = "black"
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
@@ -36,14 +37,33 @@ use_parentheses = true
 line_length = 99
 
 [tool.mypy]
-files = "examples,pytorch_ie,tests"
+files = [
+    "pytorch_ie",
+    "examples",
+    "tests"
+]
 ignore_missing_imports = true
 
 [tool.pytest]
-python_files = "tests/*"
+testpaths = "tests/"
+log_cli = true
 markers = [
     "slow"
 ]
+addopts = [
+    "--durations=0",
+    "--strict-markers",
+    "--doctest-modules"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning"
+]
 
 [tool.black]
+include = [
+    "pytorch_ie",
+    "examples",
+    "tests"
+]
 line_length = 99

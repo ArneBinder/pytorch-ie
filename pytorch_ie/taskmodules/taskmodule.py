@@ -146,7 +146,11 @@ class TaskModule(
             all_documents = list(copied_documents.values())
             encodings = copied_encodings
         else:
-            all_documents = list(set((encoding.document for encoding in encodings)))
+            documents: Dict[Document, Document] = {}
+            for encoding in encodings:
+                if encoding.document not in documents:
+                    documents[encoding.document] = encoding.document
+            all_documents = list(documents.values())
 
         self.combine_outputs(encodings, decoded_outputs)
         return all_documents
