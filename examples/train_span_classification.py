@@ -4,7 +4,9 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.data.datasets.conll2003 import load_conll2003
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
-from pytorch_ie.taskmodules.transformer_span_classification import TransformerSpanClassificationTaskModule
+from pytorch_ie.taskmodules.transformer_span_classification import (
+    TransformerSpanClassificationTaskModule,
+)
 
 
 def main():

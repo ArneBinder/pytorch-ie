@@ -2,21 +2,43 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, Label
-from pytorch_ie.taskmodules.taskmodule import (
-    InputEncoding,
-    Metadata,
-    TargetEncoding,
-    TaskEncoding,
-    TaskModule,
-)
+from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
+from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+
+"""
+workflow:
+    Document
+        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
+            -> ModelBatchEncoding -> ModelBatchOutput
+        -> TaskOutput
+    -> Document
+"""
+TransformerTextClassificationInputEncoding = BatchEncoding
+TransformerTextClassificationTargetEncoding = List[int]
+TransformerTextClassificationTaskEncoding = TaskEncoding[
+    TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
+]
+TransformerTextClassificationTaskBatchEncoding = Tuple[
+    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
+]
+TransformerTextClassificationTaskOutput = Dict[str, Any]
+_TransformerTextClassificationTaskModule = TaskModule[
+    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TransformerTextClassificationInputEncoding,
+    TransformerTextClassificationTargetEncoding,
+    TransformerTextClassificationTaskBatchEncoding,
+    TransformerTextClassificationModelBatchOutput,
+    TransformerTextClassificationTaskOutput,
+]
 
 
-class TransformerTextClassificationTaskModule(TaskModule):
+class TransformerTextClassificationTaskModule(_TransformerTextClassificationTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -80,7 +102,11 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[InputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerTextClassificationInputEncoding],
+        Optional[List[Metadata]],
+        Optional[List[Document]],
+    ]:
         input_encoding = [
             self.tokenizer(
                 doc.text,
@@ -105,10 +131,13 @@ class TransformerTextClassificationTaskModule(TaskModule):
         return input_encoding, metadata, documents
 
     def encode_target(
-        self, documents: List[Document], input_encodings: List[InputEncoding]
-    ) -> List[TargetEncoding]:
+        self,
+        documents: List[Document],
+        input_encodings: List[TransformerTextClassificationInputEncoding],
+        metadata: List[Metadata],
+    ) -> List[TransformerTextClassificationTargetEncoding]:
 
-        target: List[List[int]] = []
+        target: List[TransformerTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             if self.multi_label:
                 label_ids = [0] * len(self.label_to_id)
@@ -128,7 +157,9 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
         return target
 
-    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(
+        self, output: TransformerTextClassificationModelBatchOutput
+    ) -> List[TransformerTextClassificationTaskOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -166,8 +197,8 @@ class TransformerTextClassificationTaskModule(TaskModule):
 
     def create_annotations_from_output(
         self,
-        output: Dict[str, Any],
-        encoding: TaskEncoding,
+        output: TransformerTextClassificationTaskOutput,
+        encoding: TransformerTextClassificationTaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         for labels, probabilities in zip(output["labels"], output["probabilities"]):
             yield (
@@ -178,7 +209,9 @@ class TransformerTextClassificationTaskModule(TaskModule):
                 ),
             )
 
-    def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
+    def collate(
+        self, encodings: List[TransformerTextClassificationTaskEncoding]
+    ) -> TransformerTextClassificationTaskBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]

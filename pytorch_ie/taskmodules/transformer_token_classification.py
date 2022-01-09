@@ -1,19 +1,48 @@
-import json
-import os
+import logging
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
+from pytorch_ie.models import TransformerTokenClassificationModelBatchOutput
+from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+
+"""
+workflow:
+    Document
+        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
+            -> ModelBatchEncoding -> ModelBatchOutput
+        -> TaskOutput
+    -> Document
+"""
+TransformerTokenClassificationInputEncoding = BatchEncoding
+TransformerTokenClassificationTargetEncoding = List[int]
+TransformerTokenClassificationTaskEncoding = TaskEncoding[
+    TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding
+]
+TransformerTokenClassificationTaskBatchEncoding = Tuple[
+    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
+]
+TransformerTokenClassificationTaskOutput = Dict[str, Any]
+_TransformerTokenClassificationTaskModule = TaskModule[
+    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TransformerTokenClassificationInputEncoding,
+    TransformerTokenClassificationTargetEncoding,
+    TransformerTokenClassificationTaskBatchEncoding,
+    TransformerTokenClassificationModelBatchOutput,
+    TransformerTokenClassificationTaskOutput,
+]
+
+logger = logging.getLogger(__name__)
 
 
-class TransformerTokenClassificationTaskModule(TaskModule):
+class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -78,9 +107,14 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[Dict[str, Any]], Optional[List[Dict[str, Any]]], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerTokenClassificationInputEncoding],
+        Optional[List[Metadata]],
+        Optional[List[Document]],
+    ]:
         expanded_documents = None
         if self.single_sentence:
+            sent: LabeledSpan
             input_ = [
                 self.tokenizer(
                     doc.text[sent.start : sent.end],
@@ -129,40 +163,49 @@ class TransformerTokenClassificationTaskModule(TaskModule):
         return input_, metadata, expanded_documents
 
     def encode_target(
-        self, documents: List[Document], input_: List[Dict[str, Any]]
-    ) -> Union[List[List[int]], List[Dict[str, Any]]]:
+        self,
+        documents: List[Document],
+        input_encodings: List[TransformerTokenClassificationInputEncoding],
+        metadata: Optional[List[Metadata]],
+    ) -> List[TransformerTokenClassificationTargetEncoding]:
         target = []
         if self.single_sentence:
-            i = 0
-            for document in documents:
+            for i, document in enumerate(documents):
                 entities = document.annotations(self.entity_annotation)
-                sentences = document.annotations(self.sentence_annotation)
+                sentence_idx = metadata[i]["sentence_index"]
+                sentence: LabeledSpan = document.annotations(self.sentence_annotation)[
+                    sentence_idx
+                ]
 
-                for sentence in sentences:
-                    word_ids = input_[i].word_ids()
-                    label_ids = [
-                        self.label_pad_token_id if word_ids[j] is None else self.label_to_id["O"]
-                        for j in range(len(word_ids))
-                    ]
+                word_ids = input_encodings[i].word_ids()
+                label_ids = [
+                    self.label_pad_token_id if word_ids[j] is None else self.label_to_id["O"]
+                    for j in range(len(word_ids))
+                ]
 
-                    for entity in entities:
-                        if entity.start < sentence.start or entity.end > sentence.end:
-                            continue
+                entity: LabeledSpan
+                for entity in entities:
+                    if entity.start < sentence.start or entity.end > sentence.end:
+                        continue
 
-                        entity_start = entity.start - sentence.start
-                        entity_end = entity.end - sentence.start
+                    entity_start = entity.start - sentence.start
+                    entity_end = entity.end - sentence.start
 
-                        start_idx = input_[i].char_to_token(entity_start)
-                        end_idx = input_[i].char_to_token(entity_end - 1)
-                        for j in range(start_idx, end_idx + 1):
-                            prefix = "B" if j == start_idx else "I"
-                            label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
+                    start_idx = input_encodings[i].char_to_token(entity_start)
+                    end_idx = input_encodings[i].char_to_token(entity_end - 1)
+                    # TODO: remove this is if case
+                    if start_idx is None or end_idx is None:
+                        logger.warning(f'Entity annotation does not start or end with a token, it will be skipped: {entity}')
+                        continue
 
-                    target.append(label_ids)
-                    i += 1
+                    for j in range(start_idx, end_idx + 1):
+                        prefix = "B" if j == start_idx else "I"
+                        label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
+
+                target.append(label_ids)
         else:
             for i, document in enumerate(documents):
-                word_ids = input_[i].word_ids()
+                word_ids = input_encodings[i].word_ids()
                 label_ids = [
                     self.label_pad_token_id if word_ids[j] is None else self.label_to_id["O"]
                     for j in range(len(word_ids))
@@ -171,8 +214,8 @@ class TransformerTokenClassificationTaskModule(TaskModule):
                 entities = document.annotations(self.entity_annotation)
 
                 for entity in entities:
-                    start_idx = input_[i].char_to_token(entity.start)
-                    end_idx = input_[i].char_to_token(entity.end - 1)
+                    start_idx = input_encodings[i].char_to_token(entity.start)
+                    end_idx = input_encodings[i].char_to_token(entity.end - 1)
                     for j in range(start_idx, end_idx + 1):
                         prefix = "B" if j == start_idx else "I"
                         label_ids[j] = self.label_to_id[f"{prefix}-{entity.label}"]
@@ -181,7 +224,9 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
         return target
 
-    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(
+        self, output: TransformerTokenClassificationModelBatchOutput
+    ) -> List[TransformerTokenClassificationTaskOutput]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -190,14 +235,16 @@ class TransformerTokenClassificationTaskModule(TaskModule):
 
     def create_annotations_from_output(
         self,
-        output: Dict[str, Any],
-        encoding: TaskEncoding,
+        output: TransformerTokenClassificationTaskOutput,
+        encoding: TransformerTokenClassificationTaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
             document = encoding.document
             metadata = encoding.metadata
 
-            sentence = document.annotations(self.sentence_annotation)[metadata["sentence_index"]]
+            sentence: LabeledSpan = document.annotations(self.sentence_annotation)[
+                metadata["sentence_index"]
+            ]
 
             tag_sequence = [
                 "O" if stm else tag
@@ -233,7 +280,9 @@ class TransformerTokenClassificationTaskModule(TaskModule):
                     ),
                 )
 
-    def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
+    def collate(
+        self, encodings: List[TransformerTokenClassificationTaskEncoding]
+    ) -> TransformerTokenClassificationTaskBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]

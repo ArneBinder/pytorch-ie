@@ -1,10 +1,19 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torchmetrics
 from torch import nn
-from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup
+from transformers import (
+    AdamW,
+    AutoConfig,
+    AutoModel,
+    BatchEncoding,
+    get_linear_schedule_with_warmup,
+)
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+
+TransformerTextClassificationModelBatchEncoding = BatchEncoding
+TransformerTextClassificationModelBatchOutput = Dict[str, Any]
 
 
 class TransformerTextClassificationModel(PyTorchIEModel):
@@ -51,7 +60,9 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(self, input_):
+    def forward(
+        self, input_: TransformerTextClassificationModelBatchEncoding
+    ) -> TransformerTextClassificationModelBatchOutput:
         output = self.model(**input_)
 
         hidden_state = output.last_hidden_state
