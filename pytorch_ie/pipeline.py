@@ -44,14 +44,12 @@ class Pipeline:
         # args_parser: ArgumentHandler = None,
         device: int = -1,
         binary_output: bool = False,
-        is_generative: bool = False,
         **kwargs,
     ):
         self.model = model
         self.taskmodule = taskmodule
         self.device = torch.device("cpu" if device < 0 else f"cuda:{device}")
         self.binary_output = binary_output
-        self.is_generative = is_generative
 
         self.model = self.model.to(self.device)
 
@@ -196,12 +194,8 @@ class Pipeline:
         code surrounding `_forward` making sure tensors and models are on the same device, disabling the training part
         of the code (leading to faster inference).
         """
-        if isinstance(input_tensors, (dict, collections.UserDict)):
-            inputs = input_tensors
-        else:
-            inputs = input_tensors[0]
-
-        return self.model.generate(inputs, **forward_parameters) if self.is_generative else self.model(inputs, **forward_parameters)
+        inputs = input_tensors[0]
+        return self.model.predict(inputs, **forward_parameters)
 
     def postprocess(
         self,

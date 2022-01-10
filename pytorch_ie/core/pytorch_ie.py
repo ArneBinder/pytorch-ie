@@ -10,3 +10,10 @@ class PyTorchIEModel(LightningModule, PyTorchIEModelHubMixin):
         config = self.hparams
         config["model_type"] = self.__class__.__name__
         return config
+
+    def predict(
+        self,
+        inputs: Any,
+        **kwargs,
+    ) -> Any:
+        return self(inputs, **kwargs)

@@ -184,6 +184,8 @@ class TransformerSeq2SeqTaskModule(TaskModule):
 
     def collate(self, encodings: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         input_features = [encoding.input for encoding in encodings]
+        metadata = [encoding.metadata for encoding in encodings]
+        documents = [encoding.document for encoding in encodings]
 
         padded_encoding = self.tokenizer.pad(
             input_features,
@@ -208,8 +210,9 @@ class TransformerSeq2SeqTaskModule(TaskModule):
             # TODO: this is a bit of a hack -- fix
             padded_encoding["labels"] = padded_labels["input_ids"]
 
-        return padded_encoding
+        return padded_encoding, None, metadata, documents
 
+    # TODO: improve this method as soon as we have unittests for this taskmodule
     def _extract_triplets(self, text):
         triplets = []
         relation, subject, relation, object_ = "", "", "", ""

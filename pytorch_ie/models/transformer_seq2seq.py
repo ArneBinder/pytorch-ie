@@ -26,11 +26,12 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
     ) -> Any:
         return self.model(**inputs)
 
-    def generate(
+    def predict(
         self,
         inputs: Any,
         **kwargs,
     ) -> Any:
+        # TODO: check if this is necessary
         if "labels" in inputs:
             inputs = {k: v for k, v in inputs.items() if k != "labels"}
 
