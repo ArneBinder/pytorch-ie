@@ -169,6 +169,7 @@ class TaskModule(
         ):
             encoding.document.add_prediction(name=annotation_name, prediction=annotation)
 
+    @abstractmethod
     def create_annotations_from_output(
         self,
         encoding: TaskEncoding[InputEncoding, TargetEncoding],

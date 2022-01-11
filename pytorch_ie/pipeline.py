@@ -1,3 +1,4 @@
+import collections
 import logging
 import os
 import warnings
@@ -193,7 +194,8 @@ class Pipeline:
         code surrounding `_forward` making sure tensors and models are on the same device, disabling the training part
         of the code (leading to faster inference).
         """
-        return self.model(input_tensors[0])
+        inputs = input_tensors[0]
+        return self.model.predict(inputs, **forward_parameters)
 
     def postprocess(
         self,
@@ -235,6 +237,7 @@ class Pipeline:
         batch_size: int = 1,
         num_workers: int = 8,
         inplace: bool = True,
+        is_generative: bool = False,
         **kwargs,
     ) -> Union[Document, List[Document]]:
         if args:

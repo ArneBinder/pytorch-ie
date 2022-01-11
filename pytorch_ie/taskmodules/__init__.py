@@ -1,6 +1,7 @@
 from pytorch_ie.taskmodules.transformer_re_text_classification import (
     TransformerRETextClassificationTaskModule,
 )
+from pytorch_ie.taskmodules.transformer_seq2seq import TransformerSeq2SeqTaskModule
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
 )
@@ -16,4 +17,5 @@ __all__ = [
     "TransformerSpanClassificationTaskModule",
     "TransformerTextClassificationTaskModule",
     "TransformerTokenClassificationTaskModule",
+    "TransformerSeq2SeqTaskModule",
 ]

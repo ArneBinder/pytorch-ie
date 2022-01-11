@@ -1,0 +1,259 @@
+import logging
+import re
+from abc import abstractmethod
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+
+import torch
+from transformers import AutoTokenizer
+from transformers.file_utils import PaddingStrategy
+from transformers.tokenization_utils_base import TruncationStrategy
+
+from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
+from pytorch_ie.taskmodules.taskmodule import (
+    DecodedModelOutput,
+    InputEncoding,
+    Metadata,
+    ModelOutput,
+    TargetEncoding,
+    TaskEncoding,
+    TaskModule,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class TransformerSeq2SeqTaskModule(TaskModule):
+    def __init__(
+        self,
+        tokenizer_name_or_path: str,
+        relation_annotation: str = "relations",
+        padding: Union[bool, str, PaddingStrategy] = True,
+        truncation: Union[bool, str, TruncationStrategy] = True,
+        max_input_length: Optional[int] = None,
+        max_target_length: Optional[int] = None,
+        pad_to_multiple_of: Optional[int] = None,
+    ) -> None:
+        super().__init__(
+            tokenizer_name_or_path=tokenizer_name_or_path,
+            relation_annotation=relation_annotation,
+            padding=padding,
+            truncation=truncation,
+            max_input_length=max_input_length,
+            max_target_length=max_target_length,
+            pad_to_multiple_of=pad_to_multiple_of,
+        )
+
+        self.relation_annotation = relation_annotation
+        self.padding = padding
+        self.truncation = truncation
+        self.max_input_length = max_input_length
+        self.max_target_length = max_target_length
+        self.pad_to_multiple_of = pad_to_multiple_of
+
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
+
+    def document_to_input_string(self, document: Document) -> str:
+        return document.text
+
+    def encode_input_strings(self, inputs: List[str]) -> Dict[str, Any]:
+        return [
+            self.tokenizer(
+                input_,
+                padding=False,
+                truncation=self.truncation,
+                max_length=self.max_input_length,
+                is_split_into_words=False,
+            )
+            for input_ in inputs
+        ]
+
+    def encode_input(
+        self, documents: List[Document]
+    ) -> Tuple[List[InputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+        input_strings = [self.document_to_input_string(document) for document in documents]
+        return (
+            self.encode_input_strings(input_strings),
+            [{} for _ in range(len(documents))],
+            documents,
+        )
+
+    def document_to_target_string(self, document: Document) -> str:
+        relations = document.annotations(self.relation_annotation)
+
+        head_to_relation: Dict[BinaryRelation, List[BinaryRelation]] = {}
+        for relation in relations:
+            if relation.head not in head_to_relation:
+                head_to_relation[relation.head] = []
+
+            head_to_relation[relation.head].append(relation)
+
+        all_relation_heads = set([relation.head for relation in relations])
+
+        lin_triplets: List[str] = []
+        for head in sorted(all_relation_heads, key=lambda head: head.start):
+            relations_with_head = head_to_relation[head]
+
+            head_entity = document.text[head.start : head.end]
+
+            lin_triplets.append("<triplet>")
+            lin_triplets.append(head_entity)
+
+            for tail_relation in sorted(
+                relations_with_head, key=lambda relation: relation.tail.start
+            ):
+                tail_entity = document.text[tail_relation.tail.start : tail_relation.tail.end]
+
+                if tail_relation.is_multilabel:
+                    raise NotImplementedError
+
+                label = tail_relation.label
+
+                lin_triplets.append("<subj>")
+                lin_triplets.append(tail_entity)
+                lin_triplets.append("<obj>")
+                lin_triplets.append(label)
+
+        return " ".join(lin_triplets)
+
+    def encode_target_strings(self, targets: List[str]) -> Dict[str, Any]:
+        return [
+            {
+                "labels": self.tokenizer(
+                    target,
+                    padding=False,
+                    truncation=self.truncation,
+                    max_length=self.max_target_length,
+                    is_split_into_words=False,
+                )["input_ids"]
+            }
+            for target in targets
+        ]
+
+    def encode_target(
+        self,
+        documents: List[Document],
+        input_encodings: List[InputEncoding],
+        metadata: Optional[List[Metadata]],
+    ) -> List[TargetEncoding]:
+        target_strings = [self.document_to_target_string(document) for document in documents]
+        return self.encode_target_strings(target_strings)
+
+    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+        unbatched_output: List[Dict[str, Any]] = []
+        for out in output:
+            decoded_string = self.tokenizer.decode(
+                out, skip_special_tokens=False, clean_up_tokenization_spaces=True
+            )
+            triplets = self._extract_triplets(decoded_string)
+            unbatched_output.append(triplets)
+
+        return unbatched_output
+
+    def create_annotations_from_output(
+        self,
+        encoding: TaskEncoding,
+        output: DecodedModelOutput,
+    ) -> Iterator[Tuple[str, Annotation]]:
+        for relation in output:
+            head_entity = relation["head"]
+            tail_entity = relation["tail"]
+            label = relation["type"]
+
+            if label == "no_relation":
+                continue
+
+            # for now, just use the first head and tail match in the document
+            text = encoding.document.text.lower()
+            head_match = re.search(head_entity.lower(), text)
+            tail_match = re.search(tail_entity.lower(), text)
+
+            if head_match is None or tail_match is None:
+                continue
+
+            head = LabeledSpan(start=head_match.start(), end=head_match.end(), label="head")
+            tail = LabeledSpan(start=tail_match.start(), end=tail_match.end(), label="tail")
+
+            yield (
+                self.relation_annotation,
+                BinaryRelation(
+                    head=head,
+                    tail=tail,
+                    label=label,
+                ),
+            )
+
+    def collate(self, encodings: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+        input_features = [encoding.input for encoding in encodings]
+        metadata = [encoding.metadata for encoding in encodings]
+        documents = [encoding.document for encoding in encodings]
+
+        padded_encoding = self.tokenizer.pad(
+            input_features,
+            padding=self.padding,
+            max_length=self.max_input_length,
+            pad_to_multiple_of=self.pad_to_multiple_of,
+            return_tensors="pt",
+        )
+
+        if encodings[0].target is not None:
+            # TODO: this is a bit of a hack -- fix
+            labels = {"input_ids": [encoding.target["labels"] for encoding in encodings]}
+
+            padded_labels = self.tokenizer.pad(
+                labels,
+                padding=self.padding,
+                max_length=self.max_target_length,
+                pad_to_multiple_of=self.pad_to_multiple_of,
+                return_tensors="pt",
+            )
+
+            # TODO: this is a bit of a hack -- fix
+            padded_encoding["labels"] = padded_labels["input_ids"]
+
+        return padded_encoding, None, metadata, documents
+
+    # TODO: improve this method as soon as we have unittests for this taskmodule
+    def _extract_triplets(self, text):
+        triplets = []
+        relation, subject, relation, object_ = "", "", "", ""
+        text = text.strip()
+        current = "x"
+        for token in text.replace("<s>", "").replace("<pad>", "").replace("</s>", "").split():
+            if token == "<triplet>":
+                current = "t"
+                if relation != "":
+                    triplets.append(
+                        {
+                            "head": subject.strip(),
+                            "type": relation.strip(),
+                            "tail": object_.strip(),
+                        }
+                    )
+                    relation = ""
+                subject = ""
+            elif token == "<subj>":
+                current = "s"
+                if relation != "":
+                    triplets.append(
+                        {
+                            "head": subject.strip(),
+                            "type": relation.strip(),
+                            "tail": object_.strip(),
+                        }
+                    )
+                object_ = ""
+            elif token == "<obj>":
+                current = "o"
+                relation = ""
+            else:
+                if current == "t":
+                    subject += " " + token
+                elif current == "s":
+                    object_ += " " + token
+                elif current == "o":
+                    relation += " " + token
+        if subject != "" and relation != "" and object_ != "":
+            triplets.append(
+                {"head": subject.strip(), "type": relation.strip(), "tail": object_.strip()}
+            )
+        return triplets
