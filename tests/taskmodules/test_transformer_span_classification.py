@@ -34,7 +34,6 @@ def model_output():
     }
 
 
-@pytest.mark.slow
 def test_prepare(taskmodule, documents):
     taskmodule.prepare(documents)
     assert set(taskmodule.label_to_id.keys()) == {"PER", "LOC", "ORG", "O"}
@@ -48,7 +47,6 @@ def test_config(prepared_taskmodule):
     assert set(config["label_to_id"]) == {"PER", "LOC", "ORG", "O"}
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_encode_without_target(prepared_taskmodule, documents, encode_target):
     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
@@ -93,7 +91,6 @@ def test_unbatch_output(prepared_taskmodule, model_output):
     assert len(unbatched_output3["probabilities"]) == 2
 
 
-@pytest.mark.slow
 def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
@@ -111,7 +108,6 @@ def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
     assert predictions[0].end == 20
 
 
-@pytest.mark.slow
 def test_decode_inplace(prepared_taskmodule, documents, model_output):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
@@ -129,7 +125,6 @@ def test_decode_inplace(prepared_taskmodule, documents, model_output):
     assert predictions[0].end == 20
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_collate(prepared_taskmodule, documents, encode_target):
     encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
