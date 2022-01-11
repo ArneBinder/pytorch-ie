@@ -21,6 +21,7 @@ mypy = "^0.930"
 pre-commit = "^2.16.0"
 pytest = "^6.2.5"
 pytest-cov = "^3.0.0"
+sh = "^1.14.2"
 
 [build-system]
 # requires = ["poetry-core>=1.0.0"]
@@ -39,7 +40,10 @@ files = "examples,pytorch_ie,tests"
 ignore_missing_imports = true
 
 [tool.pytest]
-testpaths = "tests/"
+python_files = "tests/*"
+markers = [
+    "slow"
+]
 
 [tool.black]
 line_length = 99

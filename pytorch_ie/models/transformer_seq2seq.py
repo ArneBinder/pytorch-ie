@@ -1,9 +1,12 @@
-from typing import Any
+from typing import Any, Dict
 
 import torch
-from transformers import AutoModelForSeq2SeqLM
+from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+
+TransformerSeq2SeqModelBatchEncoding = BatchEncoding
+TransformerSeq2SeqModelBatchOutput = Dict[str, Any]
 
 
 class TransformerSeq2SeqModel(PyTorchIEModel):
@@ -22,8 +25,8 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
     def forward(
         self,
-        inputs: Any,
-    ) -> Any:
+        inputs: TransformerSeq2SeqModelBatchEncoding,
+    ) -> TransformerSeq2SeqModelBatchOutput:
         return self.model(**inputs)
 
     def predict(

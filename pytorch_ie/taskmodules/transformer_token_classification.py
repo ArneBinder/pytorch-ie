@@ -195,7 +195,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                     end_idx = input_encodings[i].char_to_token(entity_end - 1)
                     # TODO: remove this is if case
                     if start_idx is None or end_idx is None:
-                        logger.warning(f'Entity annotation does not start or end with a token, it will be skipped: {entity}')
+                        logger.warning(
+                            f"Entity annotation does not start or end with a token, it will be skipped: {entity}"
+                        )
                         continue
 
                     for j in range(start_idx, end_idx + 1):

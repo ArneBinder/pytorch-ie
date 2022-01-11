@@ -1,28 +1,47 @@
 import logging
 import re
-from abc import abstractmethod
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
-from pytorch_ie.taskmodules.taskmodule import (
-    DecodedModelOutput,
-    InputEncoding,
-    Metadata,
-    ModelOutput,
-    TargetEncoding,
-    TaskEncoding,
-    TaskModule,
-)
+from pytorch_ie.models.transformer_seq2seq import TransformerSeq2SeqModelBatchOutput
+from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+
+"""
+workflow:
+    Document
+        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
+            -> ModelBatchEncoding -> ModelBatchOutput
+        -> TaskOutput
+    -> Document
+"""
+TransformerSeq2SeqInputEncoding = Dict[str, List[int]]
+TransformerSeq2SeqTargetEncoding = List[int]
+TransformerSeq2SeqTaskEncoding = TaskEncoding[
+    TransformerSeq2SeqInputEncoding, TransformerSeq2SeqTargetEncoding
+]
+TransformerSeq2SeqTaskBatchEncoding = Tuple[
+    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
+]
+TransformerSeq2SeqTaskOutput = Dict[str, Any]
+_TransformerSeq2SeqTaskModule = TaskModule[
+    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TransformerSeq2SeqInputEncoding,
+    TransformerSeq2SeqTargetEncoding,
+    TransformerSeq2SeqTaskBatchEncoding,
+    TransformerSeq2SeqModelBatchOutput,
+    TransformerSeq2SeqTaskOutput,
+]
 
 logger = logging.getLogger(__name__)
 
 
-class TransformerSeq2SeqTaskModule(TaskModule):
+class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -69,7 +88,9 @@ class TransformerSeq2SeqTaskModule(TaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[InputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerSeq2SeqInputEncoding], Optional[List[Metadata]], Optional[List[Document]]
+    ]:
         input_strings = [self.document_to_input_string(document) for document in documents]
         return (
             self.encode_input_strings(input_strings),
@@ -132,13 +153,15 @@ class TransformerSeq2SeqTaskModule(TaskModule):
     def encode_target(
         self,
         documents: List[Document],
-        input_encodings: List[InputEncoding],
+        input_encodings: List[TransformerSeq2SeqInputEncoding],
         metadata: Optional[List[Metadata]],
-    ) -> List[TargetEncoding]:
+    ) -> List[TransformerSeq2SeqTargetEncoding]:
         target_strings = [self.document_to_target_string(document) for document in documents]
         return self.encode_target_strings(target_strings)
 
-    def unbatch_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(
+        self, output: TransformerSeq2SeqModelBatchOutput
+    ) -> List[TransformerSeq2SeqTaskOutput]:
         unbatched_output: List[Dict[str, Any]] = []
         for out in output:
             decoded_string = self.tokenizer.decode(
@@ -151,8 +174,8 @@ class TransformerSeq2SeqTaskModule(TaskModule):
 
     def create_annotations_from_output(
         self,
-        encoding: TaskEncoding,
-        output: DecodedModelOutput,
+        output: Dict[str, Any],
+        encoding: TransformerSeq2SeqTaskEncoding,
     ) -> Iterator[Tuple[str, Annotation]]:
         for relation in output:
             head_entity = relation["head"]
@@ -182,7 +205,7 @@ class TransformerSeq2SeqTaskModule(TaskModule):
                 ),
             )
 
-    def collate(self, encodings: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+    def collate(self, encodings: List[TransformerSeq2SeqTaskEncoding]) -> Dict[str, torch.Tensor]:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]

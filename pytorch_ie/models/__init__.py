@@ -1,3 +1,4 @@
+from pytorch_ie.models.transformer_seq2seq import TransformerSeq2SeqModel
 from pytorch_ie.models.transformer_span_classification import (
     TransformerSpanClassificationModel,
     TransformerSpanClassificationModelBatchEncoding,
@@ -13,7 +14,6 @@ from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchEncoding,
     TransformerTokenClassificationModelBatchOutput,
 )
-from pytorch_ie.models.transformer_seq2seq import TransformerSeq2SeqModel
 
 __all__ = [
     # Models
