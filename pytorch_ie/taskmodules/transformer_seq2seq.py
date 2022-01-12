@@ -96,9 +96,9 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         )
 
     def document_to_target_string(self, document: Document) -> str:
-        relations: List[BinaryRelation] = document.annotations(self.relation_annotation)
+        relations = document.relation_annotations(self.relation_annotation)
 
-        head_to_relation: Dict[BinaryRelation, List[BinaryRelation]] = {}
+        head_to_relation: Dict[LabeledSpan, List[BinaryRelation]] = {}
         for relation in relations:
             if relation.head not in head_to_relation:
                 head_to_relation[relation.head] = []

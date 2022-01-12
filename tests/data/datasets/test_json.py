@@ -11,7 +11,7 @@ def test_load_json():
     document = documents[2]
     assert document.text == "Jim works at Hamburg University."
 
-    entities = document.annotations("entities")
+    entities = document.span_annotations("entities")
     assert len(entities) == 2
 
     entity = entities[1]

@@ -164,8 +164,21 @@ class Document:
 
         self._predictions[name].append(prediction)
 
+    # TODO: this should be deprecated in favor of typed versions
     def annotations(self, name: str) -> AnnotationLayer:
         return self._annotations.get(name, [])
+
+    # TODO: fix this hack
+    def span_annotations(self, name: str) -> List[LabeledSpan]:
+        return self.annotations(name=name)
+
+    # TODO: fix this hack
+    def relation_annotations(self, name: str) -> List[BinaryRelation]:
+        return self.annotations(name=name)
+
+    # TODO: fix this hack
+    def label_annotations(self, name: str) -> List[Label]:
+        return self.annotations(name=name)
 
     def predictions(self, name: str) -> AnnotationLayer:
         return self._predictions.get(name, [])

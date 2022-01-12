@@ -90,7 +90,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
     def prepare(self, documents: List[Document]) -> None:
         labels = set()
         for document in documents:
-            entities = document.annotations(self.entity_annotation)
+            entities = document.span_annotations(self.entity_annotation)
 
             for entity in entities:
                 entity_labels = entity.label if entity.is_multilabel else [entity.label]
@@ -127,10 +127,10 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                     return_special_tokens_mask=True,
                 )
                 for doc in documents
-                for sent in doc.annotations(self.sentence_annotation)
+                for sent in doc.span_annotations(self.sentence_annotation)
             ]
             expanded_documents = [
-                doc for doc in documents for _ in doc.annotations(self.sentence_annotation)
+                doc for doc in documents for _ in doc.span_annotations(self.sentence_annotation)
             ]
         else:
             input_ = [
@@ -157,7 +157,9 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         if self.single_sentence:
             i = 0
             for document in documents:
-                for sentence_index in range(len(document.annotations(self.sentence_annotation))):
+                for sentence_index in range(
+                    len(document.span_annotations(self.sentence_annotation))
+                ):
                     metadata[i]["sentence_index"] = sentence_index
                     i += 1
 
@@ -172,11 +174,9 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         target = []
         if self.single_sentence:
             for i, document in enumerate(documents):
-                entities = document.annotations(self.entity_annotation)
+                entities = document.span_annotations(self.entity_annotation)
                 sentence_idx = metadata[i]["sentence_index"]
-                sentence: LabeledSpan = document.annotations(self.sentence_annotation)[
-                    sentence_idx
-                ]
+                sentence = document.span_annotations(self.sentence_annotation)[sentence_idx]
 
                 label_ids = []
                 entity: LabeledSpan
@@ -201,7 +201,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                 target.append(label_ids)
         else:
             for i, document in enumerate(documents):
-                entities = document.annotations(self.entity_annotation)
+                entities = document.span_annotations(self.entity_annotation)
 
                 label_ids = []
                 for entity in entities:
@@ -245,7 +245,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             document = encoding.document
             metadata = encoding.metadata
 
-            sentence: LabeledSpan = document.annotations(self.sentence_annotation)[
+            sentence = document.span_annotations(self.sentence_annotation)[
                 metadata["sentence_index"]
             ]
 

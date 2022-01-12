@@ -123,8 +123,8 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
         entity_labels = set()
         relation_labels = set()
         for document in documents:
-            entity_annotations = document.annotations(self.entity_annotation)
-            relation_annotations = document.annotations(self.relation_annotation)
+            entity_annotations = document.span_annotations(self.entity_annotation)
+            relation_annotations = document.relation_annotations(self.relation_annotation)
 
             if self.add_type_to_marker:
                 for annotation in entity_annotations:
@@ -169,7 +169,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
         new_documents = []
 
         for document in documents:
-            entities = document.annotations(self.entity_annotation)
+            entities = document.span_annotations(self.entity_annotation)
 
             encoding = self.tokenizer(
                 document.text,
@@ -180,7 +180,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
                 return_offsets_mapping=False,
             )
 
-            relations: List[BinaryRelation] = document.annotations(self.relation_annotation)
+            relations = document.relation_annotations(self.relation_annotation)
 
             existing_head_tail = {(relation.head, relation.tail) for relation in relations}
 
@@ -382,7 +382,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
         for i, document in enumerate(documents):
             meta = metadata[i]
 
-            relations: List[BinaryRelation] = document.annotations(self.relation_annotation)
+            relations = document.relation_annotations(self.relation_annotation)
 
             head_tail_to_label = {
                 (relation.head, relation.tail): relation.label for relation in relations
