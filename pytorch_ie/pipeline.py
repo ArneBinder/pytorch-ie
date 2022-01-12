@@ -7,7 +7,6 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
-from datasets import Dataset
 from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
