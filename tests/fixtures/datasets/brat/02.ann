@@ -1,0 +1,3 @@
+T1	city 0 7	Seattle
+T2	person 25 37	Jenny Durkan
+R1	mayor_of head:T2 tail:T1
