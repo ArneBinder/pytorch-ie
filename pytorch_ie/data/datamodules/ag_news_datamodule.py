@@ -59,6 +59,7 @@ class AgNewsDataModule(LightningDataModule):
         train_set = self.task_module.encode(train_documents, encode_target=True)
         test_set = self.task_module.encode(test_documents, encode_target=True)
 
+        # TODO: fix mypy: Incompatible types in assignment (expression has type "Subset[<nothing>]", variable has type "Optional[List[TaskEncoding[Any, Any]]]")
         self.data_train, self.data_val = random_split(train_set, self.train_val_split)
         self.data_test = test_set
 
