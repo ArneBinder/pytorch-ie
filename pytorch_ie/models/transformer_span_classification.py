@@ -180,6 +180,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         seq_lengths = None
         if "attention_mask" in input_:
             seq_lengths = torch.sum(input_["attention_mask"], dim=-1)
+        # TODO: Why is this not happening in TransformerSpanClassificationTaskModule.collate?
         target = self._expand_target_tuples(
             target_tuples=target_tuples,
             batch_size=batch_size,
@@ -211,6 +212,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         if "attention_mask" in input_:
             seq_lengths = torch.sum(input_["attention_mask"], dim=-1)
 
+        # TODO: Why is this not happening in TransformerSpanClassificationTaskModule.collate?
         target = self._expand_target_tuples(
             target_tuples=target_tuples,
             batch_size=batch_size,
