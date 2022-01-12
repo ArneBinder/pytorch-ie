@@ -7,12 +7,12 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
-from datasets import Dataset
 from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
 from pytorch_ie.data.document import Document
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, TaskOutput
 
@@ -53,6 +53,7 @@ class Pipeline:
         self.device = torch.device("cpu" if device < 0 else f"cuda:{device}")
         self.binary_output = binary_output
 
+        # TODO: fix mypy: Incompatible types in assignment (expression has type "DeviceDtypeModuleMixin", variable has type "PyTorchIEModel")
         self.model = self.model.to(self.device)
 
         self.call_count = 0
@@ -269,7 +270,7 @@ class Pipeline:
         model_inputs = self.preprocess(documents, **preprocess_params)
 
         dataloader: DataLoader[TaskEncoding] = DataLoader(
-            model_inputs,
+            TaskEncodingDataset(model_inputs),
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
