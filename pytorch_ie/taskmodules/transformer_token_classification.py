@@ -3,14 +3,18 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import bio_tags_to_spans
-from pytorch_ie.models import TransformerTokenClassificationModelBatchOutput
+from pytorch_ie.models.transformer_token_classification import (
+    TransformerTokenClassificationInputEncoding,
+    TransformerTokenClassificationModelBatchOutput,
+    TransformerTokenClassificationModelStepBatchEncoding,
+    TransformerTokenClassificationTargetEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
@@ -21,20 +25,15 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTokenClassificationInputEncoding = BatchEncoding
-TransformerTokenClassificationTargetEncoding = List[int]
 TransformerTokenClassificationTaskEncoding = TaskEncoding[
     TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding
-]
-TransformerTokenClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
 ]
 TransformerTokenClassificationTaskOutput = Dict[str, Any]
 _TransformerTokenClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerTokenClassificationInputEncoding,
     TransformerTokenClassificationTargetEncoding,
-    TransformerTokenClassificationTaskBatchEncoding,
+    TransformerTokenClassificationModelStepBatchEncoding,
     TransformerTokenClassificationModelBatchOutput,
     TransformerTokenClassificationTaskOutput,
 ]
@@ -109,7 +108,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self, documents: List[Document]
     ) -> Tuple[
         List[TransformerTokenClassificationInputEncoding],
-        Optional[List[Metadata]],
+        List[Metadata],
         Optional[List[Document]],
     ]:
         expanded_documents = None
@@ -284,7 +283,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def collate(
         self, encodings: List[TransformerTokenClassificationTaskEncoding]
-    ) -> TransformerTokenClassificationTaskBatchEncoding:
+    ) -> TransformerTokenClassificationModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]
@@ -297,6 +296,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             return_tensors="pt",
         )
 
+        # TODO: can this be None at all? is collate ever called without encode_target?
+        #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
             return input_, None, metadata, documents
 

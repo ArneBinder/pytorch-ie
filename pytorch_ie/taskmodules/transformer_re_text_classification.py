@@ -1,14 +1,18 @@
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
-from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
+from pytorch_ie.models import (
+    TransformerTextClassificationInputEncoding,
+    TransformerTextClassificationModelBatchOutput,
+    TransformerTextClassificationModelStepBatchEncoding,
+    TransformerTextClassificationTargetEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
@@ -19,20 +23,15 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTextClassificationInputEncoding = Dict[str, List[int]]
-TransformerTextClassificationTargetEncoding = List[int]
 TransformerTextClassificationTaskEncoding = TaskEncoding[
     TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
-]
-TransformerTextClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
 ]
 TransformerTextClassificationTaskOutput = Dict[str, Any]
 _TransformerTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
-    TransformerTextClassificationTaskBatchEncoding,
+    TransformerTextClassificationModelStepBatchEncoding,
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationTaskOutput,
 ]
@@ -86,8 +85,8 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
-        self.argument_markers = None
-        self.argument_markers_to_id = None
+        self.argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str] = None
+        self.argument_markers_to_id: Dict[str, int] = None
         self._create_argument_markers()
 
     def _create_argument_markers(self):
@@ -300,7 +299,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
         self, documents: List[Document]
     ) -> Tuple[
         List[TransformerTextClassificationInputEncoding],
-        Optional[List[Metadata]],
+        List[Metadata],
         Optional[List[Document]],
     ]:
         return self._single_pair_insert_marker(documents)
@@ -451,7 +450,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
     def collate(
         self, encodings: List[TransformerTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationTaskBatchEncoding:
+    ) -> TransformerTextClassificationModelStepBatchEncoding:
 
         input_features = [encoding.input for encoding in encodings]
         meta = [encoding.metadata for encoding in encodings]
@@ -465,6 +464,8 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
             return_tensors="pt",
         )
 
+        # TODO: can this be None at all? is collate ever called without encode_target?
+        #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
             return input_, None, meta, documents
 

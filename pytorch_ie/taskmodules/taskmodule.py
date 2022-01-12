@@ -1,9 +1,10 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.data import Metadata
 from pytorch_ie.data.document import Annotation, Document
 
 """
@@ -22,8 +23,6 @@ TaskBatchEncoding = TypeVar("TaskBatchEncoding")
 # ModelBatchEncoding: defined in models
 ModelBatchOutput = TypeVar("ModelBatchOutput")
 TaskOutput = TypeVar("TaskOutput")
-
-Metadata = Dict[str, Any]
 
 
 logger = logging.getLogger(__name__)

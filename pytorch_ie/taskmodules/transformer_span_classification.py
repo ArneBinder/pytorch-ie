@@ -4,13 +4,17 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
-from pytorch_ie.models import TransformerSpanClassificationModelBatchOutput
+from pytorch_ie.models.transformer_span_classification import (
+    TransformerSpanClassificationInputEncoding,
+    TransformerSpanClassificationModelBatchOutput,
+    TransformerSpanClassificationModelStepBatchEncoding,
+    TransformerSpanClassificationTargetEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
@@ -21,23 +25,17 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerSpanClassificationInputEncoding = BatchEncoding
-TransformerSpanClassificationTargetEncoding = List[int]
+
 TransformerSpanClassificationTaskEncoding = TaskEncoding[
     TransformerSpanClassificationInputEncoding, TransformerSpanClassificationTargetEncoding
 ]
-TransformerSpanClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor],
-    Optional[List[TransformerSpanClassificationTargetEncoding]],
-    List[Metadata],
-    List[Document],
-]
+
 TransformerSpanClassificationTaskOutput = Dict[str, Any]
 _TransformerSpanClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationTargetEncoding,
-    TransformerSpanClassificationTaskBatchEncoding,
+    TransformerSpanClassificationModelStepBatchEncoding,
     TransformerSpanClassificationModelBatchOutput,
     TransformerSpanClassificationTaskOutput,
 ]
@@ -112,7 +110,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self, documents: List[Document]
     ) -> Tuple[
         List[TransformerSpanClassificationInputEncoding],
-        Optional[List[Metadata]],
+        List[Metadata],
         Optional[List[Document]],
     ]:
         expanded_documents = None
@@ -226,8 +224,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         end_indices = output["end_indices"].detach().cpu().numpy()
         batch_indices = output["batch_indices"].detach().cpu().numpy()
 
-        tags = [[] for _ in np.unique(batch_indices)]
-        probabilities = [[] for _ in np.unique(batch_indices)]
+        tags: List[List[Tuple[str, Tuple[int, int]]]] = [[] for _ in np.unique(batch_indices)]
+        probabilities: List[List[float]] = [[] for _ in np.unique(batch_indices)]
         for start, end, batch_idx, label_id, prob in zip(
             start_indices, end_indices, batch_indices, label_ids, probs
         ):
@@ -240,8 +238,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def create_annotations_from_output(
         self,
-        output: Dict[str, Any],
         encoding: TransformerSpanClassificationTaskEncoding,
+        output: TransformerSpanClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
             document = encoding.document
@@ -290,7 +288,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def collate(
         self, encodings: List[TransformerSpanClassificationTaskEncoding]
-    ) -> TransformerSpanClassificationTaskBatchEncoding:
+    ) -> TransformerSpanClassificationModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]
@@ -303,11 +301,12 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             return_tensors="pt",
         )
 
+        # TODO: what is happening here? can this be None at all? is collate ever called without encode_target?
+        #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
             return input_, None, metadata, documents
+        else:
+            target = [encoding.target for encoding in encodings]
+            input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
 
-        target = [encoding.target for encoding in encodings]
-
-        input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
-
-        return input_, target, metadata, documents
+            return input_, target, metadata, documents

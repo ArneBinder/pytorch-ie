@@ -1,12 +1,21 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 import torch
+from torch import Tensor
 from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie.data import Document, Metadata
+
+TransformerSeq2SeqInputEncoding = Dict[str, List[int]]
+TransformerSeq2SeqTargetEncoding = Dict[str, List[int]]
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Dict[str, Any]
+
+TransformerSeq2SeqModelStepBatchEncoding = Tuple[
+    Dict[str, Tensor], None, List[Metadata], List[Document]
+]
 
 
 class TransformerSeq2SeqModel(PyTorchIEModel):
@@ -40,7 +49,8 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         return self.model.generate(**inputs, **kwargs)
 
-    def step(self, batch: Any):
+    def step(self, batch: TransformerSeq2SeqModelStepBatchEncoding):
+        # TODO: is this really correct?
         inputs = batch
         output = self.forward(inputs)
 
@@ -48,13 +58,13 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         return loss
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):
         loss = self.step(batch)
         self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):
         loss = self.step(batch)
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
