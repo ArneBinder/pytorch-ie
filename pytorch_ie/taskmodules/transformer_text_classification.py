@@ -228,9 +228,11 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         if encodings[0].target is None:
             return input_, None, metadata, documents
 
-        target = [encoding.target for encoding in encodings]
+        target_list: List[TransformerTextClassificationTargetEncoding] = [
+            encoding.target for encoding in encodings
+        ]
 
-        target = torch.tensor(target, dtype=torch.int64)
+        target = torch.tensor(target_list, dtype=torch.int64)
 
         if not self.multi_label:
             target = target.flatten()

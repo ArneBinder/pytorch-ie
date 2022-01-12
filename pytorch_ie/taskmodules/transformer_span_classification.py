@@ -305,8 +305,10 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
             return input_, None, metadata, documents
-        else:
-            target = [encoding.target for encoding in encodings]
-            input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
 
-            return input_, target, metadata, documents
+        target_list: List[TransformerSpanClassificationTargetEncoding] = [
+            encoding.target for encoding in encodings
+        ]
+        input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
+
+        return input_, target_list, metadata, documents

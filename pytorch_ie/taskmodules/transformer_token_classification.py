@@ -301,20 +301,24 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         if encodings[0].target is None:
             return input_, None, metadata, documents
 
-        target = [encoding.target for encoding in encodings]
+        target_list: List[TransformerTokenClassificationTargetEncoding] = [
+            encoding.target for encoding in encodings
+        ]
 
         sequence_length = torch.tensor(input_["input_ids"]).shape[1]
         padding_side = self.tokenizer.padding_side
         if padding_side == "right":
-            target = [
-                list(t) + [self.label_pad_token_id] * (sequence_length - len(t)) for t in target
+            target_list_padded = [
+                list(t) + [self.label_pad_token_id] * (sequence_length - len(t))
+                for t in target_list
             ]
         else:
-            target = [
-                [self.label_pad_token_id] * (sequence_length - len(t)) + list(t) for t in target
+            target_list_padded = [
+                [self.label_pad_token_id] * (sequence_length - len(t)) + list(t)
+                for t in target_list
             ]
 
         input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
-        target = torch.tensor(target, dtype=torch.int64)
+        target = torch.tensor(target_list_padded, dtype=torch.int64)
 
         return input_, target, metadata, documents
