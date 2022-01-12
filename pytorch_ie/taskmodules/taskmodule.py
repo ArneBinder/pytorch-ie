@@ -15,13 +15,13 @@ workflow:
     -> Document
 """
 
-InputEncoding = TypeVar("InputEncoding", bound=Dict[str, Any])
-TargetEncoding = TypeVar("TargetEncoding", bound=Dict[str, Any])
+InputEncoding = TypeVar("InputEncoding")
+TargetEncoding = TypeVar("TargetEncoding")
 # TaskEncoding: defined below
 TaskBatchEncoding = TypeVar("TaskBatchEncoding")
 # ModelBatchEncoding: defined in models
-ModelBatchOutput = TypeVar("ModelBatchOutput", bound=Dict[str, Any])
-TaskOutput = TypeVar("TaskOutput", bound=Dict[str, Any])
+ModelBatchOutput = TypeVar("ModelBatchOutput")
+TaskOutput = TypeVar("TaskOutput")
 
 Metadata = Dict[str, Any]
 
