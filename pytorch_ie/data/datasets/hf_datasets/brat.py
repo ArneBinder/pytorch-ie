@@ -23,10 +23,11 @@ logger = logging.getLogger(__name__)
 class BratConfig(BuilderConfig):
     """BuilderConfig for BRAT."""
 
-    description: str = None
-    citation: str = None
-    homepage: str = None
-    url: str = None
+    url: str = None  # type: ignore
+    description: Optional[str] = None
+    citation: Optional[str] = None
+    homepage: Optional[str] = None
+
     subdirectory_mapping: Optional[Dict[str, str]] = None
     file_name_blacklist: Optional[List[str]] = None
     ann_file_extension: str = "ann"
@@ -307,6 +308,9 @@ class Brat(datasets.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         """Returns SplitGenerators."""
 
+        # since subclasses of BuilderConfig are not allowed to define
+        # attributes without defaults, check here
+        assert self.config.url is not None, "data url not specified"
         # if url points to a local directory, just point to that
         if path.exists(self.config.url) and path.isdir(self.config.url):
             data_dir = self.config.url

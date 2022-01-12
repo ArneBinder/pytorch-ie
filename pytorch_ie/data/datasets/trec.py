@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from datasets import load_dataset
+from datasets import Dataset, IterableDataset, load_dataset
 from datasets.splits import Split
 
 from pytorch_ie.data.document import Document, Label
@@ -10,10 +10,16 @@ def load_trec(
     split: Union[str, Split],
     fine_grained: bool = False,
 ) -> List[Document]:
-    data = load_dataset("trec", split=split)
+    path = "trec"
+    data = load_dataset(path, split=split)
 
     field_coarse = "label-coarse"
     field_fine = "label-fine"
+
+    assert isinstance(data, (Dataset, IterableDataset)), (
+        f"`load_dataset` for `path={path}` and `split={split}` should return a single Dataset, "
+        f"but the result is of type: {type(data)}"
+    )
 
     int_to_str_coarse = data.features[field_coarse].int2str
     int_to_str_fine = data.features[field_fine].int2str

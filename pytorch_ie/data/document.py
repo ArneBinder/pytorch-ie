@@ -68,26 +68,6 @@ class Label(Annotation):
         return f"Label(label={self.label}, score={self.score})"
 
 
-class LabeledSpan(Annotation):
-    def __init__(
-        self,
-        start: int,
-        end: int,
-        label: Union[str, List[str]],
-        score: Optional[Union[float, List[float]]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        super().__init__(label=label, score=score, metadata=metadata)
-        self.start = start
-        self.end = end
-
-    def __repr__(self) -> str:
-        return (
-            f"LabeledSpan(start={self.start}, end={self.end}, label={self.label}, "
-            f"score={self.score}, metadata={self.metadata})"
-        )
-
-
 class LabeledMultiSpan(Annotation):
     def __init__(
         self,
@@ -102,6 +82,32 @@ class LabeledMultiSpan(Annotation):
     def __repr__(self) -> str:
         return (
             f"LabeledMultiSpan(slices={self.slices}, label={self.label}, "
+            f"score={self.score}, metadata={self.metadata})"
+        )
+
+
+class LabeledSpan(LabeledMultiSpan):
+    def __init__(
+        self,
+        start: int,
+        end: int,
+        label: Union[str, List[str]],
+        score: Optional[Union[float, List[float]]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(slices=[(start, end)], label=label, score=score, metadata=metadata)
+
+    @property
+    def start(self):
+        return self.slices[0][0]
+
+    @property
+    def end(self):
+        return self.slices[-1][1]
+
+    def __repr__(self) -> str:
+        return (
+            f"LabeledSpan(start={self.start}, end={self.end}, label={self.label}, "
             f"score={self.score}, metadata={self.metadata})"
         )
 

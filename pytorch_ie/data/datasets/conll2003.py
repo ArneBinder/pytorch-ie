@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from datasets import load_dataset
+from datasets import Dataset, IterableDataset, load_dataset
 from datasets.splits import Split
 
 from pytorch_ie.data.document import Document, LabeledSpan
@@ -10,7 +10,12 @@ from pytorch_ie.data.span_utils import bio_tags_to_spans
 def load_conll2003(
     split: Union[str, Split],
 ) -> List[Document]:
+    path = "conll2003"
     data = load_dataset("conll2003", split=split)
+    assert isinstance(data, (Dataset, IterableDataset)), (
+        f"`load_dataset` for `path={path}` and `split={split}` should return a single Dataset, "
+        f"but the result is of type: {type(data)}"
+    )
 
     int_to_str = data.features["ner_tags"].feature.int2str
 

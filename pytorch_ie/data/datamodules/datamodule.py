@@ -33,7 +33,9 @@ class DataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         data_config_path: Optional[str] = None,
-        dataset_preprocessing_hook: Optional[Callable] = None,
+        dataset_preprocessing_hook: Optional[
+            Callable[[List[TaskEncoding]], Optional[List[TaskEncoding]]]
+        ] = None,
     ):
         super().__init__()
 
@@ -51,6 +53,7 @@ class DataModule(LightningDataModule):
 
     @property
     def num_train(self) -> int:
+        # TODO: is this correct/used anywhere? mypy complains with: "DataModule" has no attribute "train_val_split"
         return self.train_val_split[0]
 
     def setup(self, stage: Optional[str] = None, **kwargs):

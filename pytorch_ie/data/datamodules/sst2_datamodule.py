@@ -44,6 +44,7 @@ class SST2DataModule(LightningDataModule):
 
     @property
     def num_train(self) -> int:
+        # TODO: is this correct/used anywhere? mypy complains with: "SST2DataModule" has no attribute "train_val_split"
         return self.train_val_split[0]
 
     def setup(self, stage: Optional[str] = None):

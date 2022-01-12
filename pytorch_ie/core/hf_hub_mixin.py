@@ -79,7 +79,7 @@ class PyTorchIEBaseModelHubMixin:
     @classmethod
     def from_pretrained(
         cls,
-        pretrained_model_name_or_path: Optional[str],
+        pretrained_model_name_or_path: str,
         force_download: bool = False,
         resume_download: bool = False,
         proxies: Dict = None,
@@ -243,8 +243,9 @@ class PyTorchIEBaseModelHubMixin:
             The url of the commit of your model in the given repository.
         """
 
-        if repo_path_or_name is None and repo_url is None:
-            raise ValueError("You need to specify a `repo_path_or_name` or a `repo_url`.")
+        assert (
+            repo_path_or_name is not None and repo_url is not None
+        ), "You need to specify a `repo_path_or_name` or a `repo_url`."
 
         if use_auth_token is None and repo_url is None:
             token = HfFolder.get_token()
@@ -398,6 +399,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         """
 
     def _config(self) -> Optional[Dict[str, Any]]:
+        # TODO: fix mypy: "PyTorchIETaskmoduleModelHubMixin" has no attribute "init_kwargs"
         config = dict(self.init_kwargs)
         config["taskmodule_type"] = self.__class__.__name__
         return config

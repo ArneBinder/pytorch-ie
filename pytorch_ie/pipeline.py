@@ -4,10 +4,12 @@ import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
+from datasets import Dataset
 from packaging import version
+from torch import Tensor
 from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
@@ -170,21 +172,21 @@ class Pipeline:
         return preprocess_parameters, forward_parameters, postprocess_parameters
 
     def preprocess(
-        self, documents: List[Document], **preprocess_parameters: Dict
+        self, documents: List[Document], predict_field: str, **preprocess_parameters: Dict
     ) -> List[TaskEncoding]:
         """
         Preprocess will take the `input_` of a specific pipeline and return a dictionnary of everything necessary for
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
         """
-        assert "predict_field" in preprocess_parameters
 
-        field = preprocess_parameters["predict_field"]
         for document in documents:
-            document.clear_predictions(field)
+            document.clear_predictions(predict_field)
 
         return self.taskmodule.encode(documents, encode_target=False)
 
-    def _forward(self, input_tensors: Dict[str, torch.Tensor], **forward_parameters: Dict) -> Dict:
+    def _forward(
+        self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
+    ) -> Dict:
         """
         _forward will receive the prepared dictionnary from `preprocess` and run it on the model. This method might
         involve the GPU or the CPU and should be agnostic to it. Isolating this function is the reason for `preprocess`
@@ -266,7 +268,7 @@ class Pipeline:
         # (Calls: self.taskmodule.encode(documents, encode_target=False))
         model_inputs = self.preprocess(documents, **preprocess_params)
 
-        dataloader = DataLoader(
+        dataloader: DataLoader[TaskEncoding] = DataLoader(
             model_inputs,
             batch_size=batch_size,
             shuffle=False,
