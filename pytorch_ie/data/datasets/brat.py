@@ -1,7 +1,6 @@
-from os.path import abspath, dirname, join
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
-from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, load_dataset
+from datasets import DatasetDict, load_dataset
 
 from pytorch_ie import Document
 from pytorch_ie.data.datasets import HF_DATASETS_ROOT
@@ -82,17 +81,21 @@ def convert_brat_to_document(
     return doc
 
 
+def _convert_brats(brat_docs: Iterable[Dict[str, Any]], **kwargs) -> List[Document]:
+    return [convert_brat_to_document(brat_doc=brat_doc, **kwargs) for brat_doc in brat_docs]
+
+
 def load_brat(
     conversion_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs,
-) -> Union[Dataset, DatasetDict]:
+) -> Union[List[Document], Dict[str, List[Document]]]:
     # This will create a DatasetDict with a single split "train"
     path = str(HF_DATASETS_ROOT / "brat.py")
     data = load_dataset(path=path, **kwargs)
-    assert isinstance(data, (Dataset, IterableDataset)), (
-        f"`load_dataset` for `path={path}` should return a single Dataset, "
+    assert isinstance(data, DatasetDict), (
+        f"`load_dataset` for `path={path}` should return a DatasetDict (at least containing a single 'train' split), "
         f"but the result is of type: {type(data)}"
     )
 
     conversion_kwargs = conversion_kwargs or {}
-    return data.map(convert_brat_to_document, **conversion_kwargs)
+    return {k: _convert_brats(brat_docs=v, **conversion_kwargs) for k, v in data.items()}
