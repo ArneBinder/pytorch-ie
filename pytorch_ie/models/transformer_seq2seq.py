@@ -7,9 +7,6 @@ from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data import Document, Metadata
 
-TransformerSeq2SeqInputEncoding = Dict[str, List[int]]
-TransformerSeq2SeqTargetEncoding = Dict[str, List[int]]
-
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Dict[str, Any]
 

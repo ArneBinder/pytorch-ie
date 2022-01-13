@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, MutableMapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,10 +8,8 @@ from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
 from pytorch_ie.models import (
-    TransformerTextClassificationInputEncoding,
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
-    TransformerTextClassificationTargetEncoding,
 )
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
@@ -23,10 +21,15 @@ workflow:
         -> TaskOutput
     -> Document
 """
+
+TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
+TransformerTextClassificationTargetEncoding = List[int]
+
 TransformerTextClassificationTaskEncoding = TaskEncoding[
     TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
 ]
 TransformerTextClassificationTaskOutput = Dict[str, Any]
+
 _TransformerTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerTextClassificationInputEncoding,

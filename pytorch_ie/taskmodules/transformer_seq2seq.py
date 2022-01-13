@@ -8,10 +8,8 @@ from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
 from pytorch_ie.models import (
-    TransformerSeq2SeqInputEncoding,
     TransformerSeq2SeqModelBatchOutput,
     TransformerSeq2SeqModelStepBatchEncoding,
-    TransformerSeq2SeqTargetEncoding,
 )
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
@@ -24,10 +22,14 @@ workflow:
     -> Document
 """
 
+TransformerSeq2SeqInputEncoding = Dict[str, List[int]]
+TransformerSeq2SeqTargetEncoding = Dict[str, List[int]]
+
 TransformerSeq2SeqTaskEncoding = TaskEncoding[
     TransformerSeq2SeqInputEncoding, TransformerSeq2SeqTargetEncoding
 ]
 TransformerSeq2SeqTaskOutput = List[Dict[str, Any]]
+
 _TransformerSeq2SeqTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerSeq2SeqInputEncoding,

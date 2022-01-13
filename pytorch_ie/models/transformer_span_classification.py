@@ -15,15 +15,12 @@ from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data import Document, Metadata
 from pytorch_ie.models.modules.mlp import MLP
 
-TransformerSpanClassificationInputEncoding = BatchEncoding
-TransformerSpanClassificationTargetEncoding = List[Tuple[int, int, int]]
-
 TransformerSpanClassificationModelBatchEncoding = BatchEncoding
 TransformerSpanClassificationModelBatchOutput = Dict[str, Any]
 
 TransformerSpanClassificationModelStepBatchEncoding = Tuple[
     Dict[str, Tensor],
-    List[TransformerSpanClassificationTargetEncoding],
+    List[List[Tuple[int, int, int]]],
     List[Metadata],
     List[Document],
 ]
@@ -109,7 +106,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
     def _expand_target_tuples(
         self,
-        target_tuples: List[TransformerSpanClassificationTargetEncoding],
+        target_tuples: List[List[Tuple[int, int, int]]],
         batch_size: int,
         max_seq_length: int,
         seq_lengths: Optional[List[int]] = None,

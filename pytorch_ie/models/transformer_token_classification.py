@@ -8,9 +8,6 @@ from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncod
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data import Document, Metadata
 
-TransformerTokenClassificationInputEncoding = BatchEncoding
-TransformerTokenClassificationTargetEncoding = List[int]
-
 TransformerTokenClassificationModelBatchEncoding = BatchEncoding
 TransformerTokenClassificationModelBatchOutput = Dict[str, Any]
 

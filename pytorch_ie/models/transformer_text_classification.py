@@ -7,9 +7,6 @@ from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data import Document, Metadata
 
-TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
-TransformerTextClassificationTargetEncoding = List[int]
-
 TransformerTextClassificationModelBatchEncoding = MutableMapping[str, Any]
 TransformerTextClassificationModelBatchOutput = Dict[str, Any]
 

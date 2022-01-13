@@ -6,14 +6,12 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
 from pytorch_ie.models.transformer_span_classification import (
-    TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationModelBatchOutput,
     TransformerSpanClassificationModelStepBatchEncoding,
-    TransformerSpanClassificationTargetEncoding,
 )
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
@@ -26,11 +24,14 @@ workflow:
     -> Document
 """
 
+TransformerSpanClassificationInputEncoding = BatchEncoding
+TransformerSpanClassificationTargetEncoding = List[Tuple[int, int, int]]
+
 TransformerSpanClassificationTaskEncoding = TaskEncoding[
     TransformerSpanClassificationInputEncoding, TransformerSpanClassificationTargetEncoding
 ]
-
 TransformerSpanClassificationTaskOutput = Dict[str, Any]
+
 _TransformerSpanClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerSpanClassificationInputEncoding,
