@@ -146,11 +146,11 @@ class TaskModule(
             all_documents = list(copied_documents.values())
             encodings = copied_encodings
         else:
-            documents: Dict[Document, Document] = {}
+            document_mapping: Dict[Document, Document] = {}
             for encoding in encodings:
-                if encoding.document not in documents:
-                    documents[encoding.document] = encoding.document
-            all_documents = list(documents.values())
+                if encoding.document not in document_mapping:
+                    document_mapping[encoding.document] = encoding.document
+            all_documents = list(document_mapping.values())
 
         self.combine_outputs(encodings, decoded_outputs)
         return all_documents
