@@ -2,7 +2,7 @@ import os
 
 from datasets import GenerateMode, set_caching_enabled
 
-from pytorch_ie.data.datasets.brat import load_brat
+from pytorch_ie.data.datasets.brat import load_brat, serialize_brat
 from tests import FIXTURES_ROOT
 
 
@@ -62,3 +62,31 @@ def test_load_brat():
     assert relation.label == "mayor_of"
     assert relation.head == entities[1]
     assert relation.tail == entities[0]
+
+
+def test_serialize_brat():
+    set_caching_enabled(False)
+    dataset = load_brat(
+        url=os.path.join(FIXTURES_ROOT, "datasets/brat"),
+        conversion_kwargs=dict(head_argument_name="head", tail_argument_name="tail"),
+        download_mode=GenerateMode.FORCE_REDOWNLOAD,
+    )
+
+    serialized_brat = serialize_brat(dataset)
+    assert len(serialized_brat) == 1
+    assert "train" in serialized_brat
+    serialized_docs = list(serialized_brat["train"])
+    assert len(serialized_docs) == 2
+
+    serialized_doc = serialized_docs[0]
+    assert serialized_doc[0] == "01"
+    assert serialized_doc[1] == "Jane lives in Berlin.\n"
+    assert serialized_doc[2] == ['T1\tperson 0 4\tJane', 'T2\tcity 14 20\tBerlin']
+
+    serialized_doc = serialized_docs[1]
+    assert serialized_doc[0] == "02"
+    assert serialized_doc[1] == "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
+    assert serialized_doc[2] == ['T1\tcity 0 7\tSeattle', 'T2\tperson 25 37\tJenny Durkan', 'R1\tmayor_of Arg1:T2 Arg2:T1']
+
+    # TODO: write into temp folder and check that content
+    #serialized_brat = serialize_brat(dataset, path=...)
