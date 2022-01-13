@@ -1,5 +1,6 @@
+import logging
 import os
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from datasets import DatasetDict, load_dataset
 
@@ -9,6 +10,8 @@ from pytorch_ie.data.document import BinaryRelation, LabeledMultiSpan, LabeledSp
 
 HEAD_ARGUMENT_NAME: str = "Arg1"
 TAILS_ARGUMENT_NAME: str = "Arg2"
+
+logger = logging.getLogger(__name__)
 
 
 def dl_to_ld(dl):
@@ -42,8 +45,8 @@ def convert_brat_to_document(
                     brat_doc["context"][locations[i]["end"] : locations[i + 1]["start"]]
                     for i in range(len(locations) - 1)
                 ]
-                print(
-                    f"WARNING: convert span with several slices to LabeledSpan! added text fragments: "
+                logger.warning(
+                    f"convert span with several slices to LabeledSpan! added text fragments: "
                     f"{added_fragments}"
                 )
             span = LabeledSpan(
@@ -103,7 +106,7 @@ def load_brat(
         f"`load_dataset` for `path={path}` should return a DatasetDict (at least containing a single 'train' split), "
         f"but the result is of type: {type(data)}"
     )
-
+    logger.info(f"loaded BRAT documents: " + str({k: len(v) for k, v in data.items()}))
     conversion_kwargs = conversion_kwargs or {}
     return {
         split: _convert_brats(brat_docs=brat_dataset, **conversion_kwargs)
@@ -126,7 +129,8 @@ def serialize_binary_relation(
     return f"{_id}\t{annotation.label} {head_argument_name}:{_head_id} {tail_argument_name}:{_tail_id}"
 
 
-def _write_doc(doc_id: str, text: str, serialized_annotations: List[str], path: str):
+def _write_brat(doc_id: str, text: str, serialized_annotations: List[str], path: str):
+    os.makedirs(path, exist_ok=True)
     with open(os.path.join(path, f"{doc_id}.txt"), "w") as txt_file:
         txt_file.write(text)
     with open(os.path.join(path, f"{doc_id}.ann"), "w") as ann_file:
@@ -137,16 +141,14 @@ def convert_document_to_brat(
     doc: Document,
     head_argument_name=HEAD_ARGUMENT_NAME,
     tail_argument_name=TAILS_ARGUMENT_NAME,
-    path: Optional[str] = None,
-    **kwargs,
 ) -> Tuple[Optional[str], str, List[str]]:
-    serialized_annots = []
+    serialized_annotations = []
     for name, annots in doc._annotations.items():
         for ann in annots:
             if isinstance(ann, LabeledSpan):
-                serialized_annots.append(serialize_labeled_span(ann, doc))
+                serialized_annotations.append(serialize_labeled_span(ann, doc))
             elif isinstance(ann, BinaryRelation):
-                serialized_annots.append(
+                serialized_annotations.append(
                     serialize_binary_relation(
                         ann,
                         doc,
@@ -159,32 +161,35 @@ def convert_document_to_brat(
                     f"Serialization to Brat for annotation of type '{type(ann)}' not yet implemented."
                 )
 
-    if path is not None:
-        assert (
-            doc.id is not None
-        ), "the document id has to be specified to write the annotated document as brat file"
-        _write_doc(
-            doc_id=doc.id, text=doc.text, serialized_annotations=serialized_annots, path=path
-        )
-
-    return doc.id, doc.text, serialized_annots
+    return doc.id, doc.text, serialized_annotations
 
 
-def _serialize_docs(
-    docs: List[Document], **kwargs
-) -> Iterator[Tuple[Optional[str], str, List[str]]]:
-    return (convert_document_to_brat(doc=doc, **kwargs) for doc in docs)
+def _convert_docs(docs: List[Document], **kwargs) -> List[Tuple[Optional[str], str, List[str]]]:
+    return [convert_document_to_brat(doc=doc, **kwargs) for doc in docs]
 
 
 def serialize_brat(
     docs: Dict[str, List[Document]], path: str = None, **kwargs
-) -> Optional[Dict[str, Iterator[Tuple[Optional[str], str, List[str]]]]]:
-    res = {
-        split: _serialize_docs(
-            v, path=os.path.join(path, split) if path is not None else None, **kwargs
-        )
-        for split, v in docs.items()
-    }
+) -> Optional[Dict[str, List[Tuple[Optional[str], str, List[str]]]]]:
+    res = {}
+    for split, _docs in docs.items():
+        res[split] = _convert_docs(_docs, **kwargs)
+        if path is not None:
+            _path = os.path.join(path, split)
+            logger.info(
+                f"serialize {len(res[split])} documents to BRAT format to directory: {_path}"
+            )
+            for doc_id, text, serialized_annotations in res[split]:
+                assert (
+                    doc_id is not None
+                ), "the document id has to be specified to write the annotated document as brat file"
+                _write_brat(
+                    doc_id=doc_id,
+                    text=text,
+                    serialized_annotations=serialized_annotations,
+                    path=_path,
+                )
+
     if path is None:
         return res
     else:
