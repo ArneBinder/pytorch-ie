@@ -88,7 +88,7 @@ def _convert_brats(brat_docs: Iterable[Dict[str, Any]], **kwargs) -> List[Docume
 def load_brat(
     conversion_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs,
-) -> Union[List[Document], Dict[str, List[Document]]]:
+) -> Dict[str, List[Document]]:
     # This will create a DatasetDict with a single split "train"
     path = str(HF_DATASETS_ROOT / "brat.py")
     data = load_dataset(path=path, **kwargs)
@@ -98,4 +98,7 @@ def load_brat(
     )
 
     conversion_kwargs = conversion_kwargs or {}
-    return {k: _convert_brats(brat_docs=v, **conversion_kwargs) for k, v in data.items()}
+    return {
+        split: _convert_brats(brat_docs=brat_dataset, **conversion_kwargs)
+        for split, brat_dataset in data.items()
+    }
