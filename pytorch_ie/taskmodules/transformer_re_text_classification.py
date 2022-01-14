@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, MutableMapping, Optional, Tuple, Union
+from typing import Any, Dict, List, MutableMapping, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import torch
@@ -28,7 +28,11 @@ TransformerReTextClassificationTargetEncoding = List[int]
 TransformerReTextClassificationTaskEncoding = TaskEncoding[
     TransformerReTextClassificationInputEncoding, TransformerReTextClassificationTargetEncoding
 ]
-TransformerReTextClassificationTaskOutput = Dict[str, Any]
+TransformerReTextClassificationTaskOutput = TypedDict(
+    "TransformerReTextClassificationTaskOutput",
+    {"labels": List[str], "probabilities": List[float]},
+    total=False,
+)
 
 _TransformerReTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
@@ -415,7 +419,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         if self.multi_label:
             raise NotImplementedError
         else:
-            result = {"labels": [], "probabilities": []}
+            result: TransformerReTextClassificationTaskOutput = {"labels": [], "probabilities": []}
             for batch_idx, label_id in enumerate(np.argmax(output_label_probs, axis=-1)):
                 result["labels"].append(self.id_to_label[label_id])
                 result["probabilities"].append(float(output_label_probs[batch_idx, label_id]))
