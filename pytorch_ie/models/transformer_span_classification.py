@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Iterable
 
 import torch
 import torchmetrics
@@ -73,7 +73,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
     def _start_end_and_span_length_span_index(
-        self, batch_size: int, max_seq_length: int, seq_lengths: Optional[List[int]] = None
+        self, batch_size: int, max_seq_length: int, seq_lengths: Optional[Iterable[int]] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if seq_lengths is None:
             seq_lengths = batch_size * [max_seq_length]
@@ -107,7 +107,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         target_tuples: List[List[Tuple[int, int, int]]],
         batch_size: int,
         max_seq_length: int,
-        seq_lengths: Optional[List[int]] = None,
+        seq_lengths: Optional[Iterable[int]] = None,
     ) -> torch.Tensor:
         if seq_lengths is None:
             seq_lengths = batch_size * [max_seq_length]
