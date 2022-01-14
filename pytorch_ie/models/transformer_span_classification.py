@@ -126,9 +126,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return torch.tensor(target)
 
-    def forward(
-        self, input_: TransformerSpanClassificationModelBatchEncoding
-    ) -> TransformerSpanClassificationModelBatchOutput:
+    def forward(self, input_: TransformerSpanClassificationModelBatchEncoding) -> TransformerSpanClassificationModelBatchOutput:  # type: ignore
         output = self.model(**input_)
 
         batch_size, seq_length, hidden_dim = output.last_hidden_state.shape
@@ -164,7 +162,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             "end_indices": end_indices,
         }
 
-    def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):
+    def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target_tuples = batch
         assert target_tuples is not None, "target has to be available for training"
 
@@ -194,9 +192,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def validation_step(
-        self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx
-    ):
+    def validation_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target_tuples = batch
         assert target_tuples is not None, "target has to be available for validation"
 

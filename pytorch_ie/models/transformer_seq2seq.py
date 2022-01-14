@@ -29,10 +29,7 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
 
-    def forward(
-        self,
-        inputs: TransformerSeq2SeqModelBatchEncoding,
-    ) -> TransformerSeq2SeqModelBatchOutput:
+    def forward(self, inputs: TransformerSeq2SeqModelBatchEncoding) -> TransformerSeq2SeqModelBatchOutput:  # type: ignore
         return self.model(**inputs)
 
     def predict(
@@ -55,13 +52,13 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         return loss
 
-    def training_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):
+    def training_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):  # type: ignore
         loss = self.step(batch)
         self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss
 
-    def validation_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):
+    def validation_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):  # type: ignore
         loss = self.step(batch)
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 

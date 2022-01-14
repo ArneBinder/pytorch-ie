@@ -39,14 +39,10 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(
-        self, input_: TransformerTokenClassificationModelBatchEncoding
-    ) -> TransformerTokenClassificationModelBatchOutput:
+    def forward(self, input_: TransformerTokenClassificationModelBatchEncoding) -> TransformerTokenClassificationModelBatchOutput:  # type: ignore
         return self.model(**input_)
 
-    def training_step(
-        self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx
-    ):
+    def training_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target = batch
         assert target is not None, "target has to be available for training"
 
@@ -67,9 +63,7 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def validation_step(
-        self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx
-    ):
+    def validation_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target = batch
         assert target is not None, "target has to be available for validation"
 

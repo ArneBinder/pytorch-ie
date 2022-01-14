@@ -59,9 +59,7 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(
-        self, input_: TransformerTextClassificationModelBatchEncoding
-    ) -> TransformerTextClassificationModelBatchOutput:
+    def forward(self, input_: TransformerTextClassificationModelBatchEncoding) -> TransformerTextClassificationModelBatchOutput:  # type: ignore
         output = self.model(**input_)
 
         hidden_state = output.last_hidden_state
@@ -71,7 +69,7 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return {"logits": logits}
 
-    def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):
+    def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target = batch
         assert target is not None, "target has to be available for training"
 
@@ -86,9 +84,7 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def validation_step(
-        self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx
-    ):
+    def validation_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target = batch
         assert target is not None, "target has to be available for validation"
 
