@@ -169,7 +169,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self,
         documents: List[Document],
         input_encodings: List[TransformerTokenClassificationInputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TransformerTokenClassificationTargetEncoding]:
         target = []
         if self.single_sentence:

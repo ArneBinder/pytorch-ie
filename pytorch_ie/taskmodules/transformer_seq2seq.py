@@ -153,7 +153,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         self,
         documents: List[Document],
         input_encodings: List[TransformerSeq2SeqInputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TransformerSeq2SeqTargetEncoding]:
         target_strings = [self.document_to_target_string(document) for document in documents]
         return self.encode_target_strings(target_strings)

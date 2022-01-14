@@ -170,7 +170,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self,
         documents: List[Document],
         input_encodings: List[TransformerSpanClassificationInputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TransformerSpanClassificationTargetEncoding]:
         target = []
         if self.single_sentence:

@@ -101,7 +101,7 @@ class TaskModule(
         self,
         documents: List[Document],
         input_encodings: List[InputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TargetEncoding]:
         raise NotImplementedError()
 

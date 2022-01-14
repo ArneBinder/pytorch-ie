@@ -378,7 +378,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self,
         documents: List[Document],
         input_encodings: List[TransformerReTextClassificationInputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TransformerReTextClassificationTargetEncoding]:
 
         target: List[List[int]] = []
