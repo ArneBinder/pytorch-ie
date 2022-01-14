@@ -243,10 +243,6 @@ class PyTorchIEBaseModelHubMixin:
             The url of the commit of your model in the given repository.
         """
 
-        assert (
-            repo_path_or_name is not None and repo_url is not None
-        ), "You need to specify a `repo_path_or_name` or a `repo_url`."
-
         if use_auth_token is None and repo_url is None:
             token = HfFolder.get_token()
             if token is None:
@@ -261,6 +257,8 @@ class PyTorchIEBaseModelHubMixin:
             token = None
 
         if repo_path_or_name is None:
+            if repo_url is None:
+                raise ValueError("You need to specify a `repo_path_or_name` or a `repo_url`.")
             repo_path_or_name = repo_url.split("/")[-1]
 
         # If no URL is passed and there's no path to a directory containing files, create a repo
