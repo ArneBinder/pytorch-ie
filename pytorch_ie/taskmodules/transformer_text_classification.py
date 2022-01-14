@@ -76,7 +76,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label
 
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
         return config

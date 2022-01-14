@@ -83,7 +83,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self.pad_to_multiple_of = pad_to_multiple_of
         self.label_pad_token_id = label_pad_token_id
 
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
         return config

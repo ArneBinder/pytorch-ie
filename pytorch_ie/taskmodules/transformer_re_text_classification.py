@@ -116,7 +116,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
         }
 
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
         config["entity_labels"] = self.label_to_id
