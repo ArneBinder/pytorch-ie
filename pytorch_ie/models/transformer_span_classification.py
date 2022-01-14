@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import torch
 import torchmetrics
