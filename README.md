@@ -1,4 +1,4 @@
-# PyTorchIE: State-of-the-art Information Extraction in PyTorch
+# PyTorch-IE: State-of-the-art Information Extraction in PyTorch
 
 ## 🚀&nbsp;&nbsp;Quickstart
 
@@ -6,6 +6,9 @@
 pip install git+ssh://git@github.com/ChristophAlt/pytorch-ie.git
 ```
 ## ⚡&nbsp;&nbsp;Examples
+
+<details>
+<summary><b>Named Entity Recognition (NER)</b></summary>
 
 ### Span-classification-based Named Entity Recognition
 
@@ -34,6 +37,10 @@ for entity in document.predictions("entities"):
 # Po Bronson -> PER
 # SOSV -> ORG
 ```
+</details>
+
+<details>
+<summary><b>Relation Extraction (RE)</b></summary>
 
 ### Text-classification-based Relation Extraction
 
@@ -69,6 +76,7 @@ for relation in document.predictions("relations"):
 # (SOSV -> Po Bronson) -> org:top_members/employees
 # (IndieBio -> Po Bronson) -> org:top_members/employees
 ```
+</details>
 
 ## Development Setup
 ```sh
@@ -82,3 +90,15 @@ poetry run pre-commit install -t pre-push
 
 ## Credits
 This package was created with Cookiecutter and the [sourcery-ai/python-best-practices-cookiecutter](https://github.com/sourcery-ai/python-best-practices-cookiecutter) project template.
+
+## BibTeX
+If you want to cite the framework feel free to use this:
+
+```bibtex
+@article{alt2021pytorchie,
+  title={PyTorch-IE},
+  author={Christoph Alt, Arne Binder},
+  journal={GitHub. Note: https://github.com/ChristophAlt/pytorch-ie},
+  year={2021}
+}
+```
