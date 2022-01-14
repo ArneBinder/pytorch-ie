@@ -55,7 +55,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         target_flat = target.view(-1)
 
         valid_indices = target_flat != self.label_pad_token_id
-        valid_logits = output.logits.view(-1, self.hparams.num_classes)[valid_indices]
+        # ignore typing because hparams is Union
+        num_classes: int = self.hparams.num_classes  # type: ignore
+        valid_logits = output.logits.view(-1, num_classes)[valid_indices]
         valid_target = target_flat[valid_indices]
 
         self.train_f1(valid_logits, valid_target)
@@ -76,7 +78,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         target_flat = target.view(-1)
 
         valid_indices = target_flat != self.label_pad_token_id
-        valid_logits = output.logits.view(-1, self.hparams.num_classes)[valid_indices]
+        # ignore typing because hparams is Union
+        num_classes: int = self.hparams.num_classes  # type: ignore
+        valid_logits = output.logits.view(-1, num_classes)[valid_indices]
         valid_target = target_flat[valid_indices]
 
         self.val_f1(valid_logits, valid_target)
