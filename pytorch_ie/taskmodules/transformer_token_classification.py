@@ -238,8 +238,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def create_annotations_from_output(
         self,
-        output: TransformerTokenClassificationTaskOutput,
         encoding: TransformerTokenClassificationTaskEncoding,
+        output: TransformerTokenClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
             document = encoding.document

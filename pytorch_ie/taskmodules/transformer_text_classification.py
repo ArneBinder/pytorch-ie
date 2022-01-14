@@ -199,8 +199,8 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
     def create_annotations_from_output(
         self,
-        output: TransformerTextClassificationTaskOutput,
         encoding: TransformerTextClassificationTaskEncoding,
+        output: TransformerTextClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         for labels, probabilities in zip(output["labels"], output["probabilities"]):
             yield (

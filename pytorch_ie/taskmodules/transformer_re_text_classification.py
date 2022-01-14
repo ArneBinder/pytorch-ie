@@ -426,8 +426,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def create_annotations_from_output(
         self,
-        output: TransformerReTextClassificationTaskOutput,
         encoding: TransformerReTextClassificationTaskEncoding,
+        output: TransformerReTextClassificationTaskOutput,
     ) -> None:
         metadata = encoding.metadata
         labels = output["labels"]
