@@ -101,6 +101,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             torch.tensor(span_batch_index),
         )
 
+    # TODO: this should live in the taskmodule
     def _expand_target_tuples(
         self,
         target_tuples: List[List[Tuple[int, int, int]]],
