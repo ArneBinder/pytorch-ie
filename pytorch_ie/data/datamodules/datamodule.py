@@ -77,7 +77,8 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     @property
     def num_train(self) -> int:
-        assert self.data_train is not None, "can not get train size if setup() was not yet called"
+        if self.data_train is None:
+            raise ValueError("can not get train size if setup() was not yet called")
         return len(self.data_train)
 
     def setup(self, stage: Optional[str] = None, **kwargs):
