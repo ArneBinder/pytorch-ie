@@ -92,8 +92,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             entities = document.span_annotations(self.entity_annotation)
 
             for entity in entities:
-                entity_labels = entity.label if entity.is_multilabel else [entity.label]
-                for label in entity_labels:
+                # TODO: labels is a set...
+                for label in entity.labels:
                     if label not in labels:
                         labels.add(label)
 

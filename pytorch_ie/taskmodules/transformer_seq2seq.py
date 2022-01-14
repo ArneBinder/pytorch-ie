@@ -126,7 +126,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
                 if tail_relation.is_multilabel:
                     raise NotImplementedError
 
-                label: str = tail_relation.label
+                label = tail_relation.label_single
 
                 lin_triplets.append("<subj>")
                 lin_triplets.append(tail_entity)

@@ -30,7 +30,10 @@ TransformerTextClassificationTaskEncoding = TaskEncoding[
 ]
 TransformerTextClassificationTaskOutput = TypedDict(
     "TransformerTextClassificationTaskOutput",
-    {"labels": List[str], "probabilities": List[float]},
+    {
+        "labels": List[str],
+        "probabilities": List[float],
+    },
     total=False,
 )
 
@@ -91,10 +94,8 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             annotations = document.label_annotations(self.annotation)
 
             for annotation in annotations:
-                annotation_labels = (
-                    annotation.label if annotation.is_multilabel else [annotation.label]
-                )
-                for label in annotation_labels:
+                # TODO: labels is a set...
+                for label in annotation.labels:
                     if label not in labels:
                         labels.add(label)
 
@@ -148,15 +149,14 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             if self.multi_label:
                 label_ids = [0] * len(self.label_to_id)
                 for annotation in document.label_annotations(self.annotation):
-                    labels = annotation.label if annotation.is_multilabel else [annotation.label]
-                    for label in labels:
+                    for label in annotation.labels:
                         label_id = self.label_to_id[label]
                         label_ids[label_id] = 1
             else:
                 annotation_labels = document.label_annotations(self.annotation)
                 assert len(annotation_labels) == 1 and not annotation_labels[0].is_multilabel
 
-                label = annotation_labels[0].label
+                label = annotation_labels[0].label_single
                 label_ids = [self.label_to_id[label]]
 
             target.append(label_ids)

@@ -34,6 +34,18 @@ class Annotation:
         return self._label
 
     @property
+    def label_single(self) -> str:
+        assert not self.is_multilabel, "this annotation has multiple labels"
+        return self._label
+
+    @property
+    def labels(self) -> List[str]:
+        if self.is_multilabel:
+            return self._label
+        else:
+            return [self._label]
+
+    @property
     def score(self) -> Union[float, List[float]]:
         return self._score
 

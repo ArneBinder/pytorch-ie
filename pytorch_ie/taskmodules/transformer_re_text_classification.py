@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, MutableMapping, Optional, Tuple, TypedDict, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import torch
@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
+from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -22,7 +22,7 @@ workflow:
     -> Document
 """
 
-TransformerReTextClassificationInputEncoding = MutableMapping[str, Any]
+TransformerReTextClassificationInputEncoding = Dict[str, Any]
 TransformerReTextClassificationTargetEncoding = List[int]
 
 TransformerReTextClassificationTaskEncoding = TaskEncoding[
@@ -92,8 +92,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
-        self.argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str] = None
-        self.argument_markers_to_id: Dict[str, int] = None
+        self.argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]
+        self.argument_markers_to_id: Dict[str, int]
         self._create_argument_markers()
 
     def _create_argument_markers(self):
@@ -106,6 +106,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
                 if self.add_type_to_marker:
                     for entity_type in self.entity_labels:
+                        if isinstance(entity_type, list):
+                            raise NotImplementedError
                         marker = (
                             f"[{'' if is_start else '/'}{'H' if is_head else 'T'}:{entity_type}]"
                         )
@@ -130,23 +132,19 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         entity_labels = set()
         relation_labels = set()
         for document in documents:
-            entity_annotations = document.span_annotations(self.entity_annotation)
-            relation_annotations = document.relation_annotations(self.relation_annotation)
+            entities = document.span_annotations(self.entity_annotation)
+            relations = document.relation_annotations(self.relation_annotation)
 
             if self.add_type_to_marker:
-                for annotation in entity_annotations:
-                    annotation_labels = (
-                        annotation.label if annotation.is_multilabel else [annotation.label]
-                    )
-                    for label in annotation_labels:
+                for entity in entities:
+                    # TODO: why doing this? entity_labels is a set: entity_labels.update(labels)
+                    for label in entity.labels:
                         if label not in entity_labels:
                             entity_labels.add(label)
 
-            for annotation in relation_annotations:
-                annotation_labels = (
-                    annotation.label if annotation.is_multilabel else [annotation.label]
-                )
-                for label in annotation_labels:
+            for relation in relations:
+                # TODO: why doing this? relation_labels is a set: relation_labels.update(labels)
+                for label in relation.labels:
                     if label not in relation_labels:
                         relation_labels.add(label)
 
@@ -161,15 +159,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
-        self.entity_labels = entity_labels or []
+        self.entity_labels = list(entity_labels) or []
         self._create_argument_markers()
 
     def _single_pair_insert_marker(
         self, documents: List[Document]
     ) -> Tuple[
         List[TransformerReTextClassificationInputEncoding],
-        Optional[List[Metadata]],
-        Optional[List[Document]],
+        List[Metadata],
+        List[Document],
     ]:
         input_encoding = []
         metadata = []
@@ -191,7 +189,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
             existing_head_tail = {(relation.head, relation.tail) for relation in relations}
 
-            doc_metadata = {
+            doc_metadata: Dict[str, List] = {
                 "head": [],
                 "tail": [],
                 "head_offset": [],
@@ -224,17 +222,22 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         continue
 
                     if self.add_type_to_marker:
+                        if head.is_multilabel:
+                            raise NotImplementedError
+
                         head_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "start", head.label)]
+                            self.argument_markers[("head", "start", head.label_single)]
                         ]
                         head_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "end", head.label)]
+                            self.argument_markers[("head", "end", head.label_single)]
                         ]
+                        if tail.is_multilabel:
+                            raise NotImplementedError
                         tail_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "start", tail.label)]
+                            self.argument_markers[("tail", "start", tail.label_single)]
                         ]
                         tail_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "end", tail.label)]
+                            self.argument_markers[("tail", "end", tail.label_single)]
                         ]
                     else:
                         head_start_marker = self.argument_markers_to_id[
@@ -395,6 +398,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 (relation.head, relation.tail): relation.label for relation in relations
             }
 
+            label_ids = None
             for head, tail in zip(meta["head"], meta["tail"]):
                 label = head_tail_to_label.get((head, tail), "no_relation")
 
@@ -402,7 +406,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     raise NotImplementedError
                 else:
                     label_ids = [self.label_to_id[label]]
-
+            assert label_ids is not None, "no head/tail available"
             target.append(label_ids)
 
         return target
@@ -432,7 +436,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self,
         encoding: TransformerReTextClassificationTaskEncoding,
         output: TransformerReTextClassificationTaskOutput,
-    ) -> None:
+    ) -> Iterator[Tuple[str, Annotation]]:
         metadata = encoding.metadata
         labels = output["labels"]
         probabilities = output["probabilities"]

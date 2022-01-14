@@ -94,8 +94,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             entities = document.span_annotations(self.entity_annotation)
 
             for entity in entities:
-                entity_labels = entity.label if entity.is_multilabel else [entity.label]
-                for label in entity_labels:
+                # TODO: labels is a set, use update
+                for label in entity.labels:
                     if label not in labels:
                         labels.add(label)
 
@@ -197,7 +197,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                         )
                         continue
 
-                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
+                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label_single]))
 
                 target.append(label_ids)
         else:
@@ -208,7 +208,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                 for entity in entities:
                     start_idx = input_encodings[i].char_to_token(entity.start)
                     end_idx = input_encodings[i].char_to_token(entity.end - 1)
-                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
+                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label_single]))
 
                 target.append(label_ids)
 
