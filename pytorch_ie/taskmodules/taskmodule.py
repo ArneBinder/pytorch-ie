@@ -83,7 +83,7 @@ class TaskModule(
         else:
             assert len(input_encoding) == len(
                 target
-            ), "'input_encoding' and 'metadata'must be of same length."
+            ), "'input_encoding' and 'target' must be of same length."
             return [
                 TaskEncoding[InputEncoding, TargetEncoding](
                     input=enc_inp, document=doc, target=tgt, metadata=md
