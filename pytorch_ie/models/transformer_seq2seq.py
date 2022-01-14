@@ -1,17 +1,17 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, List, Tuple
 
 import torch
-from torch import Tensor
 from transformers import AutoModelForSeq2SeqLM, BatchEncoding
+from transformers.modeling_outputs import Seq2SeqLMOutput
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data import Document, Metadata
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
-TransformerSeq2SeqModelBatchOutput = Dict[str, Any]
+TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?
 
 TransformerSeq2SeqModelStepBatchEncoding = Tuple[
-    Dict[str, Tensor], None, List[Metadata], List[Document]
+    TransformerSeq2SeqModelBatchEncoding, None, List[Metadata], List[Document]
 ]
 
 
@@ -44,7 +44,6 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
         return self.model.generate(**inputs, **kwargs)
 
     def step(self, batch: TransformerSeq2SeqModelStepBatchEncoding):
-        # TODO: is this really correct?
         inputs = batch[0]
         output = self.forward(inputs)
 
