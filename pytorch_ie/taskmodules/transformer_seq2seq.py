@@ -219,8 +219,6 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             return_tensors="pt",
         )
 
-        # TODO: can this be None at all? is collate ever called without encode_target?
-        #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is not None:
             # TODO: this is a bit of a hack -- fix
             labels = {"input_ids": [encoding.target["labels"] for encoding in encodings]}

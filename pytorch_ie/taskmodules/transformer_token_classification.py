@@ -296,8 +296,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             return_tensors="pt",
         )
 
-        # TODO: can this be None at all? is collate ever called without encode_target?
-        #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
             return input_, None
 

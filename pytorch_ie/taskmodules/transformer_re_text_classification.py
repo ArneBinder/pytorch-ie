@@ -456,8 +456,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     ) -> TransformerTextClassificationModelStepBatchEncoding:
 
         input_features = [encoding.input for encoding in encodings]
-        meta = [encoding.metadata for encoding in encodings]
-        documents = [encoding.document for encoding in encodings]
 
         input_ = self.tokenizer.pad(
             input_features,
@@ -467,8 +465,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             return_tensors="pt",
         )
 
-        # TODO: can this be None at all? is collate ever called without encode_target?
-        #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
             return input_, None
 
