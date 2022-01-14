@@ -45,6 +45,7 @@ class CoNLL2003DataModule(LightningDataModule):
 
     @property
     def num_train(self) -> int:
+        # TODO: is this correct/used anywhere? mypy complains with: "CoNLL2003DataModule" has no attribute "train_val_split"
         return self.train_val_split[0]
 
     def setup(self, stage: Optional[str] = None):

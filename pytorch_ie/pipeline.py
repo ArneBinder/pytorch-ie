@@ -4,13 +4,15 @@ import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 from packaging import version
+from torch import Tensor
 from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
 from pytorch_ie.data.document import Document
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, TaskOutput
 
@@ -46,12 +48,13 @@ class Pipeline:
         binary_output: bool = False,
         **kwargs,
     ):
-        self.model = model
         self.taskmodule = taskmodule
         self.device = torch.device("cpu" if device < 0 else f"cuda:{device}")
         self.binary_output = binary_output
 
-        self.model = self.model.to(self.device)
+        # Module.to() returns just self, but moved to the device. This is not correctly
+        # reflected in typing of PyTorch.
+        self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
 
         self.call_count = 0
         (
@@ -170,21 +173,21 @@ class Pipeline:
         return preprocess_parameters, forward_parameters, postprocess_parameters
 
     def preprocess(
-        self, documents: List[Document], **preprocess_parameters: Dict
+        self, documents: List[Document], predict_field: str, **preprocess_parameters: Dict
     ) -> List[TaskEncoding]:
         """
         Preprocess will take the `input_` of a specific pipeline and return a dictionnary of everything necessary for
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
         """
-        assert "predict_field" in preprocess_parameters
 
-        field = preprocess_parameters["predict_field"]
         for document in documents:
-            document.clear_predictions(field)
+            document.clear_predictions(predict_field)
 
         return self.taskmodule.encode(documents, encode_target=False)
 
-    def _forward(self, input_tensors: Dict[str, torch.Tensor], **forward_parameters: Dict) -> Dict:
+    def _forward(
+        self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
+    ) -> Dict:
         """
         _forward will receive the prepared dictionnary from `preprocess` and run it on the model. This method might
         involve the GPU or the CPU and should be agnostic to it. Isolating this function is the reason for `preprocess`
@@ -266,8 +269,8 @@ class Pipeline:
         # (Calls: self.taskmodule.encode(documents, encode_target=False))
         model_inputs = self.preprocess(documents, **preprocess_params)
 
-        dataloader = DataLoader(
-            model_inputs,
+        dataloader: DataLoader[TaskEncoding] = DataLoader(
+            TaskEncodingDataset(model_inputs),
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,

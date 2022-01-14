@@ -147,7 +147,7 @@ class TACRED(datasets.GeneratorBasedBuilder):
         ),
     ]
 
-    DEFAULT_CONFIG_NAME = "original"
+    DEFAULT_CONFIG_NAME = "original"  # type: ignore
 
     @property
     def manual_download_instructions(self):

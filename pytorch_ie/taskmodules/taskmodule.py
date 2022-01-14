@@ -15,13 +15,13 @@ workflow:
     -> Document
 """
 
-InputEncoding = TypeVar("InputEncoding", bound=Dict[str, Any])
-TargetEncoding = TypeVar("TargetEncoding", bound=Dict[str, Any])
+InputEncoding = TypeVar("InputEncoding")
+TargetEncoding = TypeVar("TargetEncoding")
 # TaskEncoding: defined below
 TaskBatchEncoding = TypeVar("TaskBatchEncoding")
 # ModelBatchEncoding: defined in models
-ModelBatchOutput = TypeVar("ModelBatchOutput", bound=Dict[str, Any])
-TaskOutput = TypeVar("TaskOutput", bound=Dict[str, Any])
+ModelBatchOutput = TypeVar("ModelBatchOutput")
+TaskOutput = TypeVar("TaskOutput")
 
 Metadata = Dict[str, Any]
 
@@ -70,34 +70,31 @@ class TaskModule(
         if encode_target:
             target = self.encode_target(documents, input_encoding, metadata)
 
+        assert len(input_encoding) == len(metadata) and len(input_encoding) == len(
+            documents
+        ), "'input_encoding', 'metadata', and 'documents' must be of same length."
         if target is None:
-            assert len(input_encoding) == len(metadata) and len(input_encoding) == len(
-                documents
-            ), "'input_encoding', 'metadata', and 'documents' must be of same length."
             return [
                 TaskEncoding[InputEncoding, TargetEncoding](
                     input=enc_inp, metadata=md, document=doc
                 )
                 for enc_inp, md, doc in zip(input_encoding, metadata, documents)
             ]
-
-        assert (
-            len(input_encoding) == len(metadata)
-            and len(input_encoding) == len(target)
-            and len(input_encoding) == len(documents)
-        ), "'input_encoding', 'metadata', 'target', and 'documents' must be of same length."
-
-        return [
-            TaskEncoding[InputEncoding, TargetEncoding](
-                input=enc_inp, document=doc, target=tgt, metadata=md
-            )
-            for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
-        ]
+        else:
+            assert len(input_encoding) == len(
+                target
+            ), "'input_encoding' and 'target' must be of same length."
+            return [
+                TaskEncoding[InputEncoding, TargetEncoding](
+                    input=enc_inp, document=doc, target=tgt, metadata=md
+                )
+                for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
+            ]
 
     @abstractmethod
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[InputEncoding], Optional[List[Metadata]], Optional[List[Document]]]:
+    ) -> Tuple[List[InputEncoding], List[Metadata], Optional[List[Document]]]:
         raise NotImplementedError()
 
     @abstractmethod

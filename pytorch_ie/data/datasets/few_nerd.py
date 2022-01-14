@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from datasets import load_dataset
+from datasets import Dataset, IterableDataset, load_dataset
 from datasets.splits import Split
 
 from pytorch_ie.data.document import Document, LabeledSpan
@@ -12,12 +12,17 @@ def load_few_nerd(
     name: str,
     fine_grained: bool = False,
 ) -> List[Document]:
-    data = load_dataset("dfki-nlp/few-nerd", name=name, split=split)
+    path = "dfki-nlp/few-nerd"
+    data = load_dataset(path, name=name, split=split)
 
     ner_field = "ner_tags"
     if fine_grained:
         ner_field = "ner_fine"
 
+    assert isinstance(data, (Dataset, IterableDataset)), (
+        f"`load_dataset` for `path={path}` and `split={split}` should return a single Dataset, "
+        f"but the result is of type: {type(data)}"
+    )
     int_to_str = data.features[ner_field].feature.int2str
 
     documents = []

@@ -1,13 +1,36 @@
-import json
-from typing import Callable, List, Optional
+from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
+from torch.utils.data.dataset import IterableDataset
 
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
+from pytorch_ie import Document
+from pytorch_ie.taskmodules.taskmodule import (
+    InputEncoding,
+    TargetEncoding,
+    TaskEncoding,
+    TaskModule,
+)
 
 
-class DataModule(LightningDataModule):
+class TaskEncodingDataset(
+    IterableDataset[TaskEncoding[InputEncoding, TargetEncoding]],
+    Generic[InputEncoding, TargetEncoding],
+):
+    def __init__(self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]):
+        self._encodings = encodings
+
+    def __iter__(self) -> Iterator[TaskEncoding[InputEncoding, TargetEncoding]]:
+        return iter(self._encodings)
+
+    def __getitem__(self, index) -> TaskEncoding[InputEncoding, TargetEncoding]:
+        return self._encodings[index]
+
+    def __len__(self):
+        return len(self._encodings)
+
+
+class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
     """
     Example of LightningDataModule for MNIST dataset.
 
@@ -27,57 +50,69 @@ class DataModule(LightningDataModule):
 
     def __init__(
         self,
-        task_module: TaskModule,
-        load_data: Callable,
+        task_module: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
+        dataset: Dict[str, List[Document]],
+        random_train_val_split: Optional[Tuple[int, int]] = None,
         batch_size: int = 32,
         num_workers: int = 0,
         pin_memory: bool = False,
         data_config_path: Optional[str] = None,
-        dataset_preprocessing_hook: Optional[Callable] = None,
+        prepare_data_split: str = "train",
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.task_module = task_module
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.config_path = data_config_path
-        self.load_data = load_data
-        self.dataset_preprocessing_hook = dataset_preprocessing_hook
+        self.dataset = dataset
+        self.prepare_data_split = prepare_data_split
+        self.random_train_val_split = random_train_val_split
 
-        self.data_train: Optional[List[TaskEncoding]] = None
-        self.data_val: Optional[List[TaskEncoding]] = None
-        self.data_test: Optional[List[TaskEncoding]] = None
+        self.data_train: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
+        self.data_val: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
+        self.data_test: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
 
     @property
     def num_train(self) -> int:
-        return self.train_val_split[0]
+        if self.data_train is None:
+            raise ValueError("can not get train size if setup() was not yet called")
+        return len(self.data_train)
 
     def setup(self, stage: Optional[str] = None, **kwargs):
-        if self.config_path is not None:
-            load_kwargs = json.load(open(self.config_path))
-            load_kwargs.update(kwargs)
-        else:
-            load_kwargs = kwargs
-        all_documents = self.load_data(**load_kwargs)
 
-        for split, data in all_documents.items():
-            if self.dataset_preprocessing_hook is not None:
-                preprocessed_data = self.dataset_preprocessing_hook(data)
-                # dataset_preprocessing_hook might have modified the data inplace and returned None in this case
-                if preprocessed_data is not None:
-                    data = preprocessed_data
-            if split == "train":
+        for split, data in self.dataset.items():
+
+            if split == self.prepare_data_split:
                 self.task_module.prepare(data)
-                self.data_train = self.task_module.encode(data, encode_target=True)
+
+            if split == "train":
+                self.data_train = TaskEncodingDataset(
+                    self.task_module.encode(data, encode_target=True)
+                )
             elif split == "val":
-                self.data_val = self.task_module.encode(data, encode_target=True)
+                self.data_val = TaskEncodingDataset(
+                    self.task_module.encode(data, encode_target=True)
+                )
             elif split == "test":
-                self.data_test = self.task_module.encode(data, encode_target=True)
+                self.data_test = TaskEncodingDataset(
+                    self.task_module.encode(data, encode_target=True)
+                )
             else:
                 raise ValueError(
                     f'Unknowns split identifier: "{split}". Use one of "train", "val", or "test".'
                 )
+
+        if self.random_train_val_split is not None:
+            assert (
+                self.data_train is not None
+            ), "data_train has to be set to create random train dev splits from it"
+            # type checking is broken for random_split, so we ignore it
+            self.data_train, self.data_val = random_split(  # type: ignore
+                self.data_train, self.random_train_val_split
+            )
 
     def train_dataloader(self):
         return DataLoader(
