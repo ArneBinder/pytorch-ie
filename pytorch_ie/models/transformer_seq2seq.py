@@ -48,7 +48,7 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
     def step(self, batch: TransformerSeq2SeqModelStepBatchEncoding):
         # TODO: is this really correct?
-        inputs = batch
+        inputs = batch[0]
         output = self.forward(inputs)
 
         loss = output.loss
