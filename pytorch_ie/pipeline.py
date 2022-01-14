@@ -48,13 +48,13 @@ class Pipeline:
         binary_output: bool = False,
         **kwargs,
     ):
-        self.model = model
         self.taskmodule = taskmodule
         self.device = torch.device("cpu" if device < 0 else f"cuda:{device}")
         self.binary_output = binary_output
 
-        # TODO: fix mypy: Incompatible types in assignment (expression has type "DeviceDtypeModuleMixin", variable has type "PyTorchIEModel")
-        self.model = self.model.to(self.device)
+        # Module.to() returns just self, but moved to the device. This is not correctly
+        # reflected in typing of PyTorch.
+        self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
 
         self.call_count = 0
         (
