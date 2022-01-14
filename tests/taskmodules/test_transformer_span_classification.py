@@ -136,7 +136,7 @@ def test_collate(prepared_taskmodule, documents, encode_target):
         assert all([encoding.target is None for encoding in encodings])
 
     batch_encoding = prepared_taskmodule.collate(encodings)
-    inputs, targets, _, _ = batch_encoding
+    inputs, targets = batch_encoding
     assert inputs["input_ids"].shape[0] == 3
 
     if encode_target:

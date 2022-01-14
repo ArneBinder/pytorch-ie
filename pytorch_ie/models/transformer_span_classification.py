@@ -12,7 +12,6 @@ from transformers import (
 )
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data import Document, Metadata
 from pytorch_ie.models.modules.mlp import MLP
 
 TransformerSpanClassificationModelBatchEncoding = BatchEncoding
@@ -20,9 +19,7 @@ TransformerSpanClassificationModelBatchOutput = Dict[str, Any]
 
 TransformerSpanClassificationModelStepBatchEncoding = Tuple[
     Dict[str, Tensor],
-    List[List[Tuple[int, int, int]]],
-    List[Metadata],
-    List[Document],
+    Optional[List[List[Tuple[int, int, int]]]],
 ]
 
 
@@ -167,7 +164,8 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         }
 
     def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):
-        input_, target_tuples, _, _ = batch
+        input_, target_tuples = batch
+        assert target_tuples is not None, "target has to be available for training"
 
         output = self(input_)
 
@@ -198,7 +196,8 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
     def validation_step(
         self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx
     ):
-        input_, target_tuples, _, _ = batch
+        input_, target_tuples = batch
+        assert target_tuples is not None, "target has to be available for validation"
 
         output = self(input_)
 

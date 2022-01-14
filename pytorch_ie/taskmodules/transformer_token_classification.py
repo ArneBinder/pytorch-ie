@@ -287,8 +287,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self, encodings: List[TransformerTokenClassificationTaskEncoding]
     ) -> TransformerTokenClassificationModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
-        metadata = [encoding.metadata for encoding in encodings]
-        documents = [encoding.document for encoding in encodings]
 
         input_ = self.tokenizer.pad(
             input_features,
@@ -301,7 +299,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         # TODO: can this be None at all? is collate ever called without encode_target?
         #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
-            return input_, None, metadata, documents
+            return input_, None
 
         target_list: List[TransformerTokenClassificationTargetEncoding] = [
             encoding.target for encoding in encodings
@@ -323,4 +321,4 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
         target = torch.tensor(target_list_padded, dtype=torch.int64)
 
-        return input_, target, metadata, documents
+        return input_, target

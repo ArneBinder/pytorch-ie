@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -6,16 +6,13 @@ from torch import Tensor
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data import Document, Metadata
 
 TransformerTokenClassificationModelBatchEncoding = BatchEncoding
 TransformerTokenClassificationModelBatchOutput = Dict[str, Any]
 
 TransformerTokenClassificationModelStepBatchEncoding = Tuple[
     Dict[str, Tensor],
-    Tensor,
-    List[Metadata],
-    List[Document],
+    Optional[Tensor],
 ]
 
 
@@ -50,7 +47,8 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
     def training_step(
         self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx
     ):
-        input_, target, _, _ = batch
+        input_, target = batch
+        assert target is not None, "target has to be available for training"
 
         input_["labels"] = target
         output = self(input_)
@@ -72,7 +70,8 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
     def validation_step(
         self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx
     ):
-        input_, target, _, _ = batch
+        input_, target = batch
+        assert target is not None, "target has to be available for validation"
 
         input_["labels"] = target
         output = self(input_)

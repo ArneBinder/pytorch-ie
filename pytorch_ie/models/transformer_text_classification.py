@@ -5,13 +5,13 @@ from torch import Tensor, nn
 from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data import Document, Metadata
 
 TransformerTextClassificationModelBatchEncoding = MutableMapping[str, Any]
 TransformerTextClassificationModelBatchOutput = Dict[str, Any]
 
 TransformerTextClassificationModelStepBatchEncoding = Tuple[
-    Dict[str, Tensor], Tensor, List[Metadata], List[Document]
+    Dict[str, Tensor],
+    Optional[Tensor],
 ]
 
 
@@ -72,7 +72,8 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         return {"logits": logits}
 
     def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):
-        input_, target, _, docs = batch
+        input_, target = batch
+        assert target is not None, "target has to be available for training"
 
         logits = self(input_)["logits"]
 
@@ -88,7 +89,8 @@ class TransformerTextClassificationModel(PyTorchIEModel):
     def validation_step(
         self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx
     ):
-        input_, target, _, docs = batch
+        input_, target = batch
+        assert target is not None, "target has to be available for validation"
 
         logits = self(input_)["logits"]
 

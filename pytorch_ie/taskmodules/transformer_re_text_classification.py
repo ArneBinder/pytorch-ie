@@ -470,7 +470,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         # TODO: can this be None at all? is collate ever called without encode_target?
         #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
-            return input_, None, meta, documents
+            return input_, None
 
         target_list: List[TransformerReTextClassificationTargetEncoding] = [
             encoding.target for encoding in encodings
@@ -480,4 +480,4 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         if not self.multi_label:
             target = target.flatten()
 
-        return input_, target, meta, documents
+        return input_, target

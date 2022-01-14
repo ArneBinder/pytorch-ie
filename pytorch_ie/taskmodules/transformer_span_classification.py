@@ -291,8 +291,6 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self, encodings: List[TransformerSpanClassificationTaskEncoding]
     ) -> TransformerSpanClassificationModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
-        metadata = [encoding.metadata for encoding in encodings]
-        documents = [encoding.document for encoding in encodings]
 
         input_ = self.tokenizer.pad(
             input_features,
@@ -305,11 +303,11 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         # TODO: what is happening here? can this be None at all? is collate ever called without encode_target?
         #  maybe better assert that encodings[0].target is not None?
         if encodings[0].target is None:
-            return input_, None, metadata, documents
+            return input_, None
 
         target_list: List[TransformerSpanClassificationTargetEncoding] = [
             encoding.target for encoding in encodings
         ]
         input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
 
-        return input_, target_list, metadata, documents
+        return input_, target_list
