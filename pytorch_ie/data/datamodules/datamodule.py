@@ -21,13 +21,13 @@ class TaskEncodingDataset(
         self._encodings = encodings
 
     def __iter__(self) -> Iterator[TaskEncoding[InputEncoding, TargetEncoding]]:
-        return self._encodings.__iter__()
+        return iter(self._encodings)
 
     def __getitem__(self, index) -> TaskEncoding[InputEncoding, TargetEncoding]:
-        return self._encodings.__getitem__(index)
+        return self._encodings[index]
 
     def __len__(self):
-        return self._encodings.__len__()
+        return len(self._encodings)
 
 
 class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
