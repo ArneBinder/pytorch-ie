@@ -1,8 +1,8 @@
-from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generic, List, Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
-from torch.utils.data.dataset import IterableDataset
+from torch.utils.data.dataset import Dataset
 
 from pytorch_ie import Document
 from pytorch_ie.taskmodules.taskmodule import (
@@ -14,14 +14,11 @@ from pytorch_ie.taskmodules.taskmodule import (
 
 
 class TaskEncodingDataset(
-    IterableDataset[TaskEncoding[InputEncoding, TargetEncoding]],
+    Dataset[TaskEncoding[InputEncoding, TargetEncoding]],
     Generic[InputEncoding, TargetEncoding],
 ):
     def __init__(self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]):
         self._encodings = encodings
-
-    def __iter__(self) -> Iterator[TaskEncoding[InputEncoding, TargetEncoding]]:
-        return iter(self._encodings)
 
     def __getitem__(self, index) -> TaskEncoding[InputEncoding, TargetEncoding]:
         return self._encodings[index]
