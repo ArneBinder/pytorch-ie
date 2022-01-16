@@ -69,7 +69,7 @@ def test_encode_without_target(prepared_taskmodule, documents, encode_target):
             (9, 9, prepared_taskmodule.label_to_id["LOC"]),
         ]
     else:
-        assert encoding.target is None
+        assert not encoding.has_target
 
 
 def test_unbatch_output(prepared_taskmodule, model_output):
@@ -131,12 +131,12 @@ def test_collate(prepared_taskmodule, documents, encode_target):
     assert len(encodings) == 3
 
     if encode_target:
-        assert all([encoding.target is not None for encoding in encodings])
+        assert all([encoding.has_target for encoding in encodings])
     else:
-        assert all([encoding.target is None for encoding in encodings])
+        assert not any([encoding.has_target for encoding in encodings])
 
     batch_encoding = prepared_taskmodule.collate(encodings)
-    inputs, targets, _, _ = batch_encoding
+    inputs, targets = batch_encoding
     assert inputs["input_ids"].shape[0] == 3
 
     if encode_target:

@@ -1,13 +1,19 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
+from torch import Tensor
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 
 TransformerTokenClassificationModelBatchEncoding = BatchEncoding
 TransformerTokenClassificationModelBatchOutput = Dict[str, Any]
+
+TransformerTokenClassificationModelStepBatchEncoding = Tuple[
+    Dict[str, Tensor],
+    Optional[Tensor],
+]
 
 
 class TransformerTokenClassificationModel(PyTorchIEModel):
@@ -33,13 +39,12 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(
-        self, input_: TransformerTokenClassificationModelBatchEncoding
-    ) -> TransformerTokenClassificationModelBatchOutput:
+    def forward(self, input_: TransformerTokenClassificationModelBatchEncoding) -> TransformerTokenClassificationModelBatchOutput:  # type: ignore
         return self.model(**input_)
 
-    def training_step(self, batch, batch_idx):
-        input_, target, _, _ = batch
+    def training_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+        input_, target = batch
+        assert target is not None, "target has to be available for training"
 
         input_["labels"] = target
         output = self(input_)
@@ -50,7 +55,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         target_flat = target.view(-1)
 
         valid_indices = target_flat != self.label_pad_token_id
-        valid_logits = output.logits.view(-1, self.hparams.num_classes)[valid_indices]
+        # ignore typing because hparams is Union
+        num_classes: int = self.hparams.num_classes  # type: ignore
+        valid_logits = output.logits.view(-1, num_classes)[valid_indices]
         valid_target = target_flat[valid_indices]
 
         self.train_f1(valid_logits, valid_target)
@@ -58,8 +65,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        input_, target, _, _ = batch
+    def validation_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+        input_, target = batch
+        assert target is not None, "target has to be available for validation"
 
         input_["labels"] = target
         output = self(input_)
@@ -70,7 +78,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         target_flat = target.view(-1)
 
         valid_indices = target_flat != self.label_pad_token_id
-        valid_logits = output.logits.view(-1, self.hparams.num_classes)[valid_indices]
+        # ignore typing because hparams is Union
+        num_classes: int = self.hparams.num_classes  # type: ignore
+        valid_logits = output.logits.view(-1, num_classes)[valid_indices]
         valid_target = target_flat[valid_indices]
 
         self.val_f1(valid_logits, valid_target)

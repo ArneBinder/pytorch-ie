@@ -396,7 +396,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
             >>> model = MyModel.from_pretrained("username/mymodel@main")
         """
 
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         # TODO: fix mypy: "PyTorchIETaskmoduleModelHubMixin" has no attribute "init_kwargs"
         config = dict(self.init_kwargs)
         config["taskmodule_type"] = self.__class__.__name__

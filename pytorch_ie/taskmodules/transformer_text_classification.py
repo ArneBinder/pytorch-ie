@@ -1,14 +1,27 @@
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 import numpy as np
 import torch
-from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, Label
-from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
+from pytorch_ie.models.transformer_text_classification import (
+    TransformerTextClassificationModelBatchOutput,
+    TransformerTextClassificationModelStepBatchEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
@@ -19,20 +32,41 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTextClassificationInputEncoding = BatchEncoding
+
+TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
 TransformerTextClassificationTargetEncoding = List[int]
+
 TransformerTextClassificationTaskEncoding = TaskEncoding[
     TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
 ]
-TransformerTextClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
+
+TransformerTextClassificationTaskOutputSingle = TypedDict(
+    "TransformerTextClassificationTaskOutputSingle",
+    {
+        "labels": List[str],
+        "probabilities": List[float],
+    },
+    total=False,
+)
+TransformerTextClassificationTaskOutputMulti = TypedDict(
+    "TransformerTextClassificationTaskOutputMulti",
+    {
+        "labels": List[List[str]],
+        "probabilities": List[List[float]],
+    },
+    total=False,
+)
+
+TransformerTextClassificationTaskOutput = Union[
+    TransformerTextClassificationTaskOutputSingle,
+    TransformerTextClassificationTaskOutputMulti,
 ]
-TransformerTextClassificationTaskOutput = Dict[str, Any]
+
 _TransformerTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
-    TransformerTextClassificationTaskBatchEncoding,
+    TransformerTextClassificationModelStepBatchEncoding,
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationTaskOutput,
 ]
@@ -74,7 +108,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label
 
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
         return config
@@ -82,13 +116,11 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
     def prepare(self, documents: List[Document]) -> None:
         labels = set()
         for document in documents:
-            annotations = document.annotations(self.annotation)
+            annotations = document.label_annotations(self.annotation)
 
             for annotation in annotations:
-                annotation_labels = (
-                    annotation.label if annotation.is_multilabel else [annotation.label]
-                )
-                for label in annotation_labels:
+                # TODO: labels is a set...
+                for label in annotation.labels:
                     if label not in labels:
                         labels.add(label)
 
@@ -104,7 +136,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         self, documents: List[Document]
     ) -> Tuple[
         List[TransformerTextClassificationInputEncoding],
-        Optional[List[Metadata]],
+        List[Metadata],
         Optional[List[Document]],
     ]:
         input_encoding = [
@@ -141,16 +173,15 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         for i, document in enumerate(documents):
             if self.multi_label:
                 label_ids = [0] * len(self.label_to_id)
-                for annotation in document.annotations(self.annotation):
-                    labels = annotation.label if annotation.is_multilabel else [annotation.label]
-                    for label in labels:
+                for annotation in document.label_annotations(self.annotation):
+                    for label in annotation.labels:
                         label_id = self.label_to_id[label]
                         label_ids[label_id] = 1
             else:
-                annotation_labels = document.annotations(self.annotation)
+                annotation_labels = document.label_annotations(self.annotation)
                 assert len(annotation_labels) == 1 and not annotation_labels[0].is_multilabel
 
-                label = annotation_labels[0].label
+                label = annotation_labels[0].label_single
                 label_ids = [self.label_to_id[label]]
 
             target.append(label_ids)
@@ -159,13 +190,12 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
     def unbatch_output(
         self, output: TransformerTextClassificationModelBatchOutput
-    ) -> List[TransformerTextClassificationTaskOutput]:
+    ) -> Sequence[TransformerTextClassificationTaskOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
         output_label_probs = output_label_probs.detach().cpu().numpy()
 
-        decoded_output = []
         if self.multi_label:
             raise NotImplementedError
             # labels = [[] for _ in range(batch_size)]
@@ -186,32 +216,40 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             #         example_labels.append(self.id_to_label[label_id])
 
         else:
-            result = {"labels": [], "probabilities": []}
+            decoded_output = []
+            result: TransformerTextClassificationTaskOutputSingle = {
+                "labels": [],
+                "probabilities": [],
+            }
             for batch_idx, label_id in enumerate(np.argmax(output_label_probs, axis=-1)):
                 result["labels"].append(self.id_to_label[label_id])
                 result["probabilities"].append(float(output_label_probs[batch_idx, label_id]))
 
             decoded_output.append(result)
 
-        return decoded_output
+            return decoded_output
 
     def create_annotations_from_output(
         self,
-        output: TransformerTextClassificationTaskOutput,
         encoding: TransformerTextClassificationTaskEncoding,
+        output: TransformerTextClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
-        for labels, probabilities in zip(output["labels"], output["probabilities"]):
-            yield (
-                self.annotation,
-                Label(
-                    label=labels if self.multi_label else labels[0],
-                    score=probabilities if self.multi_label else probabilities[0],
-                ),
-            )
+        if self.multi_label:
+            # Note: we can not use isinstance since that does not work with TypedDicts
+            multi_output: TransformerTextClassificationTaskOutputMulti = output  # type: ignore
+            for labels, probabilities in zip(
+                multi_output["labels"], multi_output["probabilities"]
+            ):
+                yield self.annotation, Label(label=labels[0], score=probabilities[0])
+        else:
+            # Note: we can not use isinstance since that does not work with TypedDicts
+            single_output: TransformerTextClassificationTaskOutputSingle = output  # type: ignore
+            for label, probability in zip(single_output["labels"], single_output["probabilities"]):
+                yield self.annotation, Label(label=label, score=probability)
 
     def collate(
         self, encodings: List[TransformerTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationTaskBatchEncoding:
+    ) -> TransformerTextClassificationModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]
@@ -224,14 +262,16 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             return_tensors="pt",
         )
 
-        if encodings[0].target is None:
-            return input_, None, metadata, documents
+        if not encodings[0].has_target:
+            return input_, None
 
-        target = [encoding.target for encoding in encodings]
+        target_list: List[TransformerTextClassificationTargetEncoding] = [
+            encoding.target for encoding in encodings
+        ]
 
-        target = torch.tensor(target, dtype=torch.int64)
+        target = torch.tensor(target_list, dtype=torch.int64)
 
         if not self.multi_label:
             target = target.flatten()
 
-        return input_, target, metadata, documents
+        return input_, target

@@ -1,9 +1,10 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Dict, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.data import Metadata
 from pytorch_ie.data.document import Annotation, Document
 
 """
@@ -23,8 +24,6 @@ TaskBatchEncoding = TypeVar("TaskBatchEncoding")
 ModelBatchOutput = TypeVar("ModelBatchOutput")
 TaskOutput = TypeVar("TaskOutput")
 
-Metadata = Dict[str, Any]
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +38,18 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
     ) -> None:
         self.input = input
         self.document = document
-        self.target = target
+        self._target = target
         self.metadata = metadata or {}
+
+    @property
+    def has_target(self) -> bool:
+        return self._target is not None
+
+    @property
+    def target(self) -> TargetEncoding:
+        # Note: mypy does not understand if we call self.has_target
+        assert self._target is not None, "input encoding has no target"
+        return self._target
 
 
 class TaskModule(
@@ -102,12 +111,12 @@ class TaskModule(
         self,
         documents: List[Document],
         input_encodings: List[InputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TargetEncoding]:
         raise NotImplementedError()
 
     @abstractmethod
-    def unbatch_output(self, output: ModelBatchOutput) -> List[TaskOutput]:
+    def unbatch_output(self, output: ModelBatchOutput) -> Sequence[TaskOutput]:
         """
         This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
         outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the
@@ -136,7 +145,7 @@ class TaskModule(
                     TaskEncoding[InputEncoding, TargetEncoding](
                         input=encoding.input,
                         document=copied_documents[encoding.document],
-                        target=encoding.target,
+                        target=encoding.target if encoding.has_target else None,
                         metadata=encoding.metadata,
                     )
                 )

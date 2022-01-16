@@ -1,15 +1,16 @@
 import logging
 import re
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
-import torch
-from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
-from pytorch_ie.models.transformer_seq2seq import TransformerSeq2SeqModelBatchOutput
+from pytorch_ie.models import (
+    TransformerSeq2SeqModelBatchOutput,
+    TransformerSeq2SeqModelStepBatchEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
@@ -20,20 +21,20 @@ workflow:
         -> TaskOutput
     -> Document
 """
+
 TransformerSeq2SeqInputEncoding = Dict[str, List[int]]
-TransformerSeq2SeqTargetEncoding = List[int]
+TransformerSeq2SeqTargetEncoding = Dict[str, List[int]]
+
 TransformerSeq2SeqTaskEncoding = TaskEncoding[
     TransformerSeq2SeqInputEncoding, TransformerSeq2SeqTargetEncoding
 ]
-TransformerSeq2SeqTaskBatchEncoding = Tuple[
-    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
-]
-TransformerSeq2SeqTaskOutput = Dict[str, Any]
+TransformerSeq2SeqTaskOutput = List[Dict[str, Any]]
+
 _TransformerSeq2SeqTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TransformerSeq2SeqInputEncoding,
     TransformerSeq2SeqTargetEncoding,
-    TransformerSeq2SeqTaskBatchEncoding,
+    TransformerSeq2SeqModelStepBatchEncoding,
     TransformerSeq2SeqModelBatchOutput,
     TransformerSeq2SeqTaskOutput,
 ]
@@ -74,7 +75,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
     def document_to_input_string(self, document: Document) -> str:
         return document.text
 
-    def encode_input_strings(self, inputs: List[str]) -> Dict[str, Any]:
+    def encode_input_strings(self, inputs: List[str]) -> List[TransformerSeq2SeqInputEncoding]:
         return [
             self.tokenizer(
                 input_,
@@ -88,9 +89,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[
-        List[TransformerSeq2SeqInputEncoding], Optional[List[Metadata]], Optional[List[Document]]
-    ]:
+    ) -> Tuple[List[TransformerSeq2SeqInputEncoding], List[Metadata], Optional[List[Document]]]:
         input_strings = [self.document_to_input_string(document) for document in documents]
         return (
             self.encode_input_strings(input_strings),
@@ -99,9 +98,9 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         )
 
     def document_to_target_string(self, document: Document) -> str:
-        relations = document.annotations(self.relation_annotation)
+        relations = document.relation_annotations(self.relation_annotation)
 
-        head_to_relation: Dict[BinaryRelation, List[BinaryRelation]] = {}
+        head_to_relation: Dict[LabeledSpan, List[BinaryRelation]] = {}
         for relation in relations:
             if relation.head not in head_to_relation:
                 head_to_relation[relation.head] = []
@@ -127,7 +126,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
                 if tail_relation.is_multilabel:
                     raise NotImplementedError
 
-                label = tail_relation.label
+                label = tail_relation.label_single
 
                 lin_triplets.append("<subj>")
                 lin_triplets.append(tail_entity)
@@ -136,7 +135,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
         return " ".join(lin_triplets)
 
-    def encode_target_strings(self, targets: List[str]) -> Dict[str, Any]:
+    def encode_target_strings(self, targets: List[str]) -> List[TransformerSeq2SeqTargetEncoding]:
         return [
             {
                 "labels": self.tokenizer(
@@ -154,15 +153,15 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         self,
         documents: List[Document],
         input_encodings: List[TransformerSeq2SeqInputEncoding],
-        metadata: Optional[List[Metadata]],
+        metadata: List[Metadata],
     ) -> List[TransformerSeq2SeqTargetEncoding]:
         target_strings = [self.document_to_target_string(document) for document in documents]
         return self.encode_target_strings(target_strings)
 
     def unbatch_output(
         self, output: TransformerSeq2SeqModelBatchOutput
-    ) -> List[TransformerSeq2SeqTaskOutput]:
-        unbatched_output: List[Dict[str, Any]] = []
+    ) -> Sequence[TransformerSeq2SeqTaskOutput]:
+        unbatched_output = []
         for out in output:
             decoded_string = self.tokenizer.decode(
                 out, skip_special_tokens=False, clean_up_tokenization_spaces=True
@@ -174,8 +173,8 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
     def create_annotations_from_output(
         self,
-        output: Dict[str, Any],
         encoding: TransformerSeq2SeqTaskEncoding,
+        output: TransformerSeq2SeqTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         for relation in output:
             head_entity = relation["head"]
@@ -205,7 +204,9 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
                 ),
             )
 
-    def collate(self, encodings: List[TransformerSeq2SeqTaskEncoding]) -> Dict[str, torch.Tensor]:
+    def collate(
+        self, encodings: List[TransformerSeq2SeqTaskEncoding]
+    ) -> TransformerSeq2SeqModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]
@@ -218,7 +219,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             return_tensors="pt",
         )
 
-        if encodings[0].target is not None:
+        if encodings[0].has_target:
             # TODO: this is a bit of a hack -- fix
             labels = {"input_ids": [encoding.target["labels"] for encoding in encodings]}
 
@@ -236,7 +237,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         return padded_encoding, None, metadata, documents
 
     # TODO: improve this method as soon as we have unittests for this taskmodule
-    def _extract_triplets(self, text):
+    def _extract_triplets(self, text) -> TransformerSeq2SeqTaskOutput:
         triplets = []
         relation, subject, relation, object_ = "", "", "", ""
         text = text.strip()

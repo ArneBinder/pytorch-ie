@@ -1,8 +1,8 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import torch
 import torchmetrics
-from torch import nn
+from torch import Tensor, nn
 from transformers import (
     AdamW,
     AutoConfig,
@@ -16,6 +16,11 @@ from pytorch_ie.models.modules.mlp import MLP
 
 TransformerSpanClassificationModelBatchEncoding = BatchEncoding
 TransformerSpanClassificationModelBatchOutput = Dict[str, Any]
+
+TransformerSpanClassificationModelStepBatchEncoding = Tuple[
+    Dict[str, Tensor],
+    Optional[List[List[Tuple[int, int, int]]]],
+]
 
 
 class TransformerSpanClassificationModel(PyTorchIEModel):
@@ -68,7 +73,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
     def _start_end_and_span_length_span_index(
-        self, batch_size: int, max_seq_length: int, seq_lengths: Optional[int] = None
+        self, batch_size: int, max_seq_length: int, seq_lengths: Optional[Iterable[int]] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if seq_lengths is None:
             seq_lengths = batch_size * [max_seq_length]
@@ -96,12 +101,13 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             torch.tensor(span_batch_index),
         )
 
+    # TODO: this should live in the taskmodule
     def _expand_target_tuples(
         self,
-        target_tuples: Tuple[int, int, int],
+        target_tuples: List[List[Tuple[int, int, int]]],
         batch_size: int,
         max_seq_length: int,
-        seq_lengths: Optional[int] = None,
+        seq_lengths: Optional[Iterable[int]] = None,
     ) -> torch.Tensor:
         if seq_lengths is None:
             seq_lengths = batch_size * [max_seq_length]
@@ -120,9 +126,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return torch.tensor(target)
 
-    def forward(
-        self, input_: TransformerSpanClassificationModelBatchEncoding
-    ) -> TransformerSpanClassificationModelBatchOutput:
+    def forward(self, input_: TransformerSpanClassificationModelBatchEncoding) -> TransformerSpanClassificationModelBatchOutput:  # type: ignore
         output = self.model(**input_)
 
         batch_size, seq_length, hidden_dim = output.last_hidden_state.shape
@@ -158,8 +162,9 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             "end_indices": end_indices,
         }
 
-    def training_step(self, batch, batch_idx):
-        input_, target_tuples, _, docs = batch
+    def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+        input_, target_tuples = batch
+        assert target_tuples is not None, "target has to be available for training"
 
         output = self(input_)
 
@@ -169,6 +174,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         seq_lengths = None
         if "attention_mask" in input_:
             seq_lengths = torch.sum(input_["attention_mask"], dim=-1)
+        # TODO: Why is this not happening in TransformerSpanClassificationTaskModule.collate?
         target = self._expand_target_tuples(
             target_tuples=target_tuples,
             batch_size=batch_size,
@@ -186,8 +192,9 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        input_, target_tuples, _, docs = batch
+    def validation_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+        input_, target_tuples = batch
+        assert target_tuples is not None, "target has to be available for validation"
 
         output = self(input_)
 
@@ -198,6 +205,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         if "attention_mask" in input_:
             seq_lengths = torch.sum(input_["attention_mask"], dim=-1)
 
+        # TODO: Why is this not happening in TransformerSpanClassificationTaskModule.collate?
         target = self._expand_target_tuples(
             target_tuples=target_tuples,
             batch_size=batch_size,

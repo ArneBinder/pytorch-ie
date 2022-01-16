@@ -34,6 +34,23 @@ class Annotation:
         return self._label
 
     @property
+    def label_single(self) -> str:
+        assert isinstance(self._label, str), "this annotation has multiple labels"
+        return self._label
+
+    @property
+    def labels(self) -> List[str]:
+        if isinstance(self._label, list):
+            return self._label
+        elif isinstance(self._label, str):
+            return [self._label]
+        else:
+            ValueError(
+                f"the label has an unknown type: `{type(self._label)}`, it should be either `str` or "
+                f"`list` (for multilabel setup)."
+            )
+
+    @property
     def score(self) -> Union[float, List[float]]:
         return self._score
 
@@ -164,8 +181,18 @@ class Document:
 
         self._predictions[name].append(prediction)
 
+    # TODO: rework all getters for annotations (e.g. remove type: ignore)
     def annotations(self, name: str) -> AnnotationLayer:
         return self._annotations.get(name, [])
+
+    def span_annotations(self, name: str) -> List[LabeledSpan]:
+        return self.annotations(name=name)  # type: ignore
+
+    def relation_annotations(self, name: str) -> List[BinaryRelation]:
+        return self.annotations(name=name)  # type: ignore
+
+    def label_annotations(self, name: str) -> List[Label]:
+        return self.annotations(name=name)  # type: ignore
 
     def predictions(self, name: str) -> AnnotationLayer:
         return self._predictions.get(name, [])

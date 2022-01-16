@@ -1,19 +1,18 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, MutableMapping, Optional, Tuple
 
 import torchmetrics
-from torch import nn
-from transformers import (
-    AdamW,
-    AutoConfig,
-    AutoModel,
-    BatchEncoding,
-    get_linear_schedule_with_warmup,
-)
+from torch import Tensor, nn
+from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 
-TransformerTextClassificationModelBatchEncoding = BatchEncoding
+TransformerTextClassificationModelBatchEncoding = MutableMapping[str, Any]
 TransformerTextClassificationModelBatchOutput = Dict[str, Any]
+
+TransformerTextClassificationModelStepBatchEncoding = Tuple[
+    Dict[str, Tensor],
+    Optional[Tensor],
+]
 
 
 class TransformerTextClassificationModel(PyTorchIEModel):
@@ -60,9 +59,7 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
         self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
 
-    def forward(
-        self, input_: TransformerTextClassificationModelBatchEncoding
-    ) -> TransformerTextClassificationModelBatchOutput:
+    def forward(self, input_: TransformerTextClassificationModelBatchEncoding) -> TransformerTextClassificationModelBatchOutput:  # type: ignore
         output = self.model(**input_)
 
         hidden_state = output.last_hidden_state
@@ -72,8 +69,9 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return {"logits": logits}
 
-    def training_step(self, batch, batch_idx):
-        input_, target, _, docs = batch
+    def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+        input_, target = batch
+        assert target is not None, "target has to be available for training"
 
         logits = self(input_)["logits"]
 
@@ -86,8 +84,9 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        input_, target, _, docs = batch
+    def validation_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+        input_, target = batch
+        assert target is not None, "target has to be available for validation"
 
         logits = self(input_)["logits"]
 

@@ -1,14 +1,16 @@
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union
 
 import numpy as np
 import torch
-from torch import Tensor
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
-from pytorch_ie.models import TransformerTextClassificationModelBatchOutput
+from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
+from pytorch_ie.models import (
+    TransformerTextClassificationModelBatchOutput,
+    TransformerTextClassificationModelStepBatchEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
 
 """
@@ -19,26 +21,30 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTextClassificationInputEncoding = Dict[str, List[int]]
-TransformerTextClassificationTargetEncoding = List[int]
-TransformerTextClassificationTaskEncoding = TaskEncoding[
-    TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
+
+TransformerReTextClassificationInputEncoding = Dict[str, Any]
+TransformerReTextClassificationTargetEncoding = List[int]
+
+TransformerReTextClassificationTaskEncoding = TaskEncoding[
+    TransformerReTextClassificationInputEncoding, TransformerReTextClassificationTargetEncoding
 ]
-TransformerTextClassificationTaskBatchEncoding = Tuple[
-    Dict[str, Tensor], Optional[Tensor], List[Metadata], List[Document]
-]
-TransformerTextClassificationTaskOutput = Dict[str, Any]
-_TransformerTextClassificationTaskModule = TaskModule[
+TransformerReTextClassificationTaskOutput = TypedDict(
+    "TransformerReTextClassificationTaskOutput",
+    {"labels": List[str], "probabilities": List[float]},
+    total=False,
+)
+
+_TransformerReTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
-    TransformerTextClassificationInputEncoding,
-    TransformerTextClassificationTargetEncoding,
-    TransformerTextClassificationTaskBatchEncoding,
+    TransformerReTextClassificationInputEncoding,
+    TransformerReTextClassificationTargetEncoding,
+    TransformerTextClassificationModelStepBatchEncoding,
     TransformerTextClassificationModelBatchOutput,
-    TransformerTextClassificationTaskOutput,
+    TransformerReTextClassificationTaskOutput,
 ]
 
 
-class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTaskModule):
+class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -86,8 +92,8 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
-        self.argument_markers = None
-        self.argument_markers_to_id = None
+        self.argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]
+        self.argument_markers_to_id: Dict[str, int]
         self._create_argument_markers()
 
     def _create_argument_markers(self):
@@ -100,6 +106,8 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
                 if self.add_type_to_marker:
                     for entity_type in self.entity_labels:
+                        if isinstance(entity_type, list):
+                            raise NotImplementedError
                         marker = (
                             f"[{'' if is_start else '/'}{'H' if is_head else 'T'}:{entity_type}]"
                         )
@@ -114,7 +122,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
             marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
         }
 
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
         config["entity_labels"] = self.label_to_id
@@ -124,23 +132,19 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
         entity_labels = set()
         relation_labels = set()
         for document in documents:
-            entity_annotations = document.annotations(self.entity_annotation)
-            relation_annotations = document.annotations(self.relation_annotation)
+            entities = document.span_annotations(self.entity_annotation)
+            relations = document.relation_annotations(self.relation_annotation)
 
             if self.add_type_to_marker:
-                for annotation in entity_annotations:
-                    annotation_labels = (
-                        annotation.label if annotation.is_multilabel else [annotation.label]
-                    )
-                    for label in annotation_labels:
+                for entity in entities:
+                    # TODO: why doing this? entity_labels is a set: entity_labels.update(labels)
+                    for label in entity.labels:
                         if label not in entity_labels:
                             entity_labels.add(label)
 
-            for annotation in relation_annotations:
-                annotation_labels = (
-                    annotation.label if annotation.is_multilabel else [annotation.label]
-                )
-                for label in annotation_labels:
+            for relation in relations:
+                # TODO: why doing this? relation_labels is a set: relation_labels.update(labels)
+                for label in relation.labels:
                     if label not in relation_labels:
                         relation_labels.add(label)
 
@@ -155,22 +159,22 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
-        self.entity_labels = entity_labels or []
+        self.entity_labels = list(entity_labels) or []
         self._create_argument_markers()
 
     def _single_pair_insert_marker(
         self, documents: List[Document]
     ) -> Tuple[
-        List[TransformerTextClassificationInputEncoding],
-        Optional[List[Metadata]],
-        Optional[List[Document]],
+        List[TransformerReTextClassificationInputEncoding],
+        List[Metadata],
+        List[Document],
     ]:
         input_encoding = []
         metadata = []
         new_documents = []
 
         for document in documents:
-            entities = document.annotations(self.entity_annotation)
+            entities = document.span_annotations(self.entity_annotation)
 
             encoding = self.tokenizer(
                 document.text,
@@ -181,11 +185,11 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
                 return_offsets_mapping=False,
             )
 
-            relations: List[BinaryRelation] = document.annotations(self.relation_annotation)
+            relations = document.relation_annotations(self.relation_annotation)
 
             existing_head_tail = {(relation.head, relation.tail) for relation in relations}
 
-            doc_metadata = {
+            doc_metadata: Dict[str, List] = {
                 "head": [],
                 "tail": [],
                 "head_offset": [],
@@ -218,17 +222,22 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
                         continue
 
                     if self.add_type_to_marker:
+                        if head.is_multilabel:
+                            raise NotImplementedError
+
                         head_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "start", head.label)]
+                            self.argument_markers[("head", "start", head.label_single)]
                         ]
                         head_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "end", head.label)]
+                            self.argument_markers[("head", "end", head.label_single)]
                         ]
+                        if tail.is_multilabel:
+                            raise NotImplementedError
                         tail_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "start", tail.label)]
+                            self.argument_markers[("tail", "start", tail.label_single)]
                         ]
                         tail_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "end", tail.label)]
+                            self.argument_markers[("tail", "end", tail.label_single)]
                         ]
                     else:
                         head_start_marker = self.argument_markers_to_id[
@@ -299,8 +308,8 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
     def encode_input(
         self, documents: List[Document]
     ) -> Tuple[
-        List[TransformerTextClassificationInputEncoding],
-        Optional[List[Metadata]],
+        List[TransformerReTextClassificationInputEncoding],
+        List[Metadata],
         Optional[List[Document]],
     ]:
         return self._single_pair_insert_marker(documents)
@@ -375,20 +384,23 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
     def encode_target(
         self,
         documents: List[Document],
-        input_encodings: List[TransformerTextClassificationInputEncoding],
-        metadata: Optional[List[Metadata]],
-    ) -> List[TransformerTextClassificationTargetEncoding]:
+        input_encodings: List[TransformerReTextClassificationInputEncoding],
+        metadata: List[Metadata],
+    ) -> List[TransformerReTextClassificationTargetEncoding]:
 
-        target: List[List[int]] = []
+        target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
 
-            relations: List[BinaryRelation] = document.annotations(self.relation_annotation)
+            relations = document.relation_annotations(self.relation_annotation)
 
+            # TODO: does this really only work for single labels? However, label_to_id seems
+            #  to contain only single labels.
             head_tail_to_label = {
-                (relation.head, relation.tail): relation.label for relation in relations
+                (relation.head, relation.tail): relation.label_single for relation in relations
             }
 
+            label_ids = None
             for head, tail in zip(meta["head"], meta["tail"]):
                 label = head_tail_to_label.get((head, tail), "no_relation")
 
@@ -396,14 +408,14 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
                     raise NotImplementedError
                 else:
                     label_ids = [self.label_to_id[label]]
-
+            assert label_ids is not None, "no head/tail available"
             target.append(label_ids)
 
         return target
 
     def unbatch_output(
         self, output: TransformerTextClassificationModelBatchOutput
-    ) -> List[TransformerTextClassificationTaskOutput]:
+    ) -> Sequence[TransformerReTextClassificationTaskOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -413,7 +425,7 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
         if self.multi_label:
             raise NotImplementedError
         else:
-            result = {"labels": [], "probabilities": []}
+            result: TransformerReTextClassificationTaskOutput = {"labels": [], "probabilities": []}
             for batch_idx, label_id in enumerate(np.argmax(output_label_probs, axis=-1)):
                 result["labels"].append(self.id_to_label[label_id])
                 result["probabilities"].append(float(output_label_probs[batch_idx, label_id]))
@@ -424,9 +436,9 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
 
     def create_annotations_from_output(
         self,
-        output: TransformerTextClassificationTaskOutput,
-        encoding: TransformerTextClassificationTaskEncoding,
-    ) -> None:
+        encoding: TransformerReTextClassificationTaskEncoding,
+        output: TransformerReTextClassificationTaskOutput,
+    ) -> Iterator[Tuple[str, Annotation]]:
         metadata = encoding.metadata
         labels = output["labels"]
         probabilities = output["probabilities"]
@@ -450,12 +462,10 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
                     )
 
     def collate(
-        self, encodings: List[TransformerTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationTaskBatchEncoding:
+        self, encodings: List[TransformerReTextClassificationTaskEncoding]
+    ) -> TransformerTextClassificationModelStepBatchEncoding:
 
         input_features = [encoding.input for encoding in encodings]
-        meta = [encoding.metadata for encoding in encodings]
-        documents = [encoding.document for encoding in encodings]
 
         input_ = self.tokenizer.pad(
             input_features,
@@ -465,14 +475,15 @@ class TransformerRETextClassificationTaskModule(_TransformerTextClassificationTa
             return_tensors="pt",
         )
 
-        if encodings[0].target is None:
-            return input_, None, meta, documents
+        if not encodings[0].has_target:
+            return input_, None
 
-        target = [encoding.target for encoding in encodings]
-
-        target = torch.tensor(target, dtype=torch.int64)
+        target_list: List[TransformerReTextClassificationTargetEncoding] = [
+            encoding.target for encoding in encodings
+        ]
+        target = torch.tensor(target_list, dtype=torch.int64)
 
         if not self.multi_label:
             target = target.flatten()
 
-        return input_, target, meta, documents
+        return input_, target

@@ -6,7 +6,7 @@ from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin
 
 
 class PyTorchIEModel(LightningModule, PyTorchIEModelHubMixin):
-    def _config(self) -> Optional[Dict[str, Any]]:
+    def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
         config["model_type"] = self.__class__.__name__
         return config
