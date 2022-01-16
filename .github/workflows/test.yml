@@ -21,6 +21,7 @@ jobs:
         run: |
           pip install poetry
           poetry install
+          poetry run pip install setuptools==59.5.0
 
       - run: poetry run isort --diff .
       - run: poetry run black --check .
