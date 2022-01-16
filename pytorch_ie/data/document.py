@@ -35,15 +35,20 @@ class Annotation:
 
     @property
     def label_single(self) -> str:
-        assert not self.is_multilabel, "this annotation has multiple labels"
+        assert isinstance(self._label, str), "this annotation has multiple labels"
         return self._label
 
     @property
     def labels(self) -> List[str]:
-        if self.is_multilabel:
+        if isinstance(self._label, list):
             return self._label
-        else:
+        elif isinstance(self._label, str):
             return [self._label]
+        else:
+            ValueError(
+                f"the label has an unknown type: `{type(self._label)}`, it should be either `str` or "
+                f"`list` (for multilabel setup)."
+            )
 
     @property
     def score(self) -> Union[float, List[float]]:
