@@ -47,7 +47,8 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
 
     @property
     def target(self) -> TargetEncoding:
-        assert self.has_target, "input encoding has no target"
+        # Note: mypy does not understand if we call self.has_target
+        assert self._target is not None, "input encoding has no target"
         return self._target
 
 
