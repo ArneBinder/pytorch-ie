@@ -12,6 +12,7 @@ datasets = "^1.17.0"
 transformers = "^4.15.0"
 huggingface-hub = "^0.2.1"
 torchmetrics = "^0.6.2"
+setuptools = "59.5.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.12b0"
@@ -23,7 +24,6 @@ pytest = "^6.2.5"
 pytest-cov = "^3.0.0"
 sh = "^1.14.2"
 types-requests = "^2.27.7"
-setuptools = "59.5.0"
 
 [build-system]
 # requires = ["poetry-core>=1.0.0"]
