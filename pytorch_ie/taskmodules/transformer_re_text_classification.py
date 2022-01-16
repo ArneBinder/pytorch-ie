@@ -394,8 +394,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
             relations = document.relation_annotations(self.relation_annotation)
 
+            # TODO: does this really only work for single labels? However, label_to_id seems
+            #  to contain only single labels.
             head_tail_to_label = {
-                (relation.head, relation.tail): relation.label for relation in relations
+                (relation.head, relation.tail): relation.label_single for relation in relations
             }
 
             label_ids = None
