@@ -5,14 +5,7 @@ from os import listdir, path
 from typing import Dict, List, Optional
 
 import datasets
-from datasets import (
-    BuilderConfig,
-    DatasetInfo,
-    Features,
-    Sequence,
-    SplitGenerator,
-    Value,
-)
+from datasets import BuilderConfig, DatasetInfo, Features, Sequence, SplitGenerator, Value
 
 logger = logging.getLogger(__name__)
 
