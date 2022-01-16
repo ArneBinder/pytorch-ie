@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -229,7 +229,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def unbatch_output(
         self, output: TransformerTokenClassificationModelBatchOutput
-    ) -> List[TransformerTokenClassificationTaskOutput]:
+    ) -> Sequence[TransformerTokenClassificationTaskOutput]:
         logits = output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()

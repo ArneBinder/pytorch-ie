@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union
 
 import numpy as np
 import torch
@@ -413,7 +413,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def unbatch_output(
         self, output: TransformerTextClassificationModelBatchOutput
-    ) -> List[TransformerReTextClassificationTaskOutput]:
+    ) -> Sequence[TransformerReTextClassificationTaskOutput]:
         logits = output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)

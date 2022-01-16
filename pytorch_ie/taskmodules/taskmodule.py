@@ -1,7 +1,7 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Dict, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data import Metadata
@@ -116,7 +116,7 @@ class TaskModule(
         raise NotImplementedError()
 
     @abstractmethod
-    def unbatch_output(self, output: ModelBatchOutput) -> List[TaskOutput]:
+    def unbatch_output(self, output: ModelBatchOutput) -> Sequence[TaskOutput]:
         """
         This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
         outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the

@@ -277,7 +277,7 @@ class Pipeline:
             collate_fn=self.taskmodule.collate,
         )
 
-        model_outputs = []
+        model_outputs: List = []
         with torch.no_grad():
             for batch in dataloader:
                 output = self.forward(batch, **forward_params)

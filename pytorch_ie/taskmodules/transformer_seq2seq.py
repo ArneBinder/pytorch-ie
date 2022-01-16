@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
@@ -160,7 +160,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
     def unbatch_output(
         self, output: TransformerSeq2SeqModelBatchOutput
-    ) -> List[TransformerSeq2SeqTaskOutput]:
+    ) -> Sequence[TransformerSeq2SeqTaskOutput]:
         unbatched_output = []
         for out in output:
             decoded_string = self.tokenizer.decode(

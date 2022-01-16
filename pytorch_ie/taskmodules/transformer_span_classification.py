@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -216,7 +216,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def unbatch_output(
         self, output: TransformerSpanClassificationModelBatchOutput
-    ) -> List[TransformerSpanClassificationTaskOutput]:
+    ) -> Sequence[TransformerSpanClassificationTaskOutput]:
         logits = output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
