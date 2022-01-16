@@ -388,7 +388,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         metadata: List[Metadata],
     ) -> List[TransformerReTextClassificationTargetEncoding]:
 
-        target: List[List[int]] = []
+        target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
 
