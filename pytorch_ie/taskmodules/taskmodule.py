@@ -38,8 +38,17 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
     ) -> None:
         self.input = input
         self.document = document
-        self.target = target
+        self._target = target
         self.metadata = metadata or {}
+
+    @property
+    def has_target(self) -> bool:
+        return self._target is not None
+
+    @property
+    def target(self) -> TargetEncoding:
+        assert self.has_target, "input encoding has no target"
+        return self._target
 
 
 class TaskModule(
@@ -135,7 +144,7 @@ class TaskModule(
                     TaskEncoding[InputEncoding, TargetEncoding](
                         input=encoding.input,
                         document=copied_documents[encoding.document],
-                        target=encoding.target,
+                        target=encoding.target if encoding.has_target else None,
                         metadata=encoding.metadata,
                     )
                 )

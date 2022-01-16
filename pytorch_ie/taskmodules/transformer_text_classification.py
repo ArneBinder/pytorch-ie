@@ -230,7 +230,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             return_tensors="pt",
         )
 
-        if encodings[0].target is None:
+        if not encodings[0].has_target:
             return input_, None
 
         target_list: List[TransformerTextClassificationTargetEncoding] = [
