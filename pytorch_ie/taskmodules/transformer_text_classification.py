@@ -234,14 +234,18 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         encoding: TransformerTextClassificationTaskEncoding,
         output: TransformerTextClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
-        for labels, probabilities in zip(output["labels"], output["probabilities"]):
-            yield (
-                self.annotation,
-                Label(
-                    label=labels if self.multi_label else labels[0],
-                    score=probabilities if self.multi_label else probabilities[0],
-                ),
-            )
+        if self.multi_label:
+            # Note: we can not use isinstance since that does not work with TypedDicts
+            multi_output: TransformerTextClassificationTaskOutputMulti = output  # type: ignore
+            for labels, probabilities in zip(
+                multi_output["labels"], multi_output["probabilities"]
+            ):
+                yield self.annotation, Label(label=labels[0], score=probabilities[0])
+        else:
+            # Note: we can not use isinstance since that does not work with TypedDicts
+            single_output: TransformerTextClassificationTaskOutputSingle = output  # type: ignore
+            for label, probability in zip(single_output["labels"], single_output["probabilities"]):
+                yield self.annotation, Label(label=label, score=probability)
 
     def collate(
         self, encodings: List[TransformerTextClassificationTaskEncoding]
