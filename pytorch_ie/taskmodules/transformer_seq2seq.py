@@ -219,7 +219,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             return_tensors="pt",
         )
 
-        if not encodings[0].has_target:
+        if encodings[0].has_target:
             # TODO: this is a bit of a hack -- fix
             labels = {"input_ids": [encoding.target["labels"] for encoding in encodings]}
 
