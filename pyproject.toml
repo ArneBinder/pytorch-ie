@@ -63,9 +63,6 @@ filterwarnings = [
 ]
 
 [tool.black]
-include = [
-    "pytorch_ie",
-    "examples",
-    "tests"
-]
-line_length = 99
+line-length = 99
+target-version = ["py39"]
+include = '\.pyi?$'
