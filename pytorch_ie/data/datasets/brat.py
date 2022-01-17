@@ -97,16 +97,25 @@ def _convert_brats(brat_docs: Iterable[Dict[str, Any]], **kwargs) -> List[Docume
 
 def load_brat(
     conversion_kwargs: Optional[Dict[str, Any]] = None,
+    train_test_split: Dict[str, Any] = None,
     **kwargs,
 ) -> Dict[str, List[Document]]:
     # This will create a DatasetDict with a single split "train"
     path = str(HF_DATASETS_ROOT / "brat.py")
-    data = load_dataset(path=path, **kwargs)
+    data: DatasetDict = load_dataset(path=path, **kwargs)  # type: ignore
     assert isinstance(data, DatasetDict), (
         f"`load_dataset` for `path={path}` should return a DatasetDict (at least containing a single 'train' split), "
         f"but the result is of type: {type(data)}"
     )
     logger.info(f"loaded BRAT documents: " + str({k: len(v) for k, v in data.items()}))
+
+    if train_test_split is not None:
+        assert len(data) == 1, (
+            f"Can only create a train test split from a single input split, but the loaded data contains "
+            f"multiple splits: {', '.join(data)}. You may consider `subdirectory_mapping` to select one of them."
+        )
+        split_all = list(data.values())[0]
+        data = split_all.train_test_split(**train_test_split)
     conversion_kwargs = conversion_kwargs or {}
     return {
         split: _convert_brats(brat_docs=brat_dataset, **conversion_kwargs)
