@@ -8,8 +8,8 @@ from pytorch_ie import Document
 from pytorch_ie.data.datasets import HF_DATASETS_ROOT
 from pytorch_ie.data.document import BinaryRelation, LabeledMultiSpan, LabeledSpan
 
-HEAD_ARGUMENT_NAME: str = "Arg1"
-TAILS_ARGUMENT_NAME: str = "Arg2"
+DEFAULT_HEAD_ARGUMENT_NAME: str = "Arg1"
+DEFAULT_TAIL_ARGUMENT_NAME: str = "Arg2"
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,8 @@ def ld_to_dl(ld):
 
 def convert_brat_to_document(
     brat_doc: Dict[str, Any],
-    head_argument_name: str = HEAD_ARGUMENT_NAME,
-    tail_argument_name: str = TAILS_ARGUMENT_NAME,
+    head_argument_name: str = DEFAULT_HEAD_ARGUMENT_NAME,
+    tail_argument_name: str = DEFAULT_TAIL_ARGUMENT_NAME,
     convert_multi_spans: bool = True,
 ) -> Document:
 
@@ -148,8 +148,8 @@ def _write_brat(doc_id: str, text: str, serialized_annotations: List[str], path:
 
 def convert_document_to_brat(
     doc: Document,
-    head_argument_name=HEAD_ARGUMENT_NAME,
-    tail_argument_name=TAILS_ARGUMENT_NAME,
+    head_argument_name=DEFAULT_HEAD_ARGUMENT_NAME,
+    tail_argument_name=DEFAULT_TAIL_ARGUMENT_NAME,
 ) -> Tuple[Optional[str], str, List[str]]:
     serialized_annotations = []
     for name, annots in doc._annotations.items():
