@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -6,10 +7,12 @@ from datasets import DatasetDict, load_dataset
 
 from pytorch_ie import Document
 from pytorch_ie.data.datasets import HF_DATASETS_ROOT
-from pytorch_ie.data.document import BinaryRelation, LabeledMultiSpan, LabeledSpan
+from pytorch_ie.data.document import Annotation, BinaryRelation, LabeledMultiSpan, LabeledSpan
 
 DEFAULT_HEAD_ARGUMENT_NAME: str = "Arg1"
 DEFAULT_TAIL_ARGUMENT_NAME: str = "Arg2"
+DEFAULT_SPAN_ANNOTATION_NAME: str = "entities"
+DEFAULT_RELATION_ANNOTATION_NAME: str = "relations"
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +26,20 @@ def ld_to_dl(ld):
     return {k: [dic[k] for dic in ld] for k in ld[0]}
 
 
+def hash_string(s: str, max_length: Optional[int] = None):
+    hash_object = hashlib.sha256(s.encode())
+    hex_dig = hash_object.hexdigest()
+    if max_length is not None:
+        hex_dig = hex_dig[-max_length:]
+    return hex_dig
+
+
 def convert_brat_to_document(
     brat_doc: Dict[str, Any],
     head_argument_name: str = DEFAULT_HEAD_ARGUMENT_NAME,
     tail_argument_name: str = DEFAULT_TAIL_ARGUMENT_NAME,
+    span_annotation_name: str = DEFAULT_SPAN_ANNOTATION_NAME,
+    relation_annotation_name: str = DEFAULT_RELATION_ANNOTATION_NAME,
     convert_multi_spans: bool = True,
 ) -> Document:
 
@@ -37,7 +50,8 @@ def convert_brat_to_document(
     for brat_span in dl_to_ld(brat_doc["spans"]):
         locations = dl_to_ld(brat_span["locations"])
         label = brat_span["type"]
-        metadata = {"text": brat_span["text"], "id": brat_span["id"]}
+        # strip annotation type identifier from id
+        metadata = {"text": brat_span["text"], "id": brat_span["id"][1:]}
         span: LabeledMultiSpan
         if convert_multi_spans:
             if len(locations) > 1:
@@ -65,11 +79,12 @@ def convert_brat_to_document(
             brat_span["id"] not in span_id_mapping
         ), f'brat span id "{brat_span["id"]}" already exists'
         span_id_mapping[brat_span["id"]] = span
-        doc.add_annotation(name="entities", annotation=span)
+        doc.add_annotation(name=span_annotation_name, annotation=span)
 
     # add relations
     for brat_relation in dl_to_ld(brat_doc["relations"]):
-        metadata = {"id": brat_relation["id"]}
+        # strip annotation type identifier from id
+        metadata = {"id": brat_relation["id"][1:]}
         brat_args = {arg["type"]: arg["target"] for arg in dl_to_ld(brat_relation["arguments"])}
         head = span_id_mapping[brat_args[head_argument_name]]
         tail = span_id_mapping[brat_args[tail_argument_name]]
@@ -80,7 +95,7 @@ def convert_brat_to_document(
         relation = BinaryRelation(
             label=brat_relation["type"], head=head, tail=tail, metadata=metadata
         )
-        doc.add_annotation(name="relations", annotation=relation)
+        doc.add_annotation(name=relation_annotation_name, annotation=relation)
 
     # add events -> not yet implement
     # add equivalence_relations -> not yet implement
@@ -123,19 +138,35 @@ def load_brat(
     }
 
 
-def serialize_labeled_span(annotation: LabeledSpan, doc: Document) -> str:
-    _id = annotation.metadata["id"]
+def serialize_labeled_span(
+    annotation: LabeledSpan, doc: Document, create_id_if_not_available: bool = True
+) -> str:
+    serialized_annotation = f"{annotation.label} {annotation.start} {annotation.end}"
+    # construct id based on text and annotation
+    if annotation.metadata.get("id", None) is None and create_id_if_not_available:
+        text_hash = hash_string(doc.text)
+        annotation.metadata["id"] = hash_string(
+            f"{serialized_annotation} {text_hash}", max_length=8
+        )
     _text = doc.text[annotation.start : annotation.end]
-    return f"{_id}\t{annotation.label} {annotation.start} {annotation.end}\t{_text}"
+    return f"T{annotation.metadata['id']}\t{serialized_annotation}\t{_text}\n"
 
 
 def serialize_binary_relation(
-    annotation: BinaryRelation, doc: Document, head_argument_name: str, tail_argument_name: str
+    annotation: BinaryRelation,
+    doc: Document,
+    head_argument_name: str,
+    tail_argument_name: str,
+    create_id_if_not_available: bool = True,
 ) -> str:
-    _id = annotation.metadata["id"]
     _head_id = annotation.head.metadata["id"]
     _tail_id = annotation.tail.metadata["id"]
-    return f"{_id}\t{annotation.label} {head_argument_name}:{_head_id} {tail_argument_name}:{_tail_id}"
+    serialized_annotation = (
+        f"{annotation.label} {head_argument_name}:T{_head_id} {tail_argument_name}:T{_tail_id}"
+    )
+    if "id" not in annotation.metadata and create_id_if_not_available:
+        annotation.metadata["id"] = hash_string(serialized_annotation, max_length=8)
+    return f"R{annotation.metadata['id']}\t{serialized_annotation}\n"
 
 
 def _write_brat(doc_id: str, text: str, serialized_annotations: List[str], path: str):
@@ -143,34 +174,39 @@ def _write_brat(doc_id: str, text: str, serialized_annotations: List[str], path:
     with open(os.path.join(path, f"{doc_id}.txt"), "w") as txt_file:
         txt_file.write(text)
     with open(os.path.join(path, f"{doc_id}.ann"), "w") as ann_file:
-        ann_file.writelines([f"{ann}\n" for ann in serialized_annotations])
+        ann_file.writelines(serialized_annotations)
 
 
 def convert_document_to_brat(
     doc: Document,
-    head_argument_name=DEFAULT_HEAD_ARGUMENT_NAME,
-    tail_argument_name=DEFAULT_TAIL_ARGUMENT_NAME,
+    head_argument_name: str = DEFAULT_HEAD_ARGUMENT_NAME,
+    tail_argument_name: str = DEFAULT_TAIL_ARGUMENT_NAME,
+    span_annotation_names: List[str] = [DEFAULT_SPAN_ANNOTATION_NAME],
+    relation_annotation_names: List[str] = [DEFAULT_RELATION_ANNOTATION_NAME],
+    **kwargs,
 ) -> Tuple[Optional[str], str, List[str]]:
-    serialized_annotations = []
-    for name, annots in doc._annotations.items():
-        for ann in annots:
-            if isinstance(ann, LabeledSpan):
-                serialized_annotations.append(serialize_labeled_span(ann, doc))
-            elif isinstance(ann, BinaryRelation):
-                serialized_annotations.append(
-                    serialize_binary_relation(
-                        ann,
-                        doc,
-                        head_argument_name=head_argument_name,
-                        tail_argument_name=tail_argument_name,
-                    )
-                )
-            else:
-                raise NotImplementedError(
-                    f"Serialization to Brat for annotation of type '{type(ann)}' not yet implemented."
-                )
+    serialized_annotations: Dict[Annotation, str] = {}
 
-    return doc.id, doc.text, serialized_annotations
+    for entity_annotation_name in span_annotation_names:
+        for span_ann in doc.span_annotations(entity_annotation_name):
+            serialized_annotations[span_ann] = serialize_labeled_span(span_ann, doc, **kwargs)
+    for relation_annotation_name in relation_annotation_names:
+        for rel_ann in doc.relation_annotations(relation_annotation_name):
+            serialized_annotations[rel_ann] = serialize_binary_relation(
+                rel_ann,
+                doc,
+                head_argument_name=head_argument_name,
+                tail_argument_name=tail_argument_name,
+                **kwargs,
+            )
+    for name, annots in doc._annotations.items():
+        not_serialized = [ann for ann in annots if ann not in serialized_annotations]
+        if len(not_serialized) > 0:
+            logger.warning(
+                f"{len(not_serialized)} annotations with name '{name}' not serialized to BRAT"
+            )
+
+    return doc.id, doc.text, list(serialized_annotations.values())
 
 
 def _convert_docs(docs: List[Document], **kwargs) -> List[Tuple[Optional[str], str, List[str]]]:
@@ -178,20 +214,30 @@ def _convert_docs(docs: List[Document], **kwargs) -> List[Tuple[Optional[str], s
 
 
 def serialize_brat(
-    docs: Dict[str, List[Document]], path: str = None, **kwargs
+    docs: Dict[str, List[Document]],
+    path: str = None,
+    create_id_if_not_available: bool = True,
+    **kwargs,
 ) -> Optional[Dict[str, List[Tuple[Optional[str], str, List[str]]]]]:
     res = {}
     for split, _docs in docs.items():
-        res[split] = _convert_docs(_docs, **kwargs)
+        res[split] = _convert_docs(
+            _docs, create_id_if_not_available=create_id_if_not_available, **kwargs
+        )
         if path is not None:
             _path = os.path.join(path, split)
             logger.info(
                 f"serialize {len(res[split])} documents to BRAT format to directory: {_path}"
             )
             for doc_id, text, serialized_annotations in res[split]:
-                assert (
-                    doc_id is not None
-                ), "the document id has to be specified to write the annotated document as brat file"
+                if doc_id is None:
+                    if create_id_if_not_available:
+                        doc_id = hash_string(text, max_length=8)
+                    else:
+                        raise ValueError(
+                            "if create_id_if_not_available=False, the document id has to be specified "
+                            "to write the annotated document as brat file"
+                        )
                 _write_brat(
                     doc_id=doc_id,
                     text=text,
