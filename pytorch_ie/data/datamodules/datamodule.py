@@ -152,10 +152,22 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
                     num_documents[missing] = len(self.data_train) - num_documents[other]
 
             logger.info(f"split train data randomly into new sets: {num_documents}")
+            sizes_list = [num_documents[split] for split in ["train", "val"]]
+            sizes_total = sum(sizes_list)
+            data_to_split: TaskEncodingDataset[InputEncoding, TargetEncoding]
+            if len(self.data_train) < sizes_total:
+                logger.warning(
+                    f"the created splits do not take all available data into account: only {sizes_total} will be "
+                    f"used in new train/val splits, but orignal train data contains {len(self.data_train)} entries"
+                )
+                # TODO: check mypy error that says that the type of teh expression is:
+                #  "TaskEncoding[InputEncoding, TargetEncoding]", but should be
+                #  "TaskEncodingDataset[InputEncoding, TargetEncoding]"
+                data_to_split = self.data_train[:sizes_total]  # type: ignore
+            else:
+                data_to_split = self.data_train
             # type checking is broken for random_split, so we ignore it
-            self.data_train, self.data_val = random_split(  # type: ignore
-                self.data_train, [num_documents[split] for split in ["train", "val"]]
-            )
+            self.data_train, self.data_val = random_split(data_to_split, sizes_list)  # type: ignore
 
     def train_dataloader(self):
         return DataLoader(
