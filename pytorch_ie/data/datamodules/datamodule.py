@@ -143,17 +143,13 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
                         f"split length specifier has unknown type={type(sizes[split])}: "
                         f"{sizes[split]}"
                     )
-            # set missing size, if not specified for train or val set
-            if "train" in num_documents:
-                assert (
-                    "val" in num_documents
-                ), f"if no train split size is specified, a val split size has to be provided"
-                num_documents["train"] = len(self.data_train) - num_documents["val"]
-            if "val" in num_documents:
-                assert (
-                    "train" in num_documents
-                ), f"if no train split size is specified, a val split size has to be provided"
-                num_documents["val"] = len(self.data_train) - num_documents["train"]
+            # set missing sizes, if not specified, for train or val set
+            for missing, other in [("train", "val"), ("val", "train")]:
+                if missing not in num_documents:
+                    assert (
+                        other in num_documents
+                    ), f"if no {missing} split size is specified, a {other} split size has to be provided"
+                    num_documents[missing] = len(self.data_train) - num_documents[other]
 
             logger.info(f"split train data randomly into new sets: {num_documents}")
             # type checking is broken for random_split, so we ignore it
