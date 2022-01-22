@@ -144,14 +144,14 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
                         f"{sizes[split]}"
                     )
             # set missing size, if not specified for train or val set
-            if num_documents["train"] is None:
+            if "train" in num_documents:
                 assert (
-                    num_documents["val"] is not None
+                    "val" in num_documents
                 ), f"if no train split size is specified, a val split size has to be provided"
                 num_documents["train"] = len(self.data_train) - num_documents["val"]
-            if num_documents["val"] is None:
+            if "val" in num_documents:
                 assert (
-                    num_documents["train"] is not None
+                    "train" in num_documents
                 ), f"if no train split size is specified, a val split size has to be provided"
                 num_documents["val"] = len(self.data_train) - num_documents["train"]
 
