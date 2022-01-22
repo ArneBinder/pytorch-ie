@@ -1,4 +1,5 @@
-from typing import Any, Dict, Generic, List, Optional, Tuple
+import logging
+from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Tuple, Union
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
@@ -11,6 +12,8 @@ from pytorch_ie.taskmodules.taskmodule import (
     TaskEncoding,
     TaskModule,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TaskEncodingDataset(
@@ -49,7 +52,9 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self,
         task_module: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
         dataset: Dict[str, List[Document]],
-        random_train_val_split: Optional[Tuple[int, int]] = None,
+        random_train_val_split: Optional[
+            Union[Dict[str, Union[float, int]], Tuple[Union[float, int], Union[float, int]]]
+        ] = None,
         batch_size: int = 32,
         num_workers: int = 0,
         pin_memory: bool = False,
@@ -106,9 +111,54 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             assert (
                 self.data_train is not None
             ), "data_train has to be set to create random train dev splits from it"
+
+            # if random_train_val_split is a sequence, we use its values for [train, val] sizes
+            sizes: Dict[str, Union[int, float]]
+            if isinstance(self.random_train_val_split, Sequence):
+                assert (
+                    len(self.random_train_val_split) == 2
+                ), "if not all split sizes are specified, random_train_val_split has to be a dict"
+                sizes = dict(zip(["train", "val"], self.random_train_val_split))
+            elif isinstance(self.random_train_val_split, Mapping):
+                sizes = self.random_train_val_split
+            else:
+                raise ValueError(
+                    f"split length specifiers has unknown type={type(self.random_train_val_split)}: "
+                    f"{self.random_train_val_split}"
+                )
+            # convert percentages to absolute, if necessary
+            num_documents: Dict[str, int] = {}
+            for split in sizes:
+                s = sizes[split]
+                if isinstance(s, int):
+                    num_documents[split] = s
+                elif isinstance(s, float):
+                    assert 0.0 <= s <= 1.0, (
+                        f"if split size is specified as percentage (i.e as float value), it has to be between "
+                        f"0.0 and 1.0"
+                    )
+                    num_documents[split] = int(s * len(self.data_train))
+                else:
+                    raise ValueError(
+                        f"split length specifier has unknown type={type(sizes[split])}: "
+                        f"{sizes[split]}"
+                    )
+            # set missing size, if not specified for train or val set
+            if num_documents["train"] is None:
+                assert (
+                    num_documents["val"] is not None
+                ), f"if no train split size is specified, a val split size has to be provided"
+                num_documents["train"] = len(self.data_train) - num_documents["val"]
+            if num_documents["val"] is None:
+                assert (
+                    num_documents["train"] is not None
+                ), f"if no train split size is specified, a val split size has to be provided"
+                num_documents["val"] = len(self.data_train) - num_documents["train"]
+
+            logger.info(f"split train data randomly into new sets: {num_documents}")
             # type checking is broken for random_split, so we ignore it
             self.data_train, self.data_val = random_split(  # type: ignore
-                self.data_train, self.random_train_val_split
+                self.data_train, [num_documents[split] for split in ["train", "val"]]
             )
 
     def train_dataloader(self):
