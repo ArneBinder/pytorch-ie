@@ -155,7 +155,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             sizes_list = [num_documents[split] for split in ["train", "val"]]
             sizes_total = sum(sizes_list)
             data_to_split: TaskEncodingDataset[InputEncoding, TargetEncoding]
-            if len(self.data_train) < sizes_total:
+            if len(self.data_train) > sizes_total:
                 logger.warning(
                     f"the created splits do not take all available data into account: only {sizes_total} will be "
                     f"used in new train/val splits, but orignal train data contains {len(self.data_train)} entries"
