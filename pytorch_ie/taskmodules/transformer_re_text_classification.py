@@ -7,6 +7,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
+from pytorch_ie.data.span_utils import is_contained_in
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -45,11 +46,29 @@ _TransformerReTextClassificationTaskModule = TaskModule[
 
 
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
+    """
+    Marker based relation extraction. This taskmodule prepares the input token ids in such a way
+    that before and after the candidate head and tail entities special marker tokens are inserted.
+    Then, the modified token ids can be simply passed into a transformer based text classifier model.
+
+    parameters:
+
+        partition_annotation: str, optional. If specified, LabeledSpan annotations with this name are
+            expected to define partitions of the document that will be processed individually, e.g. sentences
+            or sections of the document text.
+        none_label: str, defaults to "no_relation". The relation label that indicate dummy/negative relations.
+            Predicted relations with that label will not be added to the document(s).
+
+        TODO: add remaining parameters
+    """
+
     def __init__(
         self,
         tokenizer_name_or_path: str,
         entity_annotation: str = "entities",
         relation_annotation: str = "relations",
+        partition_annotation: Optional[str] = None,
+        none_label: str = "no_relation",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_length: Optional[int] = None,
@@ -74,6 +93,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             single_argument_pair=single_argument_pair,
             append_markers=append_markers,
             entity_labels=entity_labels,
+            partition_annotation=partition_annotation,
+            none_label=none_label,
         )
 
         self.entity_annotation = entity_annotation
@@ -89,6 +110,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.single_argument_pair = single_argument_pair
         self.append_markers = append_markers
         self.entity_labels = entity_labels
+        self.partition_annotation = partition_annotation
+        self.none_label = none_label
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -148,10 +171,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     if label not in relation_labels:
                         relation_labels.add(label)
 
-        if "no_relation" in relation_labels:
-            relation_labels.remove("no_relation")
+        if self.none_label in relation_labels:
+            relation_labels.remove(self.none_label)
 
-        self.label_to_id["no_relation"] = 0
+        self.label_to_id[self.none_label] = 0
         current_id = 1
         for label in relation_labels:
             self.label_to_id[label] = current_id
@@ -175,133 +198,152 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
-
-            encoding = self.tokenizer(
-                document.text,
-                padding=False,
-                truncation=self.truncation,
-                max_length=self.max_length,
-                is_split_into_words=False,
-                return_offsets_mapping=False,
-            )
-
             relations = document.relation_annotations(self.relation_annotation)
-
             existing_head_tail = {(relation.head, relation.tail) for relation in relations}
 
-            doc_metadata: Dict[str, List] = {
-                "head": [],
-                "tail": [],
-                "head_offset": [],
-                "tail_offset": [],
-            }
+            if self.partition_annotation is not None:
+                partitions = document.span_annotations(self.partition_annotation)
+            else:
+                # use single dummy partition
+                partitions = [LabeledSpan(start=0, end=len(document.text), label="FULL_DOCUMENT")]
 
-            head: LabeledSpan
-            for head in entities:
-                head_start = encoding.char_to_token(head.start)
-                head_end = encoding.char_to_token(head.end - 1)
+            for partition_idx, partition in enumerate(partitions):
+                encoding = self.tokenizer(
+                    document.text[partition.start : partition.end],
+                    padding=False,
+                    truncation=self.truncation,
+                    max_length=self.max_length,
+                    is_split_into_words=False,
+                    return_offsets_mapping=False,
+                    # TODO: use this for windowing
+                    # add_special_tokens=False,
+                )
 
-                if head_start is None or head_end is None:
-                    continue
+                doc_metadata: Dict[str, List] = {
+                    "head": [],
+                    "tail": [],
+                    "head_offset": [],
+                    "tail_offset": [],
+                }
 
-                tail: LabeledSpan
-                for tail in entities:
-                    assert not head.is_multilabel
-                    assert not tail.is_multilabel
-
-                    if head == tail:
+                head: LabeledSpan
+                for head in entities:
+                    if not is_contained_in(
+                        (head.start, head.end), (partition.start, partition.end)
+                    ):
                         continue
 
-                    if relations and ((head, tail) not in existing_head_tail):
+                    head_start = encoding.char_to_token(head.start - partition.start)
+                    head_end = encoding.char_to_token(head.end - partition.start - 1)
+
+                    if head_start is None or head_end is None:
                         continue
 
-                    tail_start = encoding.char_to_token(tail.start)
-                    tail_end = encoding.char_to_token(tail.end - 1)
+                    tail: LabeledSpan
+                    for tail in entities:
+                        if not is_contained_in(
+                            (tail.start, tail.end), (partition.start, partition.end)
+                        ):
+                            continue
 
-                    if tail_start is None or tail_end is None:
-                        continue
+                        assert not head.is_multilabel
+                        assert not tail.is_multilabel
 
-                    if self.add_type_to_marker:
-                        if head.is_multilabel:
-                            raise NotImplementedError
+                        if head == tail:
+                            continue
 
-                        head_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "start", head.label_single)]
-                        ]
-                        head_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "end", head.label_single)]
-                        ]
-                        if tail.is_multilabel:
-                            raise NotImplementedError
-                        tail_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "start", tail.label_single)]
-                        ]
-                        tail_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "end", tail.label_single)]
-                        ]
-                    else:
-                        head_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "start")]
-                        ]
-                        head_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("head", "end")]
-                        ]
-                        tail_start_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "start")]
-                        ]
-                        tail_end_marker = self.argument_markers_to_id[
-                            self.argument_markers[("tail", "end")]
-                        ]
+                        if relations and ((head, tail) not in existing_head_tail):
+                            continue
 
-                    head_items = (head_start, head_end + 1, head_start_marker, head_end_marker)
-                    tail_items = (tail_start, tail_end + 1, tail_start_marker, tail_end_marker)
+                        tail_start = encoding.char_to_token(tail.start - partition.start)
+                        tail_end = encoding.char_to_token(tail.end - partition.start - 1)
 
-                    head_first = head_start < tail_start
-                    first, second = (
-                        (head_items, tail_items) if head_first else (tail_items, head_items)
-                    )
+                        if tail_start is None or tail_end is None:
+                            continue
 
-                    first_start, first_end, first_start_marker, first_end_marker = first
-                    second_start, second_end, second_start_marker, second_end_marker = second
+                        # TODO: do windowing here!
+                        if self.add_type_to_marker:
+                            if head.is_multilabel:
+                                raise NotImplementedError
 
-                    input_ids = encoding["input_ids"]
+                            head_start_marker = self.argument_markers_to_id[
+                                self.argument_markers[("head", "start", head.label_single)]
+                            ]
+                            head_end_marker = self.argument_markers_to_id[
+                                self.argument_markers[("head", "end", head.label_single)]
+                            ]
+                            if tail.is_multilabel:
+                                raise NotImplementedError
+                            tail_start_marker = self.argument_markers_to_id[
+                                self.argument_markers[("tail", "start", tail.label_single)]
+                            ]
+                            tail_end_marker = self.argument_markers_to_id[
+                                self.argument_markers[("tail", "end", tail.label_single)]
+                            ]
+                        else:
+                            head_start_marker = self.argument_markers_to_id[
+                                self.argument_markers[("head", "start")]
+                            ]
+                            head_end_marker = self.argument_markers_to_id[
+                                self.argument_markers[("head", "end")]
+                            ]
+                            tail_start_marker = self.argument_markers_to_id[
+                                self.argument_markers[("tail", "start")]
+                            ]
+                            tail_end_marker = self.argument_markers_to_id[
+                                self.argument_markers[("tail", "end")]
+                            ]
 
-                    first_tokens = input_ids[first_start:first_end]
-                    second_tokens = input_ids[second_start:second_end]
+                        head_items = (head_start, head_end + 1, head_start_marker, head_end_marker)
+                        tail_items = (tail_start, tail_end + 1, tail_start_marker, tail_end_marker)
 
-                    new_input_ids = (
-                        input_ids[:first_start]
-                        + [first_start_marker]
-                        + first_tokens
-                        + [first_end_marker]
-                        + input_ids[first_end:second_start]
-                        + [second_start_marker]
-                        + second_tokens
-                        + [second_end_marker]
-                        + input_ids[second_end:]
-                    )
+                        head_first = head_start < tail_start
+                        first, second = (
+                            (head_items, tail_items) if head_first else (tail_items, head_items)
+                        )
 
-                    doc_metadata["head"].append(head)
-                    doc_metadata["tail"].append(tail)
+                        first_start, first_end, first_start_marker, first_end_marker = first
+                        second_start, second_end, second_start_marker, second_end_marker = second
 
-                    new_head_start = new_input_ids.index(head_start_marker)
-                    new_head_end = new_input_ids.index(head_end_marker)
-                    new_tail_start = new_input_ids.index(tail_start_marker)
-                    new_tail_end = new_input_ids.index(tail_end_marker)
+                        input_ids = encoding["input_ids"]
 
-                    doc_metadata["head_offset"].append((new_head_start, new_head_end))
-                    doc_metadata["tail_offset"].append((new_tail_start, new_tail_end))
+                        first_tokens = input_ids[first_start:first_end]
+                        second_tokens = input_ids[second_start:second_end]
 
-                    input_encoding.append({"input_ids": new_input_ids})
-                    new_documents.append(document)
-                    metadata.append(doc_metadata)
+                        new_input_ids = (
+                            input_ids[:first_start]
+                            + [first_start_marker]
+                            + first_tokens
+                            + [first_end_marker]
+                            + input_ids[first_end:second_start]
+                            + [second_start_marker]
+                            + second_tokens
+                            + [second_end_marker]
+                            + input_ids[second_end:]
+                        )
 
-                    doc_metadata = {
-                        "head": [],
-                        "tail": [],
-                        "head_offset": [],
-                        "tail_offset": [],
-                    }
+                        doc_metadata["head"].append(head)
+                        doc_metadata["tail"].append(tail)
+
+                        new_head_start = new_input_ids.index(head_start_marker)
+                        new_head_end = new_input_ids.index(head_end_marker)
+                        new_tail_start = new_input_ids.index(tail_start_marker)
+                        new_tail_end = new_input_ids.index(tail_end_marker)
+
+                        doc_metadata["head_offset"].append((new_head_start, new_head_end))
+                        doc_metadata["tail_offset"].append((new_tail_start, new_tail_end))
+
+                        # TODO: add special tokens here (windowing)
+                        input_encoding.append({"input_ids": new_input_ids})
+                        new_documents.append(document)
+                        metadata.append(doc_metadata)
+
+                        doc_metadata = {
+                            "head": [],
+                            "tail": [],
+                            "head_offset": [],
+                            "tail_offset": [],
+                        }
 
         return input_encoding, metadata, new_documents
 
@@ -402,7 +444,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
             label_ids = None
             for head, tail in zip(meta["head"], meta["tail"]):
-                label = head_tail_to_label.get((head, tail), "no_relation")
+                label = head_tail_to_label.get((head, tail), self.none_label)
 
                 if self.multi_label:
                     raise NotImplementedError
@@ -450,7 +492,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         else:
             for head, tail, label, probability in zip(heads, tails, labels, probabilities):
-                if label != "no_relation":
+                if label != self.none_label:
                     yield (
                         self.relation_annotation,
                         BinaryRelation(

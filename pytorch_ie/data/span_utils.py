@@ -131,3 +131,7 @@ def io_tags_to_spans(
     if active_tag is not None:
         spans.add((active_tag, (span_start, span_end)))
     return list(spans)
+
+
+def is_contained_in(start_end: Tuple[int, int], other_start_end: Tuple[int, int]) -> bool:
+    return other_start_end[0] <= start_end[0] and start_end[1] <= other_start_end[1]
