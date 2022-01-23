@@ -135,3 +135,26 @@ def test_configure_optimizers(mock_model):
     optimizers, schedulers = mock_model.configure_optimizers()
     assert len(optimizers) == 1
     assert len(schedulers) == 1
+
+
+@pytest.mark.parametrize("seq_lengths", [None, [3, 4]])
+def test_start_end_and_span_length_span_index(mock_model, seq_lengths):
+    (
+        start_indices,
+        end_indices,
+        span_length,
+        batch_indices,
+    ) = mock_model._start_end_and_span_length_span_index(
+        batch_size=2, max_seq_length=4, seq_lengths=seq_lengths
+    )
+
+    if seq_lengths is None:
+        assert torch.equal(start_indices, torch.tensor([0, 1, 2, 3, 0, 1, 2, 4, 5, 6, 7, 4, 5, 6]))
+        assert torch.equal(end_indices, torch.tensor([0, 1, 2, 3, 1, 2, 3, 4, 5, 6, 7, 5, 6, 7]))
+        assert torch.equal(span_length, torch.tensor([0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1]))
+        assert torch.equal(batch_indices, torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]))
+    else:
+        assert torch.equal(start_indices, torch.tensor([0, 1, 2, 0, 1, 4, 5, 6, 7, 4, 5, 6]))
+        assert torch.equal(end_indices, torch.tensor([0, 1, 2, 1, 2, 4, 5, 6, 7, 5, 6, 7]))
+        assert torch.equal(span_length, torch.tensor([0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1]))
+        assert torch.equal(batch_indices, torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]))
