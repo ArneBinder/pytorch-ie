@@ -47,7 +47,7 @@ files = [
 ]
 ignore_missing_imports = true
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = "tests/"
 log_cli = true
 markers = [

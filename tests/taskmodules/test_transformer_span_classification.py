@@ -48,7 +48,7 @@ def test_config(prepared_taskmodule):
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_encode_without_target(prepared_taskmodule, documents, encode_target):
+def test_encode(prepared_taskmodule, documents, encode_target):
     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
     assert len(task_encodings) == 3
 
