@@ -52,9 +52,8 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self,
         task_module: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
         dataset: Dict[str, List[Document]],
-        random_train_val_split: Optional[
-            Union[Dict[str, Union[float, int]], Tuple[Union[float, int], Union[float, int]]]
-        ] = None,
+        val_size: Optional[Union[int, float]] = None,
+        train_size: Optional[Union[int, float]] = None,
         batch_size: int = 32,
         num_workers: int = 0,
         pin_memory: bool = False,
@@ -71,7 +70,8 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.config_path = data_config_path
         self.dataset = dataset
         self.prepare_data_split = prepare_data_split
-        self.random_train_val_split = random_train_val_split
+        self.val_size = val_size
+        self.train_size = train_size
 
         self.data_train: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
         self.data_val: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
@@ -107,67 +107,48 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
                     f'Unknowns split identifier: "{split}". Use one of "train", "val", or "test".'
                 )
 
-        if self.random_train_val_split is not None:
+        if self.val_size is not None:
             assert (
                 self.data_train is not None
             ), "data_train has to be set to create random train dev splits from it"
 
-            # if random_train_val_split is a sequence, we use its values for [train, val] sizes
-            sizes: Dict[str, Union[int, float]]
-            if isinstance(self.random_train_val_split, Sequence):
-                assert (
-                    len(self.random_train_val_split) == 2
-                ), "if not all split sizes are specified, random_train_val_split has to be a dict"
-                sizes = dict(zip(["train", "val"], self.random_train_val_split))
-            elif isinstance(self.random_train_val_split, Mapping):
-                sizes = self.random_train_val_split
+            if isinstance(self.val_size, float):
+                val_size = int(self.val_size * len(self.data_train))
+            elif isinstance(self.val_size, int):
+                val_size = self.val_size
             else:
                 raise ValueError(
-                    f"split length specifiers has unknown type={type(self.random_train_val_split)}: "
-                    f"{self.random_train_val_split}"
+                    f"'val_size' has unknown type={type(self.val_size)}. Should be either int or float."
                 )
-            # convert percentages to absolute, if necessary
-            num_documents: Dict[str, int] = {}
-            for split in sizes:
-                s = sizes[split]
-                if isinstance(s, int):
-                    num_documents[split] = s
-                elif isinstance(s, float):
-                    assert 0.0 <= s <= 1.0, (
-                        f"if split size is specified as percentage (i.e as float value), it has to be between "
-                        f"0.0 and 1.0"
-                    )
-                    num_documents[split] = int(s * len(self.data_train))
-                else:
-                    raise ValueError(
-                        f"split length specifier has unknown type={type(sizes[split])}: "
-                        f"{sizes[split]}"
-                    )
-            # set missing sizes, if not specified, for train or val set
-            for missing, other in [("train", "val"), ("val", "train")]:
-                if missing not in num_documents:
-                    assert (
-                        other in num_documents
-                    ), f"if no {missing} split size is specified, a {other} split size has to be provided"
-                    num_documents[missing] = len(self.data_train) - num_documents[other]
 
-            logger.info(f"split train data randomly into new sets: {num_documents}")
-            sizes_list = [num_documents[split] for split in ["train", "val"]]
-            sizes_total = sum(sizes_list)
+            _train_size = self.train_size
+            if _train_size is None:
+                _train_size = len(self.data_train) - val_size
+
+            if isinstance(_train_size, float):
+                train_size = int(_train_size * len(self.data_train))
+            elif isinstance(_train_size, int):
+                train_size = _train_size
+            else:
+                raise ValueError(
+                    f"'train_size' has unknown type={type(_train_size)}. Should be either int or float."
+                )
+
+            sizes_total = val_size + train_size
             data_to_split: TaskEncodingDataset[InputEncoding, TargetEncoding]
             if len(self.data_train) > sizes_total:
                 logger.warning(
                     f"the created splits do not take all available data into account: only {sizes_total} will be "
-                    f"used in new train/val splits, but orignal train data contains {len(self.data_train)} entries"
+                    f"used in new train/val splits, but original train data contains {len(self.data_train)} entries"
                 )
-                # TODO: check mypy error that says that the type of teh expression is:
+                # TODO: check mypy error that says that the type of the expression is:
                 #  "TaskEncoding[InputEncoding, TargetEncoding]", but should be
                 #  "TaskEncodingDataset[InputEncoding, TargetEncoding]"
                 data_to_split = self.data_train[:sizes_total]  # type: ignore
             else:
                 data_to_split = self.data_train
             # type checking is broken for random_split, so we ignore it
-            self.data_train, self.data_val = random_split(data_to_split, sizes_list)  # type: ignore
+            self.data_train, self.data_val = random_split(data_to_split, [train_size, val_size])  # type: ignore
 
     def train_dataloader(self):
         return DataLoader(
