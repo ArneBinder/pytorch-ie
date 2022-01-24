@@ -103,6 +103,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
         max_window: Optional[int] = None,
+        add_negative_examples: bool = False,
     ) -> None:
         super().__init__(
             tokenizer_name_or_path=tokenizer_name_or_path,
@@ -120,6 +121,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             partition_annotation=partition_annotation,
             none_label=none_label,
             max_window=max_window,
+            add_negative_examples=add_negative_examples,
         )
 
         self.entity_annotation = entity_annotation
@@ -138,6 +140,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.partition_annotation = partition_annotation
         self.none_label = none_label
         self.max_window = max_window
+        self.add_negative_examples = add_negative_examples
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -261,7 +264,11 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         if head == tail:
                             continue
 
-                        if relations and ((head, tail) not in existing_head_tail):
+                        if (
+                            not self.add_negative_examples
+                            and relations
+                            and (head, tail) not in existing_head_tail
+                        ):
                             continue
 
                         tail_start = encoding.char_to_token(tail.start - partition.start)
@@ -280,15 +287,21 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
                             # head before tail
                             if head_center < tail_center:
-                                assert head_end <= tail_start, f"head and tail entities not allowed to overlap"
+                                assert (
+                                    head_end <= tail_start
+                                ), f"head and tail entities not allowed to overlap"
                                 if tail_end - head_start > self.max_window:
                                     continue
                             elif tail_center < head_center:
-                                assert tail_end <= head_start, f"head and tail entities not allowed to overlap"
+                                assert (
+                                    tail_end <= head_start
+                                ), f"head and tail entities not allowed to overlap"
                                 if head_end - tail_start > self.max_window:
                                     continue
                             else:
-                                raise ValueError("head and tail have the same center, but are not allowed to overlap")
+                                raise ValueError(
+                                    "head and tail have the same center, but are not allowed to overlap"
+                                )
 
                             rel_center = (head_center + tail_center) / 2.0
                             window_start = int(rel_center - self.max_window / 2.0)
@@ -305,8 +318,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 delta = -window_start
                                 window_start += delta
                                 window_end += delta
-                            assert 0 <= window_start < len(input_ids), \
-                                f"window_start={window_start} not available in sequence"
+                            assert (
+                                0 <= window_start < len(input_ids)
+                            ), f"window_start={window_start} not available in sequence"
 
                             input_ids = input_ids[window_start:window_end]
 
@@ -342,8 +356,18 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 self.argument_markers[("tail", "end")]
                             ]
 
-                        head_items = (head_start - window_start, head_end + 1 - window_start, head_start_marker, head_end_marker)
-                        tail_items = (tail_start - window_start, tail_end + 1 - window_start, tail_start_marker, tail_end_marker)
+                        head_items = (
+                            head_start - window_start,
+                            head_end + 1 - window_start,
+                            head_start_marker,
+                            head_end_marker,
+                        )
+                        tail_items = (
+                            tail_start - window_start,
+                            tail_end + 1 - window_start,
+                            tail_start_marker,
+                            tail_end_marker,
+                        )
 
                         head_first = head_start < tail_start
                         first, second = (
@@ -375,7 +399,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
                         # when windowing is used, we have to add teh special tokens again
                         if not add_special_tokens:
-                            new_input_ids = self.tokenizer.build_inputs_with_special_tokens(token_ids_0=new_input_ids)
+                            new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                                token_ids_0=new_input_ids
+                            )
 
                         input_encoding.append({"input_ids": new_input_ids})
                         new_documents.append(document)
