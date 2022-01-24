@@ -59,6 +59,9 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         pin_memory: bool = False,
         data_config_path: Optional[str] = None,
         prepare_data_split: str = "train",
+        train_split_name: str = "train",
+        val_split_name: str = "val",
+        test_split_name: str = "test",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -72,6 +75,9 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.prepare_data_split = prepare_data_split
         self.val_size = val_size
         self.train_size = train_size
+        self.train_split_name = train_split_name
+        self.val_split_name = val_split_name
+        self.test_split_name = test_split_name
 
         self.data_train: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
         self.data_val: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
@@ -90,15 +96,15 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             if split == self.prepare_data_split:
                 self.task_module.prepare(data)
 
-            if split == "train":
+            if split == self.train_split_name:
                 self.data_train = TaskEncodingDataset(
                     self.task_module.encode(data, encode_target=True)
                 )
-            elif split == "val":
+            elif split == self.val_split_name:
                 self.data_val = TaskEncodingDataset(
                     self.task_module.encode(data, encode_target=True)
                 )
-            elif split == "test":
+            elif split == self.test_split_name:
                 self.data_test = TaskEncodingDataset(
                     self.task_module.encode(data, encode_target=True)
                 )
