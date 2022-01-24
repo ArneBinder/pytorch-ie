@@ -203,8 +203,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
                     for j in range(start_idx, end_idx + 1):
                         prefix = "B" if j == start_idx else "I"
-                        # TODO: does this really only work for single labels? However, label_to_id seems
-                        #  to contain only single labels.
                         label_ids[j] = self.label_to_id[f"{prefix}-{entity.label_single}"]
 
                 target.append(label_ids)
@@ -223,9 +221,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                     end_idx = input_encodings[i].char_to_token(entity.end - 1)
                     for j in range(start_idx, end_idx + 1):
                         prefix = "B" if j == start_idx else "I"
-                        # TODO: does this really only work for single labels? However, label_to_id seems
-                        #  to contain only single labels.
-                        label_ids[j] = self.label_to_id[f"{prefix}-{entity.labels}"]
+                        label_ids[j] = self.label_to_id[f"{prefix}-{entity.label_single}"]
 
                 target.append(label_ids)
 
