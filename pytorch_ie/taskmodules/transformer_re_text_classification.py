@@ -79,6 +79,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             or sections of the document text.
         none_label: str, defaults to "no_relation". The relation label that indicate dummy/negative relations.
             Predicted relations with that label will not be added to the document(s).
+        max_window: int, optional. If specified, use the tokens in a window of maximal this amount of tokens
+            around the center of head and tail entities and pass only that into the transformer.
 
         TODO: add remaining parameters
     """
@@ -100,6 +102,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         single_argument_pair: bool = True,
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
+        max_window: Optional[int] = None,
     ) -> None:
         super().__init__(
             tokenizer_name_or_path=tokenizer_name_or_path,
@@ -116,6 +119,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             entity_labels=entity_labels,
             partition_annotation=partition_annotation,
             none_label=none_label,
+            max_window=max_window,
         )
 
         self.entity_annotation = entity_annotation
@@ -133,6 +137,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.entity_labels = entity_labels
         self.partition_annotation = partition_annotation
         self.none_label = none_label
+        self.max_window = max_window
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -222,6 +227,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 partitions = [LabeledSpan(start=0, end=len(document.text), label="FULL_DOCUMENT")]
 
             for partition_idx, partition in enumerate(partitions):
+                add_special_tokens = self.max_window is None
                 encoding = self.tokenizer(
                     document.text[partition.start : partition.end],
                     padding=False,
@@ -229,8 +235,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     max_length=self.max_length,
                     is_split_into_words=False,
                     return_offsets_mapping=False,
-                    # TODO: use this for windowing
-                    # add_special_tokens=False,
+                    add_special_tokens=add_special_tokens,
                 )
 
                 head: LabeledSpan
@@ -265,7 +270,46 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         if tail_start is None or tail_end is None:
                             continue
 
-                        # TODO: do windowing here!
+                        input_ids = encoding["input_ids"]
+
+                        # windowing
+                        window_start = 0
+                        if self.max_window is not None:
+                            head_center = (head_start + head_end) / 2.0
+                            tail_center = (tail_start + tail_end) / 2.0
+
+                            # head before tail
+                            if head_center < tail_center:
+                                assert head_end <= tail_start, f"head and tail entities not allowed to overlap"
+                                if tail_end - head_start > self.max_window:
+                                    continue
+                            elif tail_center < head_center:
+                                assert tail_end <= head_start, f"head and tail entities not allowed to overlap"
+                                if head_end - tail_start > self.max_window:
+                                    continue
+                            else:
+                                raise ValueError("head and tail have the same center, but are not allowed to overlap")
+
+                            rel_center = (head_center + tail_center) / 2.0
+                            window_start = int(rel_center - self.max_window / 2.0)
+                            window_end = window_start + self.max_window
+
+                            # If window goes over one end, shift it use as much content as possible.
+                            # First shift window to left and then to right to ensure that window_start is never
+                            # negative (if window_end is outside, this will not be a problem)
+                            if window_end >= len(input_ids):
+                                delta = len(input_ids) - window_end
+                                window_start += delta
+                                window_end += delta
+                            if window_start < 0:
+                                delta = -window_start
+                                window_start += delta
+                                window_end += delta
+                            assert 0 <= window_start < len(input_ids), \
+                                f"window_start={window_start} not available in sequence"
+
+                            input_ids = input_ids[window_start:window_end]
+
                         if self.add_type_to_marker:
                             if head.is_multilabel:
                                 raise NotImplementedError
@@ -298,8 +342,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 self.argument_markers[("tail", "end")]
                             ]
 
-                        head_items = (head_start, head_end + 1, head_start_marker, head_end_marker)
-                        tail_items = (tail_start, tail_end + 1, tail_start_marker, tail_end_marker)
+                        head_items = (head_start - window_start, head_end + 1 - window_start, head_start_marker, head_end_marker)
+                        tail_items = (tail_start - window_start, tail_end + 1 - window_start, tail_start_marker, tail_end_marker)
 
                         head_first = head_start < tail_start
                         first, second = (
@@ -308,8 +352,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
                         first_start, first_end, first_start_marker, first_end_marker = first
                         second_start, second_end, second_start_marker, second_end_marker = second
-
-                        input_ids = encoding["input_ids"]
 
                         first_tokens = input_ids[first_start:first_end]
                         second_tokens = input_ids[second_start:second_end]
@@ -331,7 +373,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         new_tail_start = new_input_ids.index(tail_start_marker)
                         new_tail_end = new_input_ids.index(tail_end_marker)
 
-                        # TODO: add special tokens here (windowing)
+                        # when windowing is used, we have to add teh special tokens again
+                        if not add_special_tokens:
+                            new_input_ids = self.tokenizer.build_inputs_with_special_tokens(token_ids_0=new_input_ids)
+
                         input_encoding.append({"input_ids": new_input_ids})
                         new_documents.append(document)
                         doc_metadata = {
