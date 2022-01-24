@@ -91,10 +91,11 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def setup(self, stage: Optional[str] = None, **kwargs):
 
-        for split, data in self.dataset.items():
+        # execute before looping over dataset splits to ensure that this
+        # will be executed before eny call to task_module.encode()
+        self.task_module.prepare(self.dataset[self.prepare_data_split])
 
-            if split == self.prepare_data_split:
-                self.task_module.prepare(data)
+        for split, data in self.dataset.items():
 
             if split == self.train_split_name:
                 self.data_train = TaskEncodingDataset(
