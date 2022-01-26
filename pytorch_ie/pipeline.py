@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
+import tqdm
 from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -279,7 +280,7 @@ class Pipeline:
 
         model_outputs: List = []
         with torch.no_grad():
-            for batch in dataloader:
+            for batch in tqdm.tqdm(dataloader, total=len(dataloader), desc="inference"):
                 output = self.forward(batch, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
