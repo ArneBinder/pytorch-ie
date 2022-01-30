@@ -1,20 +1,11 @@
 import glob
 import logging
 from dataclasses import dataclass
-from os import path
+from os import listdir, path
 from typing import Dict, List, Optional
 
 import datasets
-from datasets import (
-    BuilderConfig,
-    DatasetInfo,
-    Features,
-    NamedSplit,
-    Sequence,
-    Split,
-    SplitGenerator,
-    Value,
-)
+from datasets import BuilderConfig, DatasetInfo, Features, Sequence, SplitGenerator, Value
 
 logger = logging.getLogger(__name__)
 
@@ -308,9 +299,12 @@ class Brat(datasets.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         """Returns SplitGenerators."""
 
+        subdirectory_mapping = self.config.subdirectory_mapping
+
         # since subclasses of BuilderConfig are not allowed to define
         # attributes without defaults, check here
         assert self.config.url is not None, "data url not specified"
+
         # if url points to a local directory, just point to that
         if path.exists(self.config.url) and path.isdir(self.config.url):
             data_dir = self.config.url
@@ -318,10 +312,17 @@ class Brat(datasets.GeneratorBasedBuilder):
         else:
             data_dir = dl_manager.download_and_extract(self.config.url)
         logging.info(f"load from data dir: {data_dir}")
-        subdirectory_mapping = self.config.subdirectory_mapping
-        # default to a single train split with the base directory
+
+        # if no subdirectory mapping is provided, ...
         if subdirectory_mapping is None:
-            subdirectory_mapping = {"": "train"}
+            # ... use available subdirectories as split names ...
+            subdirs = [f for f in listdir(data_dir) if path.isdir(path.join(data_dir, f))]
+            if len(subdirs) > 0:
+                subdirectory_mapping = {subdir: subdir for subdir in subdirs}
+            else:
+                # ... otherwise, default to a single train split with the base directory
+                subdirectory_mapping = {"": "train"}
+
         return [
             SplitGenerator(
                 name=split,
