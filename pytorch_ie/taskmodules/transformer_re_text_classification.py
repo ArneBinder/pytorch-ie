@@ -467,12 +467,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         if self.multi_label:
             raise NotImplementedError
         else:
-            result: TransformerReTextClassificationTaskOutput = {"labels": [], "probabilities": []}
-            for batch_idx, label_id in enumerate(np.argmax(output_label_probs, axis=-1)):
-                result["labels"].append(self.id_to_label[label_id])
-                result["probabilities"].append(float(output_label_probs[batch_idx, label_id]))
-
-            decoded_output.append(result)
+            label_ids = np.argmax(output_label_probs, axis=-1)
+            for batch_idx, label_id in enumerate(label_ids):
+                label = self.id_to_label[label_id]
+                prob = float(output_label_probs[batch_idx, label_id])
+                result: TransformerReTextClassificationTaskOutput = {
+                    "labels": [label],
+                    "probabilities": [prob],
+                }
+                decoded_output.append(result)
 
         return decoded_output
 
