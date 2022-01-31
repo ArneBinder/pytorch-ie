@@ -38,9 +38,7 @@ for entity in document.predictions("entities"):
 ### More examples
 
 <details>
-<summary><b>Relation Extraction (RE)</b></summary>
-
-#### Text-classification-based Relation Extraction
+<summary><b>Text-classification-based Relation Extraction</b></summary>
 
 ```python
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
