@@ -309,7 +309,7 @@ class Pipeline:
         # Create a dataloader from the model inputs. This uses taskmodule.collate().
         dataloader = self.get_dataloader(model_inputs=model_inputs, **dataloader_params)
 
-        show_progress_bar = forward_params.get("show_progress_bar", False)
+        show_progress_bar = forward_params.pop("show_progress_bar", False)
         model_outputs: List = []
         with torch.no_grad():
             for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
