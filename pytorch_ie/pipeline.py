@@ -281,7 +281,7 @@ class Pipeline:
 
         model_outputs: List = []
         with torch.no_grad():
-            for batch in tqdm.tqdm(dataloader, desc="inference", disable=show_progress_bar):
+            for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
                 output = self.forward(batch, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
