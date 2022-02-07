@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
+import tqdm
 from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -241,6 +242,7 @@ class Pipeline:
         num_workers: int = 8,
         inplace: bool = True,
         is_generative: bool = False,
+        show_progress_bar: bool = False,
         **kwargs,
     ) -> Union[Document, List[Document]]:
         if args:
@@ -279,7 +281,7 @@ class Pipeline:
 
         model_outputs: List = []
         with torch.no_grad():
-            for batch in dataloader:
+            for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
                 output = self.forward(batch, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
