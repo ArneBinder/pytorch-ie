@@ -129,6 +129,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
                 if self.add_type_to_marker:
                     for entity_type in self.entity_labels:
+                        # TODO: This is not possible at all (see prepare)
                         if isinstance(entity_type, list):
                             raise NotImplementedError
                         marker = (
@@ -148,7 +149,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
-        config["entity_labels"] = self.label_to_id
+        config["entity_labels"] = self.entity_labels
         return config
 
     def prepare(self, documents: List[Document]) -> None:
