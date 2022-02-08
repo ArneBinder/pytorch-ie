@@ -175,9 +175,13 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
         self.entity_labels = sorted(entity_labels)
-        self.argument_markers = _create_argument_markers(
+        argument_markers = _create_argument_markers(
             entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
         )
+        # Sort argument markers by value to ensure that added tokens are in a reproducible order.
+        # Note: To maintain backwards compatibility, the argument markers are not sorted when loading from a saved
+        # taskmodule!
+        self.argument_markers = dict(sorted(argument_markers.items(), key=lambda kv: kv[1]))
         self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
     def encode_input(
