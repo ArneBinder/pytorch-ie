@@ -60,6 +60,7 @@ class Pipeline:
         self.call_count = 0
         (
             self._preprocess_params,
+            self._dataloader_params,
             self._forward_params,
             self._postprocess_params,
         ) = self._sanitize_parameters(**kwargs)
@@ -153,25 +154,42 @@ class Pipeline:
         else:
             return inputs
 
-    def _sanitize_parameters(self, **pipeline_parameters):
+    def _sanitize_parameters(
+        self, **pipeline_parameters
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         _sanitize_parameters will be called with any excessive named arguments from either `__init__` or `__call__`
-        methods. It should return 3 dictionnaries of the resolved parameters used by the various `preprocess`,
-        `forward` and `postprocess` methods. Do not fill dictionnaries if the caller didn't specify a kwargs. This
-        let's you keep defaults in function signatures, which is more "natural".
+        methods. It should return 4 dictionaries of the resolved parameters used by the various `preprocess`,
+        `get_dataloader`, `forward` and `postprocess` methods. Do not fill dictionaries if the caller didn't specify
+        a kwargs. This let's you keep defaults in function signatures, which is more "natural".
 
         It is not meant to be called directly, it will be automatically called and the final parameters resolved by
         `__init__` and `__call__`
         """
         preprocess_parameters = {}
+        dataloader_params = {}
         forward_parameters = {}
-        postprocess_parameters = {}
+        postprocess_parameters: Dict[str, Any] = {}
 
+        # set preprocess parameters
         field = pipeline_parameters.get("predict_field")
         if field:
             preprocess_parameters["predict_field"] = field
 
-        return preprocess_parameters, forward_parameters, postprocess_parameters
+        # set forward parameters
+        for p_name in ["show_progress_bar"]:
+            if p_name in pipeline_parameters:
+                forward_parameters[p_name] = pipeline_parameters[p_name]
+
+        # set dataloader parameters
+        for p_name in ["batch_size", "num_workers", "shuffle"]:
+            if p_name in pipeline_parameters:
+                dataloader_params[p_name] = pipeline_parameters[p_name]
+
+        # set postprocess parameters
+        # nothing for now
+
+        return preprocess_parameters, dataloader_params, forward_parameters, postprocess_parameters
 
     def preprocess(
         self, documents: List[Document], predict_field: str, **preprocess_parameters: Dict
@@ -234,23 +252,42 @@ class Pipeline:
                 )
         return model_outputs
 
+    def get_dataloader(
+        self,
+        model_inputs: List[TaskEncoding],
+        batch_size: int = 1,
+        num_workers: int = 8,
+        **kwargs,
+    ):
+        dataloader: DataLoader[TaskEncoding] = DataLoader(
+            TaskEncodingDataset(model_inputs),
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=self.taskmodule.collate,
+            **kwargs,
+        )
+
+        return dataloader
+
     def __call__(
         self,
         documents: Union[Document, List[Document]],
         *args,
-        batch_size: int = 1,
-        num_workers: int = 8,
-        inplace: bool = True,
-        is_generative: bool = False,
-        show_progress_bar: bool = False,
         **kwargs,
     ) -> Union[Document, List[Document]]:
         if args:
             logger.warning(f"Ignoring args : {args}")
-        preprocess_params, forward_params, postprocess_params = self._sanitize_parameters(**kwargs)
+        (
+            preprocess_params,
+            dataloader_params,
+            forward_params,
+            postprocess_params,
+        ) = self._sanitize_parameters(**kwargs)
 
         # Fuse __init__ params and __call__ params without modifying the __init__ ones.
         preprocess_params = {**self._preprocess_params, **preprocess_params}
+        dataloader_params = {**self._dataloader_params, **dataloader_params}
         forward_params = {**self._forward_params, **forward_params}
         postprocess_params = {**self._postprocess_params, **postprocess_params}
 
@@ -268,17 +305,11 @@ class Pipeline:
 
         # This creates encodings from the documents. It modifies the documents and may produce multiple entries per
         # document.
-        # (Calls: self.taskmodule.encode(documents, encode_target=False))
         model_inputs = self.preprocess(documents, **preprocess_params)
+        # Create a dataloader from the model inputs. This uses taskmodule.collate().
+        dataloader = self.get_dataloader(model_inputs=model_inputs, **dataloader_params)
 
-        dataloader: DataLoader[TaskEncoding] = DataLoader(
-            TaskEncodingDataset(model_inputs),
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=num_workers,
-            collate_fn=self.taskmodule.collate,
-        )
-
+        show_progress_bar = forward_params.pop("show_progress_bar", False)
         model_outputs: List = []
         with torch.no_grad():
             for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
