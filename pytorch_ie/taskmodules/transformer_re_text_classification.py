@@ -143,7 +143,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             self.argument_markers = _create_argument_markers(
                 entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
             )
-            self.tokenizer.add_tokens(sorted(self.argument_markers.values()), special_tokens=True)
+            # do not sort here to keep order from loaded taskmodule config
+            self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
@@ -177,7 +178,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.argument_markers = _create_argument_markers(
             entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
         )
-        self.tokenizer.add_tokens(sorted(self.argument_markers.values()), special_tokens=True)
+        self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
     def encode_input(
         self, documents: List[Document]
