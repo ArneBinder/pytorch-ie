@@ -8,23 +8,6 @@ from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 from tests import FIXTURES_ROOT
 
 
-@pytest.fixture
-def documents():
-    documents = load_tacred(os.path.join(FIXTURES_ROOT, "datasets/tacred"), split="train")
-    assert len(documents) == 3
-
-    return documents
-
-
-@pytest.fixture(scope="module", params=[False, True])
-def taskmodule(request):
-    tokenizer_name_or_path = "bert-base-cased"
-    taskmodule = TransformerRETextClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
-    )
-    return taskmodule
-
-
 TOKENS = [
     "[CLS]",
     "At",
@@ -94,6 +77,23 @@ TOKENS_WITH_MARKER = [
     ".",
     "[SEP]",
 ]
+
+
+@pytest.fixture
+def documents():
+    documents = load_tacred(os.path.join(FIXTURES_ROOT, "datasets/tacred"), split="train")
+    assert len(documents) == 3
+
+    return documents
+
+
+@pytest.fixture(scope="module", params=[False, True])
+def taskmodule(request):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
+    )
+    return taskmodule
 
 
 @pytest.fixture
