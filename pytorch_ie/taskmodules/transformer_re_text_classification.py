@@ -45,6 +45,27 @@ _TransformerReTextClassificationTaskModule = TaskModule[
 ]
 
 
+def _create_argument_markers(
+    entity_labels: List[str], add_type_to_marker: bool
+) -> Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]:
+    argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str] = {}
+    for arg_type in ["head", "tail"]:
+        is_head = arg_type == "head"
+
+        for arg_pos in ["start", "end"]:
+            is_start = arg_pos == "start"
+
+            if add_type_to_marker:
+                for entity_type in entity_labels:
+                    marker = f"[{'' if is_start else '/'}{'H' if is_head else 'T'}:{entity_type}]"
+                    argument_markers[(arg_type, arg_pos, entity_type)] = marker
+            else:
+                marker = f"[{'' if is_start else '/'}{'H' if is_head else 'T'}]"
+                argument_markers[(arg_type, arg_pos)] = marker
+
+    return argument_markers
+
+
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
     """
     Marker based relation extraction. This taskmodule prepares the input token ids in such a way
@@ -115,38 +136,14 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
-        self.argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]
-        self.argument_markers_to_id: Dict[str, int]
+        self.argument_markers = None
 
+        # this is the case when we load an already prepared taskmodule
         if self.entity_labels is not None:
-            self._create_argument_markers()
-
-    def _create_argument_markers(self):
-        argument_markers = {}
-        for arg_type in ["head", "tail"]:
-            is_head = arg_type == "head"
-
-            for arg_pos in ["start", "end"]:
-                is_start = arg_pos == "start"
-
-                if self.add_type_to_marker:
-                    for entity_type in self.entity_labels:
-                        # TODO: This is not possible at all (see prepare)
-                        if isinstance(entity_type, list):
-                            raise NotImplementedError
-                        marker = (
-                            f"[{'' if is_start else '/'}{'H' if is_head else 'T'}:{entity_type}]"
-                        )
-                        argument_markers[(arg_type, arg_pos, entity_type)] = marker
-                else:
-                    marker = f"[{'' if is_start else '/'}{'H' if is_head else 'T'}]"
-                    argument_markers[(arg_type, arg_pos)] = marker
-
-        self.tokenizer.add_tokens(list(argument_markers.values()), special_tokens=True)
-        self.argument_markers = argument_markers
-        self.argument_markers_to_id = {
-            marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
-        }
+            self.argument_markers = _create_argument_markers(
+                entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
+            )
+            self.tokenizer.add_tokens(sorted(self.argument_markers.values()), special_tokens=True)
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
@@ -163,38 +160,38 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
             if self.add_type_to_marker:
                 for entity in entities:
-                    # TODO: why doing this? entity_labels is a set: entity_labels.update(labels)
-                    for label in entity.labels:
-                        if label not in entity_labels:
-                            entity_labels.add(label)
+                    entity_labels.update(entity.labels)
 
             for relation in relations:
-                # TODO: why doing this? relation_labels is a set: relation_labels.update(labels)
-                for label in relation.labels:
-                    if label not in relation_labels:
-                        relation_labels.add(label)
+                relation_labels.update(relation.labels)
 
         if self.none_label in relation_labels:
             relation_labels.remove(self.none_label)
 
+        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(relation_labels))}
         self.label_to_id[self.none_label] = 0
-        current_id = 1
-        for label in relation_labels:
-            self.label_to_id[label] = current_id
-            current_id += 1
 
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
-        self.entity_labels = list(entity_labels) or []
-        self._create_argument_markers()
+        self.entity_labels = sorted(entity_labels)
+        self.argument_markers = _create_argument_markers(
+            entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
+        )
+        self.tokenizer.add_tokens(sorted(self.argument_markers.values()), special_tokens=True)
 
-    def _single_pair_insert_marker(
+    def encode_input(
         self, documents: List[Document]
     ) -> Tuple[
         List[TransformerReTextClassificationInputEncoding],
         List[Metadata],
-        List[Document],
+        Optional[List[Document]],
     ]:
+        assert (
+            self.argument_markers is not None
+        ), f"No argument markers available, was `prepare` already called?"
+        argument_markers_to_id = {
+            marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
+        }
         input_encoding = []
         metadata = []
         new_documents = []
@@ -221,13 +218,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     # TODO: use this for windowing
                     # add_special_tokens=False,
                 )
-
-                doc_metadata: Dict[str, List] = {
-                    "head": [],
-                    "tail": [],
-                    "head_offset": [],
-                    "tail_offset": [],
-                }
 
                 head: LabeledSpan
                 for head in entities:
@@ -269,31 +259,31 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                             if head.is_multilabel:
                                 raise NotImplementedError
 
-                            head_start_marker = self.argument_markers_to_id[
+                            head_start_marker = argument_markers_to_id[
                                 self.argument_markers[("head", "start", head.label_single)]
                             ]
-                            head_end_marker = self.argument_markers_to_id[
+                            head_end_marker = argument_markers_to_id[
                                 self.argument_markers[("head", "end", head.label_single)]
                             ]
                             if tail.is_multilabel:
                                 raise NotImplementedError
-                            tail_start_marker = self.argument_markers_to_id[
+                            tail_start_marker = argument_markers_to_id[
                                 self.argument_markers[("tail", "start", tail.label_single)]
                             ]
-                            tail_end_marker = self.argument_markers_to_id[
+                            tail_end_marker = argument_markers_to_id[
                                 self.argument_markers[("tail", "end", tail.label_single)]
                             ]
                         else:
-                            head_start_marker = self.argument_markers_to_id[
+                            head_start_marker = argument_markers_to_id[
                                 self.argument_markers[("head", "start")]
                             ]
-                            head_end_marker = self.argument_markers_to_id[
+                            head_end_marker = argument_markers_to_id[
                                 self.argument_markers[("head", "end")]
                             ]
-                            tail_start_marker = self.argument_markers_to_id[
+                            tail_start_marker = argument_markers_to_id[
                                 self.argument_markers[("tail", "start")]
                             ]
-                            tail_end_marker = self.argument_markers_to_id[
+                            tail_end_marker = argument_markers_to_id[
                                 self.argument_markers[("tail", "end")]
                             ]
 
@@ -325,106 +315,23 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                             + input_ids[second_end:]
                         )
 
-                        doc_metadata["head"].append(head)
-                        doc_metadata["tail"].append(tail)
-
                         new_head_start = new_input_ids.index(head_start_marker)
                         new_head_end = new_input_ids.index(head_end_marker)
                         new_tail_start = new_input_ids.index(tail_start_marker)
                         new_tail_end = new_input_ids.index(tail_end_marker)
 
-                        doc_metadata["head_offset"].append((new_head_start, new_head_end))
-                        doc_metadata["tail_offset"].append((new_tail_start, new_tail_end))
-
                         # TODO: add special tokens here (windowing)
                         input_encoding.append({"input_ids": new_input_ids})
                         new_documents.append(document)
+                        doc_metadata = {
+                            "head": head,
+                            "tail": tail,
+                            "head_offset": (new_head_start, new_head_end),
+                            "tail_offset": (new_tail_start, new_tail_end),
+                        }
                         metadata.append(doc_metadata)
 
-                        doc_metadata = {
-                            "head": [],
-                            "tail": [],
-                            "head_offset": [],
-                            "tail_offset": [],
-                        }
-
         return input_encoding, metadata, new_documents
-
-    def encode_input(
-        self, documents: List[Document]
-    ) -> Tuple[
-        List[TransformerReTextClassificationInputEncoding],
-        List[Metadata],
-        Optional[List[Document]],
-    ]:
-        return self._single_pair_insert_marker(documents)
-
-        # input_encoding = []
-        # metadata = []
-        # new_documents = []
-        # for document in documents:
-        #     entities = document.annotations(self.entity_annotation)
-
-        #     encoding = self.tokenizer(
-        #         document.text,
-        #         padding=False,
-        #         truncation=self.truncation,
-        #         max_length=self.max_length,
-        #         is_split_into_words=False,
-        #         return_offsets_mapping=True,
-        #         return_special_tokens_mask=True,
-        #     )
-
-        #     offset_mapping = encoding.pop("offset_mapping")
-
-        #     doc_metadata = {
-        #         "offset_mapping": offset_mapping,
-        #         "head": [],
-        #         "tail": [],
-        #         "head_offset": [],
-        #         "tail_offset": [],
-        #     }
-        #     for head in entities:
-        #         head_start_idx = encoding.char_to_token(head.start)
-        #         head_end_idx = encoding.char_to_token(head.end - 1)
-
-        #         if head_start_idx is None or head_end_idx is None:
-        #             continue
-
-        #         for tail in entities:
-        #             if head == tail:
-        #                 continue
-
-        #             tail_start_idx = encoding.char_to_token(tail.start)
-        #             tail_end_idx = encoding.char_to_token(tail.end - 1)
-
-        #             if tail_start_idx is None or tail_end_idx is None:
-        #                 continue
-
-        #             doc_metadata["head"].append(head)
-        #             doc_metadata["tail"].append(tail)
-        #             doc_metadata["head_offset"].append((head_start_idx, head_end_idx))
-        #             doc_metadata["tail_offset"].append((tail_start_idx, tail_end_idx))
-
-        #             if self.single_argument_pair:
-        #                 input_encoding.append(encoding)
-        #                 new_documents.append(document)
-        #                 metadata.append(doc_metadata)
-
-        #                 doc_metadata = {
-        #                     "offset_mapping": offset_mapping,
-        #                     "head": [],
-        #                     "tail": [],
-        #                     "head_offset": [],
-        #                     "tail_offset": [],
-        #                 }
-
-        #     if not self.single_argument_pair:
-        #         input_encoding.append(encoding)
-        #         new_documents.append(document)
-        #         metadata.append(doc_metadata)
-
-        # return input_encoding, metadata, documents
 
     def encode_target(
         self,
@@ -439,21 +346,12 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
             relations = document.relation_annotations(self.relation_annotation)
 
-            # TODO: does this really only work for single labels? However, label_to_id seems
-            #  to contain only single labels.
-            head_tail_to_label = {
-                (relation.head, relation.tail): relation.label_single for relation in relations
+            head_tail_to_labels = {
+                (relation.head, relation.tail): relation.labels for relation in relations
             }
 
-            label_ids = None
-            for head, tail in zip(meta["head"], meta["tail"]):
-                label = head_tail_to_label.get((head, tail), self.none_label)
-
-                if self.multi_label:
-                    raise NotImplementedError
-                else:
-                    label_ids = [self.label_to_id[label]]
-            assert label_ids is not None, "no head/tail available"
+            labels = head_tail_to_labels.get((meta["head"], meta["tail"]), [self.none_label])
+            label_ids = [self.label_to_id[label] for label in labels]
             target.append(label_ids)
 
         return target
@@ -487,27 +385,18 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         encoding: TransformerReTextClassificationTaskEncoding,
         output: TransformerReTextClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
-        metadata = encoding.metadata
         labels = output["labels"]
         probabilities = output["probabilities"]
-        heads = metadata["head"]
-        tails = metadata["tail"]
-
-        if self.multi_label:
-            raise NotImplementedError
-
-        else:
-            for head, tail, label, probability in zip(heads, tails, labels, probabilities):
-                if label != self.none_label:
-                    yield (
-                        self.relation_annotation,
-                        BinaryRelation(
-                            head=head,
-                            tail=tail,
-                            label=label,
-                            score=probability,
-                        ),
-                    )
+        if labels != [self.none_label]:
+            yield (
+                self.relation_annotation,
+                BinaryRelation(
+                    head=encoding.metadata["head"],
+                    tail=encoding.metadata["tail"],
+                    label=labels if self.multi_label else labels[0],
+                    score=probabilities if self.multi_label else probabilities[0],
+                ),
+            )
 
     def collate(
         self, encodings: List[TransformerReTextClassificationTaskEncoding]
