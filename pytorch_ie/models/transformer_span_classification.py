@@ -74,7 +74,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
     def _start_end_and_span_length_span_index(
         self, batch_size: int, max_seq_length: int, seq_lengths: Optional[Iterable[int]] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if seq_lengths is None:
             seq_lengths = batch_size * [max_seq_length]
 
@@ -82,23 +82,26 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         end_indices = []
         span_lengths = []
         span_batch_index = []
+        offsets = []
         for batch_index, seq_length in enumerate(seq_lengths):
+            offset = max_seq_length * batch_index
+
             for span_length in range(1, self.max_span_length + 1):
                 for start_index in range(seq_length + 1 - span_length):
                     end_index = start_index + span_length - 1
 
-                    offset = max_seq_length * batch_index
-
                     span_batch_index.append(batch_index)
-                    start_indices.append(offset + start_index)
-                    end_indices.append(offset + end_index)
+                    start_indices.append(start_index)
+                    end_indices.append(end_index)
                     span_lengths.append(span_length - 1)
+                    offsets.append(offset)
 
         return (
             torch.tensor(start_indices),
             torch.tensor(end_indices),
             torch.tensor(span_lengths),
             torch.tensor(span_batch_index),
+            torch.tensor(offsets),
         )
 
     # TODO: this should live in the taskmodule
@@ -141,12 +144,13 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             end_indices,
             span_length,
             batch_indices,
+            offsets,
         ) = self._start_end_and_span_length_span_index(
             batch_size=batch_size, max_seq_length=seq_length, seq_lengths=seq_lengths
         )
 
-        start_embedding = hidden_state[start_indices, :]
-        end_embedding = hidden_state[end_indices, :]
+        start_embedding = hidden_state[offsets + start_indices, :]
+        end_embedding = hidden_state[offsets + end_indices, :]
         span_length_embedding = self.span_length_embedding(span_length.to(hidden_state.device))
 
         combined_embedding = torch.cat(

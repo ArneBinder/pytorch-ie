@@ -144,17 +144,20 @@ def test_start_end_and_span_length_span_index(mock_model, seq_lengths):
         end_indices,
         span_length,
         batch_indices,
+        offsets,
     ) = mock_model._start_end_and_span_length_span_index(
         batch_size=2, max_seq_length=4, seq_lengths=seq_lengths
     )
 
     if seq_lengths is None:
-        assert torch.equal(start_indices, torch.tensor([0, 1, 2, 3, 0, 1, 2, 4, 5, 6, 7, 4, 5, 6]))
-        assert torch.equal(end_indices, torch.tensor([0, 1, 2, 3, 1, 2, 3, 4, 5, 6, 7, 5, 6, 7]))
+        assert torch.equal(start_indices, torch.tensor([0, 1, 2, 3, 0, 1, 2, 0, 1, 2, 3, 0, 1, 2]))
+        assert torch.equal(end_indices, torch.tensor([0, 1, 2, 3, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3]))
         assert torch.equal(span_length, torch.tensor([0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1]))
         assert torch.equal(batch_indices, torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]))
+        assert torch.equal(offsets, torch.tensor([0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4]))
     else:
-        assert torch.equal(start_indices, torch.tensor([0, 1, 2, 0, 1, 4, 5, 6, 7, 4, 5, 6]))
-        assert torch.equal(end_indices, torch.tensor([0, 1, 2, 1, 2, 4, 5, 6, 7, 5, 6, 7]))
+        assert torch.equal(start_indices, torch.tensor([0, 1, 2, 0, 1, 0, 1, 2, 3, 0, 1, 2]))
+        assert torch.equal(end_indices, torch.tensor([0, 1, 2, 1, 2, 0, 1, 2, 3, 1, 2, 3]))
         assert torch.equal(span_length, torch.tensor([0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1]))
         assert torch.equal(batch_indices, torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]))
+        assert torch.equal(offsets, torch.tensor([0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4]))
