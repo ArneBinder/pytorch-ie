@@ -22,7 +22,7 @@ def test_re_generative():
         model_name_or_path=model_name_or_path,
     )
 
-    pipeline = Pipeline(model=model, taskmodule=taskmodule, is_generative=True, device=-1)
+    pipeline = Pipeline(model=model, taskmodule=taskmodule, device=-1)
 
     document = Document(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
