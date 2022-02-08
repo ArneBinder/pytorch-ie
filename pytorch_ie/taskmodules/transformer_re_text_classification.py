@@ -117,7 +117,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]
         self.argument_markers_to_id: Dict[str, int]
-        # self._create_argument_markers()
+
+        if self.entity_labels is not None:
+            self._create_argument_markers()
 
     def _create_argument_markers(self):
         argument_markers = {}
