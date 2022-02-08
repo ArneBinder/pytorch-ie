@@ -240,9 +240,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         ):
                             continue
 
-                        assert not head.is_multilabel
-                        assert not tail.is_multilabel
-
                         if head == tail:
                             continue
 
