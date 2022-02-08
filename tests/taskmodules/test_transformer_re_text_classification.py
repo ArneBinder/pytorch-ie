@@ -267,3 +267,10 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     assert tail.label == "CITY"
     assert tail.start == 0
     assert tail.end == 5
+
+
+def test_save_load(tmp_path, prepared_taskmodule):
+    path = os.path.join(tmp_path, "taskmodule")
+    prepared_taskmodule.save_pretrained(path)
+    loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
+    assert_is_prepared(loaded_taskmodule)
