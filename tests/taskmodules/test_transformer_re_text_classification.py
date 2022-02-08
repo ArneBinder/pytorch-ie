@@ -7,7 +7,6 @@ from pytorch_ie.data.datasets.tacred import load_tacred
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 from tests import FIXTURES_ROOT
 
-
 TOKENS = [
     "[CLS]",
     "At",
