@@ -115,10 +115,16 @@ def model_output():
     }
 
 
+def assert_is_prepared(taskmodule):
+    assert taskmodule.none_label in taskmodule.label_to_id
+    assert taskmodule.argument_markers is not None
+
+
 def test_prepare(taskmodule, documents):
     taskmodule.prepare(documents)
     assert set(taskmodule.label_to_id.keys()) == {"no_relation", "per:children", "per:title"}
     assert taskmodule.label_to_id["no_relation"] == 0
+    assert_is_prepared(taskmodule)
     if taskmodule.add_type_to_marker:
         assert taskmodule.argument_markers == {
             ("head", "start", "PERSON"): "[H:PERSON]",
