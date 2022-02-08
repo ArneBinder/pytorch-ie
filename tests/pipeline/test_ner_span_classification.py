@@ -16,26 +16,31 @@ def test_ner_span_classification():
 
     ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1)
 
-    document = Document(
+    document0 = Document(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
+    document1 = Document(
+        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+    )
+    documents = [document0, document1]
+    ner_pipeline(documents, predict_field="entities", batch_size=2)
 
-    ner_pipeline(document, predict_field="entities", batch_size=2)
-    entities: List[LabeledSpan] = document.predictions("entities")  # typing: ignore
-    assert len(entities) == 3
-    entities_sorted = sorted(entities, key=lambda entity: (entity.start + entity.end) / 2)
+    for document in documents:
+        entities: List[LabeledSpan] = document.predictions("entities")  # typing: ignore
+        assert len(entities) == 3
+        entities_sorted = sorted(entities, key=lambda entity: (entity.start + entity.end) / 2)
 
-    ent0 = entities_sorted[0]
-    assert ent0.label_single == "PER"
-    assert ent0.score == 1.0
-    assert ent0.slices == [(65, 75)]
+        ent0 = entities_sorted[0]
+        assert ent0.label_single == "PER"
+        assert ent0.score == 1.0
+        assert ent0.slices == [(65, 75)]
 
-    ent1 = entities_sorted[1]
-    assert ent1.label_single == "ORG"
-    assert ent1.score == 1.0
-    assert ent1.slices == [(96, 100)]
+        ent1 = entities_sorted[1]
+        assert ent1.label_single == "ORG"
+        assert ent1.score == 1.0
+        assert ent1.slices == [(96, 100)]
 
-    ent2 = entities_sorted[2]
-    assert ent2.label_single == "ORG"
-    assert ent2.score == 1.0
-    assert ent2.slices == [(126, 134)]
+        ent2 = entities_sorted[2]
+        assert ent2.label_single == "ORG"
+        assert ent2.score == 1.0
+        assert ent2.slices == [(126, 134)]
