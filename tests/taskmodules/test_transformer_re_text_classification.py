@@ -227,15 +227,15 @@ def test_unbatch_output(prepared_taskmodule, model_output):
 
     unbatched_output1 = unbatched_outputs[0]
     assert unbatched_output1["labels"] == ["no_relation"]
-    assert unbatched_output1["probabilities"] == [0.9999593496322632]
+    assert pytest.approx([0.9999593496322632], unbatched_output1["probabilities"])
 
     unbatched_output2 = unbatched_outputs[1]
     assert prepared_taskmodule.label_to_id[unbatched_output2["labels"][0]] == 1
-    assert unbatched_output2["probabilities"] == [0.9999768733978271]
+    assert pytest.approx([0.9999768733978271], unbatched_output2["probabilities"])
 
     unbatched_output3 = unbatched_outputs[2]
     assert prepared_taskmodule.label_to_id[unbatched_output3["labels"][0]] == 2
-    assert unbatched_output3["probabilities"] == [0.9999799728393555]
+    assert pytest.approx([0.9999799728393555], unbatched_output3["probabilities"])
 
 
 @pytest.mark.parametrize("inplace", [True, False])
