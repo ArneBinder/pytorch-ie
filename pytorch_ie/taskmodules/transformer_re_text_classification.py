@@ -138,10 +138,11 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.argument_markers = None
 
-        # this is the case when we load an already prepared taskmodule
-        if self.entity_labels is not None:
+        if self.is_prepared():
             self.argument_markers = _create_argument_markers(
-                entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
+                # ignore typing because is_prepared already checks that entity_labels is not None
+                entity_labels=self.entity_labels,  # type: ignore
+                add_type_to_marker=self.add_type_to_marker,
             )
             # do not sort here to keep order from loaded taskmodule config
             self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
@@ -151,6 +152,14 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         config["label_to_id"] = self.label_to_id
         config["entity_labels"] = self.entity_labels
         return config
+
+    def is_prepared(self):
+        """
+        This should return True iff all config entries added by the _config() method are available.
+        By doing so, it marks the taskmodule ready to save with save_pretrained(), i.e. that the
+        exact same taskmodule will be produced when loaded again via from_pretrained().
+        """
+        return self.entity_labels is not None and self.label_to_id is not None
 
     def prepare(self, documents: List[Document]) -> None:
         entity_labels = set()

@@ -114,16 +114,12 @@ def model_output():
     }
 
 
-def assert_is_prepared(taskmodule):
-    assert taskmodule.none_label in taskmodule.label_to_id
-    assert taskmodule.argument_markers is not None
-
-
 def test_prepare(taskmodule, documents):
+    assert not taskmodule.is_prepared()
     taskmodule.prepare(documents)
+    assert taskmodule.is_prepared()
     assert set(taskmodule.label_to_id.keys()) == {"no_relation", "per:children", "per:title"}
     assert taskmodule.label_to_id["no_relation"] == 0
-    assert_is_prepared(taskmodule)
     if taskmodule.add_type_to_marker:
         assert taskmodule.argument_markers == {
             ("head", "start", "PERSON"): "[H:PERSON]",
@@ -272,4 +268,5 @@ def test_save_load(tmp_path, prepared_taskmodule):
     path = os.path.join(tmp_path, "taskmodule")
     prepared_taskmodule.save_pretrained(path)
     loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
-    assert_is_prepared(loaded_taskmodule)
+    assert loaded_taskmodule.is_prepared()
+    assert loaded_taskmodule.argument_markers == prepared_taskmodule.argument_markers
