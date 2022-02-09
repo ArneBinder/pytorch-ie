@@ -14,6 +14,8 @@ DEFAULT_TAIL_ARGUMENT_NAME: str = "Arg2"
 DEFAULT_SPAN_ANNOTATION_NAME: str = "entities"
 DEFAULT_RELATION_ANNOTATION_NAME: str = "relations"
 
+GLUE_SEQUENCE_MAPPING = {"\n": " "}
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,10 +61,12 @@ def convert_brat_to_document(
                     brat_doc["context"][locations[i]["end"] : locations[i + 1]["start"]]
                     for i in range(len(locations) - 1)
                 ]
-                logger.warning(
-                    f"convert span with several slices to LabeledSpan! added text fragments: "
-                    f"{added_fragments}"
-                )
+                added_fragments_filtered = [frag for frag in added_fragments if frag != GLUE_SEQUENCE_MAPPING]
+                if len(added_fragments_filtered) > 0:
+                    logger.warning(
+                        f"convert span with several slices to LabeledSpan! added text fragments: "
+                        f"{added_fragments_filtered}"
+                    )
             span = LabeledSpan(
                 start=locations[0]["start"],
                 end=locations[-1]["end"],
@@ -149,6 +153,8 @@ def serialize_labeled_span(
             f"{serialized_annotation} {text_hash}", max_length=8
         )
     _text = doc.text[annotation.start : annotation.end]
+    for k, v in GLUE_SEQUENCE_MAPPING.items():
+        _text = _text.replace(k, v)
     return f"T{annotation.metadata['id']}\t{serialized_annotation}\t{_text}\n"
 
 
