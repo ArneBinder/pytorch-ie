@@ -147,10 +147,10 @@ def split_span_annotation(text: str, start: int, end: int, glue: str):
     pos = text.find(glue, start)
     starts = [start]
     ends = []
-    while pos >= 0 and pos+len(glue) <= end:
+    while pos >= 0 and pos + len(glue) <= end:
         ends.append(pos)
-        starts.append(pos+len(glue))
-        pos = text.find(glue, pos+1)
+        starts.append(pos + len(glue))
+        pos = text.find(glue, pos + 1)
 
     ends.append(end)
     return list(zip(starts, ends))
@@ -161,9 +161,11 @@ def serialize_labeled_span(
 ) -> str:
     # We have to remove newline characters from the annotations because this will cause
     # problems for the brat annotation file. So, we create fragments around newlines.
-    slices = split_span_annotation(text=doc.text, start=annotation.start, end=annotation.end, glue=GLUE_TEXT)
+    slices = split_span_annotation(
+        text=doc.text, start=annotation.start, end=annotation.end, glue=GLUE_TEXT
+    )
     slices_serialized = ";".join([f"{start} {end}" for start, end in slices])
-    _text = GLUE_BRAT.join([doc.text[start : end] for start, end in slices])
+    _text = GLUE_BRAT.join([doc.text[start:end] for start, end in slices])
 
     serialized_annotation = f"{annotation.label} {slices_serialized}"
     # construct id based on text and annotation
