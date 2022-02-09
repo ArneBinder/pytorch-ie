@@ -61,7 +61,7 @@ def convert_brat_to_document(
                     brat_doc["context"][locations[i]["end"] : locations[i + 1]["start"]]
                     for i in range(len(locations) - 1)
                 ]
-                added_fragments_filtered = [frag for frag in added_fragments if frag != GLUE_SEQUENCE_MAPPING]
+                added_fragments_filtered = [frag for frag in added_fragments if frag not in GLUE_SEQUENCE_MAPPING]
                 if len(added_fragments_filtered) > 0:
                     logger.warning(
                         f"convert span with several slices to LabeledSpan! added text fragments: "
