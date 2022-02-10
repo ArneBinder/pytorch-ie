@@ -18,7 +18,7 @@ def main():
     for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
         document.add_annotation("entities", LabeledSpan(start, end, label))
 
-    re_pipeline(document, predict_field="relations")
+    re_pipeline(document, predict_field="relations", batch_size=2)
 
     for relation in document.predictions("relations"):
         head, tail = relation.head, relation.tail
