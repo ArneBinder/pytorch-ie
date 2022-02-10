@@ -143,7 +143,7 @@ def load_brat(
     }
 
 
-def split_span_annotation(text: str, start: int, end: int, glue: str):
+def split_span_annotation(text: str, start: int, end: int, glue: str) -> List[Tuple[int, int]]:
     pos = text.find(glue, start)
     starts = [start]
     ends = []
