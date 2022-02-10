@@ -14,6 +14,9 @@ DEFAULT_TAIL_ARGUMENT_NAME: str = "Arg2"
 DEFAULT_SPAN_ANNOTATION_NAME: str = "entities"
 DEFAULT_RELATION_ANNOTATION_NAME: str = "relations"
 
+GLUE_TEXT = "\n"
+GLUE_BRAT = " "
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,10 +62,12 @@ def convert_brat_to_document(
                     brat_doc["context"][locations[i]["end"] : locations[i + 1]["start"]]
                     for i in range(len(locations) - 1)
                 ]
-                logger.warning(
-                    f"convert span with several slices to LabeledSpan! added text fragments: "
-                    f"{added_fragments}"
-                )
+                added_fragments_filtered = [frag for frag in added_fragments if frag != GLUE_TEXT]
+                if len(added_fragments_filtered) > 0:
+                    logger.warning(
+                        f"convert span with several slices to LabeledSpan! added text fragments: "
+                        f"{added_fragments_filtered}"
+                    )
             span = LabeledSpan(
                 start=locations[0]["start"],
                 end=locations[-1]["end"],
@@ -138,17 +143,40 @@ def load_brat(
     }
 
 
+def split_span_annotation(text: str, slice: Tuple[int, int], glue: str) -> List[Tuple[int, int]]:
+    """
+    Split the text contained in the slice by `glue` and return the respective new slices.
+    """
+    pos = text.find(glue, slice[0])
+    starts = [slice[0]]
+    ends = []
+    while pos >= 0 and pos + len(glue) <= slice[1]:
+        ends.append(pos)
+        starts.append(pos + len(glue))
+        pos = text.find(glue, pos + 1)
+
+    ends.append(slice[1])
+    return list(zip(starts, ends))
+
+
 def serialize_labeled_span(
     annotation: LabeledSpan, doc: Document, create_id_if_not_available: bool = True
 ) -> str:
-    serialized_annotation = f"{annotation.label} {annotation.start} {annotation.end}"
+    # We have to remove newline characters from the annotations because this will cause
+    # problems for the brat annotation file. So, we create fragments around newlines.
+    slices = split_span_annotation(
+        text=doc.text, slice=(annotation.start, annotation.end), glue=GLUE_TEXT
+    )
+    slices_serialized = ";".join([f"{start} {end}" for start, end in slices])
+    _text = GLUE_BRAT.join([doc.text[start:end] for start, end in slices])
+
+    serialized_annotation = f"{annotation.label} {slices_serialized}"
     # construct id based on text and annotation
     if annotation.metadata.get("id", None) is None and create_id_if_not_available:
         text_hash = hash_string(doc.text)
         annotation.metadata["id"] = hash_string(
             f"{serialized_annotation} {text_hash}", max_length=8
         )
-    _text = doc.text[annotation.start : annotation.end]
     return f"T{annotation.metadata['id']}\t{serialized_annotation}\t{_text}\n"
 
 
