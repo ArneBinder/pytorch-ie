@@ -5,7 +5,7 @@ from datasets import GenerateMode, set_caching_enabled
 
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
-from pytorch_ie.data.datasets.brat import load_brat, serialize_brat
+from pytorch_ie.data.datasets.brat import load_brat, serialize_brat, split_span_annotation
 from tests import FIXTURES_ROOT
 
 TEXT_01 = "Jane lives in Berlin.\n"
@@ -217,3 +217,32 @@ def test_load_and_serialize_and_load_brat(tmp_path):
     )
 
     assert_dataset_equal(dataset, dataset_loaded)
+
+
+def test_split_span_annotation():
+
+    text_wo_nl = "This is a text without newlines."
+    span_slice = (0, len(text_wo_nl))
+    slices = split_span_annotation(
+        text=text_wo_nl, start=span_slice[0], end=span_slice[1], glue="\n"
+    )
+    assert slices == [span_slice]
+
+    span_slice = (3, 15)
+    slices = split_span_annotation(
+        text=text_wo_nl, start=span_slice[0], end=span_slice[1], glue="\n"
+    )
+    assert slices == [span_slice]
+
+    text_with_nl = "This is a text\nwith\nnewlines."
+    span_slice = (0, len(text_with_nl))
+    slices = split_span_annotation(
+        text=text_with_nl, start=span_slice[0], end=span_slice[1], glue="\n"
+    )
+    assert slices == [(0, 14), (15, 19), (20, 29)]
+
+    span_slice = (3, 18)
+    slices = split_span_annotation(
+        text=text_with_nl, start=span_slice[0], end=span_slice[1], glue="\n"
+    )
+    assert slices == [(3, 14), (15, 18)]
