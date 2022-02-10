@@ -143,16 +143,19 @@ def load_brat(
     }
 
 
-def split_span_annotation(text: str, start: int, end: int, glue: str) -> List[Tuple[int, int]]:
-    pos = text.find(glue, start)
-    starts = [start]
+def split_span_annotation(text: str, slice: Tuple[int, int], glue: str) -> List[Tuple[int, int]]:
+    """
+    Split the text contained in the slice by `glue` and return the respective new slices.
+    """
+    pos = text.find(glue, slice[0])
+    starts = [slice[0]]
     ends = []
-    while pos >= 0 and pos + len(glue) <= end:
+    while pos >= 0 and pos + len(glue) <= slice[1]:
         ends.append(pos)
         starts.append(pos + len(glue))
         pos = text.find(glue, pos + 1)
 
-    ends.append(end)
+    ends.append(slice[1])
     return list(zip(starts, ends))
 
 
@@ -162,7 +165,7 @@ def serialize_labeled_span(
     # We have to remove newline characters from the annotations because this will cause
     # problems for the brat annotation file. So, we create fragments around newlines.
     slices = split_span_annotation(
-        text=doc.text, start=annotation.start, end=annotation.end, glue=GLUE_TEXT
+        text=doc.text, slice=(annotation.start, annotation.end), glue=GLUE_TEXT
     )
     slices_serialized = ";".join([f"{start} {end}" for start, end in slices])
     _text = GLUE_BRAT.join([doc.text[start:end] for start, end in slices])
