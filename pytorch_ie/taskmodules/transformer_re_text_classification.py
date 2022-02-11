@@ -282,6 +282,13 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         # windowing
                         window_start = 0
                         if self.max_window is not None:
+                            # The actual number of tokens will be lower than max_window because we add the
+                            # 4 marker tokens (before / after the head /tail) and the default special tokens
+                            # (e.g. CLS and SEP).
+                            num_added_special_tokens = len(
+                                self.tokenizer.build_inputs_with_special_tokens([])
+                            )
+                            max_tokens = self.max_window - 4 - num_added_special_tokens
                             head_center = (head_start + head_end) / 2.0
                             tail_center = (tail_start + tail_end) / 2.0
 
@@ -290,13 +297,13 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 assert (
                                     head_end <= tail_start
                                 ), f"head and tail entities not allowed to overlap"
-                                if tail_end - head_start > self.max_window:
+                                if tail_end - head_start > max_tokens:
                                     continue
                             elif tail_center < head_center:
                                 assert (
                                     tail_end <= head_start
                                 ), f"head and tail entities not allowed to overlap"
-                                if head_end - tail_start > self.max_window:
+                                if head_end - tail_start > max_tokens:
                                     continue
                             else:
                                 raise ValueError(
@@ -304,8 +311,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 )
 
                             rel_center = (head_center + tail_center) / 2.0
-                            window_start = int(rel_center - self.max_window / 2.0)
-                            window_end = window_start + self.max_window
+                            window_start = int(rel_center - max_tokens / 2.0)
+                            window_end = window_start + max_tokens
 
                             # If window goes over one end, shift it use as much content as possible.
                             # First shift window to left and then to right to ensure that window_start is never
