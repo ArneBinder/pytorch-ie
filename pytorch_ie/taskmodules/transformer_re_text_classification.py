@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import is_contained_in
@@ -96,6 +96,44 @@ def _get_window_around_slice(
     ), f"window_start={window_start} not available in sequence"
 
     return window_start, window_end
+
+
+def _enumerate_entity_pairs(
+    entities: List[LabeledSpan],
+    encoding: BatchEncoding,
+    partition: LabeledSpan,
+    relations: List[BinaryRelation] = None,
+):
+    existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
+    head: LabeledSpan
+    for head in entities:
+        if not is_contained_in((head.start, head.end), (partition.start, partition.end)):
+            continue
+
+        head_start = encoding.char_to_token(head.start - partition.start)
+        head_end = encoding.char_to_token(head.end - partition.start - 1)
+
+        if head_start is None or head_end is None:
+            continue
+
+        tail: LabeledSpan
+        for tail in entities:
+            if not is_contained_in((tail.start, tail.end), (partition.start, partition.end)):
+                continue
+
+            if head == tail:
+                continue
+
+            if relations is not None and (head, tail) not in existing_head_tail:
+                continue
+
+            tail_start = encoding.char_to_token(tail.start - partition.start)
+            tail_end = encoding.char_to_token(tail.end - partition.start - 1)
+
+            if tail_start is None or tail_end is None:
+                continue
+
+            yield head, (head_start, head_end), tail, (tail_start, tail_end)
 
 
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
@@ -273,156 +311,129 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     add_special_tokens=add_special_tokens,
                 )
 
-                head: LabeledSpan
-                for head in entities:
-                    if not is_contained_in(
-                        (head.start, head.end), (partition.start, partition.end)
-                    ):
-                        continue
+                for head, head_token_slice, tail, tail_token_slice in _enumerate_entity_pairs(
+                    entities=entities,
+                    encoding=encoding,
+                    partition=partition,
+                    relations=None if self.add_negative_examples else relations,
+                ):
+                    head_start, head_end = head_token_slice
+                    tail_start, tail_end = tail_token_slice
 
-                    head_start = encoding.char_to_token(head.start - partition.start)
-                    head_end = encoding.char_to_token(head.end - partition.start - 1)
+                    input_ids = encoding["input_ids"]
 
-                    if head_start is None or head_end is None:
-                        continue
-
-                    tail: LabeledSpan
-                    for tail in entities:
-                        if not is_contained_in(
-                            (tail.start, tail.end), (partition.start, partition.end)
-                        ):
+                    # windowing
+                    window_start = 0
+                    if self.max_window is not None:
+                        # The actual number of tokens will be lower than max_window because we add the
+                        # 4 marker tokens (before / after the head /tail) and the default special tokens
+                        # (e.g. CLS and SEP).
+                        num_added_special_tokens = len(
+                            self.tokenizer.build_inputs_with_special_tokens([])
+                        )
+                        max_tokens = self.max_window - 4 - num_added_special_tokens
+                        # the slice from the beginning of the first entity to the end of the second is required
+                        slice_required = (min(head_start, tail_start), max(head_end, tail_end))
+                        window_slice = _get_window_around_slice(
+                            slice=slice_required,
+                            max_window_size=max_tokens,
+                            available_input_length=len(input_ids),
+                        )
+                        # this happens if slice_required does not fit into max_tokens
+                        if window_slice is None:
                             continue
 
-                        if head == tail:
-                            continue
+                        window_start, window_end = window_slice
+                        input_ids = input_ids[window_start:window_end]
 
-                        if (
-                            not self.add_negative_examples
-                            and relations
-                            and (head, tail) not in existing_head_tail
-                        ):
-                            continue
+                    if self.add_type_to_marker:
+                        if head.is_multilabel:
+                            raise NotImplementedError
 
-                        tail_start = encoding.char_to_token(tail.start - partition.start)
-                        tail_end = encoding.char_to_token(tail.end - partition.start - 1)
+                        head_start_marker = argument_markers_to_id[
+                            self.argument_markers[("head", "start", head.label_single)]
+                        ]
+                        head_end_marker = argument_markers_to_id[
+                            self.argument_markers[("head", "end", head.label_single)]
+                        ]
+                        if tail.is_multilabel:
+                            raise NotImplementedError
+                        tail_start_marker = argument_markers_to_id[
+                            self.argument_markers[("tail", "start", tail.label_single)]
+                        ]
+                        tail_end_marker = argument_markers_to_id[
+                            self.argument_markers[("tail", "end", tail.label_single)]
+                        ]
+                    else:
+                        head_start_marker = argument_markers_to_id[
+                            self.argument_markers[("head", "start")]
+                        ]
+                        head_end_marker = argument_markers_to_id[
+                            self.argument_markers[("head", "end")]
+                        ]
+                        tail_start_marker = argument_markers_to_id[
+                            self.argument_markers[("tail", "start")]
+                        ]
+                        tail_end_marker = argument_markers_to_id[
+                            self.argument_markers[("tail", "end")]
+                        ]
 
-                        if tail_start is None or tail_end is None:
-                            continue
+                    head_items = (
+                        head_start - window_start,
+                        head_end + 1 - window_start,
+                        head_start_marker,
+                        head_end_marker,
+                    )
+                    tail_items = (
+                        tail_start - window_start,
+                        tail_end + 1 - window_start,
+                        tail_start_marker,
+                        tail_end_marker,
+                    )
 
-                        input_ids = encoding["input_ids"]
+                    head_first = head_start < tail_start
+                    first, second = (
+                        (head_items, tail_items) if head_first else (tail_items, head_items)
+                    )
 
-                        # windowing
-                        window_start = 0
-                        if self.max_window is not None:
-                            # The actual number of tokens will be lower than max_window because we add the
-                            # 4 marker tokens (before / after the head /tail) and the default special tokens
-                            # (e.g. CLS and SEP).
-                            num_added_special_tokens = len(
-                                self.tokenizer.build_inputs_with_special_tokens([])
-                            )
-                            max_tokens = self.max_window - 4 - num_added_special_tokens
-                            # the slice from the beginning of the first entity to the end of the second is required
-                            slice_required = (min(head_start, tail_start), max(head_end, tail_end))
-                            window_slice = _get_window_around_slice(
-                                slice=slice_required,
-                                max_window_size=max_tokens,
-                                available_input_length=len(input_ids),
-                            )
-                            # this happens if slice_required does not fit into max_tokens
-                            if window_slice is None:
-                                continue
+                    first_start, first_end, first_start_marker, first_end_marker = first
+                    second_start, second_end, second_start_marker, second_end_marker = second
 
-                            window_start, window_end = window_slice
-                            input_ids = input_ids[window_start:window_end]
+                    first_tokens = input_ids[first_start:first_end]
+                    second_tokens = input_ids[second_start:second_end]
 
-                        if self.add_type_to_marker:
-                            if head.is_multilabel:
-                                raise NotImplementedError
+                    new_input_ids = (
+                        input_ids[:first_start]
+                        + [first_start_marker]
+                        + first_tokens
+                        + [first_end_marker]
+                        + input_ids[first_end:second_start]
+                        + [second_start_marker]
+                        + second_tokens
+                        + [second_end_marker]
+                        + input_ids[second_end:]
+                    )
 
-                            head_start_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "start", head.label_single)]
-                            ]
-                            head_end_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "end", head.label_single)]
-                            ]
-                            if tail.is_multilabel:
-                                raise NotImplementedError
-                            tail_start_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "start", tail.label_single)]
-                            ]
-                            tail_end_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "end", tail.label_single)]
-                            ]
-                        else:
-                            head_start_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "start")]
-                            ]
-                            head_end_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "end")]
-                            ]
-                            tail_start_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "start")]
-                            ]
-                            tail_end_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "end")]
-                            ]
+                    new_head_start = new_input_ids.index(head_start_marker)
+                    new_head_end = new_input_ids.index(head_end_marker)
+                    new_tail_start = new_input_ids.index(tail_start_marker)
+                    new_tail_end = new_input_ids.index(tail_end_marker)
 
-                        head_items = (
-                            head_start - window_start,
-                            head_end + 1 - window_start,
-                            head_start_marker,
-                            head_end_marker,
-                        )
-                        tail_items = (
-                            tail_start - window_start,
-                            tail_end + 1 - window_start,
-                            tail_start_marker,
-                            tail_end_marker,
+                    # when windowing is used, we have to add teh special tokens again
+                    if not add_special_tokens:
+                        new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                            token_ids_0=new_input_ids
                         )
 
-                        head_first = head_start < tail_start
-                        first, second = (
-                            (head_items, tail_items) if head_first else (tail_items, head_items)
-                        )
-
-                        first_start, first_end, first_start_marker, first_end_marker = first
-                        second_start, second_end, second_start_marker, second_end_marker = second
-
-                        first_tokens = input_ids[first_start:first_end]
-                        second_tokens = input_ids[second_start:second_end]
-
-                        new_input_ids = (
-                            input_ids[:first_start]
-                            + [first_start_marker]
-                            + first_tokens
-                            + [first_end_marker]
-                            + input_ids[first_end:second_start]
-                            + [second_start_marker]
-                            + second_tokens
-                            + [second_end_marker]
-                            + input_ids[second_end:]
-                        )
-
-                        new_head_start = new_input_ids.index(head_start_marker)
-                        new_head_end = new_input_ids.index(head_end_marker)
-                        new_tail_start = new_input_ids.index(tail_start_marker)
-                        new_tail_end = new_input_ids.index(tail_end_marker)
-
-                        # when windowing is used, we have to add teh special tokens again
-                        if not add_special_tokens:
-                            new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
-                                token_ids_0=new_input_ids
-                            )
-
-                        input_encoding.append({"input_ids": new_input_ids})
-                        new_documents.append(document)
-                        doc_metadata = {
-                            "head": head,
-                            "tail": tail,
-                            "head_offset": (new_head_start, new_head_end),
-                            "tail_offset": (new_tail_start, new_tail_end),
-                        }
-                        metadata.append(doc_metadata)
+                    input_encoding.append({"input_ids": new_input_ids})
+                    new_documents.append(document)
+                    doc_metadata = {
+                        "head": head,
+                        "tail": tail,
+                        "head_offset": (new_head_start, new_head_end),
+                        "tail_offset": (new_tail_start, new_tail_end),
+                    }
+                    metadata.append(doc_metadata)
 
         return input_encoding, metadata, new_documents
 
