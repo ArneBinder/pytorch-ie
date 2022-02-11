@@ -1,3 +1,4 @@
+import copy
 import os
 
 import pytest
@@ -177,6 +178,153 @@ def test_encode(prepared_taskmodule, documents, encode_target):
         assert target_labels == ["per:title"]
     else:
         assert not encoding.has_target
+
+
+def test_encode_with_windowing(prepared_taskmodule, documents):
+    prepared_taskmodule_with_windowing = copy.deepcopy(prepared_taskmodule)
+    prepared_taskmodule_with_windowing.max_window = 27
+    task_encodings = prepared_taskmodule_with_windowing.encode(documents, encode_target=False)
+    assert len(task_encodings) == 2
+
+    encoding = task_encodings[0]
+    document = documents[0]
+    assert encoding.document == document
+    assert "input_ids" in encoding.input
+    assert len(encoding.input["input_ids"]) <= prepared_taskmodule_with_windowing.max_window
+    if prepared_taskmodule_with_windowing.add_type_to_marker:
+        assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
+            encoding.input["input_ids"]
+        ) == [
+            "[CLS]",
+            "At",
+            "the",
+            "same",
+            "time",
+            ",",
+            "Chief",
+            "Financial",
+            "Officer",
+            "[H:PERSON]",
+            "Douglas",
+            "Flint",
+            "[/H:PERSON]",
+            "will",
+            "become",
+            "[T:TITLE]",
+            "chairman",
+            "[/T:TITLE]",
+            ",",
+            "succeeding",
+            "Stephen",
+            "Green",
+            "who",
+            "is",
+            "leaving",
+            "to",
+            "[SEP]",
+        ]
+    else:
+        assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
+            encoding.input["input_ids"]
+        ) == [
+            "[CLS]",
+            "At",
+            "the",
+            "same",
+            "time",
+            ",",
+            "Chief",
+            "Financial",
+            "Officer",
+            "[H]",
+            "Douglas",
+            "Flint",
+            "[/H]",
+            "will",
+            "become",
+            "[T]",
+            "chairman",
+            "[/T]",
+            ",",
+            "succeeding",
+            "Stephen",
+            "Green",
+            "who",
+            "is",
+            "leaving",
+            "to",
+            "[SEP]",
+        ]
+
+    encoding = task_encodings[1]
+    document = documents[2]
+    assert encoding.document == document
+    assert "input_ids" in encoding.input
+    assert len(encoding.input["input_ids"]) <= prepared_taskmodule_with_windowing.max_window
+    if prepared_taskmodule_with_windowing.add_type_to_marker:
+        assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
+            encoding.input["input_ids"]
+        ) == [
+            "[CLS]",
+            "[T:CITY]",
+            "PA",
+            "##RI",
+            "##S",
+            "[/T:CITY]",
+            "2009",
+            "-",
+            "07",
+            "-",
+            "07",
+            "11",
+            ":",
+            "07",
+            ":",
+            "32",
+            "UTC",
+            "French",
+            "media",
+            "earlier",
+            "reported",
+            "that",
+            "[H:PERSON]",
+            "Mont",
+            "##court",
+            "[/H:PERSON]",
+            "[SEP]",
+        ]
+    else:
+        assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
+            encoding.input["input_ids"]
+        ) == [
+            "[CLS]",
+            "[T]",
+            "PA",
+            "##RI",
+            "##S",
+            "[/T]",
+            "2009",
+            "-",
+            "07",
+            "-",
+            "07",
+            "11",
+            ":",
+            "07",
+            ":",
+            "32",
+            "UTC",
+            "French",
+            "media",
+            "earlier",
+            "reported",
+            "that",
+            "[H]",
+            "Mont",
+            "##court",
+            "[/H]",
+            "[SEP]",
+        ]
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
