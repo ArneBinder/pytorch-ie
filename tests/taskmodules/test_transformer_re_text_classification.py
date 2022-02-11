@@ -6,6 +6,7 @@ import torch
 
 from pytorch_ie.data.datasets.tacred import load_tacred
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
+from pytorch_ie.taskmodules.transformer_re_text_classification import _get_window_around_slice
 from tests import FIXTURES_ROOT
 
 TOKENS = [
@@ -418,3 +419,26 @@ def test_save_load(tmp_path, prepared_taskmodule):
     loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
     assert loaded_taskmodule.is_prepared()
     assert loaded_taskmodule.argument_markers == prepared_taskmodule.argument_markers
+
+
+def test_get_window_around_slice():
+    # slice exceeds max_window_size
+    window_slice = _get_window_around_slice(slice=(0, 5), max_window_size=4, available_input_length=10)
+    assert window_slice is None
+
+    # default, result is centered around slice
+    window_slice = _get_window_around_slice(slice=(5, 7), max_window_size=6, available_input_length=10)
+    assert window_slice == (3, 9)
+
+    # slice at the beginning -> shift window to the right
+    window_slice = _get_window_around_slice(slice=(0, 5), max_window_size=8, available_input_length=10)
+    assert window_slice == (0, 8)
+
+    # slice at the end -> shift window to the left
+    window_slice = _get_window_around_slice(slice=(7, 10), max_window_size=8, available_input_length=10)
+    assert window_slice == (2, 10)
+
+    # max window size bigger than available_input_length
+    window_slice = _get_window_around_slice(slice=(2, 6), max_window_size=8, available_input_length=7)
+    assert window_slice == (0, 7)
+
