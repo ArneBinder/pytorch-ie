@@ -66,6 +66,38 @@ def _create_argument_markers(
     return argument_markers
 
 
+def _get_window_around_slice(
+    slice: Tuple[int, int], max_window_size: int, available_input_length: int
+) -> Optional[Tuple[int, int]]:
+    # current pair may not fit into the window
+    if slice[1] - slice[0] > max_window_size:
+        return None
+
+    # set the final window size (regarding input tokens)
+    window_size = min(available_input_length, max_window_size)
+
+    rel_center = sum(slice) / 2.0
+    window_start = int(rel_center - window_size / 2.0)
+    window_end = window_start + window_size
+
+    # If window goes over one end, shift it use as much content as possible.
+    # First shift window to left and then to right to ensure that window_start is never
+    # negative (if window_end is outside, this will not be a problem)
+    if window_end >= available_input_length:
+        delta = available_input_length - window_end
+        window_start += delta
+        window_end += delta
+    if window_start < 0:
+        delta = -window_start
+        window_start += delta
+        window_end += delta
+    assert (
+        0 <= window_start < available_input_length
+    ), f"window_start={window_start} not available in sequence"
+
+    return window_start, window_end
+
+
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
     """
     Marker based relation extraction. This taskmodule prepares the input token ids in such a way
@@ -289,46 +321,18 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 self.tokenizer.build_inputs_with_special_tokens([])
                             )
                             max_tokens = self.max_window - 4 - num_added_special_tokens
-                            head_center = (head_start + head_end) / 2.0
-                            tail_center = (tail_start + tail_end) / 2.0
+                            # the slice from the beginning of the first entity to the end of the second is required
+                            slice_required = (min(head_start, tail_start), max(head_end, tail_end))
+                            window_slice = _get_window_around_slice(
+                                slice=slice_required,
+                                max_window_size=max_tokens,
+                                available_input_length=len(input_ids),
+                            )
+                            # this happens if slice_required does not fit into max_tokens
+                            if window_slice is None:
+                                continue
 
-                            # head before tail
-                            if head_center < tail_center:
-                                assert (
-                                    head_end <= tail_start
-                                ), f"head and tail entities not allowed to overlap"
-                                if tail_end - head_start > max_tokens:
-                                    continue
-                            elif tail_center < head_center:
-                                assert (
-                                    tail_end <= head_start
-                                ), f"head and tail entities not allowed to overlap"
-                                if head_end - tail_start > max_tokens:
-                                    continue
-                            else:
-                                raise ValueError(
-                                    "head and tail have the same center, but are not allowed to overlap"
-                                )
-
-                            rel_center = (head_center + tail_center) / 2.0
-                            window_start = int(rel_center - max_tokens / 2.0)
-                            window_end = window_start + max_tokens
-
-                            # If window goes over one end, shift it use as much content as possible.
-                            # First shift window to left and then to right to ensure that window_start is never
-                            # negative (if window_end is outside, this will not be a problem)
-                            if window_end >= len(input_ids):
-                                delta = len(input_ids) - window_end
-                                window_start += delta
-                                window_end += delta
-                            if window_start < 0:
-                                delta = -window_start
-                                window_start += delta
-                                window_end += delta
-                            assert (
-                                0 <= window_start < len(input_ids)
-                            ), f"window_start={window_start} not available in sequence"
-
+                            window_start, window_end = window_slice
                             input_ids = input_ids[window_start:window_end]
 
                         if self.add_type_to_marker:
