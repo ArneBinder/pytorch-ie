@@ -295,7 +295,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
-            relations = document.relation_annotations(self.relation_annotation)
+            relations = document.relation_annotations(self.relation_annotation, default=None)
 
             if self.partition_annotation is not None:
                 partitions = document.span_annotations(self.partition_annotation)
