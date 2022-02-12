@@ -44,16 +44,21 @@ _TransformerReTextClassificationTaskModule = TaskModule[
     TransformerReTextClassificationTaskOutput,
 ]
 
+HEAD = "head"
+TAIL = "tail"
+START = "start"
+END = "end"
+
 
 def _create_argument_markers(
     entity_labels: List[str], add_type_to_marker: bool
 ) -> Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]:
     argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str] = {}
-    for arg_type in ["head", "tail"]:
-        is_head = arg_type == "head"
+    for arg_type in [HEAD, TAIL]:
+        is_head = arg_type == HEAD
 
-        for arg_pos in ["start", "end"]:
-            is_start = arg_pos == "start"
+        for arg_pos in [START, END]:
+            is_start = arg_pos == START
 
             if add_type_to_marker:
                 for entity_type in entity_labels:
@@ -133,7 +138,7 @@ def _enumerate_entity_pairs(
             if tail_start is None or tail_end is None:
                 continue
 
-            yield head, (head_start, head_end), tail, (tail_start, tail_end)
+            yield head, (head_start, head_end + 1), tail, (tail_start, tail_end + 1)
 
 
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
@@ -291,7 +296,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
             relations = document.relation_annotations(self.relation_annotation)
-            existing_head_tail = {(relation.head, relation.tail) for relation in relations}
 
             if self.partition_annotation is not None:
                 partitions = document.span_annotations(self.partition_annotation)
@@ -323,7 +327,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     input_ids = encoding["input_ids"]
 
                     # windowing
-                    window_start = 0
                     if self.max_window is not None:
                         # The actual number of tokens will be lower than max_window because we add the
                         # 4 marker tokens (before / after the head /tail) and the default special tokens
@@ -346,80 +349,45 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         window_start, window_end = window_slice
                         input_ids = input_ids[window_start:window_end]
 
-                    if self.add_type_to_marker:
-                        if head.is_multilabel:
-                            raise NotImplementedError
+                        head_token_slice = head_start - window_start, head_end - window_start
+                        tail_token_slice = tail_start - window_start, tail_end - window_start
 
-                        head_start_marker = argument_markers_to_id[
-                            self.argument_markers[("head", "start", head.label_single)]
-                        ]
-                        head_end_marker = argument_markers_to_id[
-                            self.argument_markers[("head", "end", head.label_single)]
-                        ]
-                        if tail.is_multilabel:
-                            raise NotImplementedError
-                        tail_start_marker = argument_markers_to_id[
-                            self.argument_markers[("tail", "start", tail.label_single)]
-                        ]
-                        tail_end_marker = argument_markers_to_id[
-                            self.argument_markers[("tail", "end", tail.label_single)]
-                        ]
+                    if head_start < tail_start:
+                        entity_pair = (head, tail)
+                        entity_slices = (head_token_slice, tail_token_slice)
+                        entity_args = (HEAD, TAIL)
                     else:
-                        head_start_marker = argument_markers_to_id[
-                            self.argument_markers[("head", "start")]
-                        ]
-                        head_end_marker = argument_markers_to_id[
-                            self.argument_markers[("head", "end")]
-                        ]
-                        tail_start_marker = argument_markers_to_id[
-                            self.argument_markers[("tail", "start")]
-                        ]
-                        tail_end_marker = argument_markers_to_id[
-                            self.argument_markers[("tail", "end")]
-                        ]
+                        entity_pair = (tail, head)
+                        entity_slices = (tail_token_slice, head_token_slice)
+                        entity_args = (TAIL, HEAD)
 
-                    head_items = (
-                        head_start - window_start,
-                        head_end + 1 - window_start,
-                        head_start_marker,
-                        head_end_marker,
-                    )
-                    tail_items = (
-                        tail_start - window_start,
-                        tail_end + 1 - window_start,
-                        tail_start_marker,
-                        tail_end_marker,
-                    )
-
-                    head_first = head_start < tail_start
-                    first, second = (
-                        (head_items, tail_items) if head_first else (tail_items, head_items)
-                    )
-
-                    first_start, first_end, first_start_marker, first_end_marker = first
-                    second_start, second_end, second_start_marker, second_end_marker = second
-
-                    first_tokens = input_ids[first_start:first_end]
-                    second_tokens = input_ids[second_start:second_end]
+                    markers = {}
+                    for entity, arg_name in zip(entity_pair, entity_args):
+                        for pos in [START, END]:
+                            if self.add_type_to_marker:
+                                if entity.is_multilabel:
+                                    raise NotImplementedError
+                                markers[(arg_name, pos)] = argument_markers_to_id[
+                                    self.argument_markers[(arg_name, pos, entity.label_single)]
+                                ]
+                            else:
+                                markers[(arg_name, pos)] = argument_markers_to_id[
+                                    self.argument_markers[(arg_name, pos)]
+                                ]
 
                     new_input_ids = (
-                        input_ids[:first_start]
-                        + [first_start_marker]
-                        + first_tokens
-                        + [first_end_marker]
-                        + input_ids[first_end:second_start]
-                        + [second_start_marker]
-                        + second_tokens
-                        + [second_end_marker]
-                        + input_ids[second_end:]
+                        input_ids[: entity_slices[0][0]]
+                        + [markers[(entity_args[0], START)]]
+                        + input_ids[entity_slices[0][0] : entity_slices[0][1]]
+                        + [markers[(entity_args[0], END)]]
+                        + input_ids[entity_slices[0][1] : entity_slices[1][0]]
+                        + [markers[(entity_args[1], START)]]
+                        + input_ids[entity_slices[1][0] : entity_slices[1][1]]
+                        + [markers[(entity_args[1], END)]]
+                        + input_ids[entity_slices[1][1] :]
                     )
 
-                    new_head_start = new_input_ids.index(head_start_marker)
-                    new_head_end = new_input_ids.index(head_end_marker)
-                    new_tail_start = new_input_ids.index(tail_start_marker)
-                    new_tail_end = new_input_ids.index(tail_end_marker)
-
-                    # when windowing is used, we have to add teh special tokens again
+                    # when windowing is used, we have to add the special tokens again
                     if not add_special_tokens:
                         new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
                             token_ids_0=new_input_ids
@@ -428,10 +396,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     input_encoding.append({"input_ids": new_input_ids})
                     new_documents.append(document)
                     doc_metadata = {
-                        "head": head,
-                        "tail": tail,
-                        "head_offset": (new_head_start, new_head_end),
-                        "tail_offset": (new_tail_start, new_tail_end),
+                        HEAD: head,
+                        TAIL: tail,
                     }
                     metadata.append(doc_metadata)
 
@@ -454,7 +420,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 (relation.head, relation.tail): relation.labels for relation in relations
             }
 
-            labels = head_tail_to_labels.get((meta["head"], meta["tail"]), [self.none_label])
+            labels = head_tail_to_labels.get((meta[HEAD], meta[TAIL]), [self.none_label])
             label_ids = [self.label_to_id[label] for label in labels]
             target.append(label_ids)
 
@@ -495,8 +461,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             yield (
                 self.relation_annotation,
                 BinaryRelation(
-                    head=encoding.metadata["head"],
-                    tail=encoding.metadata["tail"],
+                    head=encoding.metadata[HEAD],
+                    tail=encoding.metadata[TAIL],
                     label=labels if self.multi_label else labels[0],
                     score=probabilities if self.multi_label else probabilities[0],
                 ),
