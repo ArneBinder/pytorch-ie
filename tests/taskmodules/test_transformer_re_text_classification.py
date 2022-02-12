@@ -1,90 +1,214 @@
 import copy
 import os
+from typing import Optional
 
 import pytest
 import torch
 
-from pytorch_ie.data.datasets.tacred import load_tacred
+from pytorch_ie import Document
+from pytorch_ie.data import BinaryRelation, LabeledSpan
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 from pytorch_ie.taskmodules.transformer_re_text_classification import _get_window_around_slice
-from tests import FIXTURES_ROOT
 
-TOKENS = [
-    "[CLS]",
-    "At",
-    "the",
-    "same",
-    "time",
-    ",",
-    "Chief",
-    "Financial",
-    "Officer",
-    "[H]",
-    "Douglas",
-    "Flint",
-    "[/H]",
-    "will",
-    "become",
-    "[T]",
-    "chairman",
-    "[/T]",
-    ",",
-    "succeeding",
-    "Stephen",
-    "Green",
-    "who",
-    "is",
-    "leaving",
-    "to",
-    "take",
-    "a",
-    "government",
-    "job",
-    ".",
-    "[SEP]",
-]
+TEXT_01 = "Jane lives in Berlin. this is no sentence about Karl\n"
+TEXT_02 = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
+TEXT_03 = "Karl enjoys sunny days in Berlin."
 
-TOKENS_WITH_MARKER = [
-    "[CLS]",
-    "At",
-    "the",
-    "same",
-    "time",
-    ",",
-    "Chief",
-    "Financial",
-    "Officer",
-    "[H:PERSON]",
-    "Douglas",
-    "Flint",
-    "[/H:PERSON]",
-    "will",
-    "become",
-    "[T:TITLE]",
-    "chairman",
-    "[/T:TITLE]",
-    ",",
-    "succeeding",
-    "Stephen",
-    "Green",
-    "who",
-    "is",
-    "leaving",
-    "to",
-    "take",
-    "a",
-    "government",
-    "job",
-    ".",
-    "[SEP]",
-]
+
+def _add_entity(
+    doc: Document,
+    start: int,
+    end: int,
+    label: str,
+    annotation_name: str,
+    assert_text: str,
+    id: Optional[str] = None,
+) -> LabeledSpan:
+    ent = LabeledSpan(start=start, end=end, label=label)
+    ent.metadata["text"] = doc.text[ent.start : ent.end]
+    assert ent.metadata["text"] == assert_text
+    if id is not None:
+        ent.metadata["id"] = id
+    doc.add_annotation(name=annotation_name, annotation=ent)
+    return ent
+
+
+def _add_relation(
+    doc: Document,
+    head: LabeledSpan,
+    tail: LabeledSpan,
+    label: str,
+    annotation_name: str,
+    id: Optional[str] = None,
+) -> BinaryRelation:
+    rel = BinaryRelation(head=head, tail=tail, label=label)
+    if id is not None:
+        rel.metadata["id"] = id
+    doc.add_annotation(name=annotation_name, annotation=rel)
+    return rel
+
+
+def get_doc1(
+    entity_annotation_name: str,
+    relation_annotation_name: str,
+    sentence_annotation_name: str,
+    with_ids: bool = False,
+    **kwargs,
+) -> Document:
+    doc = Document(text=TEXT_01, doc_id="1" if with_ids else None)
+    ent1 = _add_entity(
+        doc=doc,
+        start=0,
+        end=4,
+        label="person",
+        assert_text="Jane",
+        annotation_name=entity_annotation_name,
+        id="1" if with_ids else None,
+    )
+    ent2 = _add_entity(
+        doc=doc,
+        start=14,
+        end=20,
+        label="city",
+        assert_text="Berlin",
+        annotation_name=entity_annotation_name,
+        id="2" if with_ids else None,
+    )
+    _add_entity(
+        doc=doc,
+        start=48,
+        end=52,
+        label="person",
+        assert_text="Karl",
+        annotation_name=entity_annotation_name,
+        id="3" if with_ids else None,
+    )
+    _add_entity(
+        doc=doc,
+        start=0,
+        end=21,
+        label="sentence",
+        assert_text="Jane lives in Berlin.",
+        annotation_name=sentence_annotation_name,
+        id="4" if with_ids else None,
+    )
+    _add_relation(
+        doc=doc,
+        head=ent1,
+        tail=ent2,
+        label="lives_in",
+        annotation_name=relation_annotation_name,
+        id="1" if with_ids else None,
+    )
+    return doc
+
+
+def get_doc2(
+    entity_annotation_name: str,
+    relation_annotation_name: str,
+    sentence_annotation_name: str,
+    with_ids: bool = False,
+) -> Document:
+    doc = Document(text=TEXT_02, doc_id="3" if with_ids else None)
+    ent1 = _add_entity(
+        doc=doc,
+        start=0,
+        end=7,
+        label="city",
+        assert_text="Seattle",
+        annotation_name=entity_annotation_name,
+        id="1" if with_ids else None,
+    )
+    ent2 = _add_entity(
+        doc=doc,
+        start=25,
+        end=37,
+        label="person",
+        assert_text="Jenny Durkan",
+        annotation_name=entity_annotation_name,
+        id="2" if with_ids else None,
+    )
+    _add_entity(
+        doc=doc,
+        start=0,
+        end=24,
+        label="sentence",
+        assert_text="Seattle is a rainy city.",
+        annotation_name=sentence_annotation_name,
+        id="3" if with_ids else None,
+    )
+    _add_entity(
+        doc=doc,
+        start=25,
+        end=58,
+        label="sentence",
+        assert_text="Jenny Durkan is the city's mayor.",
+        annotation_name=sentence_annotation_name,
+        id="4" if with_ids else None,
+    )
+    _add_relation(
+        doc=doc,
+        head=ent2,
+        tail=ent1,
+        label="mayor_of",
+        annotation_name=relation_annotation_name,
+        id="1" if with_ids else None,
+    )
+    return doc
+
+
+def get_doc3(
+    entity_annotation_name: str,
+    relation_annotation_name: str,
+    sentence_annotation_name: str,
+    with_ids: bool = False,
+) -> Document:
+    doc = Document(text=TEXT_03, doc_id="2" if with_ids else None)
+    _add_entity(
+        doc=doc,
+        start=0,
+        end=4,
+        label="person",
+        assert_text="Karl",
+        annotation_name=entity_annotation_name,
+        id="1" if with_ids else None,
+    )
+    _add_entity(
+        doc=doc,
+        start=26,
+        end=32,
+        label="city",
+        assert_text="Berlin",
+        annotation_name=entity_annotation_name,
+        id="2" if with_ids else None,
+    )
+    _add_entity(
+        doc=doc,
+        start=0,
+        end=33,
+        label="sentence",
+        assert_text="Karl enjoys sunny days in Berlin.",
+        annotation_name=sentence_annotation_name,
+        id="3" if with_ids else None,
+    )
+    # TODO: this is kind of hacky
+    doc._annotations[relation_annotation_name] = []
+    return doc
 
 
 @pytest.fixture
 def documents():
-    documents = load_tacred(os.path.join(FIXTURES_ROOT, "datasets/tacred"), split="train")
-    assert len(documents) == 3
-
+    doc_kwargs = dict(
+        entity_annotation_name="entities",
+        relation_annotation_name="relations",
+        sentence_annotation_name="sentences",
+    )
+    # TODO: add doc3: for now (with add_negative_examples=False), this should not change anything, but it does!
+    # maybe implement test_enumerate_entity_pairs() before checking the encode methods
+    documents = sorted(
+        [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)], #get_doc3(**doc_kwargs)],
+        key=lambda doc: doc.text,
+    )
     return documents
 
 
@@ -108,7 +232,6 @@ def model_output():
     return {
         "logits": torch.tensor(
             [
-                [9.2733, -1.0300, -2.5785],
                 [-1.6924, 9.5473, -1.9625],
                 [-0.9995, -2.5705, 10.0095],
             ]
@@ -120,29 +243,25 @@ def test_prepare(taskmodule, documents):
     assert not taskmodule.is_prepared()
     taskmodule.prepare(documents)
     assert taskmodule.is_prepared()
-    assert set(taskmodule.label_to_id.keys()) == {"no_relation", "per:children", "per:title"}
+    assert set(taskmodule.label_to_id.keys()) == {"no_relation", "mayor_of", "lives_in"}
     assert taskmodule.label_to_id["no_relation"] == 0
     if taskmodule.add_type_to_marker:
         assert taskmodule.argument_markers == {
-            ("head", "start", "PERSON"): "[H:PERSON]",
-            ("head", "start", "CITY"): "[H:CITY]",
-            ("head", "start", "TITLE"): "[H:TITLE]",
-            ("head", "end", "PERSON"): "[/H:PERSON]",
-            ("head", "end", "CITY"): "[/H:CITY]",
-            ("head", "end", "TITLE"): "[/H:TITLE]",
-            ("tail", "start", "PERSON"): "[T:PERSON]",
-            ("tail", "start", "CITY"): "[T:CITY]",
-            ("tail", "start", "TITLE"): "[T:TITLE]",
-            ("tail", "end", "PERSON"): "[/T:PERSON]",
-            ("tail", "end", "CITY"): "[/T:CITY]",
-            ("tail", "end", "TITLE"): "[/T:TITLE]",
+            ("head", "end", "city"): "[/H:city]",
+            ("head", "end", "person"): "[/H:person]",
+            ("tail", "end", "city"): "[/T:city]",
+            ("tail", "end", "person"): "[/T:person]",
+            ("head", "start", "city"): "[H:city]",
+            ("head", "start", "person"): "[H:person]",
+            ("tail", "start", "city"): "[T:city]",
+            ("tail", "start", "person"): "[T:person]",
         }
     else:
         assert taskmodule.argument_markers == {
-            ("head", "start"): "[H]",
             ("head", "end"): "[/H]",
-            ("tail", "start"): "[T]",
             ("tail", "end"): "[/T]",
+            ("head", "start"): "[H]",
+            ("tail", "start"): "[T]",
         }
 
 
@@ -150,42 +269,188 @@ def test_config(prepared_taskmodule):
     config = prepared_taskmodule._config()
     assert config["taskmodule_type"] == "TransformerRETextClassificationTaskModule"
     assert "label_to_id" in config
-    assert set(config["label_to_id"]) == {"no_relation", "per:children", "per:title"}
+    assert set(config["label_to_id"]) == {"no_relation", "mayor_of", "lives_in"}
+    if prepared_taskmodule.add_type_to_marker:
+        assert set(config["entity_labels"]) == {"person", "city"}
+    else:
+        assert config["entity_labels"] == []
+
+
+def test_encode_input(prepared_taskmodule, documents):
+    input_encoding, metadata, new_documents = prepared_taskmodule.encode_input(documents)
+    assert len(input_encoding) == 2
+    assert new_documents is not None
+    assert len(new_documents) == 2
+    encoding = input_encoding[0]
+    document = new_documents[0]
+    assert document.text == TEXT_01
+    if prepared_taskmodule.add_type_to_marker:
+        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+            "[CLS]",
+            "[H:person]",
+            "Jane",
+            "[/H:person]",
+            "lives",
+            "in",
+            "[T:city]",
+            "Berlin",
+            "[/T:city]",
+            ".",
+            "this",
+            "is",
+            "no",
+            "sentence",
+            "about",
+            "Karl",
+            "[SEP]",
+        ]
+    else:
+        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+            "[CLS]",
+            "[H]",
+            "Jane",
+            "[/H]",
+            "lives",
+            "in",
+            "[T]",
+            "Berlin",
+            "[/T]",
+            ".",
+            "this",
+            "is",
+            "no",
+            "sentence",
+            "about",
+            "Karl",
+            "[SEP]",
+        ]
+
+    encoding = input_encoding[1]
+    document = new_documents[1]
+    assert document.text == TEXT_02
+    if prepared_taskmodule.add_type_to_marker:
+        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+            "[CLS]",
+            "[T:city]",
+            "Seattle",
+            "[/T:city]",
+            "is",
+            "a",
+            "rainy",
+            "city",
+            ".",
+            "[H:person]",
+            "Jenny",
+            "Du",
+            "##rka",
+            "##n",
+            "[/H:person]",
+            "is",
+            "the",
+            "city",
+            "'",
+            "s",
+            "mayor",
+            ".",
+            "[SEP]",
+        ]
+    else:
+        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+            "[CLS]",
+            "[T]",
+            "Seattle",
+            "[/T]",
+            "is",
+            "a",
+            "rainy",
+            "city",
+            ".",
+            "[H]",
+            "Jenny",
+            "Du",
+            "##rka",
+            "##n",
+            "[/H]",
+            "is",
+            "the",
+            "city",
+            "'",
+            "s",
+            "mayor",
+            ".",
+            "[SEP]",
+        ]
+
+
+@pytest.mark.parametrize("encode_target", [False, True])
+def test_encode_target(prepared_taskmodule, documents, encode_target):
+    task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
+    assert len(task_encodings) == 2
+    if encode_target:
+        encoding = task_encodings[0]
+        assert encoding.has_target
+        target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
+        assert target_labels == ["lives_in"]
+
+        encoding = task_encodings[1]
+        assert encoding.has_target
+        target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
+        assert target_labels == ["mayor_of"]
+    else:
+        assert [encoding.has_target for encoding in task_encodings] == [False, False]
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_encode(prepared_taskmodule, documents, encode_target):
-    task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
-    assert len(task_encodings) == 3
+    # the code is actually tested in test_encode_input() and test_encode_target(). Here we only test assertions in encode().
+    task_encodings = prepared_taskmodule.encode(documents, encode_target=True)
 
-    encoding = task_encodings[0]
-    document = documents[0]
-    assert encoding.document == document
-    assert "input_ids" in encoding.input
-    if prepared_taskmodule.add_type_to_marker:
-        assert (
-            prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.input["input_ids"])
-            == TOKENS_WITH_MARKER
-        )
-    else:
-        assert (
-            prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.input["input_ids"])
-            == TOKENS
-        )
 
-    if encode_target:
-        assert encoding.has_target
-        target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
-        assert target_labels == ["per:title"]
+def test_encode_input_with_partitions(prepared_taskmodule, documents):
+    prepared_taskmodule_with_partitions = copy.deepcopy(prepared_taskmodule)
+    prepared_taskmodule_with_partitions.partition_annotation = "sentences"
+    input_encoding, metadata, new_documents = prepared_taskmodule_with_partitions.encode_input(
+        documents
+    )
+    assert len(input_encoding) == 1
+    assert new_documents is not None
+    assert len(new_documents) == 1
+    encoding = input_encoding[0]
+    if prepared_taskmodule_with_partitions.add_type_to_marker:
+        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+            "[CLS]",
+            "[H:person]",
+            "Jane",
+            "[/H:person]",
+            "lives",
+            "in",
+            "[T:city]",
+            "Berlin",
+            "[/T:city]",
+            ".",
+            "[SEP]",
+        ]
     else:
-        assert not encoding.has_target
+        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+            "[CLS]",
+            "[H]",
+            "Jane",
+            "[/H]",
+            "lives",
+            "in",
+            "[T]",
+            "Berlin",
+            "[/T]",
+            ".",
+            "[SEP]",
+        ]
 
 
 def test_encode_with_windowing(prepared_taskmodule, documents):
     prepared_taskmodule_with_windowing = copy.deepcopy(prepared_taskmodule)
-    prepared_taskmodule_with_windowing.max_window = 27
+    prepared_taskmodule_with_windowing.max_window = 10
     task_encodings = prepared_taskmodule_with_windowing.encode(documents, encode_target=False)
-    assert len(task_encodings) == 2
+    assert len(task_encodings) == 1
 
     encoding = task_encodings[0]
     document = documents[0]
@@ -197,141 +462,26 @@ def test_encode_with_windowing(prepared_taskmodule, documents):
             encoding.input["input_ids"]
         ) == [
             "[CLS]",
-            "At",
-            "the",
-            "same",
-            "time",
-            ",",
-            "Chief",
-            "Financial",
-            "Officer",
-            "[H:PERSON]",
-            "Douglas",
-            "Flint",
-            "[/H:PERSON]",
-            "will",
-            "become",
-            "[T:TITLE]",
-            "chairman",
-            "[/T:TITLE]",
-            ",",
-            "succeeding",
-            "Stephen",
-            "Green",
-            "who",
-            "is",
-            "leaving",
-            "to",
+            "[H:person]",
+            "Jane",
+            "[/H:person]",
+            "lives",
+            "in",
+            "[T:city]",
+            "Berlin",
+            "[/T:city]",
             "[SEP]",
         ]
     else:
         assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
             encoding.input["input_ids"]
-        ) == [
-            "[CLS]",
-            "At",
-            "the",
-            "same",
-            "time",
-            ",",
-            "Chief",
-            "Financial",
-            "Officer",
-            "[H]",
-            "Douglas",
-            "Flint",
-            "[/H]",
-            "will",
-            "become",
-            "[T]",
-            "chairman",
-            "[/T]",
-            ",",
-            "succeeding",
-            "Stephen",
-            "Green",
-            "who",
-            "is",
-            "leaving",
-            "to",
-            "[SEP]",
-        ]
-
-    encoding = task_encodings[1]
-    document = documents[2]
-    assert encoding.document == document
-    assert "input_ids" in encoding.input
-    assert len(encoding.input["input_ids"]) <= prepared_taskmodule_with_windowing.max_window
-    if prepared_taskmodule_with_windowing.add_type_to_marker:
-        assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
-            encoding.input["input_ids"]
-        ) == [
-            "[CLS]",
-            "[T:CITY]",
-            "PA",
-            "##RI",
-            "##S",
-            "[/T:CITY]",
-            "2009",
-            "-",
-            "07",
-            "-",
-            "07",
-            "11",
-            ":",
-            "07",
-            ":",
-            "32",
-            "UTC",
-            "French",
-            "media",
-            "earlier",
-            "reported",
-            "that",
-            "[H:PERSON]",
-            "Mont",
-            "##court",
-            "[/H:PERSON]",
-            "[SEP]",
-        ]
-    else:
-        assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
-            encoding.input["input_ids"]
-        ) == [
-            "[CLS]",
-            "[T]",
-            "PA",
-            "##RI",
-            "##S",
-            "[/T]",
-            "2009",
-            "-",
-            "07",
-            "-",
-            "07",
-            "11",
-            ":",
-            "07",
-            ":",
-            "32",
-            "UTC",
-            "French",
-            "media",
-            "earlier",
-            "reported",
-            "that",
-            "[H]",
-            "Mont",
-            "##court",
-            "[/H]",
-            "[SEP]",
-        ]
+        ) == ["[CLS]", "[H]", "Jane", "[/H]", "lives", "in", "[T]", "Berlin", "[/T]", "[SEP]"]
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_collate(prepared_taskmodule, documents, encode_target):
     encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
-    assert len(encodings) == 3
+    assert len(encodings) == 2
 
     if encode_target:
         assert all([encoding.has_target for encoding in encodings])
@@ -342,25 +492,129 @@ def test_collate(prepared_taskmodule, documents, encode_target):
     inputs, targets = batch_encoding
     assert "input_ids" in inputs
     assert "attention_mask" in inputs
-    assert inputs["input_ids"].shape[0] == 3
+    assert inputs["input_ids"].shape[0] == 2
     assert inputs["input_ids"].shape == inputs["attention_mask"].shape
 
-    expected_tokens = TOKENS_WITH_MARKER if prepared_taskmodule.add_type_to_marker else TOKENS
-    expected_token_ids = prepared_taskmodule.tokenizer.convert_tokens_to_ids(expected_tokens)
-    # Note: we just add the padding tokens to the end
-    n_pad = len(inputs["input_ids"].tolist()[0]) - len(expected_token_ids)
-    expected_padded_input = (
-        expected_token_ids + [prepared_taskmodule.tokenizer.pad_token_id] * n_pad
-    )
-    assert inputs["input_ids"].tolist()[0] == expected_padded_input
+    if prepared_taskmodule.add_type_to_marker:
+        tokens1 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+            inputs["input_ids"].tolist()[0]
+        )
+        assert tokens1 == [
+            "[CLS]",
+            "[H:person]",
+            "Jane",
+            "[/H:person]",
+            "lives",
+            "in",
+            "[T:city]",
+            "Berlin",
+            "[/T:city]",
+            ".",
+            "this",
+            "is",
+            "no",
+            "sentence",
+            "about",
+            "Karl",
+            "[SEP]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+        ]
+        tokens2 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+            inputs["input_ids"].tolist()[1]
+        )
+        assert tokens2 == [
+            "[CLS]",
+            "[T:city]",
+            "Seattle",
+            "[/T:city]",
+            "is",
+            "a",
+            "rainy",
+            "city",
+            ".",
+            "[H:person]",
+            "Jenny",
+            "Du",
+            "##rka",
+            "##n",
+            "[/H:person]",
+            "is",
+            "the",
+            "city",
+            "'",
+            "s",
+            "mayor",
+            ".",
+            "[SEP]",
+        ]
+
+    else:
+        tokens1 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+            inputs["input_ids"].tolist()[0]
+        )
+        assert tokens1 == [
+            "[CLS]",
+            "[H]",
+            "Jane",
+            "[/H]",
+            "lives",
+            "in",
+            "[T]",
+            "Berlin",
+            "[/T]",
+            ".",
+            "this",
+            "is",
+            "no",
+            "sentence",
+            "about",
+            "Karl",
+            "[SEP]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+            "[PAD]",
+        ]
+        tokens2 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+            inputs["input_ids"].tolist()[1]
+        )
+        assert tokens2 == [
+            "[CLS]",
+            "[T]",
+            "Seattle",
+            "[/T]",
+            "is",
+            "a",
+            "rainy",
+            "city",
+            ".",
+            "[H]",
+            "Jenny",
+            "Du",
+            "##rka",
+            "##n",
+            "[/H]",
+            "is",
+            "the",
+            "city",
+            "'",
+            "s",
+            "mayor",
+            ".",
+            "[SEP]",
+        ]
 
     if encode_target:
-        assert targets.shape == (3,)
-        expected_ids = [
-            prepared_taskmodule.label_to_id[label]
-            for label in ["per:title", "no_relation", "per:children"]
-        ]
-        assert targets.tolist() == expected_ids
+        assert targets.shape == (2,)
+        labels = [prepared_taskmodule.id_to_label[target_id] for target_id in targets.tolist()]
+        assert labels == ["lives_in", "mayor_of"]
     else:
         assert targets is None
 
@@ -368,19 +622,19 @@ def test_collate(prepared_taskmodule, documents, encode_target):
 def test_unbatch_output(prepared_taskmodule, model_output):
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
 
-    assert len(unbatched_outputs) == 3
+    assert len(unbatched_outputs) == 2
 
     unbatched_output1 = unbatched_outputs[0]
-    assert unbatched_output1["labels"] == ["no_relation"]
-    assert pytest.approx([0.9999593496322632], unbatched_output1["probabilities"])
+    assert len(unbatched_output1["labels"]) == 1
+    assert len(unbatched_output1["probabilities"]) == 1
+    assert unbatched_output1["labels"][0] == "lives_in"
+    assert unbatched_output1["probabilities"][0] == pytest.approx(0.9999768733978271)
 
     unbatched_output2 = unbatched_outputs[1]
-    assert prepared_taskmodule.label_to_id[unbatched_output2["labels"][0]] == 1
-    assert pytest.approx([0.9999768733978271], unbatched_output2["probabilities"])
-
-    unbatched_output3 = unbatched_outputs[2]
-    assert prepared_taskmodule.label_to_id[unbatched_output3["labels"][0]] == 2
-    assert pytest.approx([0.9999799728393555], unbatched_output3["probabilities"])
+    assert len(unbatched_output2["labels"]) == 1
+    assert len(unbatched_output2["probabilities"]) == 1
+    assert unbatched_output2["labels"][0] == "mayor_of"
+    assert unbatched_output2["probabilities"][0] == pytest.approx(0.9999799728393555)
 
 
 @pytest.mark.parametrize("inplace", [True, False])
@@ -399,18 +653,33 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
 
     # sort documents because order of documents is not deterministic if inplace==False
     decoded_documents = sorted(decoded_documents, key=lambda doc: doc.text)
-    decoded_document = decoded_documents[1]
-    predictions = decoded_document.predictions("relations")
+    assert len(decoded_documents) == 2
+
+    predictions = decoded_documents[0].predictions("relations")
     assert len(predictions) == 1
-    assert prepared_taskmodule.label_to_id[predictions[0].label] == 2
-    head = predictions[0].head
-    assert head.label == "PERSON"
-    assert head.start == 65
-    assert head.end == 74
-    tail = predictions[0].tail
-    assert tail.label == "CITY"
+    prediction = predictions[0]
+    assert prediction.label == "lives_in"
+    head = prediction.head
+    assert head.label == "person"
+    assert head.start == 0
+    assert head.end == 4
+    tail = prediction.tail
+    assert tail.label == "city"
+    assert tail.start == 14
+    assert tail.end == 20
+
+    predictions = decoded_documents[1].predictions("relations")
+    assert len(predictions) == 1
+    prediction = predictions[0]
+    assert prediction.label == "mayor_of"
+    head = prediction.head
+    assert head.label == "person"
+    assert head.start == 25
+    assert head.end == 37
+    tail = prediction.tail
+    assert tail.label == "city"
     assert tail.start == 0
-    assert tail.end == 5
+    assert tail.end == 7
 
 
 def test_save_load(tmp_path, prepared_taskmodule):
@@ -452,3 +721,16 @@ def test_get_window_around_slice():
         slice=(0, 5), max_window_size=4, available_input_length=10
     )
     assert window_slice is None
+
+
+def test_enumerate_entity_pairs():
+    # TODO
+    # Especially check, what's happening when _no_ relations are given (maybe also create another test for encode_input)
+    # The current code assumes that relation annotations are available for all documents (at least an empty list) or
+    # not (None).
+    pass
+
+
+def test_encode_with_add_negative_examples():
+    # TODO
+    pass
