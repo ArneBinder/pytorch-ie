@@ -74,6 +74,15 @@ def _create_argument_markers(
 def _get_window_around_slice(
     slice: Tuple[int, int], max_window_size: int, available_input_length: int
 ) -> Optional[Tuple[int, int]]:
+    """
+    Given a `max_window` size, `available_token_length` and a `slice` (pair of start and end indices) that
+    is required to be in the resulting window, create a new slice of size `max_window_size` (or less, if not possible)
+    around the required slice. Per default, the resulting slice will be centered around the required slice.
+    However, if the required slice is at the beginning or end of the available tokens, the resulting window is
+    shifted to contain as many tokens as possible.
+    Iff the required `slice` already exceeds the `max_window_size`, return `None`.
+    """
+
     # current pair may not fit into the window
     if slice[1] - slice[0] > max_window_size:
         return None
@@ -109,6 +118,10 @@ def _enumerate_entity_pairs(
     partition: Optional[LabeledSpan] = None,
     relations: List[BinaryRelation] = None,
 ):
+    """
+    Given a list of `entities`, a text `encoding`, iterate all valid pairs of entities. If a `partition` is provided,
+    restrict pairs to be contained in that. If `relations` are given, return only pairs for which a relation exists.
+    """
     existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
     offset = partition.start if partition is not None else 0
     head: LabeledSpan
