@@ -106,24 +106,29 @@ def _get_window_around_slice(
 def _enumerate_entity_pairs(
     entities: List[LabeledSpan],
     encoding: BatchEncoding,
-    partition: LabeledSpan,
+    partition: Optional[LabeledSpan] = None,
     relations: List[BinaryRelation] = None,
 ):
     existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
+    offset = partition.start if partition is not None else 0
     head: LabeledSpan
     for head in entities:
-        if not is_contained_in((head.start, head.end), (partition.start, partition.end)):
+        if partition is not None and not is_contained_in(
+            (head.start, head.end), (partition.start, partition.end)
+        ):
             continue
 
-        head_start = encoding.char_to_token(head.start - partition.start)
-        head_end = encoding.char_to_token(head.end - partition.start - 1)
+        head_start = encoding.char_to_token(head.start - offset)
+        head_end = encoding.char_to_token(head.end - offset - 1)
 
         if head_start is None or head_end is None:
             continue
 
         tail: LabeledSpan
         for tail in entities:
-            if not is_contained_in((tail.start, tail.end), (partition.start, partition.end)):
+            if partition is not None and not is_contained_in(
+                (tail.start, tail.end), (partition.start, partition.end)
+            ):
                 continue
 
             if head == tail:
@@ -132,8 +137,8 @@ def _enumerate_entity_pairs(
             if relations is not None and (head, tail) not in existing_head_tail:
                 continue
 
-            tail_start = encoding.char_to_token(tail.start - partition.start)
-            tail_end = encoding.char_to_token(tail.end - partition.start - 1)
+            tail_start = encoding.char_to_token(tail.start - offset)
+            tail_end = encoding.char_to_token(tail.end - offset - 1)
 
             if tail_start is None or tail_end is None:
                 continue
@@ -178,7 +183,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
         max_window: Optional[int] = None,
-        add_negative_examples: bool = False,
     ) -> None:
         super().__init__(
             tokenizer_name_or_path=tokenizer_name_or_path,
@@ -196,7 +200,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             partition_annotation=partition_annotation,
             none_label=none_label,
             max_window=max_window,
-            add_negative_examples=add_negative_examples,
         )
 
         self.entity_annotation = entity_annotation
@@ -215,7 +218,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.partition_annotation = partition_annotation
         self.none_label = none_label
         self.max_window = max_window
-        self.add_negative_examples = add_negative_examples
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -276,6 +278,28 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.argument_markers = dict(sorted(argument_markers.items(), key=lambda kv: kv[1]))
         self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
+    def _encode_text(
+        self,
+        document: Document,
+        partition: Optional[LabeledSpan] = None,
+        add_special_tokens: bool = True,
+    ) -> BatchEncoding:
+        text = (
+            document.text[partition.start : partition.end]
+            if partition is not None
+            else document.text
+        )
+        encoding = self.tokenizer(
+            text,
+            padding=False,
+            truncation=self.truncation,
+            max_length=self.max_length,
+            is_split_into_words=False,
+            return_offsets_mapping=False,
+            add_special_tokens=add_special_tokens,
+        )
+        return encoding
+
     def encode_input(
         self, documents: List[Document]
     ) -> Tuple[
@@ -297,29 +321,24 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             entities = document.span_annotations(self.entity_annotation)
             relations = document.relation_annotations(self.relation_annotation, default=None)
 
+            partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
                 partitions = document.span_annotations(self.partition_annotation)
             else:
                 # use single dummy partition
-                partitions = [LabeledSpan(start=0, end=len(document.text), label="FULL_DOCUMENT")]
+                partitions = [None]
 
             for partition_idx, partition in enumerate(partitions):
                 add_special_tokens = self.max_window is None
-                encoding = self.tokenizer(
-                    document.text[partition.start : partition.end],
-                    padding=False,
-                    truncation=self.truncation,
-                    max_length=self.max_length,
-                    is_split_into_words=False,
-                    return_offsets_mapping=False,
-                    add_special_tokens=add_special_tokens,
+                encoding = self._encode_text(
+                    document=document, partition=partition, add_special_tokens=add_special_tokens
                 )
 
                 for head, head_token_slice, tail, tail_token_slice in _enumerate_entity_pairs(
                     entities=entities,
                     encoding=encoding,
                     partition=partition,
-                    relations=None if self.add_negative_examples else relations,
+                    relations=relations,
                 ):
                     head_start, head_end = head_token_slice
                     tail_start, tail_end = tail_token_slice
