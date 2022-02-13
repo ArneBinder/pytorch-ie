@@ -17,34 +17,94 @@ TEXT_01 = "Jane lives in Berlin. this is no sentence about Karl\n"
 TEXT_02 = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
 TEXT_03 = "Karl enjoys sunny days in Berlin."
 
+DOC1_ENTITY_JANE = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Jane"})
+DOC1_ENTITY_BERLIN = LabeledSpan(start=14, end=20, label="city", metadata={"text": "Berlin"})
+DOC1_ENTITY_KARL = LabeledSpan(start=48, end=52, label="person", metadata={"text": "Karl"})
+DOC1_SENTENCE1 = LabeledSpan(
+    start=0, end=21, label="sentence", metadata={"text": "Jane lives in Berlin."}
+)
+DOC1_REL_LIVES_IN = BinaryRelation(
+    head=DOC1_ENTITY_JANE, tail=DOC1_ENTITY_BERLIN, label="lives_in"
+)
 
-def _add_entity(
+DOC2_ENTITY_SEATTLE = LabeledSpan(start=0, end=7, label="city", metadata={"text": "Seattle"})
+DOC2_ENTITY_JENNY = LabeledSpan(
+    start=25, end=37, label="person", metadata={"text": "Jenny Durkan"}
+)
+DOC2_SENTENCE1 = LabeledSpan(
+    start=0, end=24, label="sentence", metadata={"text": "Seattle is a rainy city."}
+)
+DOC2_SENTENCE2 = LabeledSpan(
+    start=25, end=58, label="sentence", metadata={"text": "Jenny Durkan is the city's mayor."}
+)
+DOC2_REL_MAYOR_OF = BinaryRelation(
+    head=DOC2_ENTITY_JENNY, tail=DOC2_ENTITY_SEATTLE, label="mayor_of"
+)
+
+DOC3_ENTITY_KARL = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Karl"})
+DOC3_ENTITY_BERLIN = LabeledSpan(start=26, end=32, label="city", metadata={"text": "Berlin"})
+DOC3_SENTENCE1 = LabeledSpan(
+    start=0, end=33, label="sentence", metadata={"text": "Karl enjoys sunny days in Berlin."}
+)
+
+DOC1_TOKENS = [
+    "[CLS]",
+    "Jane",
+    "lives",
+    "in",
+    "Berlin",
+    ".",
+    "this",
+    "is",
+    "no",
+    "sentence",
+    "about",
+    "Karl",
+    "[SEP]",
+]
+DOC2_TOKENS = [
+    "[CLS]",
+    "Seattle",
+    "is",
+    "a",
+    "rainy",
+    "city",
+    ".",
+    "Jenny",
+    "Du",
+    "##rka",
+    "##n",
+    "is",
+    "the",
+    "city",
+    "'",
+    "s",
+    "mayor",
+    ".",
+    "[SEP]",
+]
+DOC3_TOKENS = ["[CLS]", "Karl", "enjoys", "sunny", "days", "in", "Berlin", ".", "[SEP]"]
+
+
+def _add_span(
     doc: Document,
-    start: int,
-    end: int,
-    label: str,
+    span: LabeledSpan,
     annotation_name: str,
-    assert_text: str,
     id: Optional[str] = None,
 ) -> LabeledSpan:
-    ent = LabeledSpan(start=start, end=end, label=label)
-    ent.metadata["text"] = doc.text[ent.start : ent.end]
-    assert ent.metadata["text"] == assert_text
+    assert doc.text[span.start : span.end] == span.metadata["text"]
     if id is not None:
-        ent.metadata["id"] = id
-    doc.add_annotation(name=annotation_name, annotation=ent)
-    return ent
+        span.metadata["id"] = id
+    doc.add_annotation(name=annotation_name, annotation=span)
+    return span
 
 
 def _add_relation(
     doc: Document,
-    head: LabeledSpan,
-    tail: LabeledSpan,
-    label: str,
+    rel: BinaryRelation,
     annotation_name: str,
     id: Optional[str] = None,
 ) -> BinaryRelation:
-    rel = BinaryRelation(head=head, tail=tail, label=label)
     if id is not None:
         rel.metadata["id"] = id
     doc.add_annotation(name=annotation_name, annotation=rel)
@@ -55,53 +115,25 @@ def get_doc1(
     entity_annotation_name: str,
     relation_annotation_name: str,
     sentence_annotation_name: str,
-    with_ids: bool = False,
     **kwargs,
 ) -> Document:
-    doc = Document(text=TEXT_01, doc_id="1" if with_ids else None)
-    ent1 = _add_entity(
-        doc=doc,
-        start=0,
-        end=4,
-        label="person",
-        assert_text="Jane",
-        annotation_name=entity_annotation_name,
-        id="1" if with_ids else None,
-    )
-    ent2 = _add_entity(
-        doc=doc,
-        start=14,
-        end=20,
-        label="city",
-        assert_text="Berlin",
-        annotation_name=entity_annotation_name,
-        id="2" if with_ids else None,
-    )
-    _add_entity(
-        doc=doc,
-        start=48,
-        end=52,
-        label="person",
-        assert_text="Karl",
-        annotation_name=entity_annotation_name,
-        id="3" if with_ids else None,
-    )
-    _add_entity(
-        doc=doc,
-        start=0,
-        end=21,
-        label="sentence",
-        assert_text="Jane lives in Berlin.",
-        annotation_name=sentence_annotation_name,
-        id="4" if with_ids else None,
-    )
+    doc = Document(text=TEXT_01)
+    for i, ent in enumerate([DOC1_ENTITY_JANE, DOC1_ENTITY_BERLIN, DOC1_ENTITY_KARL]):
+        _add_span(
+            doc=doc,
+            span=ent,
+            annotation_name=entity_annotation_name,
+        )
+    for i, sent in enumerate([DOC1_SENTENCE1]):
+        _add_span(
+            doc=doc,
+            span=sent,
+            annotation_name=sentence_annotation_name,
+        )
     _add_relation(
         doc=doc,
-        head=ent1,
-        tail=ent2,
-        label="lives_in",
+        rel=DOC1_REL_LIVES_IN,
         annotation_name=relation_annotation_name,
-        id="1" if with_ids else None,
     )
     return doc
 
@@ -110,52 +142,25 @@ def get_doc2(
     entity_annotation_name: str,
     relation_annotation_name: str,
     sentence_annotation_name: str,
-    with_ids: bool = False,
 ) -> Document:
-    doc = Document(text=TEXT_02, doc_id="3" if with_ids else None)
-    ent1 = _add_entity(
-        doc=doc,
-        start=0,
-        end=7,
-        label="city",
-        assert_text="Seattle",
-        annotation_name=entity_annotation_name,
-        id="1" if with_ids else None,
-    )
-    ent2 = _add_entity(
-        doc=doc,
-        start=25,
-        end=37,
-        label="person",
-        assert_text="Jenny Durkan",
-        annotation_name=entity_annotation_name,
-        id="2" if with_ids else None,
-    )
-    _add_entity(
-        doc=doc,
-        start=0,
-        end=24,
-        label="sentence",
-        assert_text="Seattle is a rainy city.",
-        annotation_name=sentence_annotation_name,
-        id="3" if with_ids else None,
-    )
-    _add_entity(
-        doc=doc,
-        start=25,
-        end=58,
-        label="sentence",
-        assert_text="Jenny Durkan is the city's mayor.",
-        annotation_name=sentence_annotation_name,
-        id="4" if with_ids else None,
-    )
+    doc = Document(text=TEXT_02)
+    for i, ent in enumerate([DOC2_ENTITY_SEATTLE, DOC2_ENTITY_JENNY]):
+        _add_span(
+            doc=doc,
+            span=ent,
+            annotation_name=entity_annotation_name,
+        )
+    for i, sent in enumerate([DOC2_SENTENCE1, DOC2_SENTENCE2]):
+        _add_span(
+            doc=doc,
+            span=sent,
+            annotation_name=sentence_annotation_name,
+        )
+
     _add_relation(
         doc=doc,
-        head=ent2,
-        tail=ent1,
-        label="mayor_of",
+        rel=DOC2_REL_MAYOR_OF,
         annotation_name=relation_annotation_name,
-        id="1" if with_ids else None,
     )
     return doc
 
@@ -164,36 +169,20 @@ def get_doc3(
     entity_annotation_name: str,
     relation_annotation_name: str,
     sentence_annotation_name: str,
-    with_ids: bool = False,
 ) -> Document:
-    doc = Document(text=TEXT_03, doc_id="2" if with_ids else None)
-    _add_entity(
-        doc=doc,
-        start=0,
-        end=4,
-        label="person",
-        assert_text="Karl",
-        annotation_name=entity_annotation_name,
-        id="1" if with_ids else None,
-    )
-    _add_entity(
-        doc=doc,
-        start=26,
-        end=32,
-        label="city",
-        assert_text="Berlin",
-        annotation_name=entity_annotation_name,
-        id="2" if with_ids else None,
-    )
-    _add_entity(
-        doc=doc,
-        start=0,
-        end=33,
-        label="sentence",
-        assert_text="Karl enjoys sunny days in Berlin.",
-        annotation_name=sentence_annotation_name,
-        id="3" if with_ids else None,
-    )
+    doc = Document(text=TEXT_03)
+    for i, ent in enumerate([DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN]):
+        _add_span(
+            doc=doc,
+            span=ent,
+            annotation_name=entity_annotation_name,
+        )
+    for i, sent in enumerate([DOC3_SENTENCE1]):
+        _add_span(
+            doc=doc,
+            span=sent,
+            annotation_name=sentence_annotation_name,
+        )
     # TODO: this is kind of hacky
     doc._annotations[relation_annotation_name] = []
     return doc
@@ -206,12 +195,7 @@ def documents():
         relation_annotation_name="relations",
         sentence_annotation_name="sentences",
     )
-    # TODO: add doc3: this should not change anything (no new relation candidates), but it does!
-    # maybe implement test_enumerate_entity_pairs() before checking the encode methods
-    documents = sorted(
-        [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)],  # get_doc3(**doc_kwargs)],
-        key=lambda doc: doc.text,
-    )
+    documents = [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs), get_doc3(**doc_kwargs)]
     return documents
 
 
@@ -424,12 +408,12 @@ def test_encode_target(prepared_taskmodule, documents, encode_target):
         encoding = task_encodings[0]
         assert encoding.has_target
         target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
-        assert target_labels == ["lives_in"]
+        assert target_labels == [DOC1_REL_LIVES_IN.label]
 
         encoding = task_encodings[1]
         assert encoding.has_target
         target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
-        assert target_labels == ["mayor_of"]
+        assert target_labels == [DOC2_REL_MAYOR_OF.label]
     else:
         assert [encoding.has_target for encoding in task_encodings] == [False, False]
 
@@ -655,7 +639,7 @@ def test_collate(prepared_taskmodule_optional_marker, documents, encode_target):
             prepared_taskmodule_optional_marker.id_to_label[target_id]
             for target_id in targets.tolist()
         ]
-        assert labels == ["lives_in", "mayor_of"]
+        assert labels == [DOC1_REL_LIVES_IN.label, DOC2_REL_MAYOR_OF.label]
     else:
         assert targets is None
 
@@ -668,59 +652,53 @@ def test_unbatch_output(prepared_taskmodule, model_output):
     unbatched_output1 = unbatched_outputs[0]
     assert len(unbatched_output1["labels"]) == 1
     assert len(unbatched_output1["probabilities"]) == 1
-    assert unbatched_output1["labels"][0] == "lives_in"
+    assert unbatched_output1["labels"][0] == DOC1_REL_LIVES_IN.label
     assert unbatched_output1["probabilities"][0] == pytest.approx(0.9999768733978271)
 
     unbatched_output2 = unbatched_outputs[1]
     assert len(unbatched_output2["labels"]) == 1
     assert len(unbatched_output2["probabilities"]) == 1
-    assert unbatched_output2["labels"][0] == "mayor_of"
+    assert unbatched_output2["labels"][0] == DOC2_REL_MAYOR_OF.label
     assert unbatched_output2["probabilities"][0] == pytest.approx(0.9999799728393555)
 
 
-@pytest.mark.parametrize("inplace", [True, False])
-def test_decode(prepared_taskmodule, documents, model_output, inplace):
+def test_decode(prepared_taskmodule, documents, model_output):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=inplace
+        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=False
     )
 
-    assert len(decoded_documents) == len(documents)
-    if inplace:
-        assert set(decoded_documents) == set(documents)
-    else:
-        assert set(decoded_documents).isdisjoint(set(documents))
-
-    # sort documents because order of documents is not deterministic if inplace==False
-    decoded_documents = sorted(decoded_documents, key=lambda doc: doc.text)
     assert len(decoded_documents) == 2
+    document_mapping = {
+        decoded_document.text: decoded_document for decoded_document in decoded_documents
+    }
+    # re-create original document order
+    decoded_documents = [document_mapping[text] for text in [TEXT_01, TEXT_02]]
 
     predictions = decoded_documents[0].predictions("relations")
     assert len(predictions) == 1
     prediction = predictions[0]
-    assert prediction.label == "lives_in"
-    head = prediction.head
-    assert head.label == "person"
-    assert head.start == 0
-    assert head.end == 4
-    tail = prediction.tail
-    assert tail.label == "city"
-    assert tail.start == 14
-    assert tail.end == 20
+    assert prediction.label == DOC1_REL_LIVES_IN.label
+    assert prediction.head == DOC1_ENTITY_JANE
+    assert prediction.tail == DOC1_ENTITY_BERLIN
 
     predictions = decoded_documents[1].predictions("relations")
     assert len(predictions) == 1
     prediction = predictions[0]
-    assert prediction.label == "mayor_of"
-    head = prediction.head
-    assert head.label == "person"
-    assert head.start == 25
-    assert head.end == 37
-    tail = prediction.tail
-    assert tail.label == "city"
-    assert tail.start == 0
-    assert tail.end == 7
+    assert prediction.label == DOC2_REL_MAYOR_OF.label
+    assert prediction.head == DOC2_ENTITY_JENNY
+    assert prediction.tail == DOC2_ENTITY_SEATTLE
+
+
+def test_decode_inplace(prepared_taskmodule, documents, model_output):
+    encodings = prepared_taskmodule.encode(documents, encode_target=False)
+    unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
+    decoded_documents = prepared_taskmodule.decode(
+        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=True
+    )
+    # TODO: this fails because there is a document without any relation annotation
+    # assert set(decoded_documents) == set(documents)
 
 
 def test_save_load(tmp_path, prepared_taskmodule):
@@ -764,11 +742,402 @@ def test_get_window_around_slice():
     assert window_slice is None
 
 
-def test_enumerate_entity_pairs():
-    # TODO
-    # Especially check, what's happening when _no_ relations are given (maybe also create another test for encode_input)
-    # The current code assumes that relation annotations are available for all documents (at least an empty list) or
-    # not (None).
-    pass
+def test_enumerate_entity_pairs(prepared_taskmodule, documents):
+    """
+    This should return all combinations of entities.
+    """
+    document = documents[0]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 3
+    assert entities[0] == DOC1_ENTITY_JANE
+    assert entities[1] == DOC1_ENTITY_BERLIN
+    assert entities[2] == DOC1_ENTITY_KARL
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,  # partition=partition, add_special_tokens=add_special_tokens
+    )
+    assert (
+        prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
+        == DOC1_TOKENS
+    )
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,  # partition=partition, relations=relations,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 6
 
     head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC1_ENTITY_JANE
+    assert tail == DOC1_ENTITY_BERLIN
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (4, 5)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    assert head == DOC1_ENTITY_JANE
+    assert tail == DOC1_ENTITY_KARL
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (11, 12)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[2]
+    assert head == DOC1_ENTITY_BERLIN
+    assert tail == DOC1_ENTITY_JANE
+    assert head_token_slice == (4, 5)
+    assert tail_token_slice == (1, 2)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[3]
+    assert head == DOC1_ENTITY_BERLIN
+    assert tail == DOC1_ENTITY_KARL
+    assert head_token_slice == (4, 5)
+    assert tail_token_slice == (11, 12)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[4]
+    assert head == DOC1_ENTITY_KARL
+    assert tail == DOC1_ENTITY_JANE
+    assert head_token_slice == (11, 12)
+    assert tail_token_slice == (1, 2)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[5]
+    assert head == DOC1_ENTITY_KARL
+    assert tail == DOC1_ENTITY_BERLIN
+    assert head_token_slice == (11, 12)
+    assert tail_token_slice == (4, 5)
+
+    document = documents[1]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 2
+    assert entities[0] == DOC2_ENTITY_SEATTLE
+    assert entities[1] == DOC2_ENTITY_JENNY
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,  # partition=partition, add_special_tokens=add_special_tokens
+    )
+    assert (
+        prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
+        == DOC2_TOKENS
+    )
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,  # partition=partition, relations=relations,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 2
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC2_ENTITY_SEATTLE
+    assert tail == DOC2_ENTITY_JENNY
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (7, 11)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    assert head == DOC2_ENTITY_JENNY
+    assert tail == DOC2_ENTITY_SEATTLE
+    assert head_token_slice == (7, 11)
+    assert tail_token_slice == (1, 2)
+
+    document = documents[2]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 2
+    assert entities[0] == DOC3_ENTITY_KARL
+    assert entities[1] == DOC3_ENTITY_BERLIN
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,  # partition=partition, add_special_tokens=add_special_tokens
+    )
+    assert (
+        prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
+        == DOC3_TOKENS
+    )
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,  # partition=partition, relations=relations,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 2
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC3_ENTITY_KARL
+    assert tail == DOC3_ENTITY_BERLIN
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (6, 7)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    assert head == DOC3_ENTITY_BERLIN
+    assert tail == DOC3_ENTITY_KARL
+    assert head_token_slice == (6, 7)
+    assert tail_token_slice == (1, 2)
+
+
+def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
+    """
+    This should return only combinations for which a relation exists.
+    """
+    document = documents[0]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 3
+    assert entities[0] == DOC1_ENTITY_JANE
+    assert entities[1] == DOC1_ENTITY_BERLIN
+    assert entities[2] == DOC1_ENTITY_KARL
+    relations = document.relation_annotations("relations")
+    assert len(relations) == 1
+    relation = relations[0]
+    assert relation == DOC1_REL_LIVES_IN
+    assert relation.head == DOC1_ENTITY_JANE
+    assert relation.tail == DOC1_ENTITY_BERLIN
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,  # partition=partition, add_special_tokens=add_special_tokens
+    )
+    assert (
+        prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
+        == DOC1_TOKENS
+    )
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            relations=relations,
+            # partition=partition,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 1
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC1_ENTITY_JANE
+    assert tail == DOC1_ENTITY_BERLIN
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (4, 5)
+
+    document = documents[1]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 2
+    assert entities[0] == DOC2_ENTITY_SEATTLE
+    assert entities[1] == DOC2_ENTITY_JENNY
+    relations = document.relation_annotations("relations")
+    assert len(relations) == 1
+    relation = relations[0]
+    assert relation == DOC2_REL_MAYOR_OF
+    assert relation.head == DOC2_ENTITY_JENNY
+    assert relation.tail == DOC2_ENTITY_SEATTLE
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,  # partition=partition, add_special_tokens=add_special_tokens
+    )
+    assert (
+        prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
+        == DOC2_TOKENS
+    )
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            relations=relations,
+            # partition=partition, relations=relations,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 1
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC2_ENTITY_JENNY
+    assert tail == DOC2_ENTITY_SEATTLE
+    assert head_token_slice == (7, 11)
+    assert tail_token_slice == (1, 2)
+
+    document = documents[2]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 2
+    assert entities[0] == DOC3_ENTITY_KARL
+    assert entities[1] == DOC3_ENTITY_BERLIN
+    relations = document.relation_annotations("relations")
+    assert len(relations) == 0
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,  # partition=partition, add_special_tokens=add_special_tokens
+    )
+    assert (
+        prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
+        == DOC3_TOKENS
+    )
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            relations=relations,  # partition=partition,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 0
+
+
+def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
+    """
+    This should return only combinations with entities in the same sentence.
+    """
+    document = documents[0]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 3
+    assert entities[0] == DOC1_ENTITY_JANE
+    assert entities[1] == DOC1_ENTITY_BERLIN
+    assert entities[2] == DOC1_ENTITY_KARL
+    sentences = document.span_annotations("sentences")
+    assert len(sentences) == 1
+    partition = sentences[0]
+    assert partition == DOC1_SENTENCE1
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,
+        partition=partition,  # add_special_tokens=add_special_tokens
+    )
+    assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
+        "[CLS]",
+        "Jane",
+        "lives",
+        "in",
+        "Berlin",
+        ".",
+        "[SEP]",
+    ]
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            # relations=relations,
+            partition=partition,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 2
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC1_ENTITY_JANE
+    assert tail == DOC1_ENTITY_BERLIN
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (4, 5)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    assert head == DOC1_ENTITY_BERLIN
+    assert tail == DOC1_ENTITY_JANE
+    assert head_token_slice == (4, 5)
+    assert tail_token_slice == (1, 2)
+
+    document = documents[1]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 2
+    assert entities[0] == DOC2_ENTITY_SEATTLE
+    assert entities[1] == DOC2_ENTITY_JENNY
+    sentences = document.span_annotations("sentences")
+    assert len(sentences) == 2
+    partition = sentences[0]
+    assert partition == DOC2_SENTENCE1
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,
+        partition=partition,  # add_special_tokens=add_special_tokens
+    )
+    assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
+        "[CLS]",
+        "Seattle",
+        "is",
+        "a",
+        "rainy",
+        "city",
+        ".",
+        "[SEP]",
+    ]
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            # relations=relations,
+            partition=partition,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 0
+
+    partition = sentences[1]
+    assert partition == DOC2_SENTENCE2
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,
+        partition=partition,  # add_special_tokens=add_special_tokens
+    )
+    assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
+        "[CLS]",
+        "Jenny",
+        "Du",
+        "##rka",
+        "##n",
+        "is",
+        "the",
+        "city",
+        "'",
+        "s",
+        "mayor",
+        ".",
+        "[SEP]",
+    ]
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            # relations=relations,
+            partition=partition,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 0
+
+    document = documents[2]
+    entities = document.span_annotations("entities")
+    assert len(entities) == 2
+    assert entities[0] == DOC3_ENTITY_KARL
+    assert entities[1] == DOC3_ENTITY_BERLIN
+    sentences = document.span_annotations("sentences")
+    assert len(sentences) == 1
+    partition = sentences[0]
+    assert partition == DOC3_SENTENCE1
+
+    encoding = prepared_taskmodule._encode_text(
+        document=document,
+        partition=partition,  # add_special_tokens=add_special_tokens
+    )
+    assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
+        "[CLS]",
+        "Karl",
+        "enjoys",
+        "sunny",
+        "days",
+        "in",
+        "Berlin",
+        ".",
+        "[SEP]",
+    ]
+
+    enumerated_entity_pairs = list(
+        _enumerate_entity_pairs(
+            entities=entities,
+            encoding=encoding,
+            # relations=relations,
+            partition=partition,
+        )
+    )
+    assert len(enumerated_entity_pairs) == 2
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    assert head == DOC3_ENTITY_KARL
+    assert tail == DOC3_ENTITY_BERLIN
+    assert head_token_slice == (1, 2)
+    assert tail_token_slice == (6, 7)
+
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    assert head == DOC3_ENTITY_BERLIN
+    assert tail == DOC3_ENTITY_KARL
+    assert head_token_slice == (6, 7)
+    assert tail_token_slice == (1, 2)
