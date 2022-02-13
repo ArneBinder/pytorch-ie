@@ -8,7 +8,10 @@ import torch
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
-from pytorch_ie.taskmodules.transformer_re_text_classification import _get_window_around_slice
+from pytorch_ie.taskmodules.transformer_re_text_classification import (
+    _enumerate_entity_pairs,
+    _get_window_around_slice,
+)
 
 TEXT_01 = "Jane lives in Berlin. this is no sentence about Karl\n"
 TEXT_02 = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
@@ -203,20 +206,20 @@ def documents():
         relation_annotation_name="relations",
         sentence_annotation_name="sentences",
     )
-    # TODO: add doc3: for now (with add_negative_examples=False), this should not change anything, but it does!
+    # TODO: add doc3: this should not change anything (no new relation candidates), but it does!
     # maybe implement test_enumerate_entity_pairs() before checking the encode methods
     documents = sorted(
-        [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)], #get_doc3(**doc_kwargs)],
+        [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)],  # get_doc3(**doc_kwargs)],
         key=lambda doc: doc.text,
     )
     return documents
 
 
-@pytest.fixture(scope="module", params=[False, True])
-def taskmodule(request):
+@pytest.fixture(scope="module")
+def taskmodule():
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerRETextClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
+        tokenizer_name_or_path=tokenizer_name_or_path,
     )
     return taskmodule
 
@@ -225,6 +228,21 @@ def taskmodule(request):
 def prepared_taskmodule(taskmodule, documents):
     taskmodule.prepare(documents)
     return taskmodule
+
+
+@pytest.fixture(scope="module", params=[False, True])
+def taskmodule_optional_marker(request):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
+    )
+    return taskmodule
+
+
+@pytest.fixture
+def prepared_taskmodule_optional_marker(taskmodule_optional_marker, documents):
+    taskmodule_optional_marker.prepare(documents)
+    return taskmodule_optional_marker
 
 
 @pytest.fixture
@@ -239,14 +257,18 @@ def model_output():
     }
 
 
-def test_prepare(taskmodule, documents):
-    assert not taskmodule.is_prepared()
-    taskmodule.prepare(documents)
-    assert taskmodule.is_prepared()
-    assert set(taskmodule.label_to_id.keys()) == {"no_relation", "mayor_of", "lives_in"}
-    assert taskmodule.label_to_id["no_relation"] == 0
-    if taskmodule.add_type_to_marker:
-        assert taskmodule.argument_markers == {
+def test_prepare(taskmodule_optional_marker, documents):
+    assert not taskmodule_optional_marker.is_prepared()
+    taskmodule_optional_marker.prepare(documents)
+    assert taskmodule_optional_marker.is_prepared()
+    assert set(taskmodule_optional_marker.label_to_id.keys()) == {
+        "no_relation",
+        "mayor_of",
+        "lives_in",
+    }
+    assert taskmodule_optional_marker.label_to_id["no_relation"] == 0
+    if taskmodule_optional_marker.add_type_to_marker:
+        assert taskmodule_optional_marker.argument_markers == {
             ("head", "end", "city"): "[/H:city]",
             ("head", "end", "person"): "[/H:person]",
             ("tail", "end", "city"): "[/T:city]",
@@ -257,7 +279,7 @@ def test_prepare(taskmodule, documents):
             ("tail", "start", "person"): "[T:person]",
         }
     else:
-        assert taskmodule.argument_markers == {
+        assert taskmodule_optional_marker.argument_markers == {
             ("head", "end"): "[/H]",
             ("tail", "end"): "[/T]",
             ("head", "start"): "[H]",
@@ -265,27 +287,33 @@ def test_prepare(taskmodule, documents):
         }
 
 
-def test_config(prepared_taskmodule):
-    config = prepared_taskmodule._config()
+def test_config(prepared_taskmodule_optional_marker):
+    config = prepared_taskmodule_optional_marker._config()
     assert config["taskmodule_type"] == "TransformerRETextClassificationTaskModule"
     assert "label_to_id" in config
     assert set(config["label_to_id"]) == {"no_relation", "mayor_of", "lives_in"}
-    if prepared_taskmodule.add_type_to_marker:
+    if prepared_taskmodule_optional_marker.add_type_to_marker:
         assert set(config["entity_labels"]) == {"person", "city"}
     else:
         assert config["entity_labels"] == []
 
 
-def test_encode_input(prepared_taskmodule, documents):
-    input_encoding, metadata, new_documents = prepared_taskmodule.encode_input(documents)
+def test_encode_input(prepared_taskmodule_optional_marker, documents):
+    (
+        input_encoding,
+        metadata,
+        new_documents,
+    ) = prepared_taskmodule_optional_marker.encode_input(documents)
     assert len(input_encoding) == 2
     assert new_documents is not None
     assert len(new_documents) == 2
     encoding = input_encoding[0]
     document = new_documents[0]
     assert document.text == TEXT_01
-    if prepared_taskmodule.add_type_to_marker:
-        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+    if prepared_taskmodule_optional_marker.add_type_to_marker:
+        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
+            encoding["input_ids"]
+        ) == [
             "[CLS]",
             "[H:person]",
             "Jane",
@@ -305,7 +333,9 @@ def test_encode_input(prepared_taskmodule, documents):
             "[SEP]",
         ]
     else:
-        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
+            encoding["input_ids"]
+        ) == [
             "[CLS]",
             "[H]",
             "Jane",
@@ -328,8 +358,10 @@ def test_encode_input(prepared_taskmodule, documents):
     encoding = input_encoding[1]
     document = new_documents[1]
     assert document.text == TEXT_02
-    if prepared_taskmodule.add_type_to_marker:
-        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+    if prepared_taskmodule_optional_marker.add_type_to_marker:
+        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
+            encoding["input_ids"]
+        ) == [
             "[CLS]",
             "[T:city]",
             "Seattle",
@@ -355,7 +387,9 @@ def test_encode_input(prepared_taskmodule, documents):
             "[SEP]",
         ]
     else:
-        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
+            encoding["input_ids"]
+        ) == [
             "[CLS]",
             "[T]",
             "Seattle",
@@ -401,13 +435,13 @@ def test_encode_target(prepared_taskmodule, documents, encode_target):
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_encode(prepared_taskmodule, documents, encode_target):
+def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
     # the code is actually tested in test_encode_input() and test_encode_target(). Here we only test assertions in encode().
-    task_encodings = prepared_taskmodule.encode(documents, encode_target=True)
+    task_encodings = prepared_taskmodule_optional_marker.encode(documents, encode_target=True)
 
 
-def test_encode_input_with_partitions(prepared_taskmodule, documents):
-    prepared_taskmodule_with_partitions = copy.deepcopy(prepared_taskmodule)
+def test_encode_input_with_partitions(prepared_taskmodule_optional_marker, documents):
+    prepared_taskmodule_with_partitions = copy.deepcopy(prepared_taskmodule_optional_marker)
     prepared_taskmodule_with_partitions.partition_annotation = "sentences"
     input_encoding, metadata, new_documents = prepared_taskmodule_with_partitions.encode_input(
         documents
@@ -417,7 +451,9 @@ def test_encode_input_with_partitions(prepared_taskmodule, documents):
     assert len(new_documents) == 1
     encoding = input_encoding[0]
     if prepared_taskmodule_with_partitions.add_type_to_marker:
-        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
+            encoding["input_ids"]
+        ) == [
             "[CLS]",
             "[H:person]",
             "Jane",
@@ -431,7 +467,9 @@ def test_encode_input_with_partitions(prepared_taskmodule, documents):
             "[SEP]",
         ]
     else:
-        assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding["input_ids"]) == [
+        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
+            encoding["input_ids"]
+        ) == [
             "[CLS]",
             "[H]",
             "Jane",
@@ -446,8 +484,8 @@ def test_encode_input_with_partitions(prepared_taskmodule, documents):
         ]
 
 
-def test_encode_with_windowing(prepared_taskmodule, documents):
-    prepared_taskmodule_with_windowing = copy.deepcopy(prepared_taskmodule)
+def test_encode_with_windowing(prepared_taskmodule_optional_marker, documents):
+    prepared_taskmodule_with_windowing = copy.deepcopy(prepared_taskmodule_optional_marker)
     prepared_taskmodule_with_windowing.max_window = 10
     task_encodings = prepared_taskmodule_with_windowing.encode(documents, encode_target=False)
     assert len(task_encodings) == 1
@@ -479,8 +517,8 @@ def test_encode_with_windowing(prepared_taskmodule, documents):
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_collate(prepared_taskmodule, documents, encode_target):
-    encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
+def test_collate(prepared_taskmodule_optional_marker, documents, encode_target):
+    encodings = prepared_taskmodule_optional_marker.encode(documents, encode_target=encode_target)
     assert len(encodings) == 2
 
     if encode_target:
@@ -488,15 +526,15 @@ def test_collate(prepared_taskmodule, documents, encode_target):
     else:
         assert not any([encoding.has_target for encoding in encodings])
 
-    batch_encoding = prepared_taskmodule.collate(encodings)
+    batch_encoding = prepared_taskmodule_optional_marker.collate(encodings)
     inputs, targets = batch_encoding
     assert "input_ids" in inputs
     assert "attention_mask" in inputs
     assert inputs["input_ids"].shape[0] == 2
     assert inputs["input_ids"].shape == inputs["attention_mask"].shape
 
-    if prepared_taskmodule.add_type_to_marker:
-        tokens1 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+    if prepared_taskmodule_optional_marker.add_type_to_marker:
+        tokens1 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
             inputs["input_ids"].tolist()[0]
         )
         assert tokens1 == [
@@ -524,7 +562,7 @@ def test_collate(prepared_taskmodule, documents, encode_target):
             "[PAD]",
             "[PAD]",
         ]
-        tokens2 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+        tokens2 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
             inputs["input_ids"].tolist()[1]
         )
         assert tokens2 == [
@@ -554,7 +592,7 @@ def test_collate(prepared_taskmodule, documents, encode_target):
         ]
 
     else:
-        tokens1 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+        tokens1 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
             inputs["input_ids"].tolist()[0]
         )
         assert tokens1 == [
@@ -582,7 +620,7 @@ def test_collate(prepared_taskmodule, documents, encode_target):
             "[PAD]",
             "[PAD]",
         ]
-        tokens2 = prepared_taskmodule.tokenizer.convert_ids_to_tokens(
+        tokens2 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
             inputs["input_ids"].tolist()[1]
         )
         assert tokens2 == [
@@ -613,7 +651,10 @@ def test_collate(prepared_taskmodule, documents, encode_target):
 
     if encode_target:
         assert targets.shape == (2,)
-        labels = [prepared_taskmodule.id_to_label[target_id] for target_id in targets.tolist()]
+        labels = [
+            prepared_taskmodule_optional_marker.id_to_label[target_id]
+            for target_id in targets.tolist()
+        ]
         assert labels == ["lives_in", "mayor_of"]
     else:
         assert targets is None
@@ -730,7 +771,4 @@ def test_enumerate_entity_pairs():
     # not (None).
     pass
 
-
-def test_encode_with_add_negative_examples():
-    # TODO
-    pass
+    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
