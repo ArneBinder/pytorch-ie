@@ -476,9 +476,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         TAIL: tail,
                     }
                     metadata.append(doc_metadata)
-                    statistics["candidates"][
-                        relation_mapping.get((head, tail), "TO_PREDICT")
-                    ] += 1
+                    statistics["candidates"][relation_mapping.get((head, tail), "TO_PREDICT")] += 1
 
         logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
         return input_encoding, metadata, new_documents
