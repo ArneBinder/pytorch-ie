@@ -209,17 +209,20 @@ def convert_document_to_brat(
     doc: Document,
     head_argument_name: str = DEFAULT_HEAD_ARGUMENT_NAME,
     tail_argument_name: str = DEFAULT_TAIL_ARGUMENT_NAME,
-    span_annotation_names: List[str] = [DEFAULT_SPAN_ANNOTATION_NAME],
-    relation_annotation_names: List[str] = [DEFAULT_RELATION_ANNOTATION_NAME],
+    span_annotation_names: Optional[List[str]] = None,
+    relation_annotation_names: Optional[List[str]] = None,
     **kwargs,
 ) -> Tuple[Optional[str], str, List[str]]:
     serialized_annotations: Dict[Annotation, str] = {}
-
+    if span_annotation_names is None:
+        span_annotation_names = [DEFAULT_SPAN_ANNOTATION_NAME]
+    if relation_annotation_names is None:
+        relation_annotation_names = [DEFAULT_RELATION_ANNOTATION_NAME]
     for entity_annotation_name in span_annotation_names:
-        for span_ann in doc.span_annotations(entity_annotation_name):
+        for span_ann in doc.span_annotations(entity_annotation_name) or []:
             serialized_annotations[span_ann] = serialize_labeled_span(span_ann, doc, **kwargs)
     for relation_annotation_name in relation_annotation_names:
-        for rel_ann in doc.relation_annotations(relation_annotation_name):
+        for rel_ann in doc.relation_annotations(relation_annotation_name) or []:
             serialized_annotations[rel_ann] = serialize_binary_relation(
                 rel_ann,
                 doc,
