@@ -182,20 +182,20 @@ class Document:
         self._predictions[name].append(prediction)
 
     # TODO: rework all getters for annotations (e.g. remove type: ignore)
-    def annotations(self, name: str) -> AnnotationLayer:
-        return self._annotations.get(name, [])
+    def annotations(self, name: str) -> Optional[AnnotationLayer]:
+        return self._annotations.get(name, None)
 
-    def span_annotations(self, name: str) -> List[LabeledSpan]:
+    def span_annotations(self, name: str) -> Optional[List[LabeledSpan]]:
         return self.annotations(name=name)  # type: ignore
 
-    def relation_annotations(self, name: str) -> List[BinaryRelation]:
+    def relation_annotations(self, name: str) -> Optional[List[BinaryRelation]]:
         return self.annotations(name=name)  # type: ignore
 
-    def label_annotations(self, name: str) -> List[Label]:
+    def label_annotations(self, name: str) -> Optional[List[Label]]:
         return self.annotations(name=name)  # type: ignore
 
-    def predictions(self, name: str) -> AnnotationLayer:
-        return self._predictions.get(name, [])
+    def predictions(self, name: str) -> Optional[AnnotationLayer]:
+        return self._predictions.get(name, None)
 
     def clear_predictions(self, name: str) -> None:
         if name in self._predictions:
