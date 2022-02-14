@@ -85,16 +85,8 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         multi_label: bool = False,
         label_to_id: Optional[Dict[str, int]] = None,
     ) -> None:
-        super().__init__(
-            tokenizer_name_or_path=tokenizer_name_or_path,
-            label_to_verbalizer=label_to_verbalizer,
-            annotation=annotation,
-            padding=padding,
-            truncation=truncation,
-            max_length=max_length,
-            pad_to_multiple_of=pad_to_multiple_of,
-            multi_label=multi_label,
-        )
+        super().__init__()
+        self.save_hyperparameters()
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 

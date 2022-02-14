@@ -58,8 +58,7 @@ class TaskModule(
     Generic[InputEncoding, TargetEncoding, TaskBatchEncoding, ModelBatchOutput, TaskOutput],
 ):
     def __init__(self, **kwargs):
-        self.init_inputs = ()
-        self.init_kwargs = copy.deepcopy(kwargs)
+        super().__init__(**kwargs)
 
     def prepare(self, documents: List[Document]) -> None:
         return

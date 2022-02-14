@@ -53,15 +53,8 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         max_target_length: Optional[int] = None,
         pad_to_multiple_of: Optional[int] = None,
     ) -> None:
-        super().__init__(
-            tokenizer_name_or_path=tokenizer_name_or_path,
-            relation_annotation=relation_annotation,
-            padding=padding,
-            truncation=truncation,
-            max_input_length=max_input_length,
-            max_target_length=max_target_length,
-            pad_to_multiple_of=pad_to_multiple_of,
-        )
+        super().__init__()
+        self.save_hyperparameters()
 
         self.relation_annotation = relation_annotation
         self.padding = padding
