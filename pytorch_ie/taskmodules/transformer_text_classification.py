@@ -117,6 +117,9 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         labels = set()
         for document in documents:
             annotations = document.label_annotations(self.annotation)
+            assert (
+                annotations is not None
+            ), f"document as no label annotations with name '{self.annotation}'"
 
             for annotation in annotations:
                 # TODO: labels is a set...
@@ -171,17 +174,20 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
         target: List[TransformerTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
+            annotations = document.label_annotations(self.annotation)
+            assert (
+                annotations is not None
+            ), f"document as no label annotations with name '{self.annotation}'"
             if self.multi_label:
                 label_ids = [0] * len(self.label_to_id)
-                for annotation in document.label_annotations(self.annotation):
+                for annotation in annotations:
                     for label in annotation.labels:
                         label_id = self.label_to_id[label]
                         label_ids[label_id] = 1
             else:
-                annotation_labels = document.label_annotations(self.annotation)
-                assert len(annotation_labels) == 1 and not annotation_labels[0].is_multilabel
+                assert len(annotations) == 1 and not annotations[0].is_multilabel
 
-                label = annotation_labels[0].label_single
+                label = annotations[0].label_single
                 label_ids = [self.label_to_id[label]]
 
             target.append(label_ids)
