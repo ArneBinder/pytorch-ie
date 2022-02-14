@@ -1,4 +1,18 @@
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union
+import json
+import logging
+from collections import Counter, defaultdict
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -48,6 +62,9 @@ HEAD = "head"
 TAIL = "tail"
 START = "start"
 END = "end"
+
+
+logger = logging.getLogger(__name__)
 
 
 def _create_argument_markers(
@@ -329,10 +346,12 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         input_encoding = []
         metadata = []
         new_documents = []
+        statistics: DefaultDict[str, Counter] = defaultdict(Counter)
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
             relations = document.relation_annotations(self.relation_annotation, default=None)
+            relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
@@ -365,6 +384,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     )
                     # this happens if the head/tail start/end does not match a token start/end
                     if head_token_slice is None or tail_token_slice is None:
+                        statistics["entity_token_alignment_error"][
+                            relation_mapping.get((head, tail), "TO_PREDICT")
+                        ] += 1
                         continue
 
                     input_ids = encoding["input_ids"]
@@ -389,6 +411,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         )
                         # this happens if slice_required does not fit into max_tokens
                         if window_slice is None:
+                            statistics["out_of_token_window"][
+                                relation_mapping.get((head, tail), "TO_PREDICT")
+                            ] += 1
                             continue
 
                         window_start, window_end = window_slice
@@ -451,7 +476,11 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         TAIL: tail,
                     }
                     metadata.append(doc_metadata)
+                    statistics["candidates"][
+                        relation_mapping.get((head, tail), "TO_PREDICT")
+                    ] += 1
 
+        logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
         return input_encoding, metadata, new_documents
 
     def encode_target(
