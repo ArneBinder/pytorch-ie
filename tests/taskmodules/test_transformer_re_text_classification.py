@@ -666,7 +666,10 @@ def test_decode(prepared_taskmodule, documents, model_output):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=False
+        encodings=encodings,
+        decoded_outputs=unbatched_outputs,
+        inplace=False,
+        input_documents=documents,
     )
 
     assert len(decoded_documents) == 2

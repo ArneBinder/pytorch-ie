@@ -95,7 +95,10 @@ def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=False
+        encodings=encodings,
+        decoded_outputs=unbatched_outputs,
+        input_documents=documents,
+        inplace=False,
     )
 
     assert len(decoded_documents) == len(documents)
@@ -112,7 +115,10 @@ def test_decode_inplace(prepared_taskmodule, documents, model_output):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=True
+        encodings=encodings,
+        decoded_outputs=unbatched_outputs,
+        input_documents=documents,
+        inplace=True,
     )
 
     assert len(decoded_documents) == len(documents)
