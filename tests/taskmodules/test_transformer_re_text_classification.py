@@ -763,47 +763,34 @@ def test_enumerate_entity_pairs(prepared_taskmodule, documents):
 
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
-            entities=entities,
-            encoding=encoding,  # partition=partition, relations=relations,
+            entities=entities,  # partition=partition, relations=relations,
         )
     )
     assert len(enumerated_entity_pairs) == 6
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC1_ENTITY_JANE
     assert tail == DOC1_ENTITY_BERLIN
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (4, 5)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    head, tail = enumerated_entity_pairs[1]
     assert head == DOC1_ENTITY_JANE
     assert tail == DOC1_ENTITY_KARL
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (11, 12)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[2]
+    head, tail = enumerated_entity_pairs[2]
     assert head == DOC1_ENTITY_BERLIN
     assert tail == DOC1_ENTITY_JANE
-    assert head_token_slice == (4, 5)
-    assert tail_token_slice == (1, 2)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[3]
+    head, tail = enumerated_entity_pairs[3]
     assert head == DOC1_ENTITY_BERLIN
     assert tail == DOC1_ENTITY_KARL
-    assert head_token_slice == (4, 5)
-    assert tail_token_slice == (11, 12)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[4]
+    head, tail = enumerated_entity_pairs[4]
     assert head == DOC1_ENTITY_KARL
     assert tail == DOC1_ENTITY_JANE
-    assert head_token_slice == (11, 12)
-    assert tail_token_slice == (1, 2)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[5]
+    head, tail = enumerated_entity_pairs[5]
     assert head == DOC1_ENTITY_KARL
     assert tail == DOC1_ENTITY_BERLIN
-    assert head_token_slice == (11, 12)
-    assert tail_token_slice == (4, 5)
 
     document = documents[1]
     entities = document.span_annotations("entities")
@@ -821,23 +808,18 @@ def test_enumerate_entity_pairs(prepared_taskmodule, documents):
 
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
-            entities=entities,
-            encoding=encoding,  # partition=partition, relations=relations,
+            entities=entities,  # partition=partition, relations=relations,
         )
     )
     assert len(enumerated_entity_pairs) == 2
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC2_ENTITY_SEATTLE
     assert tail == DOC2_ENTITY_JENNY
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (7, 11)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    head, tail = enumerated_entity_pairs[1]
     assert head == DOC2_ENTITY_JENNY
     assert tail == DOC2_ENTITY_SEATTLE
-    assert head_token_slice == (7, 11)
-    assert tail_token_slice == (1, 2)
 
     document = documents[2]
     entities = document.span_annotations("entities")
@@ -855,23 +837,18 @@ def test_enumerate_entity_pairs(prepared_taskmodule, documents):
 
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
-            entities=entities,
-            encoding=encoding,  # partition=partition, relations=relations,
+            entities=entities,  # partition=partition, relations=relations,
         )
     )
     assert len(enumerated_entity_pairs) == 2
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC3_ENTITY_KARL
     assert tail == DOC3_ENTITY_BERLIN
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (6, 7)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    head, tail = enumerated_entity_pairs[1]
     assert head == DOC3_ENTITY_BERLIN
     assert tail == DOC3_ENTITY_KARL
-    assert head_token_slice == (6, 7)
-    assert tail_token_slice == (1, 2)
 
 
 def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
@@ -902,17 +879,14 @@ def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             relations=relations,
             # partition=partition,
         )
     )
     assert len(enumerated_entity_pairs) == 1
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC1_ENTITY_JANE
     assert tail == DOC1_ENTITY_BERLIN
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (4, 5)
 
     document = documents[1]
     entities = document.span_annotations("entities")
@@ -937,18 +911,15 @@ def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             relations=relations,
-            # partition=partition, relations=relations,
+            # partition=partition,
         )
     )
     assert len(enumerated_entity_pairs) == 1
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC2_ENTITY_JENNY
     assert tail == DOC2_ENTITY_SEATTLE
-    assert head_token_slice == (7, 11)
-    assert tail_token_slice == (1, 2)
 
     document = documents[2]
     entities = document.span_annotations("entities")
@@ -969,7 +940,6 @@ def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             relations=relations,  # partition=partition,
         )
     )
@@ -1008,23 +978,18 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             # relations=relations,
             partition=partition,
         )
     )
     assert len(enumerated_entity_pairs) == 2
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC1_ENTITY_JANE
     assert tail == DOC1_ENTITY_BERLIN
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (4, 5)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    head, tail = enumerated_entity_pairs[1]
     assert head == DOC1_ENTITY_BERLIN
     assert tail == DOC1_ENTITY_JANE
-    assert head_token_slice == (4, 5)
-    assert tail_token_slice == (1, 2)
 
     document = documents[1]
     entities = document.span_annotations("entities")
@@ -1054,7 +1019,6 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             # relations=relations,
             partition=partition,
         )
@@ -1087,7 +1051,6 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             # relations=relations,
             partition=partition,
         )
@@ -1123,21 +1086,16 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     enumerated_entity_pairs = list(
         _enumerate_entity_pairs(
             entities=entities,
-            encoding=encoding,
             # relations=relations,
             partition=partition,
         )
     )
     assert len(enumerated_entity_pairs) == 2
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[0]
+    head, tail = enumerated_entity_pairs[0]
     assert head == DOC3_ENTITY_KARL
     assert tail == DOC3_ENTITY_BERLIN
-    assert head_token_slice == (1, 2)
-    assert tail_token_slice == (6, 7)
 
-    head, head_token_slice, tail, tail_token_slice = enumerated_entity_pairs[1]
+    head, tail = enumerated_entity_pairs[1]
     assert head == DOC3_ENTITY_BERLIN
     assert tail == DOC3_ENTITY_KARL
-    assert head_token_slice == (6, 7)
-    assert tail_token_slice == (1, 2)

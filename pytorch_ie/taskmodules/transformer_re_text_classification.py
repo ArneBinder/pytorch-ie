@@ -112,29 +112,35 @@ def _get_window_around_slice(
     return window_start, window_end
 
 
+def _get_token_slice(
+    character_slice: Tuple[int, int], encoding: BatchEncoding, character_offset: int = 0
+) -> Optional[Tuple[int, int]]:
+    """
+    Using an encoding to map a character slice to the respective token slice. If the slice start or end does
+    not match a token start or end respectively, return None.
+    """
+    start = encoding.char_to_token(character_slice[0] - character_offset)
+    before_end = encoding.char_to_token(character_slice[1] - 1 - character_offset)
+    if start is None or before_end is None:
+        return None
+    return start, before_end + 1
+
+
 def _enumerate_entity_pairs(
     entities: List[LabeledSpan],
-    encoding: BatchEncoding,
     partition: Optional[LabeledSpan] = None,
     relations: List[BinaryRelation] = None,
 ):
     """
-    Given a list of `entities`, a text `encoding`, iterate all valid pairs of entities. If a `partition` is provided,
+    Given a list of `entities` iterate all valid pairs of entities. If a `partition` is provided,
     restrict pairs to be contained in that. If `relations` are given, return only pairs for which a relation exists.
     """
     existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
-    offset = partition.start if partition is not None else 0
     head: LabeledSpan
     for head in entities:
         if partition is not None and not is_contained_in(
             (head.start, head.end), (partition.start, partition.end)
         ):
-            continue
-
-        head_start = encoding.char_to_token(head.start - offset)
-        head_end = encoding.char_to_token(head.end - offset - 1)
-
-        if head_start is None or head_end is None:
             continue
 
         tail: LabeledSpan
@@ -150,13 +156,7 @@ def _enumerate_entity_pairs(
             if relations is not None and (head, tail) not in existing_head_tail:
                 continue
 
-            tail_start = encoding.char_to_token(tail.start - offset)
-            tail_end = encoding.char_to_token(tail.end - offset - 1)
-
-            if tail_start is None or tail_end is None:
-                continue
-
-            yield head, (head_start, head_end + 1), tail, (tail_start, tail_end + 1)
+            yield head, tail
 
 
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
@@ -342,24 +342,37 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 partitions = [None]
 
             for partition_idx, partition in enumerate(partitions):
+                partition_offset = 0 if partition is None else partition.start
                 add_special_tokens = self.max_window is None
                 encoding = self._encode_text(
                     document=document, partition=partition, add_special_tokens=add_special_tokens
                 )
 
-                for head, head_token_slice, tail, tail_token_slice in _enumerate_entity_pairs(
+                for head, tail, in _enumerate_entity_pairs(
                     entities=entities,
-                    encoding=encoding,
                     partition=partition,
                     relations=relations,
                 ):
-                    head_start, head_end = head_token_slice
-                    tail_start, tail_end = tail_token_slice
+                    head_token_slice = _get_token_slice(
+                        character_slice=(head.start, head.end),
+                        encoding=encoding,
+                        character_offset=partition_offset,
+                    )
+                    tail_token_slice = _get_token_slice(
+                        character_slice=(tail.start, tail.end),
+                        encoding=encoding,
+                        character_offset=partition_offset,
+                    )
+                    # this happens if the head/tail start/end does not match a token start/end
+                    if head_token_slice is None or tail_token_slice is None:
+                        continue
 
                     input_ids = encoding["input_ids"]
 
                     # windowing
                     if self.max_window is not None:
+                        head_start, head_end = head_token_slice
+                        tail_start, tail_end = tail_token_slice
                         # The actual number of tokens will be lower than max_window because we add the
                         # 4 marker tokens (before / after the head /tail) and the default special tokens
                         # (e.g. CLS and SEP).
@@ -384,16 +397,16 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         head_token_slice = head_start - window_start, head_end - window_start
                         tail_token_slice = tail_start - window_start, tail_end - window_start
 
-                    if head_start < tail_start:
+                    if head_token_slice[0] < tail_token_slice[0]:
                         assert (
-                            head_end <= tail_start
+                            head_token_slice[1] <= tail_token_slice[0]
                         ), f"the head and tail entities are not allowed to overlap"
                         entity_pair = (head, tail)
                         entity_slices = (head_token_slice, tail_token_slice)
                         entity_args = (HEAD, TAIL)
                     else:
                         assert (
-                            tail_end <= head_start
+                            tail_token_slice[1] <= head_token_slice[0]
                         ), f"the head and tail entities are not allowed to overlap"
                         entity_pair = (tail, head)
                         entity_slices = (tail_token_slice, head_token_slice)
@@ -425,7 +438,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         + input_ids[entity_slices[1][1] :]
                     )
 
-                    # when windowing is used, we have to add the special tokens again
+                    # when windowing is used, we have to add the special tokens manually
                     if not add_special_tokens:
                         new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
                             token_ids_0=new_input_ids
