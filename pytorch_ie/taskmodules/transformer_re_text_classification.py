@@ -350,7 +350,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
-            relations = document.relation_annotations(self.relation_annotation, default=None)
+            relations = document.relation_annotations(self.relation_annotation)
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
