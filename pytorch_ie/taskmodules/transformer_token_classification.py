@@ -99,7 +99,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         self.label_to_id["O"] = 0
         current_id = 1
-        for label in labels:
+        for label in sorted(labels):
             for prefix in ["B", "I"]:
                 self.label_to_id[f"{prefix}-{label}"] = current_id
                 current_id += 1
