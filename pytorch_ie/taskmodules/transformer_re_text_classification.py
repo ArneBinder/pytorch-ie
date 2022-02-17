@@ -214,23 +214,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         entity_labels: Optional[List[str]] = None,
         max_window: Optional[int] = None,
     ) -> None:
-        super().__init__(
-            tokenizer_name_or_path=tokenizer_name_or_path,
-            entity_annotation=entity_annotation,
-            relation_annotation=relation_annotation,
-            padding=padding,
-            truncation=truncation,
-            max_length=max_length,
-            pad_to_multiple_of=pad_to_multiple_of,
-            multi_label=multi_label,
-            add_type_to_marker=add_type_to_marker,
-            single_argument_pair=single_argument_pair,
-            append_markers=append_markers,
-            entity_labels=entity_labels,
-            partition_annotation=partition_annotation,
-            none_label=none_label,
-            max_window=max_window,
-        )
+        super().__init__()
+        self.save_hyperparameters()
 
         self.entity_annotation = entity_annotation
         self.relation_annotation = relation_annotation

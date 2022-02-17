@@ -57,17 +57,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         label_pad_token_id: int = -100,
         label_to_id: Optional[Dict[str, int]] = None,
     ) -> None:
-        super().__init__(
-            tokenizer_name_or_path=tokenizer_name_or_path,
-            entity_annotation=entity_annotation,
-            single_sentence=single_sentence,
-            sentence_annotation=sentence_annotation,
-            padding=padding,
-            truncation=truncation,
-            max_length=max_length,
-            pad_to_multiple_of=pad_to_multiple_of,
-            label_pad_token_id=label_pad_token_id,
-        )
+        super().__init__()
+        self.save_hyperparameters()
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation

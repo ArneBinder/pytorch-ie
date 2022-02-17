@@ -10,6 +10,7 @@ from huggingface_hub.constants import CONFIG_NAME, PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
 from huggingface_hub.hf_api import HfApi, HfFolder
 from huggingface_hub.repository import Repository
+from pytorch_lightning.core.mixins import HyperparametersMixin
 
 logger = logging.getLogger(__name__)
 
@@ -369,7 +370,7 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
         return model
 
 
-class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
+class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, HyperparametersMixin):
     config_name = TASKMODULE_CONFIG_NAME
 
     def __init__(self, *args, **kwargs):
@@ -395,10 +396,10 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
             >>> # Downloading weights from hf-hub & model will be initialized from those weights
             >>> model = MyModel.from_pretrained("username/mymodel@main")
         """
+        super().__init__()
 
     def _config(self) -> Dict[str, Any]:
-        # TODO: fix mypy: "PyTorchIETaskmoduleModelHubMixin" has no attribute "init_kwargs"
-        config = dict(self.init_kwargs)  # type: ignore
+        config = dict(self.hparams)
         config["taskmodule_type"] = self.__class__.__name__
         return config
 
