@@ -695,7 +695,7 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     assert prediction.tail == DOC2_ENTITY_SEATTLE
 
     predictions = decoded_documents[2].predictions("relations")
-    assert len(predictions) == 0
+    assert predictions is None
 
 
 def test_save_load(tmp_path, prepared_taskmodule):
