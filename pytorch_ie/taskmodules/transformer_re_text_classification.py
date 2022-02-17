@@ -1,10 +1,24 @@
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union
+import json
+import logging
+from collections import Counter, defaultdict
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 import numpy as np
 import torch
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
 from pytorch_ie.data.span_utils import is_contained_in
@@ -44,16 +58,24 @@ _TransformerReTextClassificationTaskModule = TaskModule[
     TransformerReTextClassificationTaskOutput,
 ]
 
+HEAD = "head"
+TAIL = "tail"
+START = "start"
+END = "end"
+
+
+logger = logging.getLogger(__name__)
+
 
 def _create_argument_markers(
     entity_labels: List[str], add_type_to_marker: bool
 ) -> Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]:
     argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str] = {}
-    for arg_type in ["head", "tail"]:
-        is_head = arg_type == "head"
+    for arg_type in [HEAD, TAIL]:
+        is_head = arg_type == HEAD
 
-        for arg_pos in ["start", "end"]:
-            is_start = arg_pos == "start"
+        for arg_pos in [START, END]:
+            is_start = arg_pos == START
 
             if add_type_to_marker:
                 for entity_type in entity_labels:
@@ -64,6 +86,94 @@ def _create_argument_markers(
                 argument_markers[(arg_type, arg_pos)] = marker
 
     return argument_markers
+
+
+def _get_window_around_slice(
+    slice: Tuple[int, int], max_window_size: int, available_input_length: int
+) -> Optional[Tuple[int, int]]:
+    """
+    Given a `max_window` size, `available_token_length` and a `slice` (pair of start and end indices) that
+    is required to be in the resulting window, create a new slice of size `max_window_size` (or less, if not possible)
+    around the required slice. Per default, the resulting slice will be centered around the required slice.
+    However, if the required slice is at the beginning or end of the available tokens, the resulting window is
+    shifted to contain as many tokens as possible.
+    Iff the required `slice` already exceeds the `max_window_size`, return `None`.
+    """
+
+    # current pair may not fit into the window
+    if slice[1] - slice[0] > max_window_size:
+        return None
+
+    # set the final window size (regarding input tokens)
+    window_size = min(available_input_length, max_window_size)
+
+    rel_center = sum(slice) / 2.0
+    window_start = int(rel_center - window_size / 2.0)
+    window_end = window_start + window_size
+
+    # If window goes over one end, shift it use as much content as possible.
+    # First shift window to left and then to right to ensure that window_start is never
+    # negative (if window_end is outside, this will not be a problem)
+    if window_end >= available_input_length:
+        delta = available_input_length - window_end
+        window_start += delta
+        window_end += delta
+    if window_start < 0:
+        delta = -window_start
+        window_start += delta
+        window_end += delta
+    assert (
+        0 <= window_start < available_input_length
+    ), f"window_start={window_start} not available in sequence"
+
+    return window_start, window_end
+
+
+def _get_token_slice(
+    character_slice: Tuple[int, int], encoding: BatchEncoding, character_offset: int = 0
+) -> Optional[Tuple[int, int]]:
+    """
+    Using an encoding to map a character slice to the respective token slice. If the slice start or end does
+    not match a token start or end respectively, return None.
+    """
+    start = encoding.char_to_token(character_slice[0] - character_offset)
+    before_end = encoding.char_to_token(character_slice[1] - 1 - character_offset)
+    if start is None or before_end is None:
+        return None
+    return start, before_end + 1
+
+
+def _enumerate_entity_pairs(
+    entities: List[LabeledSpan],
+    partition: Optional[LabeledSpan] = None,
+    relations: List[BinaryRelation] = None,
+):
+    """
+    Given a list of `entities` iterate all valid pairs of entities. If a `partition` is provided,
+    restrict pairs to be contained in that. If `relations` are given, return only pairs for which a relation exists.
+    """
+    existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
+    head: LabeledSpan
+    for head in entities:
+        if partition is not None and not is_contained_in(
+            (head.start, head.end), (partition.start, partition.end)
+        ):
+            continue
+
+        tail: LabeledSpan
+        for tail in entities:
+            if partition is not None and not is_contained_in(
+                (tail.start, tail.end), (partition.start, partition.end)
+            ):
+                continue
+
+            if head == tail:
+                continue
+
+            if relations is not None and (head, tail) not in existing_head_tail:
+                continue
+
+            yield head, tail
 
 
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
@@ -79,6 +189,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             or sections of the document text.
         none_label: str, defaults to "no_relation". The relation label that indicate dummy/negative relations.
             Predicted relations with that label will not be added to the document(s).
+        max_window: int, optional. If specified, use the tokens in a window of maximal this amount of tokens
+            around the center of head and tail entities and pass only that into the transformer.
 
         TODO: add remaining parameters
     """
@@ -100,6 +212,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         single_argument_pair: bool = True,
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
+        max_window: Optional[int] = None,
     ) -> None:
         super().__init__(
             tokenizer_name_or_path=tokenizer_name_or_path,
@@ -116,6 +229,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             entity_labels=entity_labels,
             partition_annotation=partition_annotation,
             none_label=none_label,
+            max_window=max_window,
         )
 
         self.entity_annotation = entity_annotation
@@ -133,6 +247,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.entity_labels = entity_labels
         self.partition_annotation = partition_annotation
         self.none_label = none_label
+        self.max_window = max_window
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -193,6 +308,28 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.argument_markers = dict(sorted(argument_markers.items(), key=lambda kv: kv[1]))
         self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
+    def _encode_text(
+        self,
+        document: Document,
+        partition: Optional[LabeledSpan] = None,
+        add_special_tokens: bool = True,
+    ) -> BatchEncoding:
+        text = (
+            document.text[partition.start : partition.end]
+            if partition is not None
+            else document.text
+        )
+        encoding = self.tokenizer(
+            text,
+            padding=False,
+            truncation=self.truncation,
+            max_length=self.max_length,
+            is_split_into_words=False,
+            return_offsets_mapping=False,
+            add_special_tokens=add_special_tokens,
+        )
+        return encoding
+
     def encode_input(
         self, documents: List[Document]
     ) -> Tuple[
@@ -209,139 +346,139 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         input_encoding = []
         metadata = []
         new_documents = []
+        statistics: DefaultDict[str, Counter] = defaultdict(Counter)
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
             relations = document.relation_annotations(self.relation_annotation)
-            existing_head_tail = {(relation.head, relation.tail) for relation in relations}
+            relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
+            partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
                 partitions = document.span_annotations(self.partition_annotation)
             else:
                 # use single dummy partition
-                partitions = [LabeledSpan(start=0, end=len(document.text), label="FULL_DOCUMENT")]
+                partitions = [None]
 
             for partition_idx, partition in enumerate(partitions):
-                encoding = self.tokenizer(
-                    document.text[partition.start : partition.end],
-                    padding=False,
-                    truncation=self.truncation,
-                    max_length=self.max_length,
-                    is_split_into_words=False,
-                    return_offsets_mapping=False,
-                    # TODO: use this for windowing
-                    # add_special_tokens=False,
+                partition_offset = 0 if partition is None else partition.start
+                add_special_tokens = self.max_window is None
+                encoding = self._encode_text(
+                    document=document, partition=partition, add_special_tokens=add_special_tokens
                 )
 
-                head: LabeledSpan
-                for head in entities:
-                    if not is_contained_in(
-                        (head.start, head.end), (partition.start, partition.end)
-                    ):
+                for head, tail, in _enumerate_entity_pairs(
+                    entities=entities,
+                    partition=partition,
+                    relations=relations,
+                ):
+                    head_token_slice = _get_token_slice(
+                        character_slice=(head.start, head.end),
+                        encoding=encoding,
+                        character_offset=partition_offset,
+                    )
+                    tail_token_slice = _get_token_slice(
+                        character_slice=(tail.start, tail.end),
+                        encoding=encoding,
+                        character_offset=partition_offset,
+                    )
+                    # this happens if the head/tail start/end does not match a token start/end
+                    if head_token_slice is None or tail_token_slice is None:
+                        statistics["entity_token_alignment_error"][
+                            relation_mapping.get((head, tail), "TO_PREDICT")
+                        ] += 1
                         continue
 
-                    head_start = encoding.char_to_token(head.start - partition.start)
-                    head_end = encoding.char_to_token(head.end - partition.start - 1)
+                    input_ids = encoding["input_ids"]
 
-                    if head_start is None or head_end is None:
-                        continue
-
-                    tail: LabeledSpan
-                    for tail in entities:
-                        if not is_contained_in(
-                            (tail.start, tail.end), (partition.start, partition.end)
-                        ):
+                    # windowing
+                    if self.max_window is not None:
+                        head_start, head_end = head_token_slice
+                        tail_start, tail_end = tail_token_slice
+                        # The actual number of tokens will be lower than max_window because we add the
+                        # 4 marker tokens (before / after the head /tail) and the default special tokens
+                        # (e.g. CLS and SEP).
+                        num_added_special_tokens = len(
+                            self.tokenizer.build_inputs_with_special_tokens([])
+                        )
+                        max_tokens = self.max_window - 4 - num_added_special_tokens
+                        # the slice from the beginning of the first entity to the end of the second is required
+                        slice_required = (min(head_start, tail_start), max(head_end, tail_end))
+                        window_slice = _get_window_around_slice(
+                            slice=slice_required,
+                            max_window_size=max_tokens,
+                            available_input_length=len(input_ids),
+                        )
+                        # this happens if slice_required does not fit into max_tokens
+                        if window_slice is None:
+                            statistics["out_of_token_window"][
+                                relation_mapping.get((head, tail), "TO_PREDICT")
+                            ] += 1
                             continue
 
-                        if head == tail:
-                            continue
+                        window_start, window_end = window_slice
+                        input_ids = input_ids[window_start:window_end]
 
-                        if relations and ((head, tail) not in existing_head_tail):
-                            continue
+                        head_token_slice = head_start - window_start, head_end - window_start
+                        tail_token_slice = tail_start - window_start, tail_end - window_start
 
-                        tail_start = encoding.char_to_token(tail.start - partition.start)
-                        tail_end = encoding.char_to_token(tail.end - partition.start - 1)
+                    if head_token_slice[0] < tail_token_slice[0]:
+                        assert (
+                            head_token_slice[1] <= tail_token_slice[0]
+                        ), f"the head and tail entities are not allowed to overlap"
+                        entity_pair = (head, tail)
+                        entity_slices = (head_token_slice, tail_token_slice)
+                        entity_args = (HEAD, TAIL)
+                    else:
+                        assert (
+                            tail_token_slice[1] <= head_token_slice[0]
+                        ), f"the head and tail entities are not allowed to overlap"
+                        entity_pair = (tail, head)
+                        entity_slices = (tail_token_slice, head_token_slice)
+                        entity_args = (TAIL, HEAD)
 
-                        if tail_start is None or tail_end is None:
-                            continue
+                    markers = {}
+                    for entity, arg_name in zip(entity_pair, entity_args):
+                        for pos in [START, END]:
+                            if self.add_type_to_marker:
+                                if entity.is_multilabel:
+                                    raise NotImplementedError
+                                markers[(arg_name, pos)] = argument_markers_to_id[
+                                    self.argument_markers[(arg_name, pos, entity.label_single)]
+                                ]
+                            else:
+                                markers[(arg_name, pos)] = argument_markers_to_id[
+                                    self.argument_markers[(arg_name, pos)]
+                                ]
 
-                        # TODO: do windowing here!
-                        if self.add_type_to_marker:
-                            if head.is_multilabel:
-                                raise NotImplementedError
+                    new_input_ids = (
+                        input_ids[: entity_slices[0][0]]
+                        + [markers[(entity_args[0], START)]]
+                        + input_ids[entity_slices[0][0] : entity_slices[0][1]]
+                        + [markers[(entity_args[0], END)]]
+                        + input_ids[entity_slices[0][1] : entity_slices[1][0]]
+                        + [markers[(entity_args[1], START)]]
+                        + input_ids[entity_slices[1][0] : entity_slices[1][1]]
+                        + [markers[(entity_args[1], END)]]
+                        + input_ids[entity_slices[1][1] :]
+                    )
 
-                            head_start_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "start", head.label_single)]
-                            ]
-                            head_end_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "end", head.label_single)]
-                            ]
-                            if tail.is_multilabel:
-                                raise NotImplementedError
-                            tail_start_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "start", tail.label_single)]
-                            ]
-                            tail_end_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "end", tail.label_single)]
-                            ]
-                        else:
-                            head_start_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "start")]
-                            ]
-                            head_end_marker = argument_markers_to_id[
-                                self.argument_markers[("head", "end")]
-                            ]
-                            tail_start_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "start")]
-                            ]
-                            tail_end_marker = argument_markers_to_id[
-                                self.argument_markers[("tail", "end")]
-                            ]
-
-                        head_items = (head_start, head_end + 1, head_start_marker, head_end_marker)
-                        tail_items = (tail_start, tail_end + 1, tail_start_marker, tail_end_marker)
-
-                        head_first = head_start < tail_start
-                        first, second = (
-                            (head_items, tail_items) if head_first else (tail_items, head_items)
+                    # when windowing is used, we have to add the special tokens manually
+                    if not add_special_tokens:
+                        new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                            token_ids_0=new_input_ids
                         )
 
-                        first_start, first_end, first_start_marker, first_end_marker = first
-                        second_start, second_end, second_start_marker, second_end_marker = second
+                    input_encoding.append({"input_ids": new_input_ids})
+                    new_documents.append(document)
+                    doc_metadata = {
+                        HEAD: head,
+                        TAIL: tail,
+                    }
+                    metadata.append(doc_metadata)
+                    statistics["candidates"][relation_mapping.get((head, tail), "TO_PREDICT")] += 1
 
-                        input_ids = encoding["input_ids"]
-
-                        first_tokens = input_ids[first_start:first_end]
-                        second_tokens = input_ids[second_start:second_end]
-
-                        new_input_ids = (
-                            input_ids[:first_start]
-                            + [first_start_marker]
-                            + first_tokens
-                            + [first_end_marker]
-                            + input_ids[first_end:second_start]
-                            + [second_start_marker]
-                            + second_tokens
-                            + [second_end_marker]
-                            + input_ids[second_end:]
-                        )
-
-                        new_head_start = new_input_ids.index(head_start_marker)
-                        new_head_end = new_input_ids.index(head_end_marker)
-                        new_tail_start = new_input_ids.index(tail_start_marker)
-                        new_tail_end = new_input_ids.index(tail_end_marker)
-
-                        # TODO: add special tokens here (windowing)
-                        input_encoding.append({"input_ids": new_input_ids})
-                        new_documents.append(document)
-                        doc_metadata = {
-                            "head": head,
-                            "tail": tail,
-                            "head_offset": (new_head_start, new_head_end),
-                            "tail_offset": (new_tail_start, new_tail_end),
-                        }
-                        metadata.append(doc_metadata)
-
+        logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
         return input_encoding, metadata, new_documents
 
     def encode_target(
@@ -361,7 +498,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 (relation.head, relation.tail): relation.labels for relation in relations
             }
 
-            labels = head_tail_to_labels.get((meta["head"], meta["tail"]), [self.none_label])
+            labels = head_tail_to_labels.get((meta[HEAD], meta[TAIL]), [self.none_label])
             label_ids = [self.label_to_id[label] for label in labels]
             target.append(label_ids)
 
@@ -402,8 +539,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             yield (
                 self.relation_annotation,
                 BinaryRelation(
-                    head=encoding.metadata["head"],
-                    tail=encoding.metadata["tail"],
+                    head=encoding.metadata[HEAD],
+                    tail=encoding.metadata[TAIL],
                     label=labels if self.multi_label else labels[0],
                     score=probabilities if self.multi_label else probabilities[0],
                 ),
