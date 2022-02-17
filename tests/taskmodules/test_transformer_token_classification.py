@@ -1207,7 +1207,10 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=inplace
+        encodings=encodings,
+        decoded_outputs=unbatched_outputs,
+        input_documents=documents,
+        inplace=inplace,
     )
 
     assert len(decoded_documents) == len(documents)
