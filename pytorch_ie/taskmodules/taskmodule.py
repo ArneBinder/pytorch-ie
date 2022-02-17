@@ -128,6 +128,7 @@ class TaskModule(
         self,
         encodings: List[TaskEncoding[InputEncoding, TargetEncoding]],
         decoded_outputs: List[TaskOutput],
+        input_documents: List[Document],
         inplace: bool = True,
     ) -> List[Document]:
         """
@@ -135,31 +136,22 @@ class TaskModule(
         new annotations created from model predictions.
         """
         if not inplace:
-            copied_documents: Dict[Document, Document] = {}
-            copied_encodings: List[TaskEncoding[InputEncoding, TargetEncoding]] = []
-            for encoding in encodings:
-                if encoding.document not in copied_documents:
-                    copied_documents[encoding.document] = copy.deepcopy(encoding.document)
-
-                copied_encodings.append(
-                    TaskEncoding[InputEncoding, TargetEncoding](
-                        input=encoding.input,
-                        document=copied_documents[encoding.document],
-                        target=encoding.target if encoding.has_target else None,
-                        metadata=encoding.metadata,
-                    )
+            copied_documents = {doc: copy.deepcopy(doc) for doc in input_documents}
+            encodings = [
+                TaskEncoding[InputEncoding, TargetEncoding](
+                    input=encoding.input,
+                    document=copied_documents[encoding.document],
+                    target=encoding.target if encoding.has_target else None,
+                    metadata=encoding.metadata,
                 )
-            all_documents = list(copied_documents.values())
-            encodings = copied_encodings
+                for encoding in encodings
+            ]
+            documents = [copied_documents[doc] for doc in input_documents]
         else:
-            document_mapping: Dict[Document, Document] = {}
-            for encoding in encodings:
-                if encoding.document not in document_mapping:
-                    document_mapping[encoding.document] = encoding.document
-            all_documents = list(document_mapping.values())
+            documents = input_documents
 
         self.combine_outputs(encodings, decoded_outputs)
-        return all_documents
+        return documents
 
     def combine_outputs(
         self,

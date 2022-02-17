@@ -662,19 +662,23 @@ def test_unbatch_output(prepared_taskmodule, model_output):
     assert unbatched_output2["probabilities"][0] == pytest.approx(0.9999799728393555)
 
 
-def test_decode(prepared_taskmodule, documents, model_output):
+@pytest.mark.parametrize("inplace", [False, True])
+def test_decode(prepared_taskmodule, documents, model_output, inplace):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=False
+        encodings=encodings,
+        decoded_outputs=unbatched_outputs,
+        inplace=inplace,
+        input_documents=documents,
     )
 
-    assert len(decoded_documents) == 2
-    document_mapping = {
-        decoded_document.text: decoded_document for decoded_document in decoded_documents
-    }
-    # re-create original document order
-    decoded_documents = [document_mapping[text] for text in [TEXT_01, TEXT_02]]
+    assert len(decoded_documents) == 3
+    if inplace:
+        assert set(documents) == set(decoded_documents)
+    else:
+        for doc in decoded_documents:
+            assert doc not in set(documents)
 
     predictions = decoded_documents[0].predictions("relations")
     assert len(predictions) == 1
@@ -690,15 +694,8 @@ def test_decode(prepared_taskmodule, documents, model_output):
     assert prediction.head == DOC2_ENTITY_JENNY
     assert prediction.tail == DOC2_ENTITY_SEATTLE
 
-
-def test_decode_inplace(prepared_taskmodule, documents, model_output):
-    encodings = prepared_taskmodule.encode(documents, encode_target=False)
-    unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
-    decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings, decoded_outputs=unbatched_outputs, inplace=True
-    )
-    # TODO: this fails because there is a document without any relation annotation
-    # assert set(decoded_documents) == set(documents)
+    predictions = decoded_documents[2].predictions("relations")
+    assert len(predictions) == 0
 
 
 def test_save_load(tmp_path, prepared_taskmodule):

@@ -187,7 +187,9 @@ class Pipeline:
                 dataloader_params[p_name] = pipeline_parameters[p_name]
 
         # set postprocess parameters
-        # nothing for now
+        for p_name in ["inplace"]:
+            if p_name in postprocess_parameters:
+                postprocess_parameters[p_name] = pipeline_parameters[p_name]
 
         return preprocess_parameters, dataloader_params, forward_parameters, postprocess_parameters
 
@@ -223,15 +225,20 @@ class Pipeline:
         self,
         model_inputs: List[TaskEncoding],
         model_outputs: List[TaskOutput],
-        **postprocess_parameters: Dict,
+        input_documents: List[Document],
+        **postprocess_parameters,
     ) -> List[Document]:
         """
         Postprocess will receive the model inputs and (unbatched) model outputs and reformat them into
         something more friendly. Generally it will output a list of documents.
         """
         # This creates annotations from the model outputs and attaches them to the correct documents.
-        # IMPORTANT: This might not return the documents in the same order as the input documents!
-        return self.taskmodule.decode(encodings=model_inputs, decoded_outputs=model_outputs)
+        return self.taskmodule.decode(
+            encodings=model_inputs,
+            decoded_outputs=model_outputs,
+            input_documents=input_documents,
+            **postprocess_parameters,
+        )
 
     def get_inference_context(self):
         inference_context = (
@@ -321,7 +328,10 @@ class Pipeline:
         ), f"length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]"
 
         documents = self.postprocess(
-            model_inputs=model_inputs, model_outputs=model_outputs, **postprocess_params
+            model_inputs=model_inputs,
+            model_outputs=model_outputs,
+            input_documents=documents,
+            **postprocess_params,
         )
         if single_document:
             return documents[0]
