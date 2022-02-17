@@ -135,4 +135,4 @@ def test_document():
 
     document.clear_predictions("prediction")
     prediction2 = document.predictions("prediction")
-    assert len(prediction2) == 0
+    assert prediction2 is None

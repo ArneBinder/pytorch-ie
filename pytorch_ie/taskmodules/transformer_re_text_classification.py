@@ -282,6 +282,12 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
             relations = document.relation_annotations(self.relation_annotation)
+            assert (
+                entities is not None
+            ), f"document has no span annotations with name '{self.entity_annotation}'"
+            assert (
+                relations is not None
+            ), f"document has no relation annotations with name '{self.relation_annotation}'"
 
             if self.add_type_to_marker:
                 for entity in entities:
@@ -350,12 +356,19 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
+            assert (
+                entities is not None
+            ), f"document has no span annotations of name {self.entity_annotation}"
             relations = document.relation_annotations(self.relation_annotation)
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions = document.span_annotations(self.partition_annotation)
+                partitions_or_none = document.span_annotations(self.partition_annotation)
+                assert (
+                    partitions_or_none is not None
+                ), f"document has no span annotations of name {self.partition_annotation}"
+                partitions = partitions_or_none
             else:
                 # use single dummy partition
                 partitions = [None]
@@ -493,6 +506,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             meta = metadata[i]
 
             relations = document.relation_annotations(self.relation_annotation)
+            assert (
+                relations is not None
+            ), f"document has no relation annotations of name '{self.relation_annotation}'"
 
             head_tail_to_labels = {
                 (relation.head, relation.tail): relation.labels for relation in relations
