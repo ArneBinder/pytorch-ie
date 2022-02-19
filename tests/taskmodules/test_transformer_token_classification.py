@@ -7,6 +7,9 @@ import torch
 from numpy.testing import assert_almost_equal
 
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
+from pytorch_ie.taskmodules.transformer_token_classification import (
+    _convert_span_annotations_to_tag_sequence,
+)
 from tests.taskmodules.document import get_doc1, get_doc2, get_doc3
 
 
@@ -43,7 +46,7 @@ def taskmodule_with_partition():
         tokenizer_name_or_path=tokenizer_name_or_path,
         # Note: Either use single_sentence=True or partition_annotation="sentences"
         single_sentence=True,
-        #partition_annotation="sentences"
+        # partition_annotation="sentences"
     )
     return taskmodule
 
@@ -1265,3 +1268,112 @@ def test_save_load(tmp_path, prepared_taskmodule):
     loaded_taskmodule = TransformerTokenClassificationTaskModule.from_pretrained(path)
     # assert loaded_taskmodule.is_prepared()
     assert loaded_taskmodule._config() == prepared_taskmodule._config()
+
+
+def test_convert_span_annotations_to_tag_sequence(taskmodule, documents):
+    doc = documents[0]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 3
+    encoding = taskmodule._encode_text(text=doc.text)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [
+        None,
+        "B-person",
+        "O",
+        "O",
+        "B-city",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "B-person",
+        None,
+    ]
+
+    doc = documents[1]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    encoding = taskmodule._encode_text(text=doc.text)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [
+        None,
+        "B-city",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "B-person",
+        "I-person",
+        "I-person",
+        "I-person",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        None,
+    ]
+
+    doc = documents[2]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    encoding = taskmodule._encode_text(text=doc.text)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [None, "B-person", "O", "O", "O", "O", "B-city", "O", None]
+
+
+def test_convert_span_annotations_to_tag_sequence_with_partition(taskmodule, documents):
+    doc = documents[0]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 3
+    partitions = doc.span_annotations("sentences")
+    assert len(partitions) == 1
+    partition = partitions[0]
+    encoding = taskmodule._encode_text(text=doc.text, partition=partition)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
+    assert tag_sequence == [None, "B-person", "O", "O", "B-city", "O", None]
+
+    doc = documents[1]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    partitions = doc.span_annotations("sentences")
+    assert len(partitions) == 2
+    partition = partitions[0]
+    encoding = taskmodule._encode_text(text=doc.text, partition=partition)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [None, "B-city", "O", "O", "O", "O", "O", None]
+    partition = partitions[1]
+    encoding = taskmodule._encode_text(text=doc.text, partition=partition)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [
+        None,
+        "B-city",
+        "I-city",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        None,
+    ]
+
+    doc = documents[2]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    partitions = doc.span_annotations("sentences")
+    assert len(partitions) == 1
+    partition = partitions[0]
+    encoding = taskmodule._encode_text(text=doc.text, partition=partition)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [None, "B-person", "O", "O", "O", "O", "B-city", "O", None]
