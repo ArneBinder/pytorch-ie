@@ -36,6 +36,24 @@ def prepared_taskmodule(taskmodule, documents):
     return taskmodule
 
 
+@pytest.fixture(scope="module")
+def taskmodule_with_partition():
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerTokenClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path,
+        # Note: Either use single_sentence=True or partition_annotation="sentences"
+        single_sentence=True,
+        #partition_annotation="sentences"
+    )
+    return taskmodule
+
+
+@pytest.fixture
+def prepared_taskmodule_with_partition(taskmodule_with_partition, documents):
+    taskmodule_with_partition.prepare(documents)
+    return taskmodule_with_partition
+
+
 def test_prepare(taskmodule, documents):
     # assert not taskmodule.is_prepared()
     taskmodule.prepare(documents)
@@ -157,10 +175,7 @@ def test_encode_input(prepared_taskmodule, documents):
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_encode_with_partition(prepared_taskmodule, documents, encode_target):
-    prepared_taskmodule_with_partition = copy.deepcopy(prepared_taskmodule)
-    prepared_taskmodule_with_partition.single_sentence = True
-    prepared_taskmodule_with_partition.sentence_annotation = "sentences"
+def test_encode_with_partition(prepared_taskmodule_with_partition, documents, encode_target):
     task_encodings = prepared_taskmodule_with_partition.encode(
         documents, encode_target=encode_target
     )
