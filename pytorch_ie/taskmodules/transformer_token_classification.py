@@ -107,6 +107,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         List[Metadata],
         Optional[List[Document]],
     ]:
+        metadata = []
         expanded_documents = []
         input_ = []
         for doc in documents:
@@ -119,7 +120,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             else:
                 partitions = [LabeledSpan(start=0, end=len(doc.text), label="FULL_DOCUMENT")]
 
-            for partition in partitions:
+            for partition_index, partition in enumerate(partitions):
                 encoding = self.tokenizer(
                     doc.text[partition.start : partition.end],
                     padding=False,
@@ -129,25 +130,15 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                     return_offsets_mapping=True,
                     return_special_tokens_mask=True,
                 )
+                current_metadata = {
+                    "offset_mapping": encoding.pop("offset_mapping"),
+                    "special_tokens_mask": encoding.pop("special_tokens_mask"),
+                }
+                if self.partition_annotation is not None:
+                    current_metadata["sentence_index"] = partition_index
+                metadata.append(current_metadata)
                 input_.append(encoding)
                 expanded_documents.append(doc)
-
-        metadata = [
-            {
-                "offset_mapping": inp.pop("offset_mapping"),
-                "special_tokens_mask": inp.pop("special_tokens_mask"),
-            }
-            for inp in input_
-        ]
-
-        if self.partition_annotation is not None:
-            i = 0
-            for document in documents:
-                for sentence_index in range(
-                    len(document.span_annotations(self.partition_annotation) or [])
-                ):
-                    metadata[i]["sentence_index"] = sentence_index
-                    i += 1
 
         return input_, metadata, expanded_documents
 
