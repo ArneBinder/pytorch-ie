@@ -177,6 +177,23 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 input_.append(encoding)
                 expanded_documents.append(doc)
 
+        metadata = [
+            {
+                "offset_mapping": inp.pop("offset_mapping"),
+                "special_tokens_mask": inp.pop("special_tokens_mask"),
+            }
+            for inp in input_
+        ]
+
+        if self.partition_annotation is not None:
+            i = 0
+            for document in documents:
+                for sentence_index in range(
+                    len(document.span_annotations(self.partition_annotation) or [])
+                ):
+                    metadata[i]["sentence_index"] = sentence_index
+                    i += 1
+
         return input_, metadata, expanded_documents
 
     def encode_target(
