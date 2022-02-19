@@ -1347,17 +1347,21 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(taskmodule, doc
     assert len(partitions) == 2
     partition = partitions[0]
     encoding = taskmodule._encode_text(text=doc.text, partition=partition)
-    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
     assert tag_sequence == [None, "B-city", "O", "O", "O", "O", "O", None]
     partition = partitions[1]
     encoding = taskmodule._encode_text(text=doc.text, partition=partition)
-    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
     assert tag_sequence == [
         None,
-        "B-city",
-        "I-city",
-        "O",
-        "O",
+        "B-person",
+        "I-person",
+        "I-person",
+        "I-person",
         "O",
         "O",
         "O",
@@ -1375,5 +1379,7 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(taskmodule, doc
     assert len(partitions) == 1
     partition = partitions[0]
     encoding = taskmodule._encode_text(text=doc.text, partition=partition)
-    tag_sequence = _convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    tag_sequence = _convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
     assert tag_sequence == [None, "B-person", "O", "O", "O", "O", "B-city", "O", None]
