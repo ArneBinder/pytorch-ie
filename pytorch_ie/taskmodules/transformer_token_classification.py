@@ -222,48 +222,32 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         encoding: TransformerTokenClassificationTaskEncoding,
         output: TransformerTokenClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
+
+        offset = 0
         if self.partition_annotation is not None:
-            document = encoding.document
-            metadata = encoding.metadata
-            partitions = document.span_annotations(self.partition_annotation)
+            partitions = encoding.document.span_annotations(self.partition_annotation)
             assert (
                 partitions
             ), f"document has no span annotations with name '{self.partition_annotation}'"
-            sentence = partitions[metadata["sentence_index"]]
+            offset = partitions[encoding.metadata["sentence_index"]].start
 
-            tag_sequence = [
-                "O" if stm else tag
-                for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-            ]
+        tag_sequence = [
+            "O" if is_special_token else tag
+            for tag, is_special_token in zip(
+                output["tags"], encoding.metadata["special_tokens_mask"]
+            )
+        ]
 
-            spans = bio_tags_to_spans(tag_sequence)
-            for label, (start, end) in spans:
-                yield (
-                    self.entity_annotation,
-                    LabeledSpan(
-                        sentence.start + metadata["offset_mapping"][start][0],
-                        sentence.start + metadata["offset_mapping"][end][1],
-                        label,
-                    ),
-                )
-        else:
-            metadata = encoding.metadata
-
-            tag_sequence = [
-                "O" if stm else tag
-                for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-            ]
-
-            spans = bio_tags_to_spans(tag_sequence)
-            for label, (start, end) in spans:
-                yield (
-                    self.entity_annotation,
-                    LabeledSpan(
-                        metadata["offset_mapping"][start][0],
-                        metadata["offset_mapping"][end][1],
-                        label,
-                    ),
-                )
+        spans = bio_tags_to_spans(tag_sequence)
+        for label, (start, end) in spans:
+            yield (
+                self.entity_annotation,
+                LabeledSpan(
+                    encoding.metadata["offset_mapping"][start][0] + offset,
+                    encoding.metadata["offset_mapping"][end][1] + offset,
+                    label,
+                ),
+            )
 
     def collate(
         self, encodings: List[TransformerTokenClassificationTaskEncoding]
