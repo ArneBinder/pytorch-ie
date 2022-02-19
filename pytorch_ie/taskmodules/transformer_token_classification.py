@@ -46,6 +46,13 @@ logger = logging.getLogger(__name__)
 def _convert_span_annotations_to_tag_sequence(
     spans: List[LabeledSpan], encoding: BatchEncoding, partition: Optional[LabeledSpan] = None
 ) -> Sequence[Optional[str]]:
+    """
+    Given a list of span annotations and an encoding (tokenizer output), create a sequence of tags with the
+    length of the number of tokens in the encoding. At positions where the tokens are None, None is returned as tag.
+    If a partition is provided, only the tokens within that span are considered.
+    For now, the BIO-encoding is used.
+    Note: The spans are not allowed to overlap (will raise an exception).
+    """
     word_ids = encoding.word_ids()
     tag_sequence = [None if word_ids[j] is None else "O" for j in range(len(word_ids))]
     offset = partition.start if partition is not None else 0
