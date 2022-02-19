@@ -129,6 +129,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def _encode_text(self, text, partition: Optional[LabeledSpan] = None):
+        if self.partition_annotation is not None and partition is None:
+            raise ValueError(f"partitioning is enabled, but no partition is provided")
         _text = text[partition.start : partition.end] if partition is not None else text
         return self.tokenizer(
             _text,
