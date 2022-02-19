@@ -48,8 +48,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self,
         tokenizer_name_or_path: str,
         entity_annotation: str = "entities",
-        single_sentence: bool = False,
-        sentence_annotation: str = "sentences",
+        partition_annotation: Optional[str] = None,
+        single_sentence: bool = False,  # deprecated, set partition_annotation instead
+        sentence_annotation: str = "sentences",  # deprecated, use partition_annotation instead
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = False,
         max_length: Optional[int] = None,
@@ -62,8 +63,10 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
-        self.single_sentence = single_sentence
-        self.sentence_annotation = sentence_annotation
+        self.partition_annotation = partition_annotation
+        # backwards compatibility
+        if single_sentence:
+            self.partition_annotation = sentence_annotation
         self.label_to_id = label_to_id or {}
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
         self.padding = padding
@@ -86,10 +89,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             ), f"document has no span annotations with name '{self.entity_annotation}'"
 
             for entity in entities:
-                # TODO: labels is a set...
-                for label in entity.labels:
-                    if label not in labels:
-                        labels.add(label)
+                labels.update(entity.labels)
 
         self.label_to_id["O"] = 0
         current_id = 1
@@ -110,11 +110,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         expanded_documents = []
         input_ = []
         for doc in documents:
-            if self.single_sentence:
-                partitions_or_none = doc.span_annotations(self.sentence_annotation)
+            if self.partition_annotation is not None:
+                partitions_or_none = doc.span_annotations(self.partition_annotation)
                 assert (
                     partitions_or_none
-                ), f"document has no span annotations with name '{self.sentence_annotation}'"
+                ), f"document has no span annotations with name '{self.partition_annotation}'"
                 partitions = partitions_or_none
             else:
                 partitions = [LabeledSpan(start=0, end=len(doc.text), label="FULL_DOCUMENT")]
@@ -140,11 +140,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             for inp in input_
         ]
 
-        if self.single_sentence:
+        if self.partition_annotation is not None:
             i = 0
             for document in documents:
                 for sentence_index in range(
-                    len(document.span_annotations(self.sentence_annotation) or [])
+                    len(document.span_annotations(self.partition_annotation) or [])
                 ):
                     metadata[i]["sentence_index"] = sentence_index
                     i += 1
@@ -158,17 +158,17 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         metadata: List[Metadata],
     ) -> List[TransformerTokenClassificationTargetEncoding]:
         target = []
-        if self.single_sentence:
+        if self.partition_annotation is not None:
             for i, document in enumerate(documents):
                 entities = document.span_annotations(self.entity_annotation)
                 assert (
                     entities
                 ), f"document has no span annotations with name '{self.entity_annotation}'"
                 sentence_idx = metadata[i]["sentence_index"]
-                partitions = document.span_annotations(self.sentence_annotation)
+                partitions = document.span_annotations(self.partition_annotation)
                 assert (
                     partitions
-                ), f"document has no span annotations with name '{self.sentence_annotation}'"
+                ), f"document has no span annotations with name '{self.partition_annotation}'"
                 sentence = partitions[sentence_idx]
 
                 word_ids = input_encodings[i].word_ids()
@@ -237,13 +237,13 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         encoding: TransformerTokenClassificationTaskEncoding,
         output: TransformerTokenClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
-        if self.single_sentence:
+        if self.partition_annotation is not None:
             document = encoding.document
             metadata = encoding.metadata
-            partitions = document.span_annotations(self.sentence_annotation)
+            partitions = document.span_annotations(self.partition_annotation)
             assert (
                 partitions
-            ), f"document has no span annotations with name '{self.sentence_annotation}'"
+            ), f"document has no span annotations with name '{self.partition_annotation}'"
             sentence = partitions[metadata["sentence_index"]]
 
             tag_sequence = [
