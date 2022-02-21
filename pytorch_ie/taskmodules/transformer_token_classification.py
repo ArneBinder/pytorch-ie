@@ -129,7 +129,7 @@ def _get_special_token_mask(token_ids_0: List[int], tokenizer) -> List[int]:
 
 
 def _char_to_token_mapper(c: int, char_to_token_mapping: Sequence[Optional[int]]) -> Optional[int]:
-    if c > len(char_to_token_mapping):
+    if c >= len(char_to_token_mapping):
         return None
     return char_to_token_mapping[c]
 
