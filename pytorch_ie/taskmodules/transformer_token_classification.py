@@ -128,10 +128,8 @@ def _get_special_token_mask(token_ids_0: List[int], tokenizer) -> List[int]:
     return [1 if token in tokenizer.all_special_ids else 0 for token in token_ids_0]
 
 
-def _char_to_token_mapper(c: int, char_to_token_mapping: Sequence[Optional[int]]) -> Optional[int]:
-    if c >= len(char_to_token_mapping):
-        return None
-    return char_to_token_mapping[c]
+def _char_to_token_mapper(c: int, char_to_token_mapping: Dict[int, int]) -> Optional[int]:
+    return char_to_token_mapping.get(c, None)
 
 
 class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
@@ -279,15 +277,13 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                                 )
                                 j += 1
                         new_metadata["offset_mapping"] = current_offset_mapping
-                        first_char_to_token_mapping: MutableSequence[Optional[int]] = [None] * max(
-                            [_slice[1] for _slice in current_offset_mapping]
-                        )
-                        for i, (start, end) in enumerate(current_offset_mapping):
-                            first_char_to_token_mapping[start:end] = [i] * (end - start)
-                        # new_metadata["first_char_to_token_mapping"] = first_char_to_token_mapping
+                        char_to_token_mapping: Dict[int, int] = {}
+                        for token_idx, (char_start, char_end) in enumerate(current_offset_mapping):
+                            for char_idx in range(char_start, char_end):
+                                char_to_token_mapping[char_idx] = token_idx
                         new_metadata["char_to_token_mapper"] = functools.partial(
                             _char_to_token_mapper,
-                            char_to_token_mapping=first_char_to_token_mapping,
+                            char_to_token_mapping=char_to_token_mapping,
                         )
                         # new_metadata["window_tokens"] = token_slice
                         new_metadata["window_labels"] = (
