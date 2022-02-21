@@ -87,7 +87,7 @@ def convert_span_annotations_to_tag_sequence(
             continue
 
         for j in range(start_idx, end_idx + 1):
-            if tag_sequence[j] != "O":
+            if tag_sequence[j] is not None and tag_sequence[j] != "O":
                 # TODO: is ValueError a good exception type for this?
                 raise ValueError(f"tag already assigned (current span has an overlap: {span})")
             prefix = "B" if j == start_idx else "I"
