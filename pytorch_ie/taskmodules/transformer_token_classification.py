@@ -1,9 +1,12 @@
 import copy
 import functools
+import json
 import logging
+from collections import Counter, defaultdict
 from typing import (
     Any,
     Callable,
+    DefaultDict,
     Dict,
     Iterator,
     List,
@@ -61,6 +64,7 @@ def convert_span_annotations_to_tag_sequence(
     special_tokens_mask: List[int],
     char_to_token_mapper: Callable[[int], Optional[int]],
     partition: Optional[LabeledSpan] = None,
+    statistics: Optional[DefaultDict[str, Counter]] = None,
 ) -> MutableSequence[Optional[str]]:
     """
     Given a list of span annotations, a character position to token mapper (as obtained from
@@ -81,9 +85,12 @@ def convert_span_annotations_to_tag_sequence(
         start_idx = char_to_token_mapper(span.start - offset)
         end_idx = char_to_token_mapper(span.end - 1 - offset)
         if start_idx is None or end_idx is None:
-            logger.warning(
-                f"Entity annotation does not start or end with a token, it will be skipped: {span}"
-            )
+            if statistics is not None:
+                statistics["skipped_unaligned"][span.label_single] += 1
+            else:
+                logger.warning(
+                    f"Entity annotation does not start or end with a token, it will be skipped: {span}"
+                )
             continue
 
         for j in range(start_idx, end_idx + 1):
@@ -92,6 +99,9 @@ def convert_span_annotations_to_tag_sequence(
                 raise ValueError(f"tag already assigned (current span has an overlap: {span})")
             prefix = "B" if j == start_idx else "I"
             tag_sequence[j] = f"{prefix}-{span.label_single}"
+
+        if statistics is not None:
+            statistics["added"][span.label_single] += 1
 
     return tag_sequence
 
@@ -308,6 +318,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         metadata: List[Metadata],
     ) -> List[TransformerTokenClassificationTargetEncoding]:
         target = []
+        statistics: DefaultDict[str, Counter] = defaultdict(Counter)
         for i, document in enumerate(documents):
             current_metadata = metadata[i]
             entities = document.span_annotations(self.entity_annotation)
@@ -327,6 +338,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 special_tokens_mask=current_metadata["special_tokens_mask"],
                 char_to_token_mapper=current_metadata["char_to_token_mapper"],
                 partition=partition,
+                statistics=statistics,
             )
             # exclude labels that are out of the window (when overlap is used)
             window_labels = current_metadata.get("window_labels")
@@ -339,6 +351,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             ]
             target.append(label_ids)
 
+        logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
         return target
 
     def unbatch_output(
