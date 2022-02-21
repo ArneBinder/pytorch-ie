@@ -16,7 +16,7 @@ from typing import (
 
 import torch
 import torch.nn.functional as F
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
@@ -122,10 +122,13 @@ def _enumerate_windows(
         yield token_slice, label_offset_slice
 
 
-def _get_special_token_mask(token_ids_0: List[int], tokenizer) -> List[int]:
+def _get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenizer) -> List[int]:
     # TODO: check why we can not just use tokenizer.get_special_tokens_mask()
     #  (this checks if token_ids_1 is not None and raises an exception)
-    return [1 if token in tokenizer.all_special_ids else 0 for token in token_ids_0]
+
+    # exclude unknown token id since this indicate a real input token
+    special_ids = set(tokenizer.all_special_ids) - set([tokenizer.unk_token_id])
+    return [1 if token_id in special_ids else 0 for token_id in token_ids_0]
 
 
 def _char_to_token_mapper(c: int, char_to_token_mapping: Dict[int, int]) -> Optional[int]:
