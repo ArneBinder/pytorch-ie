@@ -1,3 +1,7 @@
+"""
+This code is taken from hydra._internal.instantiate._instantiate2.
+"""
+
 from typing import Any, Callable, Union
 
 
