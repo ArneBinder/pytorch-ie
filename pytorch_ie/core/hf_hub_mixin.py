@@ -322,6 +322,7 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
         """
         super().__init__()
 
+    # TODO: this method is not needed anymore if switched to _type
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
         # deprecated entry, should use _type instead
@@ -458,8 +459,10 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         """
         super().__init__()
 
+    # TODO: this method is not needed anymore if switched to _type
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
+        # deprecated entry, should use _type instead
         config["taskmodule_type"] = self.__class__.__name__
         return config
 
