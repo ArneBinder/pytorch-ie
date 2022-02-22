@@ -273,7 +273,10 @@ def test_prepare(taskmodule_optional_marker, documents):
 
 def test_config(prepared_taskmodule_optional_marker):
     config = prepared_taskmodule_optional_marker._config()
-    assert config["taskmodule_type"] == "TransformerRETextClassificationTaskModule"
+    assert (
+        config["_type"]
+        == "pytorch_ie.taskmodules.transformer_re_text_classification.TransformerRETextClassificationTaskModule"
+    )
     assert "label_to_id" in config
     assert set(config["label_to_id"]) == {"no_relation", "mayor_of", "lives_in"}
     if prepared_taskmodule_optional_marker.add_type_to_marker:

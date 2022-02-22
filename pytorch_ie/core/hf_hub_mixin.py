@@ -322,13 +322,6 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
         """
         super().__init__()
 
-    # TODO: this method is not needed anymore if switched to _type
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        # deprecated entry, should use _type instead
-        config["model_type"] = self.__class__.__name__
-        return config
-
     def _save_pretrained(self, save_directory):
         """
         Overwrite this method in case you don't want to save complete model, rather some specific layers
@@ -373,7 +366,7 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
                 local_files_only=local_files_only,
             )
         model_kwargs.pop("_type", None)
-        model_kwargs.pop("model_type", None)  # deprecated entry, should use _type instead
+        model_kwargs.pop("model_type", None)  # backwards compatibility, should use _type instead
         model = cls(**model_kwargs)
 
         state_dict = torch.load(model_file, map_location=map_location)
@@ -419,7 +412,7 @@ class AutoModel(PyTorchIEModelHubMixin):
                 use_auth_token=use_auth_token,
                 local_files_only=local_files_only,
             )
-        model_kwargs.pop("model_type")  # deprecated entry, should use _type instead
+        model_kwargs.pop("model_type", None)  # backwards compatibility, should use _type instead
         cls_name = model_kwargs.pop("_type")
         _cls = _locate(cls_name)
         model = _cls(**model_kwargs)
@@ -459,13 +452,6 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         """
         super().__init__()
 
-    # TODO: this method is not needed anymore if switched to _type
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        # deprecated entry, should use _type instead
-        config["taskmodule_type"] = self.__class__.__name__
-        return config
-
     def _save_pretrained(self, save_directory):
         return None
 
@@ -483,7 +469,9 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         **model_kwargs,
     ):
         model_kwargs.pop("_type", None)
-        model_kwargs.pop("taskmodule_type", None)  # deprecated entry, should use _type instead
+        model_kwargs.pop(
+            "taskmodule_type", None
+        )  # backwards compatibility, should use _type instead
         return cls(**model_kwargs)
 
 
@@ -501,7 +489,9 @@ class AutoTaskmodule(PyTorchIETaskmoduleModelHubMixin):
         use_auth_token,
         **model_kwargs,
     ):
-        model_kwargs.pop("taskmodule_type")
+        model_kwargs.pop(
+            "taskmodule_type", None
+        )  # backwards compatibility, should use _type instead
         cls_name = model_kwargs.pop("_type")
         _cls = _locate(cls_name)
         return _cls(**model_kwargs)

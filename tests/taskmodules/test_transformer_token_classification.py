@@ -45,7 +45,10 @@ def test_prepare(taskmodule, documents):
 
 def test_config(prepared_taskmodule):
     config = prepared_taskmodule._config()
-    assert config["taskmodule_type"] == "TransformerTokenClassificationTaskModule"
+    assert (
+        config["_type"]
+        == "pytorch_ie.taskmodules.transformer_token_classification.TransformerTokenClassificationTaskModule"
+    )
     assert "label_to_id" in config
     assert set(config["label_to_id"]) == {"O", "B-person", "I-person", "B-city", "I-city"}
 
