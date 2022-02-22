@@ -320,6 +320,12 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
             >>> # Downloading weights from hf-hub & model will be initialized from those weights
             >>> model = MyModel.from_pretrained("username/mymodel@main")
         """
+        super().__init__()
+
+    def _config(self) -> Dict[str, Any]:
+        config = super()._config()
+        config["model_type"] = self.__class__.__name__  # deprecated entry
+        return config
 
     def _save_pretrained(self, save_directory):
         """
