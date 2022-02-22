@@ -22,8 +22,8 @@ jobs:
           - { python: "3.9", os: "ubuntu-latest", session: "xdoctest" }
           - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
 
-    env:
-      NOXSESSION: ${{ matrix.session }}
+env:
+      NOXSESSION: ${{"{{"}} matrix.session {{"}}"}}
       FORCE_COLOR: "1"
       PRE_COMMIT_COLOR: "always"
 
@@ -31,10 +31,10 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v2.4.0
 
-      - name: Set up Python ${{ matrix.python }}
+      - name: Set up Python ${{"{{"}} matrix.python {{"}}"}}
         uses: actions/setup-python@v2.3.2
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{"{{"}} matrix.python {{"}}"}}
 
       - name: Upgrade pip
         run: |
@@ -103,7 +103,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2.3.2
         with:
-          python-version: "3.9"
+          python-version: "3.10"
 
       - name: Upgrade pip
         run: |
