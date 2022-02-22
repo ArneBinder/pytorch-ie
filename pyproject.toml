@@ -1,9 +1,33 @@
+[build-system]
+# requires = ["poetry-core>=1.1.0"]
+requires = ["poetry-core @ git+https://github.com/python-poetry/poetry-core.git@master"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "pytorch-ie"
 version = "0.2.0"
-description = ""
+description = "State-of-the-art Information Extraction in PyTorch"
+readme = "README.md"
 authors = ["Christoph Alt <christoph.alt@posteo.de>"]
 license = "MIT"
+homepage = "https://github.com/ChristophAlt/pytorch-ie"
+repository = "https://github.com/ChristophAlt/pytorch-ie"
+documentation = "https://pytorch-ie.readthedocs.io"
+packages = [
+    { include = "pytorch_ie"}
+]
+classifiers = [
+    "Framework :: Pytest",
+    "Framework :: tox",
+    "Framework :: Sphinx",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License"
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/ChristophAlt/pytorch-ie/issues"
+"Changelog" = "https://github.com/ChristophAlt/pytorch-ie/releases"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -15,29 +39,43 @@ torchmetrics = "^0.6.2"
 setuptools = "59.5.0"
 
 [tool.poetry.dev-dependencies]
-black = "^21.12b0"
-flake8 = "^4.0.1"
-isort = "^5.10.1"
-mypy = "^0.930"
-pre-commit = "^2.16.0"
-pytest = "^6.2.5"
-pytest-cov = "^3.0.0"
+Pygments = ">=2.10.0"
+black = ">=21.12b0"
+coverage = {extras = ["toml"], version = ">=6.2"}
+darglint = ">=1.8.1"
+flake8 = ">=4.0.1"
+flake8-bandit = ">=2.1.2"
+flake8-bugbear = ">=21.9.2"
+flake8-docstrings = ">=1.6.0"
+flake8-rst-docstrings = ">=0.2.5"
+furo = ">=2021.11.12"
+isort = ">=5.10.1"
+mypy = ">=0.930"
+pep8-naming = ">=0.12.1"
+pre-commit = ">=2.16.0"
+pre-commit-hooks = ">=4.1.0"
+pytest = ">=6.2.5"
+pyupgrade = ">=2.29.1"
+safety = ">=1.10.3"
+sphinx = ">=4.3.2"
+sphinx-autobuild = ">=2021.3.14"
+sphinx-click = ">=3.0.2"
+typeguard = ">=2.13.3"
+xdoctest = {extras = ["colors"], version = ">=0.15.10"}
+myst-parser = {version = ">=0.16.1"}
 sh = "^1.14.2"
 types-requests = "^2.27.7"
+nox = "^2022.1.7"
+nox-poetry = "^0.9.0"
 
-[build-system]
-# requires = ["poetry-core>=1.0.0"]
-requires = ["poetry-core @ git+https://github.com/python-poetry/poetry-core.git@master"]
-build-backend = "poetry.core.masonry.api"
+[tool.black]
+line-length = 99
+target-version = ["py39", "py310"]
 
 [tool.isort]
 profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
 line_length = 99
-filter_files = true
+known_first_party = ["pytorch_ie"]
 
 [tool.mypy]
 files = [
@@ -45,7 +83,24 @@ files = [
     "examples",
     "tests"
 ]
+warn_unreachable = true
+pretty = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
 ignore_missing_imports = true
+
+[tool.coverage.paths]
+source = ["pytorch_ie", "*/site-packages"]
+tests = ["tests", "*/tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["pytorch_ie", "tests"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
 
 [tool.pytest.ini_options]
 testpaths = "tests/"
@@ -62,8 +117,3 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::UserWarning"
 ]
-
-[tool.black]
-line-length = 99
-target-version = ["py39"]
-include = '\.pyi?$'

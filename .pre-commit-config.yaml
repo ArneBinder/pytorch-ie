@@ -1,50 +1,77 @@
-# See https://pre-commit.com/ for usage and config
 repos:
-- repo: local
-  hooks:
-  - id: isort
-    name: isort
-    stages: [commit]
-    language: system
-    entry: poetry run isort
-    types: [python]
+    - repo: local
+      hooks:
+          - id: black
+            name: black
+            entry: black
+            language: system
+            types: [python]
+            require_serial: true
 
-  - id: black
-    name: black
-    stages: [commit]
-    language: system
-    entry: poetry run black
-    types: [python]
-    args: [--line-length, "99"]
+          - id: check-added-large-files
+            name: Check for added large files
+            entry: check-added-large-files
+            language: system
 
-#   - id: flake8
-#     name: flake8
-#     stages: [commit]
-#     language: system
-#     entry: pipenv run flake8
-#     types: [python]
-#     exclude: setup.py
+          - id: check-toml
+            name: Check Toml
+            entry: check-toml
+            language: system
+            types: [toml]
 
-  - id: mypy
-    name: mypy
-    stages: [commit]
-    language: system
-    entry: poetry run mypy
-    types: [python]
-    require_serial: true
+          - id: check-yaml
+            name: Check Yaml
+            entry: check-yaml
+            language: system
+            types: [yaml]
 
-  - id: pytest
-    name: pytest
-    stages: [commit]
-    language: system
-    entry: poetry run pytest -k "not slow"
-    types: [python]
-    pass_filenames: false
+          - id: darglint
+            name: darglint
+            entry: darglint
+            language: system
+            types: [python]
+            stages: [manual]
 
-  - id: pytest-cov
-    name: pytest
-    stages: [push]
-    language: system
-    entry: poetry run pytest --cov --cov-fail-under=100
-    types: [python]
-    pass_filenames: false
+          - id: end-of-file-fixer
+            name: Fix End of Files
+            entry: end-of-file-fixer
+            language: system
+            types: [text]
+            stages: [commit, push, manual]
+
+          - id: flake8
+            name: flake8
+            entry: flake8
+            language: system
+            types: [python]
+            require_serial: true
+            args: [--darglint-ignore-regex, .*]
+
+          - id: isort
+            name: isort
+            entry: isort
+            require_serial: true
+            language: system
+            types_or: [cython, pyi, python]
+            args: ["--filter-files"]
+
+          - id: pyupgrade
+            name: pyupgrade
+            description: Automatically upgrade syntax for newer versions.
+            entry: pyupgrade
+            language: system
+            types: [python]
+            args: [--py38-plus]
+
+          - id: trailing-whitespace
+            name: Trim Trailing Whitespace
+            entry: trailing-whitespace-fixer
+            language: system
+            types: [text]
+            stages: [commit, push, manual]
+
+    - repo: https://github.com/pre-commit/mirrors-prettier
+      rev: v2.5.1
+      hooks:
+          - id: prettier
+            types_or: [yaml, json, toml, markdown]
