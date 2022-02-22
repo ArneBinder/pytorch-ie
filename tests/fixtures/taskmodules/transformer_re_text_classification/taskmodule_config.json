@@ -1,0 +1,32 @@
+{
+    "tokenizer_name_or_path": "allenai/scibert_scivocab_cased",
+    "entity_annotation": "entities",
+    "relation_annotation": "relations",
+    "padding": true,
+    "truncation": true,
+    "max_length": null,
+    "pad_to_multiple_of": null,
+    "multi_label": false,
+    "add_type_to_marker": false,
+    "single_argument_pair": true,
+    "append_markers": false,
+    "entity_labels": {
+        "no_relation": 0,
+        "supports": 1,
+        "parts_of_same": 2,
+        "contradicts": 3,
+        "semantically_same": 4
+    },
+    "partition_annotation": "sections",
+    "none_label": "no_relation",
+    "max_window": 512,
+    "taskmodule_type": "TransformerRETextClassificationTaskModule",
+    "_type": "pytorch_ie.taskmodules.transformer_re_text_classification.TransformerRETextClassificationTaskModule",
+    "label_to_id": {
+        "no_relation": 0,
+        "supports": 1,
+        "parts_of_same": 2,
+        "contradicts": 3,
+        "semantically_same": 4
+    }
+}

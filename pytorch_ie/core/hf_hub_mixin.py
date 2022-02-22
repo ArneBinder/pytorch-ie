@@ -12,12 +12,14 @@ from huggingface_hub.hf_api import HfApi, HfFolder
 from huggingface_hub.repository import Repository
 from pytorch_lightning.core.mixins import HyperparametersMixin
 
+from pytorch_ie.core.utils import _convert_target_to_string, _locate
+
 logger = logging.getLogger(__name__)
 
 TASKMODULE_CONFIG_NAME = "taskmodule_config.json"
 
 
-class PyTorchIEBaseModelHubMixin:
+class PyTorchIEBaseModelHubMixin(HyperparametersMixin):
     """
     A Generic Base Model Hub Mixin. Define your own mixin for anything by inheriting from this class
     and overwriting _from_pretrained and _save_pretrained to define custom logic for saving/loading
@@ -68,8 +70,10 @@ class PyTorchIEBaseModelHubMixin:
     def _config_name(self) -> Optional[str]:
         return None
 
-    def _config(self) -> Optional[Dict[str, Any]]:
-        return None
+    def _config(self) -> Dict[str, Any]:
+        config = dict(self.hparams)
+        config["_type"] = _convert_target_to_string(self.__class__)
+        return config
 
     def _save_pretrained(self, save_directory):
         """
@@ -360,7 +364,8 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
                 use_auth_token=use_auth_token,
                 local_files_only=local_files_only,
             )
-        model_kwargs.pop("model_type")
+        model_kwargs.pop("_type", None)
+        model_kwargs.pop("model_type", None)  # deprecated entry
         model = cls(**model_kwargs)
 
         state_dict = torch.load(model_file, map_location=map_location)
@@ -370,7 +375,55 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
         return model
 
 
-class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, HyperparametersMixin):
+class AutoModel(PyTorchIEModelHubMixin):
+    @classmethod
+    def _from_pretrained(
+        cls,
+        model_id,
+        revision,
+        cache_dir,
+        force_download,
+        proxies,
+        resume_download,
+        local_files_only,
+        use_auth_token,
+        map_location="cpu",
+        strict=False,
+        **model_kwargs,
+    ):
+        """
+        Overwrite this method in case you wish to initialize your model in a different way.
+        """
+        map_location = torch.device(map_location)
+
+        if os.path.isdir(model_id):
+            print("Loading weights from local directory")
+            model_file = os.path.join(model_id, PYTORCH_WEIGHTS_NAME)
+        else:
+            model_file = hf_hub_download(
+                repo_id=model_id,
+                filename=PYTORCH_WEIGHTS_NAME,
+                revision=revision,
+                cache_dir=cache_dir,
+                force_download=force_download,
+                proxies=proxies,
+                resume_download=resume_download,
+                use_auth_token=use_auth_token,
+                local_files_only=local_files_only,
+            )
+        model_kwargs.pop("model_type")  # deprecated entry
+        cls_name = model_kwargs.pop("_type")
+        _cls = _locate(cls_name)
+        model = _cls(**model_kwargs)
+
+        state_dict = torch.load(model_file, map_location=map_location)
+        model.load_state_dict(state_dict, strict=strict)
+        model.eval()
+
+        return model
+
+
+class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
     config_name = TASKMODULE_CONFIG_NAME
 
     def __init__(self, *args, **kwargs):
@@ -399,7 +452,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         super().__init__()
 
     def _config(self) -> Dict[str, Any]:
-        config = dict(self.hparams)
+        config = super()._config()
         config["taskmodule_type"] = self.__class__.__name__
         return config
 
@@ -419,5 +472,26 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         use_auth_token,
         **model_kwargs,
     ):
-        model_kwargs.pop("taskmodule_type")
+        model_kwargs.pop("_type", None)
+        model_kwargs.pop("taskmodule_type", None)  # deprecated entry
         return cls(**model_kwargs)
+
+
+class AutoTaskmodule(PyTorchIETaskmoduleModelHubMixin):
+    @classmethod
+    def _from_pretrained(
+        cls,
+        model_id,
+        revision,
+        cache_dir,
+        force_download,
+        proxies,
+        resume_download,
+        local_files_only,
+        use_auth_token,
+        **model_kwargs,
+    ):
+        model_kwargs.pop("taskmodule_type")
+        cls_name = model_kwargs.pop("_type")
+        _cls = _locate(cls_name)
+        return _cls(**model_kwargs)
