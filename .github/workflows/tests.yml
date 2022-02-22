@@ -23,7 +23,7 @@ jobs:
           - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
 
     env:
-      NOXSESSION: ${{"{{"}} matrix.session {{"}}"}}
+      NOXSESSION: ${{ matrix.session }}
       FORCE_COLOR: "1"
       PRE_COMMIT_COLOR: "always"
 
@@ -31,10 +31,10 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v2.4.0
 
-      - name: Set up Python ${{"{{"}} matrix.python {{"}}"}}
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v2.3.2
         with:
-          python-version: ${{"{{"}} matrix.python {{"}}"}}
+          python-version: ${{ matrix.python }}
 
       - name: Upgrade pip
         run: |
@@ -66,7 +66,7 @@ jobs:
           python = "py{}.{}".format(*sys.version_info[:2])
           payload = sys.version.encode() + sys.executable.encode()
           digest = hashlib.sha256(payload).hexdigest()
-          result = {{ '"${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])' }}
+          result = '"${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])'
           print("::set-output name=result::{}".format(result))
       - name: Restore pre-commit cache
         uses: actions/cache@v2.1.7
