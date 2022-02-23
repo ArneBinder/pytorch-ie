@@ -414,9 +414,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         )
                         # this happens if slice_required does not fit into max_tokens
                         if window_slice is None:
-                            statistics["out_of_token_window"][
-                                relation_mapping.get((head, tail), "TO_PREDICT")
-                            ] += 1
+                            if statistics is not None:
+                                statistics["out_of_token_window"][
+                                    relation_mapping.get((head, tail), "TO_PREDICT")
+                                ] += 1
                             continue
 
                         window_start, window_end = window_slice
@@ -479,7 +480,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         TAIL: tail,
                     }
                     metadata.append(doc_metadata)
-                    statistics["candidates"][relation_mapping.get((head, tail), "TO_PREDICT")] += 1
+                    if statistics is not None:
+                        statistics["candidates"][
+                            relation_mapping.get((head, tail), "TO_PREDICT")
+                        ] += 1
 
         if statistics is not None:
             logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
