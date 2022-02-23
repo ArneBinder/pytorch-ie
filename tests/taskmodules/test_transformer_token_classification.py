@@ -55,10 +55,7 @@ def prepared_taskmodule(taskmodule, documents):
 def taskmodule_with_partition():
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerTokenClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path,
-        # Note: Either use single_sentence=True or partition_annotation="sentences"
-        single_sentence=True,
-        # partition_annotation="sentences"
+        tokenizer_name_or_path=tokenizer_name_or_path, partition_annotation="sentences"
     )
     return taskmodule
 

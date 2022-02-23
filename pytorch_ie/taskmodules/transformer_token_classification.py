@@ -84,8 +84,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         tokenizer_name_or_path: str,
         entity_annotation: str = "entities",
         partition_annotation: Optional[str] = None,
-        single_sentence: bool = False,  # deprecated, set partition_annotation instead
-        sentence_annotation: str = "sentences",  # deprecated, use partition_annotation instead
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = False,
         max_length: Optional[int] = None,
@@ -99,9 +97,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
         self.partition_annotation = partition_annotation
-        # backwards compatibility
-        if single_sentence:
-            self.partition_annotation = sentence_annotation
         self.label_to_id = label_to_id or {}
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
         self.padding = padding
