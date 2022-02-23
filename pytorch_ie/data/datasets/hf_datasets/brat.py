@@ -251,7 +251,9 @@ class Brat(datasets.GeneratorBasedBuilder):
                 elif ann_type == "R":
                     res["relations"].append(Brat._get_relation_annotation(line))
                 elif ann_type == "*":
-                    res["relations"].append(Brat._get_equivalence_relation_annotation(line))
+                    res["equivalence_relations"].append(
+                        Brat._get_equivalence_relation_annotation(line)
+                    )
                 elif ann_type in ["A", "M"]:
                     res["attributions"].append(Brat._get_attribute_annotation(line))
                 elif ann_type == "N":
