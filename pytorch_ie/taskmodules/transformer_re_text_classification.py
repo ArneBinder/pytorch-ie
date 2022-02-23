@@ -213,6 +213,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
         max_window: Optional[int] = None,
+        show_statistics: bool = False,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -233,6 +234,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.partition_annotation = partition_annotation
         self.none_label = none_label
         self.max_window = max_window
+        self.show_statistics = show_statistics
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -337,7 +339,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         input_encoding = []
         metadata = []
         new_documents = []
-        statistics: DefaultDict[str, Counter] = defaultdict(Counter)
+        statistics: Optional[DefaultDict[str, Counter]] = (
+            defaultdict(Counter) if self.show_statistics else None
+        )
 
         for document in documents:
             entities = document.span_annotations(self.entity_annotation)
@@ -382,9 +386,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     )
                     # this happens if the head/tail start/end does not match a token start/end
                     if head_token_slice is None or tail_token_slice is None:
-                        statistics["entity_token_alignment_error"][
-                            relation_mapping.get((head, tail), "TO_PREDICT")
-                        ] += 1
+                        if statistics is not None:
+                            statistics["entity_token_alignment_error"][
+                                relation_mapping.get((head, tail), "TO_PREDICT")
+                            ] += 1
                         continue
 
                     input_ids = encoding["input_ids"]
@@ -476,7 +481,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     metadata.append(doc_metadata)
                     statistics["candidates"][relation_mapping.get((head, tail), "TO_PREDICT")] += 1
 
-        logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
+        if statistics is not None:
+            logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
         return input_encoding, metadata, new_documents
 
     def encode_target(
