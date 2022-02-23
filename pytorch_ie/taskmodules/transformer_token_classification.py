@@ -160,6 +160,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         max_window: Optional[int] = None,
         window_overlap: int = 0,
         show_statistics: bool = False,
+        include_ill_formed_predictions: bool = True,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -177,6 +178,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.max_window = max_window
         self.window_overlap = window_overlap
         self.show_statistics = show_statistics
+        self.include_ill_formed_predictions = include_ill_formed_predictions
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
@@ -389,7 +391,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             )
         ]
 
-        spans = bio_tags_to_spans(tag_sequence)
+        spans = bio_tags_to_spans(
+            tag_sequence, include_ill_formed=self.include_ill_formed_predictions
+        )
         for label, (start, end) in spans:
             yield (
                 self.entity_annotation,

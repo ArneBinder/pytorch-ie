@@ -14,7 +14,7 @@ class InvalidTagSequence(Exception):
 
 
 def bio_tags_to_spans(
-    tag_sequence: List[str], classes_to_ignore: List[str] = None
+    tag_sequence: List[str], classes_to_ignore: List[str] = None, include_ill_formed: bool = True
 ) -> List[TypedStringSpan]:
     """
     Given a sequence corresponding to BIO tags, extracts spans.
@@ -29,6 +29,8 @@ def bio_tags_to_spans(
     classes_to_ignore : `List[str]`, optional (default = `None`).
         A list of string class labels `excluding` the bio tag
         which should be ignored when extracting spans.
+    include_ill_formed: `bool`, optional (default = `True`).
+        If this flag is enabled, include spans that do not start with "B". Otherwise, these are ignored.
     # Returns
     spans : `List[TypedStringSpan]`
         The typed, extracted spans from the sequence, in the format (label, (span_start, span_end)).
@@ -74,9 +76,15 @@ def bio_tags_to_spans(
             # false positive ill-formed spans.
             if active_conll_tag is not None:
                 spans.add((active_conll_tag, (span_start, span_end)))
-            active_conll_tag = conll_tag
-            span_start = index
-            span_end = index
+            if include_ill_formed:
+                active_conll_tag = conll_tag
+                span_start = index
+                span_end = index
+            else:
+                active_conll_tag = None
+                # We don't care about tags we are
+                # told to ignore, so we do nothing.
+                continue
     # Last token might have been a part of a valid span.
     if active_conll_tag is not None:
         spans.add((active_conll_tag, (span_start, span_end)))
