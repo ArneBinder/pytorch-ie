@@ -8,8 +8,8 @@ from numpy.testing import assert_almost_equal
 from pytorch_ie.data import LabeledSpan
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 from pytorch_ie.taskmodules.transformer_token_classification import (
-    _enumerate_windows,
     convert_span_annotations_to_tag_sequence,
+    enumerate_windows,
 )
 from tests.taskmodules.document import (
     DOC1_ENTITY_BERLIN,
@@ -368,7 +368,7 @@ def test_enumerate_windows():
         "about",
         "Karl",
     ]
-    windows = list(_enumerate_windows(sequence=sequence, max_size=5))
+    windows = list(enumerate_windows(sequence=sequence, max_size=5))
     assert len(windows) == 3
     token_slice, label_slice = windows[0]
     assert token_slice == (0, 5)
@@ -397,7 +397,7 @@ def test_enumerate_windows_with_overlap():
         "about",
         "Karl",
     ]
-    windows = list(_enumerate_windows(sequence=sequence, max_size=7, overlap=2))
+    windows = list(enumerate_windows(sequence=sequence, max_size=7, overlap=2))
     assert len(windows) == 3
     token_slice, label_slice = windows[0]
     assert token_slice == (0, 7)
@@ -432,7 +432,7 @@ def test_enumerate_windows_with_overlap2():
         "mayor",
         ".",
     ]
-    windows = list(_enumerate_windows(sequence=sequence, max_size=14, overlap=3))
+    windows = list(enumerate_windows(sequence=sequence, max_size=14, overlap=3))
     assert len(windows) == 2
     token_slice, label_slice = windows[0]
     assert token_slice == (0, 14)

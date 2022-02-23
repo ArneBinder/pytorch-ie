@@ -106,7 +106,7 @@ def convert_span_annotations_to_tag_sequence(
     return tag_sequence
 
 
-def _enumerate_windows(
+def enumerate_windows(
     sequence: Sequence, max_size, overlap: int = 0
 ) -> Iterator[Tuple[Tuple[int, int], Tuple[int, int]]]:
     """
@@ -132,7 +132,7 @@ def _enumerate_windows(
         yield token_slice, label_offset_slice
 
 
-def _get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenizer) -> List[int]:
+def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenizer) -> List[int]:
     # TODO: check why we can not just use tokenizer.get_special_tokens_mask()
     #  (this checks if token_ids_1 is not None and raises an exception)
 
@@ -261,14 +261,14 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                     # tokens later on (e.g. CLS and SEP).
                     max_window = self.max_window - self.tokenizer.num_special_tokens_to_add()
                     token_ids = encoding["input_ids"]
-                    for token_slice, label_offset_slice in _enumerate_windows(
+                    for token_slice, label_offset_slice in enumerate_windows(
                         sequence=token_ids, max_size=max_window, overlap=self.window_overlap
                     ):
                         start_idx, end_idx = token_slice
                         new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
                             token_ids_0=token_ids[start_idx:end_idx]
                         )
-                        new_special_tokens_mask = _get_special_token_mask(
+                        new_special_tokens_mask = get_special_token_mask(
                             token_ids_0=new_input_ids, tokenizer=self.tokenizer
                         )
                         new_encoding = {"input_ids": new_input_ids}
