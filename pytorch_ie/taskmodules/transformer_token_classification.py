@@ -159,6 +159,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         label_to_id: Optional[Dict[str, int]] = None,
         max_window: Optional[int] = None,
         window_overlap: int = 0,
+        show_statistics: bool = False,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -175,6 +176,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.label_pad_token_id = label_pad_token_id
         self.max_window = max_window
         self.window_overlap = window_overlap
+        self.show_statistics = show_statistics
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
@@ -318,7 +320,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         metadata: List[Metadata],
     ) -> List[TransformerTokenClassificationTargetEncoding]:
         target = []
-        statistics: DefaultDict[str, Counter] = defaultdict(Counter)
+        statistics: Optional[DefaultDict[str, Counter]] = (
+            defaultdict(Counter) if self.show_statistics else None
+        )
         for i, document in enumerate(documents):
             current_metadata = metadata[i]
             entities = document.span_annotations(self.entity_annotation)
@@ -351,7 +355,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             ]
             target.append(label_ids)
 
-        logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
+        if statistics is not None:
+            logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
         return target
 
     def unbatch_output(
