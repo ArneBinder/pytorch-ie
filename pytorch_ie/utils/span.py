@@ -1,7 +1,14 @@
-from typing import List, Set, Tuple
+import logging
+from typing import Callable, Counter, DefaultDict, List, MutableSequence, Optional, Set, Tuple
+
+from transformers import BatchEncoding
+
+from pytorch_ie.data import LabeledSpan
 
 TypedSpan = Tuple[int, Tuple[int, int]]
 TypedStringSpan = Tuple[str, Tuple[int, int]]
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidTagSequence(Exception):
@@ -139,6 +146,69 @@ def io_tags_to_spans(
     if active_tag is not None:
         spans.add((active_tag, (span_start, span_end)))
     return list(spans)
+
+
+def convert_span_annotations_to_tag_sequence(
+    spans: List[LabeledSpan],
+    special_tokens_mask: List[int],
+    char_to_token_mapper: Callable[[int], Optional[int]],
+    partition: Optional[LabeledSpan] = None,
+    statistics: Optional[DefaultDict[str, Counter]] = None,
+) -> MutableSequence[Optional[str]]:
+    """
+    Given a list of span annotations, a character position to token mapper (as obtained from
+    batch_encoding.char_to_token) and a special tokens mask, create a sequence of tags with the length of the
+    special tokens mask. For special token positions, None is returned as tag.
+    If a partition is provided, only the tokens within that span are considered.
+    For now, the BIO-encoding is used.
+    Note: The spans are not allowed to overlap (will raise an exception).
+    """
+    tag_sequence = [
+        None if special_tokens_mask[j] else "O" for j in range(len(special_tokens_mask))
+    ]
+    offset = partition.start if partition is not None else 0
+    for span in spans:
+        if partition is not None and (span.start < partition.start or span.end > partition.end):
+            continue
+
+        start_idx = char_to_token_mapper(span.start - offset)
+        end_idx = char_to_token_mapper(span.end - 1 - offset)
+        if start_idx is None or end_idx is None:
+            if statistics is not None:
+                statistics["skipped_unaligned"][span.label_single] += 1
+            else:
+                logger.warning(
+                    f"Entity annotation does not start or end with a token, it will be skipped: {span}"
+                )
+            continue
+
+        for j in range(start_idx, end_idx + 1):
+            if tag_sequence[j] is not None and tag_sequence[j] != "O":
+                # TODO: is ValueError a good exception type for this?
+                raise ValueError(f"tag already assigned (current span has an overlap: {span})")
+            prefix = "B" if j == start_idx else "I"
+            tag_sequence[j] = f"{prefix}-{span.label_single}"
+
+        if statistics is not None:
+            statistics["added"][span.label_single] += 1
+
+    return tag_sequence
+
+
+def get_token_slice(
+    character_slice: Tuple[int, int],
+    char_to_token_mapper: Callable[[int], Optional[int]],
+    character_offset: int = 0,
+) -> Optional[Tuple[int, int]]:
+    """
+    Using an encoding to map a character slice to the respective token slice. If the slice start or end does
+    not match a token start or end respectively, return None.
+    """
+    start = char_to_token_mapper(character_slice[0] - character_offset)
+    before_end = char_to_token_mapper(character_slice[1] - 1 - character_offset)
+    if start is None or before_end is None:
+        return None
+    return start, before_end + 1
 
 
 def is_contained_in(start_end: Tuple[int, int], other_start_end: Tuple[int, int]) -> bool:

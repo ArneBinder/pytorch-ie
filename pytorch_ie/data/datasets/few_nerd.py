@@ -4,7 +4,7 @@ from datasets import Dataset, IterableDataset, load_dataset
 from datasets.splits import Split
 
 from pytorch_ie.data.document import Document, LabeledSpan
-from pytorch_ie.data.span_utils import io_tags_to_spans
+from pytorch_ie.utils.span import io_tags_to_spans
 
 
 def load_few_nerd(
