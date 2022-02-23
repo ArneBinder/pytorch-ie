@@ -1,4 +1,3 @@
-import copy
 import os
 
 import numpy as np
@@ -221,10 +220,7 @@ def test_encode_input(prepared_taskmodule, documents):
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_encode_with_partition(prepared_taskmodule, documents, encode_target):
-    prepared_taskmodule_with_partition = copy.deepcopy(prepared_taskmodule)
-    prepared_taskmodule_with_partition.single_sentence = True
-    prepared_taskmodule_with_partition.sentence_annotation = "sentences"
+def test_encode_with_partition(prepared_taskmodule_with_partition, documents, encode_target):
     task_encodings = prepared_taskmodule_with_partition.encode(
         documents, encode_target=encode_target
     )
