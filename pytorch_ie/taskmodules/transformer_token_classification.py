@@ -146,15 +146,18 @@ def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenize
 
 
 def _char_to_token_mapper(
-    c: int, char_to_token_mapping: Dict[int, int], char_start: Optional[int] = None, char_end: Optional[int] = None
+    char_idx: int,
+    char_to_token_mapping: Dict[int, int],
+    char_start: Optional[int] = None,
+    char_end: Optional[int] = None,
 ) -> Optional[int]:
-    if char_start is not None and c < char_start:
+    if char_start is not None and char_idx < char_start:
         # return negative number to encode out-ot-window
         return -1
-    if char_end is not None and c >= char_end:
+    if char_end is not None and char_idx >= char_end:
         # return negative number to encode out-ot-window
         return -2
-    return char_to_token_mapping.get(c, None)
+    return char_to_token_mapping.get(char_idx, None)
 
 
 class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
