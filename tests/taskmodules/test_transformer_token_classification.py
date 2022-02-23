@@ -6,8 +6,23 @@ import pytest
 import torch
 from numpy.testing import assert_almost_equal
 
+from pytorch_ie.data import LabeledSpan
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
-from tests.taskmodules.document import get_doc1, get_doc2, get_doc3
+from pytorch_ie.taskmodules.transformer_token_classification import (
+    convert_span_annotations_to_tag_sequence,
+)
+from tests.taskmodules.document import (
+    DOC1_ENTITY_BERLIN,
+    DOC1_ENTITY_JANE,
+    DOC1_ENTITY_KARL,
+    DOC2_ENTITY_JENNY,
+    DOC2_ENTITY_SEATTLE,
+    DOC3_ENTITY_BERLIN,
+    DOC3_ENTITY_KARL,
+    get_doc1,
+    get_doc2,
+    get_doc3,
+)
 
 
 @pytest.fixture
@@ -34,6 +49,21 @@ def taskmodule():
 def prepared_taskmodule(taskmodule, documents):
     taskmodule.prepare(documents)
     return taskmodule
+
+
+@pytest.fixture(scope="module")
+def taskmodule_with_partition():
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerTokenClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path, partition_annotation="sentences"
+    )
+    return taskmodule
+
+
+@pytest.fixture
+def prepared_taskmodule_with_partition(taskmodule_with_partition, documents):
+    taskmodule_with_partition.prepare(documents)
+    return taskmodule_with_partition
 
 
 def test_prepare(taskmodule, documents):
@@ -157,10 +187,7 @@ def test_encode_input(prepared_taskmodule, documents):
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_encode_with_partition(prepared_taskmodule, documents, encode_target):
-    prepared_taskmodule_with_partition = copy.deepcopy(prepared_taskmodule)
-    prepared_taskmodule_with_partition.single_sentence = True
-    prepared_taskmodule_with_partition.sentence_annotation = "sentences"
+def test_encode_with_partition(prepared_taskmodule_with_partition, documents, encode_target):
     task_encodings = prepared_taskmodule_with_partition.encode(
         documents, encode_target=encode_target
     )
@@ -1250,3 +1277,364 @@ def test_save_load(tmp_path, prepared_taskmodule):
     loaded_taskmodule = TransformerTokenClassificationTaskModule.from_pretrained(path)
     # assert loaded_taskmodule.is_prepared()
     assert loaded_taskmodule._config() == prepared_taskmodule._config()
+
+
+def test_convert_span_annotations_to_tag_sequence(taskmodule, documents):
+    doc = documents[0]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 3
+    encoding = taskmodule.encode_text(text=doc.text)
+    tag_sequence = convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [
+        None,
+        "B-person",
+        "O",
+        "O",
+        "B-city",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "B-person",
+        None,
+    ]
+
+    doc = documents[1]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    encoding = taskmodule.encode_text(text=doc.text)
+    tag_sequence = convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [
+        None,
+        "B-city",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "B-person",
+        "I-person",
+        "I-person",
+        "I-person",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        None,
+    ]
+
+    doc = documents[2]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    encoding = taskmodule.encode_text(text=doc.text)
+    tag_sequence = convert_span_annotations_to_tag_sequence(spans=entities, encoding=encoding)
+    assert tag_sequence == [None, "B-person", "O", "O", "O", "O", "B-city", "O", None]
+
+
+def test_convert_span_annotations_to_tag_sequence_with_partition(
+    taskmodule_with_partition, documents
+):
+    doc = documents[0]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 3
+    partitions = doc.span_annotations("sentences")
+    assert len(partitions) == 1
+    partition = partitions[0]
+    encoding = taskmodule_with_partition.encode_text(text=doc.text, partition=partition)
+    tag_sequence = convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
+    assert tag_sequence == [None, "B-person", "O", "O", "B-city", "O", None]
+
+    doc = documents[1]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    partitions = doc.span_annotations("sentences")
+    assert len(partitions) == 2
+    partition = partitions[0]
+    encoding = taskmodule_with_partition.encode_text(text=doc.text, partition=partition)
+    tag_sequence = convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
+    assert tag_sequence == [None, "B-city", "O", "O", "O", "O", "O", None]
+    partition = partitions[1]
+    encoding = taskmodule_with_partition.encode_text(text=doc.text, partition=partition)
+    tag_sequence = convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
+    assert tag_sequence == [
+        None,
+        "B-person",
+        "I-person",
+        "I-person",
+        "I-person",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        "O",
+        None,
+    ]
+
+    doc = documents[2]
+    entities = doc.span_annotations("entities")
+    assert len(entities) == 2
+    partitions = doc.span_annotations("sentences")
+    assert len(partitions) == 1
+    partition = partitions[0]
+    encoding = taskmodule_with_partition.encode_text(text=doc.text, partition=partition)
+    tag_sequence = convert_span_annotations_to_tag_sequence(
+        spans=entities, encoding=encoding, partition=partition
+    )
+    assert tag_sequence == [None, "B-person", "O", "O", "O", "O", "B-city", "O", None]
+
+
+def assert_entity_matches(actual: LabeledSpan, expected: LabeledSpan):
+    assert actual.label == expected.label
+    assert actual.start == expected.start
+    assert actual.end == expected.end
+
+
+def test_create_annotations_from_output(prepared_taskmodule, documents):
+    assert prepared_taskmodule.entity_annotation == "entities"
+    input_encodings = prepared_taskmodule.encode(documents, encode_target=False)
+    input_encoding = input_encodings[0]
+    """
+    # create expected outputs via (NOTE: this requires encode_target=True)
+    outputs = [
+        {
+            "tags": [
+                prepared_taskmodule.id_to_label.get(_id, "SPECIAL_TOKEN")
+                for _id in input_encoding.target
+            ]
+        }
+        for input_encoding in input_encodings
+    ]
+    """
+    outputs = [
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                "B-person",
+                "O",
+                "O",
+                "B-city",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "B-person",
+                "SPECIAL_TOKEN",
+            ]
+        },
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                "B-city",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "B-person",
+                "I-person",
+                "I-person",
+                "I-person",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "SPECIAL_TOKEN",
+            ]
+        },
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                "B-person",
+                "O",
+                "O",
+                "O",
+                "O",
+                "B-city",
+                "O",
+                "SPECIAL_TOKEN",
+            ]
+        },
+    ]
+    output = outputs[0]
+    predicted_entities = list(
+        prepared_taskmodule.create_annotations_from_output(encoding=input_encoding, output=output)
+    )
+    assert len(predicted_entities) == 3
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC1_ENTITY_JANE)
+    predicted_name_and_span = predicted_entities_sorted[1]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC1_ENTITY_BERLIN)
+    predicted_name_and_span = predicted_entities_sorted[2]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC1_ENTITY_KARL)
+
+    input_encoding = input_encodings[1]
+    output = outputs[1]
+    predicted_entities = list(
+        prepared_taskmodule.create_annotations_from_output(encoding=input_encoding, output=output)
+    )
+    assert len(predicted_entities) == 2
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC2_ENTITY_SEATTLE)
+    predicted_name_and_span = predicted_entities_sorted[1]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC2_ENTITY_JENNY)
+
+    input_encoding = input_encodings[2]
+    output = outputs[2]
+    predicted_entities = list(
+        prepared_taskmodule.create_annotations_from_output(encoding=input_encoding, output=output)
+    )
+    assert len(predicted_entities) == 2
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC3_ENTITY_KARL)
+    predicted_name_and_span = predicted_entities_sorted[1]
+    assert predicted_name_and_span[0] == prepared_taskmodule.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC3_ENTITY_BERLIN)
+
+
+def test_create_annotations_from_output_with_partition(
+    prepared_taskmodule_with_partition, documents
+):
+    assert prepared_taskmodule_with_partition.entity_annotation == "entities"
+    input_encodings = prepared_taskmodule_with_partition.encode(documents, encode_target=False)
+    input_encoding = input_encodings[0]
+    outputs = [
+        {"tags": ["SPECIAL_TOKEN", "B-person", "O", "O", "B-city", "O", "SPECIAL_TOKEN"]},
+        {"tags": ["SPECIAL_TOKEN", "B-city", "O", "O", "O", "O", "O", "SPECIAL_TOKEN"]},
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                "B-person",
+                "I-person",
+                "I-person",
+                "I-person",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "SPECIAL_TOKEN",
+            ]
+        },
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                "B-person",
+                "O",
+                "O",
+                "O",
+                "O",
+                "B-city",
+                "O",
+                "SPECIAL_TOKEN",
+            ]
+        },
+    ]
+    output = outputs[0]
+    predicted_entities = list(
+        prepared_taskmodule_with_partition.create_annotations_from_output(
+            encoding=input_encoding, output=output
+        )
+    )
+    assert len(predicted_entities) == 2
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_partition.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC1_ENTITY_JANE)
+    predicted_name_and_span = predicted_entities_sorted[1]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_partition.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC1_ENTITY_BERLIN)
+
+    input_encoding = input_encodings[1]
+    output = outputs[1]
+    predicted_entities = list(
+        prepared_taskmodule_with_partition.create_annotations_from_output(
+            encoding=input_encoding, output=output
+        )
+    )
+    assert len(predicted_entities) == 1
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_partition.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC2_ENTITY_SEATTLE)
+
+    input_encoding = input_encodings[2]
+    output = outputs[2]
+    predicted_entities = list(
+        prepared_taskmodule_with_partition.create_annotations_from_output(
+            encoding=input_encoding, output=output
+        )
+    )
+    assert len(predicted_entities) == 1
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert predicted_name_and_span[0] == prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC2_ENTITY_JENNY)
+
+    input_encoding = input_encodings[3]
+    output = outputs[3]
+    predicted_entities = list(
+        prepared_taskmodule_with_partition.create_annotations_from_output(
+            encoding=input_encoding, output=output
+        )
+    )
+    assert len(predicted_entities) == 2
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_partition.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC3_ENTITY_KARL)
+    predicted_name_and_span = predicted_entities_sorted[1]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_partition.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC3_ENTITY_BERLIN)
