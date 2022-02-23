@@ -93,6 +93,10 @@ def convert_span_annotations_to_tag_sequence(
                 )
             continue
 
+        # negative numbers encode out-of-window tokens
+        if start_idx < 0 or end_idx < 0:
+            continue
+
         for j in range(start_idx, end_idx + 1):
             if tag_sequence[j] is not None and tag_sequence[j] != "O":
                 # TODO: is ValueError a good exception type for this?
@@ -141,7 +145,15 @@ def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenize
     return [1 if token_id in special_ids else 0 for token_id in token_ids_0]
 
 
-def _char_to_token_mapper(c: int, char_to_token_mapping: Dict[int, int]) -> Optional[int]:
+def _char_to_token_mapper(
+    c: int, char_to_token_mapping: Dict[int, int], char_start: Optional[int] = None, char_end: Optional[int] = None
+) -> Optional[int]:
+    if char_start is not None and c < char_start:
+        # return negative number to encode out-ot-window
+        return -1
+    if char_end is not None and c >= char_end:
+        # return negative number to encode out-ot-window
+        return -2
     return char_to_token_mapping.get(c, None)
 
 
@@ -301,6 +313,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                         new_metadata["char_to_token_mapper"] = functools.partial(
                             _char_to_token_mapper,
                             char_to_token_mapping=char_to_token_mapping,
+                            char_start=offset_mapping_without_special_tokens[0][0],
+                            char_end=offset_mapping_without_special_tokens[-1][1],
                         )
                         # new_metadata["window_tokens"] = token_slice
                         new_metadata["window_labels"] = (
