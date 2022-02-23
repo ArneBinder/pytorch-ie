@@ -7,10 +7,7 @@ from numpy.testing import assert_almost_equal
 
 from pytorch_ie.data import LabeledSpan
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
-from pytorch_ie.taskmodules.transformer_token_classification import (
-    convert_span_annotations_to_tag_sequence,
-    enumerate_windows,
-)
+from pytorch_ie.utils.span import convert_span_annotations_to_tag_sequence
 from tests.taskmodules.document import (
     DOC1_ENTITY_BERLIN,
     DOC1_ENTITY_JANE,
@@ -352,95 +349,6 @@ def test_encode_with_partition(prepared_taskmodule_with_partition, documents, en
 
         assert task_encodings[3].has_target
         assert task_encodings[3].target == [-100, 3, 0, 0, 0, 0, 1, 0, -100]
-
-
-def test_enumerate_windows():
-    sequence = [
-        "Jane",
-        "lives",
-        "in",
-        "Berlin",
-        ".",
-        "this",
-        "is",
-        "no",
-        "sentence",
-        "about",
-        "Karl",
-    ]
-    windows = list(enumerate_windows(sequence=sequence, max_size=5))
-    assert len(windows) == 3
-    token_slice, label_slice = windows[0]
-    assert token_slice == (0, 5)
-    assert label_slice == (0, 5)
-
-    token_slice, label_slice = windows[1]
-    assert token_slice == (5, 10)
-    assert label_slice == (0, 5)
-
-    token_slice, label_slice = windows[2]
-    assert token_slice == (10, 11)
-    assert label_slice == (0, 1)
-
-
-def test_enumerate_windows_with_overlap():
-    sequence = [
-        "Jane",
-        "lives",
-        "in",
-        "Berlin",
-        ".",
-        "this",
-        "is",
-        "no",
-        "sentence",
-        "about",
-        "Karl",
-    ]
-    windows = list(enumerate_windows(sequence=sequence, max_size=7, overlap=2))
-    assert len(windows) == 3
-    token_slice, label_slice = windows[0]
-    assert token_slice == (0, 7)
-    assert label_slice == (0, 5)
-
-    token_slice, label_slice = windows[1]
-    assert token_slice == (3, 10)
-    assert label_slice == (2, 5)
-
-    token_slice, label_slice = windows[2]
-    assert token_slice == (6, 11)
-    assert label_slice == (2, 5)
-
-
-def test_enumerate_windows_with_overlap2():
-    sequence = [
-        "Seattle",
-        "is",
-        "a",
-        "rainy",
-        "city",
-        ".",
-        "Jenny",
-        "Du",
-        "##rka",
-        "##n",
-        "is",
-        "the",
-        "city",
-        "'",
-        "s",
-        "mayor",
-        ".",
-    ]
-    windows = list(enumerate_windows(sequence=sequence, max_size=14, overlap=3))
-    assert len(windows) == 2
-    token_slice, label_slice = windows[0]
-    assert token_slice == (0, 14)
-    assert label_slice == (0, 11)
-
-    token_slice, label_slice = windows[1]
-    assert token_slice == (8, 17)
-    assert label_slice == (3, 9)
 
 
 def test_encode_input_with_window(prepared_taskmodule_with_window, documents):
