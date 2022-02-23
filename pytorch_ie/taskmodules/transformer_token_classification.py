@@ -237,7 +237,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             if self.partition_annotation is not None:
                 partitions_or_none = doc.span_annotations(self.partition_annotation)
                 assert (
-                    partitions_or_none
+                    partitions_or_none is not None
                 ), f"document has no span annotations with name '{self.partition_annotation}'"
                 partitions = partitions_or_none
             else:
@@ -329,14 +329,14 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             current_metadata = metadata[i]
             entities = document.span_annotations(self.entity_annotation)
             assert (
-                entities
+                entities is not None
             ), f"document has no span annotations with name '{self.entity_annotation}'"
             partition = None
             if self.partition_annotation is not None:
                 partition_index = current_metadata["sentence_index"]
                 partitions = document.span_annotations(self.partition_annotation)
                 assert (
-                    partitions
+                    partitions is not None
                 ), f"document has no span annotations with name '{self.partition_annotation}'"
                 partition = partitions[partition_index]
             tag_sequence = convert_span_annotations_to_tag_sequence(
@@ -380,7 +380,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         if self.partition_annotation is not None:
             partitions = encoding.document.span_annotations(self.partition_annotation)
             assert (
-                partitions
+                partitions is not None
             ), f"document has no span annotations with name '{self.partition_annotation}'"
             offset = partitions[encoding.metadata["sentence_index"]].start
 
