@@ -43,7 +43,7 @@ _TransformerTokenClassificationTaskModule = TaskModule[
 logger = logging.getLogger(__name__)
 
 
-def _convert_span_annotations_to_tag_sequence(
+def convert_span_annotations_to_tag_sequence(
     spans: List[LabeledSpan], encoding: BatchEncoding, partition: Optional[LabeledSpan] = None
 ) -> Sequence[Optional[str]]:
     """
@@ -130,12 +130,12 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
-    def _encode_text(self, text, partition: Optional[LabeledSpan] = None):
+    def encode_text(self, text, partition: Optional[LabeledSpan] = None):
         if self.partition_annotation is not None and partition is None:
             raise ValueError(f"partitioning is enabled, but no partition is provided")
-        _text = text[partition.start : partition.end] if partition is not None else text
+        text_partition = text[partition.start : partition.end] if partition is not None else text
         return self.tokenizer(
-            _text,
+            text_partition,
             padding=False,
             truncation=False,
             max_length=None,
@@ -166,7 +166,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 partitions = [None]
 
             for partition_index, partition in enumerate(partitions):
-                encoding = self._encode_text(text=doc.text, partition=partition)
+                encoding = self.encode_text(text=doc.text, partition=partition)
                 current_metadata = {
                     "offset_mapping": encoding.pop("offset_mapping"),
                     "special_tokens_mask": encoding.pop("special_tokens_mask"),
@@ -199,7 +199,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                     partitions
                 ), f"document has no span annotations with name '{self.partition_annotation}'"
                 partition = partitions[partition_index]
-            tag_sequence = _convert_span_annotations_to_tag_sequence(
+            tag_sequence = convert_span_annotations_to_tag_sequence(
                 spans=entities, encoding=input_encodings[i], partition=partition
             )
             label_ids = [
