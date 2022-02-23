@@ -102,12 +102,9 @@ def io_tags_to_spans(
     tag_sequence: List[str], classes_to_ignore: List[str] = None
 ) -> List[TypedStringSpan]:
     """
-    Given a sequence corresponding to BIO tags, extracts spans.
-    Spans are inclusive and can be of zero length, representing a single word span.
-    Ill-formed spans are also included (i.e those which do not start with a "B-LABEL"),
-    as otherwise it is possible to get a perfect precision score whilst still predicting
-    ill-formed spans in addition to the correct spans. This function works properly when
-    the spans are unlabeled (i.e., your labels are simply "B", "I", and "O").
+    Decode spans from simple IO encoding tag sequence, i.e. tags with an expected tag set of labels + "O".
+    Create spans from maximal subsequences that have the same label.
+
     # Parameters
     tag_sequence : `List[str]`, required.
         The integer class labels for a sequence.
