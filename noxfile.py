@@ -26,7 +26,7 @@ nox.options.sessions = (
     "pre-commit",
     # "safety",
     "mypy",
-    "tests",
+    "tests_not_slow",
     # "typeguard",
     "xdoctest",
     "docs-build",
@@ -155,6 +155,18 @@ def mypy(session: Session) -> None:
 
 @session(python=python_versions)
 def tests(session: Session) -> None:
+    """Run the test suite."""
+    session.install(".")
+    session.install("coverage[toml]", "pytest", "pygments", "sh")
+    try:
+        session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
+    finally:
+        if session.interactive:
+            session.notify("coverage", posargs=[])
+
+
+@session(python=python_versions)
+def tests_not_slow(session: Session) -> None:
     """Run the test suite."""
     session.install(".")
     session.install("coverage[toml]", "pytest", "pygments", "sh")

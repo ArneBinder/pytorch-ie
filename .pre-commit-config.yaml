@@ -75,3 +75,4 @@ repos:
       hooks:
           - id: prettier
             types_or: [yaml, json, toml, markdown]
+            args: ["--print-width=99"]
