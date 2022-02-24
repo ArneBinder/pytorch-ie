@@ -25,12 +25,12 @@ repos:
             language: system
             types: [yaml]
 
-          - id: darglint
-            name: darglint
-            entry: darglint
-            language: system
-            types: [python]
-            stages: [manual]
+          #   - id: darglint
+          #     name: darglint
+          #     entry: darglint
+          #     language: system
+          #     types: [python]
+          #     stages: [manual]
 
           - id: end-of-file-fixer
             name: Fix End of Files
