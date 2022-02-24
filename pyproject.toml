@@ -30,7 +30,7 @@ classifiers = [
 "Changelog" = "https://github.com/ChristophAlt/pytorch-ie/releases"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 pytorch-lightning = "^1.5.7"
 datasets = "^1.17.0"
 transformers = "^4.15.0"
