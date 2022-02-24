@@ -9,7 +9,7 @@ CLASS_NAME_TO_CLASS = {
 
 
 def load_t_rex(path: str, text_field: str = "text") -> List[Document]:
-    with open(path, "r", encoding="utf-8") as data_file:
+    with open(path, encoding="utf-8") as data_file:
         data = json.load(data_file)
 
     documents: List[Document] = []

@@ -1,6 +1,5 @@
 """TODO: Add a description here."""
 
-from __future__ import absolute_import, division, print_function
 
 import os
 
@@ -23,8 +22,8 @@ _CITATION_GENIA = """\
 
 # You can copy an official description
 _DESCRIPTION = """
-The GENIA corpus is the primary collection of biomedical literature compiled and annotated within the scope 
-of the GENIA project. The corpus was created to support the development and evaluation of information 
+The GENIA corpus is the primary collection of biomedical literature compiled and annotated within the scope
+of the GENIA project. The corpus was created to support the development and evaluation of information
 extraction and text mining systems for the domain of molecular biology.
 """
 
@@ -249,7 +248,7 @@ class Genia(datasets.GeneratorBasedBuilder):
             for file in files:
                 if file not in ["LICENSE", "README"]:
                     list_of_files[file] = os.path.join(root, file)
-        doc_ids = list(set([file_name.split(".")[0] for file_name in list_of_files.keys()]))
+        doc_ids = list({file_name.split(".")[0] for file_name in list_of_files.keys()})
         doc_ids.sort()
         doc_ids.sort(key=len)
         return doc_ids, list_of_files

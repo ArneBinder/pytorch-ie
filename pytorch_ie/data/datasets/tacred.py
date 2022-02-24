@@ -27,7 +27,7 @@ def load_tacred(path: str, split: str, convert_ptb_tokens: bool = True) -> List[
     file_path = os.path.join(path, filename)
 
     documents: List[Document] = []
-    with open(file_path, "r", encoding="utf-8") as data_file:
+    with open(file_path, encoding="utf-8") as data_file:
         data = json.load(data_file)
 
         for example in data:

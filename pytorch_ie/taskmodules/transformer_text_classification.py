@@ -40,22 +40,16 @@ TransformerTextClassificationTaskEncoding = TaskEncoding[
     TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
 ]
 
-TransformerTextClassificationTaskOutputSingle = TypedDict(
-    "TransformerTextClassificationTaskOutputSingle",
-    {
-        "labels": List[str],
-        "probabilities": List[float],
-    },
-    total=False,
-)
-TransformerTextClassificationTaskOutputMulti = TypedDict(
-    "TransformerTextClassificationTaskOutputMulti",
-    {
-        "labels": List[List[str]],
-        "probabilities": List[List[float]],
-    },
-    total=False,
-)
+
+class TransformerTextClassificationTaskOutputSingle(TypedDict, total=False):
+    labels: List[str]
+    probabilities: List[float]
+
+
+class TransformerTextClassificationTaskOutputMulti(TypedDict, total=False):
+    labels: List[List[str]]
+    probabilities: List[List[float]]
+
 
 TransformerTextClassificationTaskOutput = Union[
     TransformerTextClassificationTaskOutputSingle,

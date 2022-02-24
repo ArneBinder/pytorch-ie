@@ -1,6 +1,5 @@
 """TODO: Add a description here."""
 
-from __future__ import absolute_import, division, print_function
 
 import os
 import re
@@ -11,7 +10,7 @@ from spacy.lang.en import English
 
 _CITATION_WEBRED = """\
 @misc{ormandi2021webred,
-    title={WebRED: Effective Pretraining And Finetuning For Relation Extraction On The Web}, 
+    title={WebRED: Effective Pretraining And Finetuning For Relation Extraction On The Web},
     author={Robert Ormandi and Mohammad Saleh and Erin Winter and Vinay Rao},
     year={2021},
     eprint={2102.09681},
@@ -23,11 +22,11 @@ _CITATION_WEBRED = """\
 
 # You can copy an official description
 _DESCRIPTION = """\
-A dataset for extracting relationships from a variety of text found on the World Wide Web. Text 
-on the web has diverse surface forms including writing styles, complexity and grammar. This dataset collects 
-sentences from a variety of webpages and documents that represent a variety of those categories. In each sentence, 
-there will be a subject and object entities tagged with subject SUBJ{...} and object OBJ{...}, respectively. The two 
-entities are either related by a relation from a set of pre-defined ones or has no relation. 
+A dataset for extracting relationships from a variety of text found on the World Wide Web. Text
+on the web has diverse surface forms including writing styles, complexity and grammar. This dataset collects
+sentences from a variety of webpages and documents that represent a variety of those categories. In each sentence,
+there will be a subject and object entities tagged with subject SUBJ{...} and object OBJ{...}, respectively. The two
+entities are either related by a relation from a set of pre-defined ones or has no relation.
 
 More information about the dataset can be found in our paper: https://arxiv.org/abs/2102.09681
 """
@@ -36,7 +35,7 @@ _HOMEPAGE = "https://github.com/google-research-datasets/WebRED"
 
 _LICENSE = """\
 This data is licensed by Google LLC under a Creative Commons Attribution 4.0 International License (
-http://creativecommons.org/licenses/by/4.0/) Users will be allowed to modify and repost it, and we encourage them to 
+http://creativecommons.org/licenses/by/4.0/) Users will be allowed to modify and repost it, and we encourage them to
 analyze and publish research based on the data.
 """
 
@@ -593,7 +592,7 @@ class WebRedConfig(datasets.BuilderConfig):
             `datasets.Value('float32')`.
           **kwargs: keyword arguments forwarded to super.
         """
-        super(WebRedConfig, self).__init__(version=datasets.Version("1.0.0", ""), **kwargs)
+        super().__init__(version=datasets.Version("1.0.0", ""), **kwargs)
         self.class_labels = class_labels
         self.data_url = data_url
         self.citation = citation

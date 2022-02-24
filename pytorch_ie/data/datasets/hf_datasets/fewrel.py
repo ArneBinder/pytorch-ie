@@ -1,6 +1,5 @@
 """TODO: Add a description here."""
 
-from __future__ import absolute_import, division, print_function
 
 import json
 
@@ -78,7 +77,7 @@ class FewRelConfig(datasets.BuilderConfig):
             `datasets.Value('float32')`.
           **kwargs: keyword arguments forwarded to super.
         """
-        super(FewRelConfig, self).__init__(version=datasets.Version("1.0.0", ""), **kwargs)
+        super().__init__(version=datasets.Version("1.0.0", ""), **kwargs)
         self.class_labels = class_labels
         self.data_url = data_url
         self.citation = citation

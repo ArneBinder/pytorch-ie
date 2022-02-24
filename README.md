@@ -76,6 +76,8 @@ for relation in document.predictions("relations"):
 
 </details>
 
+<!-- github-only -->
+
 ## Development Setup
 
 ```sh

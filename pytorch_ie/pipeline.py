@@ -148,7 +148,7 @@ class Pipeline:
         elif isinstance(inputs, list):
             return [self._ensure_tensor_on_device(item, device) for item in inputs]
         elif isinstance(inputs, tuple):
-            return tuple([self._ensure_tensor_on_device(item, device) for item in inputs])
+            return tuple(self._ensure_tensor_on_device(item, device) for item in inputs)
         elif isinstance(inputs, torch.Tensor):
             return inputs.to(device)
         else:

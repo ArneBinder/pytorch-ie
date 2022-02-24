@@ -1,6 +1,5 @@
 """The SemEval-2010 Task 8 on Multi-way classification of semantic relations between pairs of nominals"""
 
-from __future__ import absolute_import, division, print_function
 
 import os
 import re
@@ -119,7 +118,7 @@ class SemEval2010Task8(datasets.GeneratorBasedBuilder):
 
     def _generate_examples(self, filepath):
         """Yields examples."""
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             raw_lines = []
             for line in f:
                 line = line.strip()

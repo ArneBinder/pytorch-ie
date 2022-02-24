@@ -49,7 +49,7 @@ class WikiGoldConfig(datasets.BuilderConfig):
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
-        super(WikiGoldConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class WikiGold(datasets.GeneratorBasedBuilder):
@@ -84,7 +84,7 @@ class WikiGold(datasets.GeneratorBasedBuilder):
         num_lines = sum(1 for _ in open(filepath))
         id = 0
 
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             tokens, ner_tags = [], []
             for line in tqdm(f, total=num_lines):
                 line = line.strip().split()

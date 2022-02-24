@@ -277,7 +277,7 @@ class Brat(datasets.GeneratorBasedBuilder):
                 directory is not None
             ), "If files is None, directory has to be provided, but it is also None."
             _files = glob.glob(f"{directory}/*.{self.config.ann_file_extension}")
-            files = sorted([path.splitext(fn)[0] for fn in _files])
+            files = sorted(path.splitext(fn)[0] for fn in _files)
 
         for filename in files:
             basename = path.basename(filename)

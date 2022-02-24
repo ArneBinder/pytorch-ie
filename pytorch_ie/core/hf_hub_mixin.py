@@ -159,7 +159,7 @@ class PyTorchIEBaseModelHubMixin:
 
         config = {}
         if config_file is not None:
-            with open(config_file, "r", encoding="utf-8") as f:
+            with open(config_file, encoding="utf-8") as f:
                 config = json.load(f)
 
         config.update(model_kwargs)
