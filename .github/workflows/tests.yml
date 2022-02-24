@@ -80,7 +80,7 @@ jobs:
               run: |
                   nox --python=${{ matrix.python }}
             - name: Upload coverage data
-              if: always() && matrix.session == 'tests'
+              if: always() && matrix.session == 'tests_not_slow'
               uses: "actions/upload-artifact@v2.3.1"
               with:
                   name: coverage-data
