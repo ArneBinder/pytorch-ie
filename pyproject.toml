@@ -7,11 +7,11 @@ build-backend = "poetry.core.masonry.api"
 name = "pytorch-ie"
 version = "0.2.0"
 description = "State-of-the-art Information Extraction in PyTorch"
-readme = "README.md"
+readme = "README.rst"
 authors = ["Christoph Alt <christoph.alt@posteo.de>"]
 license = "MIT"
-homepage = "https://github.com/ChristophAlt/pytorch-ie"
-repository = "https://github.com/ChristophAlt/pytorch-ie"
+homepage = "https://github.com/christophalt/pytorch-ie"
+repository = "https://github.com/christophalt/pytorch-ie"
 documentation = "https://pytorch-ie.readthedocs.io"
 packages = [
     { include = "pytorch_ie"}
@@ -26,8 +26,8 @@ classifiers = [
 ]
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/ChristophAlt/pytorch-ie/issues"
-"Changelog" = "https://github.com/ChristophAlt/pytorch-ie/releases"
+"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
+"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
 
 [tool.poetry.dependencies]
 python = "^3.8"
