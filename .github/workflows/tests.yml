@@ -26,6 +26,7 @@ jobs:
             NOXSESSION: ${{ matrix.session }}
             FORCE_COLOR: "1"
             PRE_COMMIT_COLOR: "always"
+            COVERAGE_DEBUG: "trace"
 
         steps:
             - name: Check out the repository
