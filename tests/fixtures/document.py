@@ -107,7 +107,6 @@ def get_doc3(relation_annotation_name: str = "relations", **kwargs) -> Document:
         tokens=DOC3_TOKENS,
         sentences=[DOC3_SENTENCE1],
         entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
-        relation_annotation_name=relation_annotation_name,
         **kwargs,
     )
 
