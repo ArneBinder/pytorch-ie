@@ -92,13 +92,13 @@ show_error_context = true
 ignore_missing_imports = true
 
 [tool.coverage.paths]
-source = ["./", "*/site-packages"]
+source = ["pytorch-ie", "pytorch_ie", "*/site-packages"]
 tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
 branch = true
 # source = ["pytorch_ie", "tests"]
-source = ["pytorch_ie"]
+source = ["pytorch-ie", "pytorch_ie"]
 
 [tool.coverage.report]
 show_missing = true
