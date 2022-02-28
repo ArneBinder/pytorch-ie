@@ -93,7 +93,6 @@ ignore_missing_imports = true
 
 [tool.coverage.paths]
 source = ["pytorch_ie", "*/site-packages"]
-tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
 branch = true
