@@ -1,7 +1,6 @@
-from typing import List, Optional
-
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
+from tests.fixtures.document_utils import construct_document
 
 TEXT_01 = "Jane lives in Berlin. this is no sentence about Karl\n"
 TEXT_02 = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
@@ -76,66 +75,6 @@ DOC2_TOKENS = [
 DOC3_TOKENS = ["[CLS]", "Karl", "enjoys", "sunny", "days", "in", "Berlin", ".", "[SEP]"]
 
 
-def _add_span(
-    doc: Document,
-    span: LabeledSpan,
-    annotation_name: str,
-    id: Optional[str] = None,
-) -> LabeledSpan:
-    assert doc.text[span.start : span.end] == span.metadata["text"]
-    if id is not None:
-        span.metadata["id"] = id
-    doc.add_annotation(name=annotation_name, annotation=span)
-    return span
-
-
-def _add_relation(
-    doc: Document,
-    rel: BinaryRelation,
-    annotation_name: str,
-    id: Optional[str] = None,
-) -> BinaryRelation:
-    if id is not None:
-        rel.metadata["id"] = id
-    doc.add_annotation(name=annotation_name, annotation=rel)
-    return rel
-
-
-def construct_document(
-    text: str,
-    tokens: Optional[List[str]] = None,
-    entities: Optional[List[LabeledSpan]] = None,
-    relations: Optional[List[BinaryRelation]] = None,
-    sentences: Optional[List[LabeledSpan]] = None,
-    entity_annotation_name: Optional[str] = "entities",
-    relation_annotation_name: Optional[str] = "relations",
-    sentence_annotation_name: Optional[str] = "sentences",
-) -> Document:
-    doc = Document(text=text)
-    if tokens is not None:
-        doc.metadata["tokens"] = tokens
-    for i, sent in enumerate(sentences or []):
-        _add_span(
-            doc=doc,
-            span=sent,
-            annotation_name=sentence_annotation_name,
-        )
-    for i, ent in enumerate(entities or []):
-        _add_span(
-            doc=doc,
-            span=ent,
-            annotation_name=entity_annotation_name,
-        )
-    for i, rel in enumerate(relations or []):
-        _add_relation(
-            doc=doc,
-            rel=rel,
-            annotation_name=relation_annotation_name,
-        )
-
-    return doc
-
-
 def get_doc1(
     **kwargs,
 ) -> Document:
@@ -162,7 +101,7 @@ def get_doc2(
     )
 
 
-def get_doc3(relation_annotation_name: Optional[str] = "relations", **kwargs) -> Document:
+def get_doc3(relation_annotation_name: str = "relations", **kwargs) -> Document:
     doc = construct_document(
         text=TEXT_03,
         tokens=DOC3_TOKENS,
