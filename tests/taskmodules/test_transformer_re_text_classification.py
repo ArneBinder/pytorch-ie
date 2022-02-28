@@ -14,19 +14,19 @@ from tests.fixtures.document import (
     DOC1_ENTITY_KARL,
     DOC1_REL_LIVES_IN,
     DOC1_SENTENCE1,
+    DOC1_TEXT,
     DOC1_TOKENS,
     DOC2_ENTITY_JENNY,
     DOC2_ENTITY_SEATTLE,
     DOC2_REL_MAYOR_OF,
     DOC2_SENTENCE1,
     DOC2_SENTENCE2,
+    DOC2_TEXT,
     DOC2_TOKENS,
     DOC3_ENTITY_BERLIN,
     DOC3_ENTITY_KARL,
     DOC3_SENTENCE1,
     DOC3_TOKENS,
-    TEXT_01,
-    TEXT_02,
     get_doc1,
     get_doc2,
     get_doc3,
@@ -138,7 +138,7 @@ def test_encode_input(prepared_taskmodule_optional_marker, documents):
     assert len(new_documents) == 2
     encoding = input_encoding[0]
     document = new_documents[0]
-    assert document.text == TEXT_01
+    assert document.text == DOC1_TEXT
     if prepared_taskmodule_optional_marker.add_type_to_marker:
         assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
             encoding["input_ids"]
@@ -186,7 +186,7 @@ def test_encode_input(prepared_taskmodule_optional_marker, documents):
 
     encoding = input_encoding[1]
     document = new_documents[1]
-    assert document.text == TEXT_02
+    assert document.text == DOC2_TEXT
     if prepared_taskmodule_optional_marker.add_type_to_marker:
         assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
             encoding["input_ids"]

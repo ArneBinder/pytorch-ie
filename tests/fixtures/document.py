@@ -2,9 +2,9 @@ from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
 from tests.fixtures.document_utils import construct_document
 
-TEXT_01 = "Jane lives in Berlin. this is no sentence about Karl\n"
-TEXT_02 = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
-TEXT_03 = "Karl enjoys sunny days in Berlin."
+DOC1_TEXT = "Jane lives in Berlin. this is no sentence about Karl\n"
+DOC2_TEXT = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
+DOC3_TEXT = "Karl enjoys sunny days in Berlin."
 
 DOC1_ENTITY_JANE = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Jane"})
 DOC1_ENTITY_BERLIN = LabeledSpan(start=14, end=20, label="city", metadata={"text": "Berlin"})
@@ -79,7 +79,7 @@ def get_doc1(
     **kwargs,
 ) -> Document:
     return construct_document(
-        text=TEXT_01,
+        text=DOC1_TEXT,
         tokens=DOC1_TOKENS,
         sentences=[DOC1_SENTENCE1],
         entities=[DOC1_ENTITY_JANE, DOC1_ENTITY_BERLIN, DOC1_ENTITY_KARL],
@@ -92,7 +92,7 @@ def get_doc2(
     **kwargs,
 ) -> Document:
     return construct_document(
-        text=TEXT_02,
+        text=DOC2_TEXT,
         tokens=DOC2_TOKENS,
         sentences=[DOC2_SENTENCE1, DOC2_SENTENCE2],
         entities=[DOC2_ENTITY_SEATTLE, DOC2_ENTITY_JENNY],
@@ -103,7 +103,7 @@ def get_doc2(
 
 def get_doc3(relation_annotation_name: str = "relations", **kwargs) -> Document:
     doc = construct_document(
-        text=TEXT_03,
+        text=DOC3_TEXT,
         tokens=DOC3_TOKENS,
         sentences=[DOC3_SENTENCE1],
         entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
