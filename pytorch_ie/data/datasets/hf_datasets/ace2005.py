@@ -1,6 +1,5 @@
 """TODO: Add a description here."""
 
-from __future__ import absolute_import, division, print_function
 
 import json
 import os
@@ -20,22 +19,22 @@ _CITATION_ACE2005 = """\
 
 # You can copy an official description
 _DESCRIPTION = """\
-ACE 2005 Multilingual Training Corpus contains the complete set of English, Arabic and Chinese 
-training data for the 2005 Automatic Content Extraction (ACE) technology evaluation. The corpus consists of data of 
-various types annotated for entities, relations and events by the Linguistic Data Consortium (LDC) with support from 
-the ACE Program and additional assistance from LDC. 
+ACE 2005 Multilingual Training Corpus contains the complete set of English, Arabic and Chinese
+training data for the 2005 Automatic Content Extraction (ACE) technology evaluation. The corpus consists of data of
+various types annotated for entities, relations and events by the Linguistic Data Consortium (LDC) with support from
+the ACE Program and additional assistance from LDC.
 
-The objective of the ACE program was to develop automatic content extraction technology to support automatic 
-processing of human language in text form. 
+The objective of the ACE program was to develop automatic content extraction technology to support automatic
+processing of human language in text form.
 
-In November 2005, sites were evaluated on system performance in five primary areas: the recognition of entities, 
-values, temporal expressions, relations, and events. Entity, relation and event mention detection were also offered 
-as diagnostic tasks. All tasks with the exception of event tasks were performed for three languages, English, 
-Chinese and Arabic. Events tasks were evaluated in English and Chinese only. This release comprises the official 
-training data for these evaluation tasks. 
+In November 2005, sites were evaluated on system performance in five primary areas: the recognition of entities,
+values, temporal expressions, relations, and events. Entity, relation and event mention detection were also offered
+as diagnostic tasks. All tasks with the exception of event tasks were performed for three languages, English,
+Chinese and Arabic. Events tasks were evaluated in English and Chinese only. This release comprises the official
+training data for these evaluation tasks.
 
-For more information about linguistic resources for the ACE Program, including annotation guidelines, 
-task definitions and other documentation, see LDC's ACE website: 
+For more information about linguistic resources for the ACE Program, including annotation guidelines,
+task definitions and other documentation, see LDC's ACE website:
 http://projects.ldc.upenn.edu/ace/
 """
 

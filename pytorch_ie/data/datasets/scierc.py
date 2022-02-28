@@ -16,7 +16,7 @@ def load_scierc(path: str, split: str) -> List[Document]:
     file_path = os.path.join(path, filename)
 
     documents: List[Document] = []
-    with open(file_path, "r", encoding="utf-8") as data_file:
+    with open(file_path, encoding="utf-8") as data_file:
         for line in data_file:
             data = json.loads(line)
 

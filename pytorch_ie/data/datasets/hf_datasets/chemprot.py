@@ -1,6 +1,5 @@
 """TODO: Add a description here."""
 
-from __future__ import absolute_import, division, print_function
 
 import json
 import re
@@ -21,9 +20,9 @@ doi = {10.1093/database/bav123}
 
 # You can copy an official description
 _DESCRIPTION = """\
-ChemProt is a publicly available compilation of chemical-protein-disease annotation resources that enables the study 
-of systems pharmacology for a small molecule across multiple layers of complexity from molecular to clinical levels. 
-In this third version, ChemProt has been updated to more than 1.7 million compounds with 7.8 million bioactivity 
+ChemProt is a publicly available compilation of chemical-protein-disease annotation resources that enables the study
+of systems pharmacology for a small molecule across multiple layers of complexity from molecular to clinical levels.
+In this third version, ChemProt has been updated to more than 1.7 million compounds with 7.8 million bioactivity
 measurements for 19 504 proteins.
 """
 

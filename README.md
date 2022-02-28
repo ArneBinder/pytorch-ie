@@ -5,6 +5,7 @@
 ```sh
 pip install git+ssh://git@github.com/ChristophAlt/pytorch-ie.git
 ```
+
 ## ⚡&nbsp;&nbsp;Example
 
 #### Span-classification-based Named Entity Recognition
@@ -72,9 +73,13 @@ for relation in document.predictions("relations"):
 # (SOSV -> Po Bronson) -> org:top_members/employees
 # (IndieBio -> Po Bronson) -> org:top_members/employees
 ```
+
 </details>
 
+<!-- github-only -->
+
 ## Development Setup
+
 ```sh
 # Install dependencies
 poetry install
@@ -85,9 +90,11 @@ poetry run pre-commit install -t pre-push
 ```
 
 ## Credits
+
 This package was created with Cookiecutter and the [sourcery-ai/python-best-practices-cookiecutter](https://github.com/sourcery-ai/python-best-practices-cookiecutter) project template.
 
 ## BibTeX
+
 If you want to cite the framework feel free to use this:
 
 ```bibtex

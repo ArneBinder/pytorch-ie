@@ -1,6 +1,5 @@
 """TODO: Add a description here."""
 
-from __future__ import absolute_import, division, print_function
 
 import json
 import os
@@ -11,16 +10,16 @@ _CITATION_SCIERC = """\
 @InProceedings{luan2018multitask,
      author = {Luan, Yi and He, Luheng and Ostendorf, Mari and Hajishirzi, Hannaneh},
      title = {Multi-Task Identification of Entities, Relations, and Coreferencefor Scientific Knowledge Graph Construction},
-     booktitle = {Proc.\ Conf. Empirical Methods Natural Language Process. (EMNLP)},
+     booktitle = {Proc.\\ Conf. Empirical Methods Natural Language Process. (EMNLP)},
      year = {2018},
 }"""
 
 # You can copy an official description
 _DESCRIPTION = """\
-SCIERC includes annotations for scientific entities, their relations, and coreference clusters 
-for 500 scientific abstracts. These abstracts are taken from 12 AI conference/workshop proceedings 
-in four AI communities, from the Semantic Scholar Corpus. SCI-ERC extends previous datasets in scientific 
-articles SemEval 2017 Task 10 and SemEval 2018 Task 7 by extending entity types, relation types, relation coverage, 
+SCIERC includes annotations for scientific entities, their relations, and coreference clusters
+for 500 scientific abstracts. These abstracts are taken from 12 AI conference/workshop proceedings
+in four AI communities, from the Semantic Scholar Corpus. SCI-ERC extends previous datasets in scientific
+articles SemEval 2017 Task 10 and SemEval 2018 Task 7 by extending entity types, relation types, relation coverage,
 and adding cross-sentence relations using coreference links.
 """
 

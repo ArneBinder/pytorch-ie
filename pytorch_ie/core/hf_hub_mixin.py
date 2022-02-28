@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-import requests
+# TODO: fix ignore
+import requests  # type: ignore
 import torch
 from huggingface_hub.constants import CONFIG_NAME, PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
@@ -159,7 +160,7 @@ class PyTorchIEBaseModelHubMixin:
 
         config = {}
         if config_file is not None:
-            with open(config_file, "r", encoding="utf-8") as f:
+            with open(config_file, encoding="utf-8") as f:
                 config = json.load(f)
 
         config.update(model_kwargs)

@@ -43,11 +43,12 @@ TransformerReTextClassificationTargetEncoding = List[int]
 TransformerReTextClassificationTaskEncoding = TaskEncoding[
     TransformerReTextClassificationInputEncoding, TransformerReTextClassificationTargetEncoding
 ]
-TransformerReTextClassificationTaskOutput = TypedDict(
-    "TransformerReTextClassificationTaskOutput",
-    {"labels": List[str], "probabilities": List[float]},
-    total=False,
-)
+
+
+class TransformerReTextClassificationTaskOutput(TypedDict, total=False):
+    labels: List[str]
+    probabilities: List[float]
+
 
 _TransformerReTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput

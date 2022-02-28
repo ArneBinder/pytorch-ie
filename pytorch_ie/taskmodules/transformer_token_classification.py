@@ -141,7 +141,7 @@ def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenize
     #  (this checks if token_ids_1 is not None and raises an exception)
 
     # exclude unknown token id since this indicate a real input token
-    special_ids = set(tokenizer.all_special_ids) - set([tokenizer.unk_token_id])
+    special_ids = set(tokenizer.all_special_ids) - {tokenizer.unk_token_id}
     return [1 if token_id in special_ids else 0 for token_id in token_ids_0]
 
 

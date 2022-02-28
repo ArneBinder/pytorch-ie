@@ -80,7 +80,7 @@ def test_unbatch_output(prepared_taskmodule, model_output):
     unbatched_output1 = unbatched_outputs[0]
     assert unbatched_output1["tags"] == [(prepared_taskmodule.id_to_label[1], (1, 2))]
     assert len(unbatched_output1["probabilities"]) == 1
-    assert pytest.approx(unbatched_output1["probabilities"][0], 0.5)
+    assert unbatched_output1["probabilities"][0] == pytest.approx(0.5)
 
     unbatched_output2 = unbatched_outputs[1]
     assert len(unbatched_output2["tags"]) == 0

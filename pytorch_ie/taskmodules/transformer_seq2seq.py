@@ -103,7 +103,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
             head_to_relation[relation.head].append(relation)
 
-        all_relation_heads = set([relation.head for relation in relations])
+        all_relation_heads = {relation.head for relation in relations}
 
         lin_triplets: List[str] = []
         for head in sorted(all_relation_heads, key=lambda head: head.start):

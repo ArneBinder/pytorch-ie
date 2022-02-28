@@ -1,2 +1,0 @@
-{"doc_key": "doc1", "sentences": [["Jane", "lives", "in", "Berlin", "."]], "ner": [[[0, 0, "Person"], [3, 3, "City"]]]}
-{"doc_key": "doc2", "sentences": [["Seattle", "is", "a", "rainy", "city", "."], ["Jenny", "Durkan", "is", "the", "city's", "mayor", "."], ["She", "was", "elected", "in", "2017", "."]], "ner": [[[0, 0, "City"]], [[6, 7, "Person"], [9, 10, "City"]],[[13, 13, "Person"], [17, 17, "Year"]]], "relations": [[], [[6, 7, 9, 10, "Mayor-Of"]], [[13, 13, 17, 17, "Elected-In"]]]}
