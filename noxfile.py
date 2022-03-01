@@ -174,8 +174,8 @@ def tests_not_slow(session: Session) -> None:
             "coverage", "run", "-m", "pytest", "-k", "not slow", *session.posargs
         )
     finally:
-        # if session.interactive:
-        session.notify("coverage", posargs=[])
+        if session.interactive:
+            session.notify("coverage", posargs=[])
 
 
 @session(python=python_versions[0])
