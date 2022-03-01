@@ -190,6 +190,10 @@ def convert_span_annotations_to_tag_sequence(
                 )
             continue
 
+        # negative numbers encode out-of-window tokens
+        if start_idx < 0 or end_idx < 0:
+            continue
+
         for j in range(start_idx, end_idx + 1):
             if tag_sequence[j] is not None and tag_sequence[j] != "O":
                 # TODO: is ValueError a good exception type for this?
