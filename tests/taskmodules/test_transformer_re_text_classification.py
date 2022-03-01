@@ -5,9 +5,7 @@ import pytest
 import torch
 
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
-from pytorch_ie.taskmodules.transformer_re_text_classification import (
-    _enumerate_entity_pairs,
-)
+from pytorch_ie.taskmodules.transformer_re_text_classification import _enumerate_entity_pairs
 from tests.fixtures.document import (
     DOC1_ENTITY_BERLIN,
     DOC1_ENTITY_JANE,

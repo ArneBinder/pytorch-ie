@@ -4,9 +4,7 @@ from typing import Dict, Optional
 import pytest
 
 from pytorch_ie.utils.span import convert_span_annotations_to_tag_sequence
-
-# TODO: this should not depend on sth in tests.taskmodules
-from tests.taskmodules.document import get_doc1, get_doc2, get_doc3
+from tests.fixtures.document import get_doc1, get_doc2, get_doc3
 
 
 @pytest.fixture
