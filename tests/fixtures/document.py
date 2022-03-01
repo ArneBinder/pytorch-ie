@@ -1,6 +1,6 @@
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
-from tests.fixtures.document_utils import construct_document
+from tests.helpers.document_utils import construct_document
 
 DOC1_TEXT = "Jane lives in Berlin. this is no sentence about Karl\n"
 DOC2_TEXT = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
