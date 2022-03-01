@@ -21,12 +21,13 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
-from pytorch_ie.data.span_utils import is_contained_in
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+from pytorch_ie.utils.span import get_token_slice, is_contained_in
+from pytorch_ie.utils.window import get_window_around_slice
 
 """
 workflow:
@@ -87,61 +88,6 @@ def _create_argument_markers(
                 argument_markers[(arg_type, arg_pos)] = marker
 
     return argument_markers
-
-
-def _get_window_around_slice(
-    slice: Tuple[int, int], max_window_size: int, available_input_length: int
-) -> Optional[Tuple[int, int]]:
-    """
-    Given a `max_window` size, `available_token_length` and a `slice` (pair of start and end indices) that
-    is required to be in the resulting window, create a new slice of size `max_window_size` (or less, if not possible)
-    around the required slice. Per default, the resulting slice will be centered around the required slice.
-    However, if the required slice is at the beginning or end of the available tokens, the resulting window is
-    shifted to contain as many tokens as possible.
-    Iff the required `slice` already exceeds the `max_window_size`, return `None`.
-    """
-
-    # current pair may not fit into the window
-    if slice[1] - slice[0] > max_window_size:
-        return None
-
-    # set the final window size (regarding input tokens)
-    window_size = min(available_input_length, max_window_size)
-
-    rel_center = sum(slice) / 2.0
-    window_start = int(rel_center - window_size / 2.0)
-    window_end = window_start + window_size
-
-    # If window goes over one end, shift it use as much content as possible.
-    # First shift window to left and then to right to ensure that window_start is never
-    # negative (if window_end is outside, this will not be a problem)
-    if window_end >= available_input_length:
-        delta = available_input_length - window_end
-        window_start += delta
-        window_end += delta
-    if window_start < 0:
-        delta = -window_start
-        window_start += delta
-        window_end += delta
-    assert (
-        0 <= window_start < available_input_length
-    ), f"window_start={window_start} not available in sequence"
-
-    return window_start, window_end
-
-
-def _get_token_slice(
-    character_slice: Tuple[int, int], encoding: BatchEncoding, character_offset: int = 0
-) -> Optional[Tuple[int, int]]:
-    """
-    Using an encoding to map a character slice to the respective token slice. If the slice start or end does
-    not match a token start or end respectively, return None.
-    """
-    start = encoding.char_to_token(character_slice[0] - character_offset)
-    before_end = encoding.char_to_token(character_slice[1] - 1 - character_offset)
-    if start is None or before_end is None:
-        return None
-    return start, before_end + 1
 
 
 def _enumerate_entity_pairs(
@@ -375,14 +321,14 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     partition=partition,
                     relations=relations,
                 ):
-                    head_token_slice = _get_token_slice(
+                    head_token_slice = get_token_slice(
                         character_slice=(head.start, head.end),
-                        encoding=encoding,
+                        char_to_token_mapper=encoding.char_to_token,
                         character_offset=partition_offset,
                     )
-                    tail_token_slice = _get_token_slice(
+                    tail_token_slice = get_token_slice(
                         character_slice=(tail.start, tail.end),
-                        encoding=encoding,
+                        char_to_token_mapper=encoding.char_to_token,
                         character_offset=partition_offset,
                     )
                     # this happens if the head/tail start/end does not match a token start/end
@@ -408,7 +354,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                         max_tokens = self.max_window - 4 - num_added_special_tokens
                         # the slice from the beginning of the first entity to the end of the second is required
                         slice_required = (min(head_start, tail_start), max(head_end, tail_end))
-                        window_slice = _get_window_around_slice(
+                        window_slice = get_window_around_slice(
                             slice=slice_required,
                             max_window_size=max_tokens,
                             available_input_length=len(input_ids),

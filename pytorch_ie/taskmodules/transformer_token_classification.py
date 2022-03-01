@@ -24,12 +24,12 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.data.document import Annotation, Document, LabeledSpan
-from pytorch_ie.data.span_utils import bio_tags_to_spans
 from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchOutput,
     TransformerTokenClassificationModelStepBatchEncoding,
 )
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+from pytorch_ie.utils.span import bio_tags_to_spans
 
 """
 workflow:
