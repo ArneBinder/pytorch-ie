@@ -1,25 +1,12 @@
 import copy
-import functools
 import json
 import logging
 from collections import Counter, defaultdict
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Dict,
-    Iterator,
-    List,
-    MutableSequence,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from transformers import AutoTokenizer, PreTrainedTokenizer
+from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
@@ -29,7 +16,13 @@ from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelStepBatchEncoding,
 )
 from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
-from pytorch_ie.utils.span import bio_tags_to_spans
+from pytorch_ie.utils.span import (
+    bio_tags_to_spans,
+    convert_span_annotations_to_tag_sequence,
+    get_char_to_token_mapper,
+    get_special_token_mask,
+)
+from pytorch_ie.utils.window import enumerate_windows
 
 """
 workflow:
@@ -57,107 +50,6 @@ _TransformerTokenClassificationTaskModule = TaskModule[
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def convert_span_annotations_to_tag_sequence(
-    spans: List[LabeledSpan],
-    special_tokens_mask: List[int],
-    char_to_token_mapper: Callable[[int], Optional[int]],
-    partition: Optional[LabeledSpan] = None,
-    statistics: Optional[DefaultDict[str, Counter]] = None,
-) -> MutableSequence[Optional[str]]:
-    """
-    Given a list of span annotations, a character position to token mapper (as obtained from
-    batch_encoding.char_to_token) and a special tokens mask, create a sequence of tags with the length of the
-    special tokens mask. For special token positions, None is returned as tag.
-    If a partition is provided, only the tokens within that span are considered.
-    For now, the BIO-encoding is used.
-    Note: The spans are not allowed to overlap (will raise an exception).
-    """
-    tag_sequence = [
-        None if special_tokens_mask[j] else "O" for j in range(len(special_tokens_mask))
-    ]
-    offset = partition.start if partition is not None else 0
-    for span in spans:
-        if partition is not None and (span.start < partition.start or span.end > partition.end):
-            continue
-
-        start_idx = char_to_token_mapper(span.start - offset)
-        end_idx = char_to_token_mapper(span.end - 1 - offset)
-        if start_idx is None or end_idx is None:
-            if statistics is not None:
-                statistics["skipped_unaligned"][span.label_single] += 1
-            else:
-                logger.warning(
-                    f"Entity annotation does not start or end with a token, it will be skipped: {span}"
-                )
-            continue
-
-        # negative numbers encode out-of-window tokens
-        if start_idx < 0 or end_idx < 0:
-            continue
-
-        for j in range(start_idx, end_idx + 1):
-            if tag_sequence[j] is not None and tag_sequence[j] != "O":
-                # TODO: is ValueError a good exception type for this?
-                raise ValueError(f"tag already assigned (current span has an overlap: {span})")
-            prefix = "B" if j == start_idx else "I"
-            tag_sequence[j] = f"{prefix}-{span.label_single}"
-
-        if statistics is not None:
-            statistics["added"][span.label_single] += 1
-
-    return tag_sequence
-
-
-def enumerate_windows(
-    sequence: Sequence, max_size, overlap: int = 0
-) -> Iterator[Tuple[Tuple[int, int], Tuple[int, int]]]:
-    """
-    Enumerate all windows as slices over a sequence, optionally with an overlap. Overlap is interpreted as number of
-    tokens taken into account that are already part in another window. We also return label_offset_slice that defines
-    the slice (with respect to the token_slice!) of tokens that are not available in another slice.
-    """
-    window_without_overlap = max_size - 2 * overlap
-    for label_start_idx in range(overlap, len(sequence), window_without_overlap):
-        token_start_idx = label_start_idx - overlap
-        label_end_idx = min(label_start_idx + window_without_overlap, len(sequence))
-        token_end_idx = min(label_end_idx + overlap, len(sequence))
-        label_start_offset = label_start_idx - token_start_idx
-        label_end_offset = label_end_idx - token_start_idx
-        token_slice = (token_start_idx, token_end_idx)
-        # also allow using previous/remaining entries as labels if we are at the beginning/end
-        # to cover all entries exactly once in a label slice
-        if token_start_idx == 0:
-            label_start_offset = 0
-        if token_end_idx == len(sequence):
-            label_end_offset = token_end_idx - token_start_idx
-        label_offset_slice = (label_start_offset, label_end_offset)
-        yield token_slice, label_offset_slice
-
-
-def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenizer) -> List[int]:
-    # TODO: check why we can not just use tokenizer.get_special_tokens_mask()
-    #  (this checks if token_ids_1 is not None and raises an exception)
-
-    # exclude unknown token id since this indicate a real input token
-    special_ids = set(tokenizer.all_special_ids) - {tokenizer.unk_token_id}
-    return [1 if token_id in special_ids else 0 for token_id in token_ids_0]
-
-
-def _char_to_token_mapper(
-    char_idx: int,
-    char_to_token_mapping: Dict[int, int],
-    char_start: Optional[int] = None,
-    char_end: Optional[int] = None,
-) -> Optional[int]:
-    if char_start is not None and char_idx < char_start:
-        # return negative number to encode out-ot-window
-        return -1
-    if char_end is not None and char_idx >= char_end:
-        # return negative number to encode out-ot-window
-        return -2
-    return char_to_token_mapping.get(char_idx, None)
 
 
 class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
@@ -313,8 +205,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                         for token_idx, (char_start, char_end) in enumerate(current_offset_mapping):
                             for char_idx in range(char_start, char_end):
                                 char_to_token_mapping[char_idx] = token_idx
-                        new_metadata["char_to_token_mapper"] = functools.partial(
-                            _char_to_token_mapper,
+                        new_metadata["char_to_token_mapper"] = get_char_to_token_mapper(
                             char_to_token_mapping=char_to_token_mapping,
                             char_start=offset_mapping_without_special_tokens[0][0],
                             char_end=offset_mapping_without_special_tokens[-1][1],

@@ -7,7 +7,7 @@ from numpy.testing import assert_almost_equal
 
 from pytorch_ie.data import LabeledSpan
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
-from tests.taskmodules.document import (
+from tests.fixtures.document import (
     DOC1_ENTITY_BERLIN,
     DOC1_ENTITY_JANE,
     DOC1_ENTITY_KARL,
