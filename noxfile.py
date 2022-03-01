@@ -171,7 +171,7 @@ def tests_not_slow(session: Session) -> None:
     session.install("coverage[toml]", "pytest", "pygments", "sh")
     try:
         session.run(
-            "coverage", "run", "-m", "pytest", "-k", "not slow", *session.posargs
+            "coverage", "run", "--parallel", "-m", "pytest", "-k", "not slow", *session.posargs
         )
     finally:
         if session.interactive:
