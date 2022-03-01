@@ -1,7 +1,18 @@
+import functools
 import logging
-from typing import Callable, Counter, DefaultDict, List, MutableSequence, Optional, Set, Tuple
+from typing import (
+    Callable,
+    Counter,
+    DefaultDict,
+    Dict,
+    List,
+    MutableSequence,
+    Optional,
+    Set,
+    Tuple,
+)
 
-from transformers import BatchEncoding
+from transformers import PreTrainedTokenizer
 
 from pytorch_ie.data import LabeledSpan
 
@@ -210,3 +221,40 @@ def get_token_slice(
 
 def is_contained_in(start_end: Tuple[int, int], other_start_end: Tuple[int, int]) -> bool:
     return other_start_end[0] <= start_end[0] and start_end[1] <= other_start_end[1]
+
+
+def _char_to_token_mapper(
+    char_idx: int,
+    char_to_token_mapping: Dict[int, int],
+    char_start: Optional[int] = None,
+    char_end: Optional[int] = None,
+) -> Optional[int]:
+    if char_start is not None and char_idx < char_start:
+        # return negative number to encode out-ot-window
+        return -1
+    if char_end is not None and char_idx >= char_end:
+        # return negative number to encode out-ot-window
+        return -2
+    return char_to_token_mapping.get(char_idx, None)
+
+
+def get_char_to_token_mapper(
+    char_to_token_mapping: Dict[int, int],
+    char_start: Optional[int] = None,
+    char_end: Optional[int] = None,
+) -> Callable[[int], Optional[int]]:
+    return functools.partial(
+        _char_to_token_mapper,
+        char_to_token_mapping=char_to_token_mapping,
+        char_start=char_start,
+        char_end=char_end,
+    )
+
+
+def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenizer) -> List[int]:
+    # TODO: check why we can not just use tokenizer.get_special_tokens_mask()
+    #  (this checks if token_ids_1 is not None and raises an exception)
+
+    # exclude unknown token id since this indicate a real input token
+    special_ids = set(tokenizer.all_special_ids) - {tokenizer.unk_token_id}
+    return [1 if token_id in special_ids else 0 for token_id in token_ids_0]

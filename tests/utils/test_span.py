@@ -1,9 +1,9 @@
-import functools
-from typing import Dict, Optional
-
 import pytest
 
-from pytorch_ie.utils.span import convert_span_annotations_to_tag_sequence
+from pytorch_ie.utils.span import (
+    convert_span_annotations_to_tag_sequence,
+    get_char_to_token_mapper,
+)
 from tests.fixtures.document import get_doc1, get_doc2, get_doc3
 
 
@@ -18,8 +18,16 @@ def documents():
     return documents
 
 
-def _char_to_token_mapper(c: int, char_to_token_mapping: Dict[int, int]) -> Optional[int]:
-    return char_to_token_mapping.get(c, None)
+@pytest.mark.skip
+def test_get_char_to_token_mapper():
+    # TODO: implement!
+    pass
+
+
+@pytest.mark.skip
+def test_get_special_token_mask():
+    # TODO: implement!
+    pass
 
 
 def test_convert_span_annotations_to_tag_sequence(documents):
@@ -71,8 +79,7 @@ def test_convert_span_annotations_to_tag_sequence(documents):
         50: 11,
         51: 11,
     }
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
@@ -150,8 +157,7 @@ def test_convert_span_annotations_to_tag_sequence(documents):
         56: 16,
         57: 17,
     }
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
@@ -215,8 +221,7 @@ def test_convert_span_annotations_to_tag_sequence(documents):
         31: 6,
         32: 7,
     }
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 0, 0, 1]
@@ -256,8 +261,7 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
         20: 5,
     }
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 1]
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     tag_sequence = convert_span_annotations_to_tag_sequence(
@@ -297,8 +301,7 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
         23: 6,
     }
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 0, 1]
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     tag_sequence = convert_span_annotations_to_tag_sequence(
@@ -340,8 +343,7 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
         32: 11,
     }
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     tag_sequence = convert_span_annotations_to_tag_sequence(
@@ -403,8 +405,7 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
         32: 7,
     }
     special_tokens_mask = [1, 0, 0, 0, 0, 0, 0, 0, 1]
-    char_to_token_mapper = functools.partial(
-        _char_to_token_mapper,
+    char_to_token_mapper = get_char_to_token_mapper(
         char_to_token_mapping=char_to_token_mapping,
     )
     tag_sequence = convert_span_annotations_to_tag_sequence(
