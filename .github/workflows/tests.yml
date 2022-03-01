@@ -12,12 +12,12 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    # - { python: "3.9", os: "ubuntu-latest", session: "pre-commit" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "mypy" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "pre-commit" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "mypy" }
                     - { python: "3.9", os: "ubuntu-latest", session: "tests_not_slow" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "xdoctest" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
                     # - { python: "3.9", os: "macos-latest", session: "tests_not_slow" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "xdoctest" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
                     # - { python: "3.9", os: "windows-latest", session: "tests_not_slow" }
                     # - { python: "3.9", os: "ubuntu-latest", session: "safety" }
                     # - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
@@ -26,7 +26,6 @@ jobs:
             NOXSESSION: ${{ matrix.session }}
             FORCE_COLOR: "1"
             PRE_COMMIT_COLOR: "always"
-            COVERAGE_DEBUG: "trace"
 
         steps:
             - name: Check out the repository
