@@ -105,7 +105,7 @@ def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
     assert set(decoded_documents).isdisjoint(set(documents))
 
     decoded_document = decoded_documents[2]
-    predictions = decoded_document.predictions("entities")
+    predictions = decoded_document.predictions["entities"]
     assert len(predictions) == 2
     assert predictions[0].start == 10
     assert predictions[0].end == 20
@@ -125,7 +125,7 @@ def test_decode_inplace(prepared_taskmodule, documents, model_output):
     assert set(decoded_documents) == set(documents)
 
     decoded_document = decoded_documents[2]
-    predictions = decoded_document.predictions("entities")
+    predictions = decoded_document.predictions["entities"]
     assert len(predictions) == 2
     assert predictions[0].start == 10
     assert predictions[0].end == 20

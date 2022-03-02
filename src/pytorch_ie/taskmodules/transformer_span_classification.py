@@ -82,7 +82,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
     def prepare(self, documents: List[Document]) -> None:
         labels = set()
         for document in documents:
-            entities = document.span_annotations(self.entity_annotation)
+            entities = document.annotations[self.entity_annotation]
             assert (
                 entities is not None
             ), f"document has no span annotations with name '{self.entity_annotation}'"
@@ -112,7 +112,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         expanded_documents = []
         for doc in documents:
             if self.single_sentence:
-                partitions_or_none = doc.span_annotations(self.sentence_annotation)
+                partitions_or_none = doc.annotations[self.sentence_annotation]
                 assert (
                     partitions_or_none is not None
                 ), f"document has no span annotations with name '{self.sentence_annotation}'"
@@ -144,7 +144,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             i = 0
             for document in documents:
                 for sentence_index in range(
-                    len(document.span_annotations(self.sentence_annotation) or [])
+                    len(document.annotations[self.sentence_annotation] or [])
                 ):
                     metadata[i]["sentence_index"] = sentence_index
                     i += 1
@@ -160,12 +160,12 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         target = []
         if self.single_sentence:
             for i, document in enumerate(documents):
-                entities = document.span_annotations(self.entity_annotation)
+                entities = document.annotations[self.entity_annotation]
                 assert (
                     entities is not None
                 ), f"document has no span annotations with name '{self.entity_annotation}'"
                 sentence_idx = metadata[i]["sentence_index"]
-                partitions = document.span_annotations(self.sentence_annotation)
+                partitions = document.annotations[self.sentence_annotation]
                 assert (
                     partitions is not None
                 ), f"document has no span annotations with name '{self.sentence_annotation}'"
@@ -194,7 +194,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                 target.append(label_ids)
         else:
             for i, document in enumerate(documents):
-                entities = document.span_annotations(self.entity_annotation)
+                entities = document.annotations[self.entity_annotation]
                 assert (
                     entities is not None
                 ), f"document has no span annotations with name '{self.entity_annotation}'"
@@ -240,7 +240,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         if self.single_sentence:
             document = encoding.document
             metadata = encoding.metadata
-            partitions = document.span_annotations(self.sentence_annotation)
+            partitions = document.annotations[self.sentence_annotation]
             assert (
                 partitions is not None
             ), f"document has no span annotations with name '{self.sentence_annotation}'"

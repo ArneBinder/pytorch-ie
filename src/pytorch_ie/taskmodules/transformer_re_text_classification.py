@@ -9,6 +9,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypedDict,
     Union,
@@ -211,11 +212,11 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         return self.entity_labels is not None and self.label_to_id is not None
 
     def prepare(self, documents: List[Document]) -> None:
-        entity_labels = set()
-        relation_labels = set()
+        entity_labels: Set[str] = set()
+        relation_labels: Set[str] = set()
         for document in documents:
-            entities = document.span_annotations(self.entity_annotation)
-            relations = document.relation_annotations(self.relation_annotation)
+            entities = document.annotations[self.entity_annotation]
+            relations = document.annotations[self.relation_annotation]
             assert (
                 entities is not None
             ), f"document has no span annotations with name '{self.entity_annotation}'"
@@ -291,16 +292,16 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         )
 
         for document in documents:
-            entities = document.span_annotations(self.entity_annotation)
+            entities = document.annotations[self.entity_annotation]
             assert (
                 entities is not None
             ), f"document has no span annotations of name {self.entity_annotation}"
-            relations = document.relation_annotations(self.relation_annotation)
+            relations = document.annotations.get(self.relation_annotation, None)
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions_or_none = document.span_annotations(self.partition_annotation)
+                partitions_or_none = document.annotations[self.partition_annotation]
                 assert (
                     partitions_or_none is not None
                 ), f"document has no span annotations of name {self.partition_annotation}"
@@ -434,7 +435,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         if statistics is not None:
             logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
-        return input_encoding, metadata, new_documents
+        return input_encoding, metadata, new_documents  # type: ignore
 
     def encode_target(
         self,
@@ -446,8 +447,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
-
-            relations = document.relation_annotations(self.relation_annotation)
+            relations = document.annotations[self.relation_annotation]
             assert (
                 relations is not None
             ), f"document has no relation annotations of name '{self.relation_annotation}'"
