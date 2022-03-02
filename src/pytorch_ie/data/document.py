@@ -251,7 +251,7 @@ class AnnotationCollection:
         self, name: str, default: T_default = None
     ) -> Union[AnnotationLayer, T_default]:
         if self.has_layer(name):
-            return self._layers[name].cast()
+            return self._layers[name]  # .cast()
         return default  # type: ignore
 
     def __getitem__(self, item) -> AnnotationLayer:
