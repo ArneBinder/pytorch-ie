@@ -31,6 +31,7 @@ def _add_relation(
 
 def construct_document(
     text: str,
+    doc_id: Optional[str] = None,
     tokens: Optional[List[str]] = None,
     entities: Optional[List[LabeledSpan]] = None,
     relations: Optional[List[BinaryRelation]] = None,
@@ -39,11 +40,12 @@ def construct_document(
     relation_annotation_name: Optional[str] = "relations",
     sentence_annotation_name: Optional[str] = "sentences",
 ) -> Document:
-    doc = Document(text=text)
+    doc = Document(text=text, doc_id=doc_id)
     if tokens is not None:
         doc.metadata["tokens"] = tokens
     if sentences is not None:
         assert sentence_annotation_name is not None
+        doc.annotations.add_layer(name=sentence_annotation_name, annotation_type=LabeledSpan)
         for i, sent in enumerate(sentences):
             _add_span(
                 doc=doc,
@@ -52,6 +54,7 @@ def construct_document(
             )
     if entities is not None:
         assert entity_annotation_name is not None
+        doc.annotations.add_layer(name=entity_annotation_name, annotation_type=LabeledSpan)
         for i, ent in enumerate(entities):
             _add_span(
                 doc=doc,
@@ -60,6 +63,7 @@ def construct_document(
             )
     if relations is not None:
         assert relation_annotation_name is not None
+        doc.annotations.add_layer(name=relation_annotation_name, annotation_type=BinaryRelation)
         assert entities is not None
         for i, rel in enumerate(relations):
             _add_relation(

@@ -91,7 +91,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         )
 
     def document_to_target_string(self, document: Document) -> str:
-        relations = document.relation_annotations(self.relation_annotation)
+        relations = document.annotations[self.relation_annotation]
         assert (
             relations is not None
         ), f"document has no relation annotations of name '{self.relation_annotation}'"

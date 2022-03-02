@@ -101,15 +101,14 @@ def get_doc2(
     )
 
 
-def get_doc3(relation_annotation_name: str = "relations", **kwargs) -> Document:
+def get_doc3(**kwargs) -> Document:
     doc = construct_document(
         text=DOC3_TEXT,
         tokens=DOC3_TOKENS,
         sentences=[DOC3_SENTENCE1],
         entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
+        relations=[],
         **kwargs,
     )
 
-    # TODO: this is kind of hacky
-    doc._annotations[relation_annotation_name] = []
     return doc

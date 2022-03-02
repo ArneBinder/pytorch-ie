@@ -95,7 +95,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
     def prepare(self, documents: List[Document]) -> None:
         labels = set()
         for document in documents:
-            entities = document.span_annotations(self.entity_annotation)
+            entities = document.annotations[self.entity_annotation]
             assert (
                 entities is not None
             ), f"document has no span annotations with name '{self.entity_annotation}'"
@@ -142,7 +142,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         for doc in documents:
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions_or_none = doc.span_annotations(self.partition_annotation)
+                partitions_or_none = doc.annotations[self.partition_annotation]
                 assert (
                     partitions_or_none is not None
                 ), f"document has no span annotations with name '{self.partition_annotation}'"
@@ -235,14 +235,14 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         )
         for i, document in enumerate(documents):
             current_metadata = metadata[i]
-            entities = document.span_annotations(self.entity_annotation)
+            entities = document.annotations[self.entity_annotation]
             assert (
                 entities is not None
             ), f"document has no span annotations with name '{self.entity_annotation}'"
             partition = None
             if self.partition_annotation is not None:
                 partition_index = current_metadata["sentence_index"]
-                partitions = document.span_annotations(self.partition_annotation)
+                partitions = document.annotations[self.partition_annotation]
                 assert (
                     partitions is not None
                 ), f"document has no span annotations with name '{self.partition_annotation}'"
@@ -286,7 +286,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         offset = 0
         if self.partition_annotation is not None:
-            partitions = encoding.document.span_annotations(self.partition_annotation)
+            partitions = encoding.document.annotations[self.partition_annotation]
             assert (
                 partitions is not None
             ), f"document has no span annotations with name '{self.partition_annotation}'"
