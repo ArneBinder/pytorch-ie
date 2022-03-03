@@ -149,12 +149,15 @@ T_annotation = TypeVar("T_annotation", bound=Annotation)
 
 class AnnotationLayer(List[T_annotation]):
     """
-    This is a simple wrapper around List that provides some casting methods. It is totally optional
-    to use them, they are just to ease typing. E.g. the following would not cause any trouble for mypy:
+    An AnnotationLayer is a special List with some sanity checks and typed getters. It is ensured that all
+    entries have the same type.
 
-    layer = AnnotationLayer([SpanAnnotation(start=0, end=2, label="e1"), SpanAnnotation(start=4, end=5, label="e2")])
-    entity = layer.as_spans[0]
-    start, end = entity.start, entity.end  # access to .end and .start would cause issues otherwise
+    It is totally optional to use the typed getters, they are just available to
+    ease typing, e.g. the following would not cause any trouble for mypy:
+
+        layer = AnnotationLayer([SpanAnnotation(start=0, end=2, label="e1")])
+        entity = layer.as_spans[0]
+        start, end = entity.start, entity.end  # access to .end and .start would cause issues otherwise
     """
 
     def _check_type(self, type_to_check: Type):
@@ -195,6 +198,11 @@ T_layer_default = TypeVar("T_layer_default")
 
 
 class AnnotationCollection:
+    """
+    An `AnnotationCollection` holds a mapping from layer names to `AnnotationLayers`. For the getters, it behaves
+    like a `Dict[str, AnnotationLayers]`, i.e. via `get` that takes a default value or via `[]`. However, it
+    also provides an `add` method to directly add an Annotation to a certain layer and create that if necessary.
+    """
     def __init__(self):
         self._layers: Dict[str, AnnotationLayer] = {}
 
