@@ -107,6 +107,11 @@ def get_doc3(**kwargs) -> Document:
         tokens=DOC3_TOKENS,
         sentences=[DOC3_SENTENCE1],
         entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
+        # We have to set relations with an empty list to create the
+        # annotation layer at all. This is important for some implementations
+        # of .encode_input() that assume that if relations are NOT available it is
+        # in inference mode where it will create all possible entity pairs as
+        # candidate relations.
         relations=[],
         **kwargs,
     )
