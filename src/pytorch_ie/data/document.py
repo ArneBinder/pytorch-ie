@@ -10,7 +10,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
+    cast, Sequence,
 )
 
 
@@ -166,6 +166,12 @@ T_annotation = TypeVar("T_annotation", bound=Annotation)
 
 
 class AnnotationLayer(Generic[T_annotation]):
+    """
+    An AnnotationLayer is a container for a collection of annotations of a certain type.
+    It can be used as a list but ensures that added annotations are from the same type to raise errors early.
+    Furthermore, it has a single `add` method to add one or multiple annotations.
+    """
+
     def __init__(
         self,
         annotation_type: Optional[Type] = None,
@@ -206,6 +212,9 @@ class AnnotationLayer(Generic[T_annotation]):
 
     def __getitem__(self, item) -> T_annotation:
         return self._annotations[item]
+
+    def __delitem__(self, key):
+        del self._annotations[key]
 
     def ensure_type(self, annotation_type: Type):
         if self._annotation_type != annotation_type:
@@ -322,7 +331,41 @@ class Document:
         )
 
 
-# not used
+def _assert_span_text(doc: Document, span: LabeledSpan):
+    assert doc.text[span.start : span.end] == span.metadata["text"]
+
+
+def construct_document(
+    text: str,
+    doc_id: Optional[str] = None,
+    tokens: Optional[List[str]] = None,
+    spans: Optional[Dict[str, Optional[List[LabeledSpan]]]] = None,
+    binary_relations: Optional[Dict[str, Optional[List[BinaryRelation]]]] = None,
+    assert_span_text: bool = False,
+) -> Document:
+    doc = Document(text=text, doc_id=doc_id)
+    if tokens is not None:
+        doc.metadata["tokens"] = tokens
+
+    if spans is not None:
+        for layer_name, layer_spans in spans.items():
+            span_layer = AnnotationLayer(annotations=layer_spans, annotation_type=LabeledSpan)
+            doc.annotations.add_layer(name=layer_name, layer=span_layer)
+            if assert_span_text:
+                for ann in doc.annotations[layer_name]:
+                    _assert_span_text(doc, ann)
+    if binary_relations is not None:
+        for layer_name, layer_binary_relations in binary_relations.items():
+            rel_layer = AnnotationLayer(annotations=layer_binary_relations, annotation_type=BinaryRelation)
+            doc.annotations.add_layer(name=layer_name, layer=rel_layer)
+
+    return doc
+
+
+# This is currently not used.
+# However, these aliases can be used to cast layers without the need for
+# type specific getters (if we decide to strip them), e.g.:
+#   entities = cast(SpanLayer, doc.annotations["entities"])
 SpanLayer = AnnotationLayer[LabeledSpan]
 BinaryRelationLayer = AnnotationLayer[BinaryRelation]
 LabelLayer = AnnotationLayer[Label]

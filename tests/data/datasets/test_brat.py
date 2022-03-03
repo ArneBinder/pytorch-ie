@@ -6,8 +6,8 @@ from datasets import GenerateMode, set_caching_enabled
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
 from pytorch_ie.data.datasets.brat import load_brat, serialize_brat, split_span_annotation
+from pytorch_ie.data.document import construct_document
 from tests import FIXTURES_ROOT
-from tests.helpers.document_utils import construct_document
 
 TEXT_01 = "Jane lives in Berlin.\n"
 TEXT_02 = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
@@ -31,7 +31,9 @@ ANNOTS_02_SPECIFIED_IDS = [
 def get_doc1(with_ids: bool = False, **kwargs) -> Document:
     ent1 = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Jane"})
     ent2 = LabeledSpan(start=14, end=20, label="city", metadata={"text": "Berlin"})
-    doc = construct_document(text=TEXT_01, entities=[ent1, ent2], relations=[], **kwargs)
+    doc = construct_document(
+        text=TEXT_01, spans=dict(entities=[ent1, ent2]), binary_relations=dict(relations=[]), **kwargs
+    )
     if with_ids:
         ent1.metadata["id"] = "1"
         ent2.metadata["id"] = "2"
@@ -43,7 +45,9 @@ def get_doc2(with_ids: bool = False, **kwargs) -> Document:
     ent1 = LabeledSpan(start=0, end=7, label="city", metadata={"text": "Seattle"})
     ent2 = LabeledSpan(start=25, end=37, label="person", metadata={"text": "Jenny Durkan"})
     rel1 = BinaryRelation(head=ent2, tail=ent1, label="mayor_of")
-    doc = construct_document(text=text, entities=[ent1, ent2], relations=[rel1], **kwargs)
+    doc = construct_document(
+        text=text, spans=dict(entities=[ent1, ent2]), binary_relations=dict(relations=[rel1]), **kwargs
+    )
     if with_ids:
         ent1.metadata["id"] = "1"
         ent2.metadata["id"] = "2"
@@ -53,9 +57,8 @@ def get_doc2(with_ids: bool = False, **kwargs) -> Document:
 
 def get_documents(with_ids: bool = False):
     doc_kwargs = dict(
-        entity_annotation_name="entities",
-        relation_annotation_name="relations",
         with_ids=with_ids,
+        assert_span_text=True,
     )
     return [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)]
 
