@@ -29,7 +29,7 @@ def test_re_generative():
     )
 
     pipeline(document, predict_field="relations", batch_size=2)
-    relations: List[BinaryRelation] = document.predictions["relations"]  # typing: ignore
+    relations: List[BinaryRelation] = document.predictions["relations"].as_binary_relations
     assert len(relations) == 2
     sorted_relations = sorted(relations, key=lambda rel: (rel.head.start + rel.tail.start) / 2)
 

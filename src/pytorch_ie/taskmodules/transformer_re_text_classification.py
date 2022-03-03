@@ -215,14 +215,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            entities = document.annotations[self.entity_annotation]
-            relations = document.annotations[self.relation_annotation]
-            assert (
-                entities is not None
-            ), f"document has no span annotations with name '{self.entity_annotation}'"
-            assert (
-                relations is not None
-            ), f"document has no relation annotations with name '{self.relation_annotation}'"
+            entities = document.annotations[self.entity_annotation].as_spans
+            relations = document.annotations[self.relation_annotation].as_binary_relations
 
             if self.add_type_to_marker:
                 for entity in entities:
@@ -292,20 +286,16 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         )
 
         for document in documents:
-            entities = document.annotations[self.entity_annotation]
-            assert (
-                entities is not None
-            ), f"document has no span annotations of name {self.entity_annotation}"
-            relations = document.annotations.get(self.relation_annotation, None)
+            entities = document.annotations[self.entity_annotation].as_spans
+            if document.annotations.has_layer(self.relation_annotation):
+                relations = document.annotations[self.relation_annotation].as_binary_relations
+            else:
+                relations = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions_or_none = document.annotations[self.partition_annotation]
-                assert (
-                    partitions_or_none is not None
-                ), f"document has no span annotations of name {self.partition_annotation}"
-                partitions = partitions_or_none
+                partitions = document.annotations[self.partition_annotation].as_spans
             else:
                 # use single dummy partition
                 partitions = [None]
@@ -447,10 +437,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
-            relations = document.annotations[self.relation_annotation]
-            assert (
-                relations is not None
-            ), f"document has no relation annotations of name '{self.relation_annotation}'"
+            relations = document.annotations[self.relation_annotation].as_binary_relations
 
             head_tail_to_labels = {
                 (relation.head, relation.tail): relation.labels for relation in relations
