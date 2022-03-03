@@ -49,7 +49,7 @@ def convert_brat_to_document(
     doc = Document(text=brat_doc["context"], doc_id=brat_doc["file_name"])
 
     # add spans
-    doc.annotations.add_layer(name=span_annotation_name)
+    doc.annotations.add(name=span_annotation_name, create_layer=True)
     span_id_mapping = {}
     for brat_span in dl_to_ld(brat_doc["spans"]):
         locations = dl_to_ld(brat_span["locations"])
@@ -85,10 +85,10 @@ def convert_brat_to_document(
             brat_span["id"] not in span_id_mapping
         ), f'brat span id "{brat_span["id"]}" already exists'
         span_id_mapping[brat_span["id"]] = span
-        doc.add_annotation(name=span_annotation_name, annotation=span)
+        doc.annotations.add(name=span_annotation_name, annotation=span)
 
     # add relations
-    doc.annotations.add_layer(name=relation_annotation_name)
+    doc.annotations.add(name=relation_annotation_name, create_layer=True)
     for brat_relation in dl_to_ld(brat_doc["relations"]):
         # strip annotation type identifier from id
         metadata = {"id": brat_relation["id"][1:]}
@@ -102,7 +102,7 @@ def convert_brat_to_document(
         relation = BinaryRelation(
             label=brat_relation["type"], head=head, tail=tail, metadata=metadata
         )
-        doc.add_annotation(name=relation_annotation_name, annotation=relation)
+        doc.annotations.add(name=relation_annotation_name, annotation=relation)
 
     # add events -> not yet implement
     # add equivalence_relations -> not yet implement
