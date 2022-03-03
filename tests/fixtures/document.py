@@ -81,7 +81,7 @@ def get_doc1(
 ) -> Document:
     return construct_document(
         text=DOC1_TEXT,
-        tokens=DOC1_TOKENS,
+        metadata=dict(tokens=DOC1_TOKENS),
         spans=dict(
             sentences=[DOC1_SENTENCE1],
             entities=[DOC1_ENTITY_JANE, DOC1_ENTITY_BERLIN, DOC1_ENTITY_KARL],
@@ -98,7 +98,7 @@ def get_doc2(
 ) -> Document:
     return construct_document(
         text=DOC2_TEXT,
-        tokens=DOC2_TOKENS,
+        metadata=dict(tokens=DOC2_TOKENS),
         spans=dict(
             sentences=[DOC2_SENTENCE1, DOC2_SENTENCE2],
             entities=[DOC2_ENTITY_SEATTLE, DOC2_ENTITY_JENNY],
@@ -112,7 +112,7 @@ def get_doc2(
 def get_doc3(assert_span_text=True, **kwargs) -> Document:
     doc = construct_document(
         text=DOC3_TEXT,
-        tokens=DOC3_TOKENS,
+        metadata=dict(tokens=DOC3_TOKENS),
         spans=dict(
             sentences=[DOC3_SENTENCE1],
             entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
