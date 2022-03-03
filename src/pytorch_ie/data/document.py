@@ -10,7 +10,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast, Sequence,
+    cast,
 )
 
 
@@ -356,7 +356,9 @@ def construct_document(
                     _assert_span_text(doc, ann)
     if binary_relations is not None:
         for layer_name, layer_binary_relations in binary_relations.items():
-            rel_layer = AnnotationLayer(annotations=layer_binary_relations, annotation_type=BinaryRelation)
+            rel_layer = AnnotationLayer(
+                annotations=layer_binary_relations, annotation_type=BinaryRelation
+            )
             doc.annotations.add_layer(name=layer_name, layer=rel_layer)
 
     return doc
