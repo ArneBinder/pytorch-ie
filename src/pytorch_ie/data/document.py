@@ -287,15 +287,15 @@ def _assert_span_text(doc: Document, span: LabeledSpan):
 
 def construct_document(
     text: str,
+    spans: Optional[Dict[str, Iterable[LabeledSpan]]] = None,
+    binary_relations: Optional[Dict[str, Iterable[BinaryRelation]]] = None,
     doc_id: Optional[str] = None,
-    tokens: Optional[List[str]] = None,
-    spans: Optional[Dict[str, List[LabeledSpan]]] = None,
-    binary_relations: Optional[Dict[str, List[BinaryRelation]]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
     assert_span_text: bool = False,
 ) -> Document:
     doc = Document(text=text, doc_id=doc_id)
-    if tokens is not None:
-        doc.metadata["tokens"] = tokens
+    if metadata is not None:
+        doc.metadata.update(metadata)
 
     if spans is not None:
         for layer_name, layer_spans in spans.items():
