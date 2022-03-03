@@ -14,7 +14,7 @@ homepage = "https://github.com/ChristophAlt/pytorch-ie"
 repository = "https://github.com/ChristophAlt/pytorch-ie"
 documentation = "https://pytorch-ie.readthedocs.io"
 packages = [
-    { include = "pytorch_ie"}
+    { include = "pytorch_ie", from = "src" },
 ]
 classifiers = [
     "Framework :: Pytest",
@@ -92,7 +92,7 @@ show_error_context = true
 ignore_missing_imports = true
 
 [tool.coverage.paths]
-source = ["pytorch_ie", "*/site-packages"]
+source = ["src", "*/site-packages"]
 tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
