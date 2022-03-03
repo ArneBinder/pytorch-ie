@@ -1,16 +1,14 @@
 from typing import (
     Any,
-    Collection,
     Dict,
-    Generic,
-    Iterator,
+    Iterable,
     List,
     Optional,
     Tuple,
     Type,
     TypeVar,
     Union,
-    cast, Iterable,
+    cast,
 )
 
 
@@ -208,7 +206,6 @@ T_layer_default = TypeVar("T_layer_default")
 
 
 class AnnotationCollection:
-
     def __init__(self):
         self._layers: Dict[str, AnnotationLayer] = {}
 
