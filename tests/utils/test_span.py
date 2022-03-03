@@ -10,9 +10,7 @@ from tests.fixtures.document import get_doc1, get_doc2, get_doc3
 @pytest.fixture
 def documents():
     doc_kwargs = dict(
-        entity_annotation_name="entities",
-        relation_annotation_name="relations",
-        sentence_annotation_name="sentences",
+        assert_span_text=True,
     )
     documents = [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs), get_doc3(**doc_kwargs)]
     return documents
