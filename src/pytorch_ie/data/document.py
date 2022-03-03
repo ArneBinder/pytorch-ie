@@ -10,7 +10,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
+    cast, Iterable,
 )
 
 
@@ -78,11 +78,6 @@ class Annotation:
     @classmethod
     def from_dict(cls, dct: Dict[str, Any]) -> "Annotation":
         return cls(**dct)
-
-
-# just for now as simple type shortcuts
-# AnnotationLayer = List[Annotation]
-# AnnotationCollection = Dict[str, List[Annotation]]
 
 
 class Label(Annotation):
@@ -165,85 +160,54 @@ class BinaryRelation(Annotation):
 T_annotation = TypeVar("T_annotation", bound=Annotation)
 
 
-class AnnotationLayer(Generic[T_annotation]):
+class AnnotationLayer(List[T_annotation]):
     """
-    An AnnotationLayer is a container for a collection of annotations of a certain type.
-    It can be used as a list but ensures that added annotations are from the same type to raise errors early.
-    Furthermore, it has a single `add` method to add one or multiple annotations.
+    This is a simple wrapper around List that provides some casting methods. It is totally optional
+    to use them, they are just to ease typing. E.g. the following would not cause any trouble for mypy:
+
+    layer = AnnotationLayer([SpanAnnotation(start=0, end=2, label="e1"), SpanAnnotation(start=4, end=5, label="e2")])
+    entity = layer.as_spans[0]
+    start, end = entity.start, entity.end  # access to .end and .start would cause issues otherwise
     """
 
-    def __init__(
-        self,
-        annotation_type: Optional[Type] = None,
-        annotations: Optional[Collection[T_annotation]] = None,
-    ):
-        self._annotations: List[T_annotation] = []
-        if annotation_type is not None:
-            self._annotation_type = annotation_type
-        else:
-            if annotations is None or len(annotations) == 0:
-                raise ValueError(
-                    f"if no annotation type is provided, at least one annotation has to be given to "
-                    f"infer the type for the new annotation layer"
-                )
-            self._annotation_type = type(list(annotations)[0])
-        if annotations is not None:
-            self.add(annotations)
-
-    def add(self, annotation: Union[T_annotation, Collection[T_annotation]]):
-        if isinstance(annotation, Annotation):
-            annotations = [annotation]
-        else:
-            if not isinstance(annotation, Collection):
-                raise TypeError(f"can only add a single Annotation or a collection of them")
-            annotations = list(annotation)
-        for ann in annotations:
-            if not isinstance(ann, self._annotation_type):
-                raise TypeError(
-                    f"Annotation type mismatch. Expected: {self._annotation_type}, actual: {type(ann)}."
-                )
-            self._annotations.append(ann)
-
-    def __iter__(self) -> Iterator[T_annotation]:
-        return (a for a in self._annotations)
-
-    def __len__(self) -> int:
-        return len(self._annotations)
-
-    def __getitem__(self, item) -> T_annotation:
-        return self._annotations[item]
-
-    def __delitem__(self, key):
-        del self._annotations[key]
-
-    def ensure_type(self, annotation_type: Type):
-        if self._annotation_type != annotation_type:
+    def _check_type(self, type_to_check: Type):
+        if len(self) > 0 and not isinstance(self[0], type_to_check):
             raise TypeError(
-                f"Incorrect annotation type. Expected: {self._annotation_type.__name__}, "
-                f"actual: {annotation_type.__name__}."
+                f"Entry caused a type mismatch. Expected type: {type(self[0])}, actual type: {type_to_check}."
             )
 
-    def __repr__(self) -> str:
-        return f"AnnotationLayer(annotations={self._annotations}, annotation_type={self._annotation_type.__name__})"
+    def append(self, __object: T_annotation) -> None:
+        self._check_type(type(__object))
+        super().append(__object)
+
+    def extend(self, __iterable: Iterable[T_annotation]) -> None:
+        for e in __iterable:
+            self.append(e)
+
+    def __setitem__(self, key, value):
+        self._check_type(type(value))
+        super().__setitem__(i=key, o=value)
 
     @property
     def as_spans(self) -> List[LabeledSpan]:
-        self.ensure_type(LabeledSpan)
-        return cast(List[LabeledSpan], self._annotations)
+        self._check_type(LabeledSpan)
+        return cast(List[LabeledSpan], self)
 
     @property
     def as_binary_relations(self) -> List[BinaryRelation]:
-        self.ensure_type(BinaryRelation)
-        return cast(List[BinaryRelation], self._annotations)
+        self._check_type(BinaryRelation)
+        return cast(List[BinaryRelation], self)
 
     @property
     def as_labels(self) -> List[Label]:
-        self.ensure_type(Label)
-        return cast(List[Label], self._annotations)
+        self._check_type(Label)
+        return cast(List[Label], self)
+
+
+T_layer_default = TypeVar("T_layer_default")
 
 
 class AnnotationCollection:
-    T_default = TypeVar("T_default")
 
     def __init__(self):
         self._layers: Dict[str, AnnotationLayer] = {}
@@ -253,7 +217,6 @@ class AnnotationCollection:
         name: str,
         layer: Optional[AnnotationLayer] = None,
         annotations: Optional[List[Annotation]] = None,
-        annotation_type: Optional[Type] = None,
         allow_overwrite: bool = False,
     ):
         if self.has_layer(name) and not allow_overwrite:
@@ -261,7 +224,7 @@ class AnnotationCollection:
                 f"A layer with name {name} already exists. Use allow_overwrite=True to overwrite."
             )
         if layer is None:
-            layer = AnnotationLayer(annotation_type=annotation_type, annotations=annotations)
+            layer = AnnotationLayer(annotations or [])
         self._layers[name] = layer
 
     def has_layer(self, name: str) -> bool:
@@ -270,18 +233,18 @@ class AnnotationCollection:
     def add(self, name: str, annotation: Annotation, create_layer: bool = False):
         if not self.has_layer(name):
             if create_layer:
-                self.add_layer(name, annotation_type=type(annotation))
+                self.add_layer(name)
             else:
                 raise ValueError(f"layer with name {name} does not exist")
-        self._layers[name].add(annotation)
+        self._layers[name].append(annotation)
 
-    def get(self, name: str, default: T_default = None) -> Union[AnnotationLayer, T_default]:
+    def get(self, name: str, default: T_layer_default) -> Union[AnnotationLayer, T_layer_default]:
         if self.has_layer(name):
-            return self._layers[name]  # .cast()
-        return default  # type: ignore
+            return self._layers[name]
+        return default
 
     def __getitem__(self, item) -> AnnotationLayer:
-        return self._layers[item]  # .cast()
+        return self._layers[item]
 
     def __delitem__(self, key):
         del self._layers[key]
@@ -339,8 +302,8 @@ def construct_document(
     text: str,
     doc_id: Optional[str] = None,
     tokens: Optional[List[str]] = None,
-    spans: Optional[Dict[str, Optional[List[LabeledSpan]]]] = None,
-    binary_relations: Optional[Dict[str, Optional[List[BinaryRelation]]]] = None,
+    spans: Optional[Dict[str, List[LabeledSpan]]] = None,
+    binary_relations: Optional[Dict[str, List[BinaryRelation]]] = None,
     assert_span_text: bool = False,
 ) -> Document:
     doc = Document(text=text, doc_id=doc_id)
@@ -349,16 +312,14 @@ def construct_document(
 
     if spans is not None:
         for layer_name, layer_spans in spans.items():
-            span_layer = AnnotationLayer(annotations=layer_spans, annotation_type=LabeledSpan)
+            span_layer = AnnotationLayer[LabeledSpan](layer_spans)
             doc.annotations.add_layer(name=layer_name, layer=span_layer)
             if assert_span_text:
                 for ann in doc.annotations[layer_name]:
                     _assert_span_text(doc, ann)
     if binary_relations is not None:
         for layer_name, layer_binary_relations in binary_relations.items():
-            rel_layer = AnnotationLayer(
-                annotations=layer_binary_relations, annotation_type=BinaryRelation
-            )
+            rel_layer = AnnotationLayer[BinaryRelation](layer_binary_relations)
             doc.annotations.add_layer(name=layer_name, layer=rel_layer)
 
     return doc

@@ -6,7 +6,7 @@ from pytorch_ie.data.document import (
     Document,
     Label,
     LabeledMultiSpan,
-    LabeledSpan,
+    LabeledSpan, AnnotationLayer,
 )
 
 
@@ -135,3 +135,89 @@ def test_document():
 
     document.clear_predictions("prediction")
     assert not document.predictions.has_layer("prediction")
+
+
+def test_annotation_layer_add():
+    label1 = Label("label1")
+    label2 = Label("label2")
+    layer = AnnotationLayer()
+    layer.append(label1)
+    layer.append(label2)
+    assert len(layer) == 2
+
+
+def test_annotation_layer_get_labels():
+    label1 = Label("label1")
+    label2 = Label("label2")
+    layer = AnnotationLayer()
+    layer.extend([label1, label2])
+    labels = layer.as_labels
+    assert len(labels) == 2
+    with pytest.raises(TypeError) as e:
+        spans = layer.as_spans
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.Label'>, actual type: <class 'pytorch_ie.data.document.LabeledSpan'>."
+    with pytest.raises(TypeError) as e:
+        rels = layer.as_binary_relations
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.Label'>, actual type: <class 'pytorch_ie.data.document.BinaryRelation'>."
+
+
+def test_annotation_layer_get_spans():
+    span1 = LabeledSpan(label="span1", start=0, end=4)
+    span2 = LabeledSpan(label="span2", start=5, end=6)
+    layer = AnnotationLayer()
+    layer.extend([span1, span2])
+    spans = layer.as_spans
+    assert len(spans) == 2
+    with pytest.raises(TypeError) as e:
+        labels = layer.as_labels
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.LabeledSpan'>, actual type: <class 'pytorch_ie.data.document.Label'>."
+    with pytest.raises(TypeError) as e:
+        rels = layer.as_binary_relations
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.LabeledSpan'>, actual type: <class 'pytorch_ie.data.document.BinaryRelation'>."
+
+
+def test_annotation_layer_get_rels():
+    span1 = LabeledSpan(label="span1", start=0, end=4)
+    span2 = LabeledSpan(label="span2", start=5, end=6)
+    rel1 = BinaryRelation(label="rel1", head=span1, tail=span2)
+    rel2 = BinaryRelation(label="rel2", head=span2, tail=span1)
+    layer = AnnotationLayer()
+    layer.extend([rel1, rel2])
+    rels = layer.as_binary_relations
+    assert len(rels) == 2
+    with pytest.raises(TypeError) as e:
+        labels = layer.as_labels
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.BinaryRelation'>, actual type: <class 'pytorch_ie.data.document.Label'>."
+    with pytest.raises(TypeError) as e:
+        spans = layer.as_spans
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.BinaryRelation'>, actual type: <class 'pytorch_ie.data.document.LabeledSpan'>."
+
+
+def test_annotation_layer_add_wrong_type():
+    layer = AnnotationLayer()
+    label = Label("label1")
+    span = LabeledSpan(start=0, end=2, label="span")
+    layer.append(label)
+    with pytest.raises(TypeError) as e:
+        layer.append(span)
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.Label'>, actual type: <class 'pytorch_ie.data.document.LabeledSpan'>."
+
+
+def test_annotation_layer_extend_wrong_type():
+    layer = AnnotationLayer()
+    label = Label("label1")
+    span = LabeledSpan(start=0, end=2, label="span")
+    layer.append(label)
+    with pytest.raises(TypeError) as e:
+        layer.extend([span])
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.Label'>, actual type: <class 'pytorch_ie.data.document.LabeledSpan'>."
+
+
+def test_annotation_layer_set_wrong_type():
+    layer = AnnotationLayer()
+    label = Label("label1")
+    span = LabeledSpan(start=0, end=2, label="span")
+    layer.append(label)
+    with pytest.raises(TypeError) as e:
+        layer[0] = span
+    assert str(e.value) == "Entry caused a type mismatch. Expected type: <class 'pytorch_ie.data.document.Label'>, actual type: <class 'pytorch_ie.data.document.LabeledSpan'>."
