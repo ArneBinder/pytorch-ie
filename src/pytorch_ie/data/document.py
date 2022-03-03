@@ -203,6 +203,7 @@ class AnnotationCollection:
     like a `Dict[str, AnnotationLayers]`, i.e. via `get` that takes a default value or via `[]`. However, it
     also provides an `add` method to directly add an Annotation to a certain layer and create that if necessary.
     """
+
     def __init__(self):
         self._layers: Dict[str, AnnotationLayer] = {}
 
