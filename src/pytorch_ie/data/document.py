@@ -10,6 +10,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 
@@ -172,13 +173,14 @@ class AnnotationLayer(Generic[T_annotation]):
     ):
         self._annotations: List[T_annotation] = []
         if annotation_type is not None:
-            self._type = annotation_type
+            self._annotation_type = annotation_type
         else:
             if annotations is None or len(annotations) == 0:
                 raise ValueError(
-                    f"if no annotation type is provided, at least one annotation has to be given to infer the type for the new annotation layer"
+                    f"if no annotation type is provided, at least one annotation has to be given to "
+                    f"infer the type for the new annotation layer"
                 )
-            self._type = type(list(annotations)[0])
+            self._annotation_type = type(list(annotations)[0])
         if annotations is not None:
             self.add(annotations)
 
@@ -190,9 +192,9 @@ class AnnotationLayer(Generic[T_annotation]):
                 raise TypeError(f"can only add a single Annotation or a collection of them")
             annotations = list(annotation)
         for ann in annotations:
-            if not isinstance(ann, self._type):
+            if not isinstance(ann, self._annotation_type):
                 raise TypeError(
-                    f"Annotation type mismatch. Expected: {self._type}, actual: {type(ann)}."
+                    f"Annotation type mismatch. Expected: {self._annotation_type}, actual: {type(ann)}."
                 )
             self._annotations.append(ann)
 
@@ -205,13 +207,30 @@ class AnnotationLayer(Generic[T_annotation]):
     def __getitem__(self, item) -> T_annotation:
         return self._annotations[item]
 
-    def cast(self):
-        return AnnotationLayer[self._type](
-            annotations=self._annotations, annotation_type=self._type
-        )
+    def ensure_type(self, annotation_type: Type):
+        if self._annotation_type != annotation_type:
+            raise TypeError(
+                f"Incorrect annotation type. Expected: {self._annotation_type.__name__}, "
+                f"actual: {annotation_type.__name__}."
+            )
 
     def __repr__(self) -> str:
-        return f"AnnotationLayer(annotations={self._annotations})"
+        return f"AnnotationLayer(annotations={self._annotations}, annotation_type={self._annotation_type.__name__})"
+
+    @property
+    def as_spans(self) -> List[LabeledSpan]:
+        self.ensure_type(LabeledSpan)
+        return cast(List[LabeledSpan], self._annotations)
+
+    @property
+    def as_binary_relations(self) -> List[BinaryRelation]:
+        self.ensure_type(LabeledSpan)
+        return cast(List[BinaryRelation], self._annotations)
+
+    @property
+    def as_labels(self) -> List[Label]:
+        self.ensure_type(Label)
+        return cast(List[Label], self._annotations)
 
 
 class AnnotationCollection:
@@ -247,9 +266,7 @@ class AnnotationCollection:
                 raise ValueError(f"layer with name {name} does not exist")
         self._layers[name].add(annotation)
 
-    def get(
-        self, name: str, default: T_default = None
-    ) -> Union[AnnotationLayer, T_default]:
+    def get(self, name: str, default: T_default = None) -> Union[AnnotationLayer, T_default]:
         if self.has_layer(name):
             return self._layers[name]  # .cast()
         return default  # type: ignore

@@ -221,17 +221,19 @@ def convert_document_to_brat(
     if relation_annotation_names is None:
         relation_annotation_names = [DEFAULT_RELATION_ANNOTATION_NAME]
     for entity_annotation_name in span_annotation_names:
-        for span_ann in doc.annotations.get(entity_annotation_name, []):
-            serialized_annotations[span_ann] = serialize_labeled_span(span_ann, doc, **kwargs)
+        if doc.annotations.has_layer(entity_annotation_name):
+            for span_ann in doc.annotations[entity_annotation_name].as_spans:
+                serialized_annotations[span_ann] = serialize_labeled_span(span_ann, doc, **kwargs)
     for relation_annotation_name in relation_annotation_names:
-        for rel_ann in doc.annotations.get(relation_annotation_name, []):
-            serialized_annotations[rel_ann] = serialize_binary_relation(
-                rel_ann,
-                doc,
-                head_argument_name=head_argument_name,
-                tail_argument_name=tail_argument_name,
-                **kwargs,
-            )
+        if doc.annotations.has_layer(relation_annotation_name):
+            for rel_ann in doc.annotations[relation_annotation_name].as_binary_relations:
+                serialized_annotations[rel_ann] = serialize_binary_relation(
+                    rel_ann,
+                    doc,
+                    head_argument_name=head_argument_name,
+                    tail_argument_name=tail_argument_name,
+                    **kwargs,
+                )
     for name, annots in doc.annotations.named_layers:
         not_serialized = [ann for ann in annots if ann not in serialized_annotations]
         if len(not_serialized) > 0:

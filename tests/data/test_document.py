@@ -125,11 +125,11 @@ def test_document():
     assert document.id == "id"
     assert document.metadata == {"test": "test"}
 
-    annotation = document.annotations["annotation"]
+    annotation = document.annotations["annotation"].as_labels
     assert len(annotation) == 1
     assert annotation[0].label == "annotation_label"
 
-    prediction1 = document.predictions["prediction"]
+    prediction1 = document.predictions["prediction"].as_labels
     assert len(prediction1) == 1
     assert prediction1[0].label == "prediction_label"
 
@@ -137,11 +137,11 @@ def test_document():
     assert not document.predictions.has_layer("prediction")
 
 
-def test_layer_cast():
-    document = Document(text="test", doc_id="id")
-    document.add_annotation(
-        "annotation", LabeledSpan(start=1, end=3, label="annotation_label", score=1.0)
-    )
+# def test_layer_cast():
+# document = Document(text="test", doc_id="id")
+# document.add_annotation(
+#    "annotation", LabeledSpan(start=1, end=3, label="annotation_label", score=1.0)
+# )
 
-    span_layer = document.annotations["annotation"].cast()
-    print(type(span_layer))
+# span_layer = document.annotations["annotation"].cast()
+# print(type(span_layer))
