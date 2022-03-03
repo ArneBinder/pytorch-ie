@@ -32,7 +32,6 @@ def get_doc1(with_ids: bool = False, **kwargs) -> Document:
     ent1 = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Jane"})
     ent2 = LabeledSpan(start=14, end=20, label="city", metadata={"text": "Berlin"})
     doc = construct_document(text=TEXT_01, entities=[ent1, ent2], relations=[], **kwargs)
-
     if with_ids:
         ent1.metadata["id"] = "1"
         ent2.metadata["id"] = "2"
@@ -52,22 +51,18 @@ def get_doc2(with_ids: bool = False, **kwargs) -> Document:
     return doc
 
 
+def get_documents(with_ids: bool = False):
+    doc_kwargs = dict(
+        entity_annotation_name="entities",
+        relation_annotation_name="relations",
+        with_ids=with_ids,
+    )
+    return [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)]
+
+
 def get_dataset(split_name: str = "train", with_ids: bool = False) -> Dict[str, List[Document]]:
-    entity_annotation_name = "entities"
-    relation_annotation_name = "relations"
     dataset = {
-        split_name: [
-            get_doc1(
-                entity_annotation_name=entity_annotation_name,
-                relation_annotation_name=relation_annotation_name,
-                with_ids=with_ids,
-            ),
-            get_doc2(
-                entity_annotation_name=entity_annotation_name,
-                relation_annotation_name=relation_annotation_name,
-                with_ids=with_ids,
-            ),
-        ]
+        split_name: get_documents(with_ids=with_ids)
     }
     return dataset
 
