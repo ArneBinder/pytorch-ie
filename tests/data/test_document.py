@@ -135,13 +135,3 @@ def test_document():
 
     document.clear_predictions("prediction")
     assert not document.predictions.has_layer("prediction")
-
-
-# def test_layer_cast():
-# document = Document(text="test", doc_id="id")
-# document.add_annotation(
-#    "annotation", LabeledSpan(start=1, end=3, label="annotation_label", score=1.0)
-# )
-
-# span_layer = document.annotations["annotation"].cast()
-# print(type(span_layer))
