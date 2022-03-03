@@ -224,7 +224,7 @@ class AnnotationLayer(Generic[T_annotation]):
 
     @property
     def as_binary_relations(self) -> List[BinaryRelation]:
-        self.ensure_type(LabeledSpan)
+        self.ensure_type(BinaryRelation)
         return cast(List[BinaryRelation], self._annotations)
 
     @property
