@@ -86,9 +86,7 @@ def get_doc1(
             sentences=[DOC1_SENTENCE1],
             entities=[DOC1_ENTITY_JANE, DOC1_ENTITY_BERLIN, DOC1_ENTITY_KARL],
         ),
-        binary_relations=dict(
-            relations=[DOC1_REL_LIVES_IN]
-        ),
+        binary_relations=dict(relations=[DOC1_REL_LIVES_IN]),
         assert_span_text=assert_span_text,
         **kwargs,
     )
@@ -105,18 +103,13 @@ def get_doc2(
             sentences=[DOC2_SENTENCE1, DOC2_SENTENCE2],
             entities=[DOC2_ENTITY_SEATTLE, DOC2_ENTITY_JENNY],
         ),
-        binary_relations=dict(
-            relations=[DOC2_REL_MAYOR_OF]
-        ),
+        binary_relations=dict(relations=[DOC2_REL_MAYOR_OF]),
         assert_span_text=assert_span_text,
         **kwargs,
     )
 
 
-def get_doc3(
-    assert_span_text=True,
-    **kwargs
-) -> Document:
+def get_doc3(assert_span_text=True, **kwargs) -> Document:
     doc = construct_document(
         text=DOC3_TEXT,
         tokens=DOC3_TOKENS,
