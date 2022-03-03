@@ -198,42 +198,34 @@ class AnnotationCollection:
     def __init__(self):
         self._layers: Dict[str, AnnotationLayer] = {}
 
-    def add_layer(
-        self,
-        name: str,
-        layer: Optional[AnnotationLayer] = None,
-        annotations: Optional[List[Annotation]] = None,
-        allow_overwrite: bool = False,
-    ):
-        if self.has_layer(name) and not allow_overwrite:
-            raise ValueError(
-                f"A layer with name {name} already exists. Use allow_overwrite=True to overwrite."
-            )
-        if layer is None:
-            layer = AnnotationLayer(annotations or [])
-        self._layers[name] = layer
-
     def has_layer(self, name: str) -> bool:
-        return name in self._layers
+        return name in self
 
-    def add(self, name: str, annotation: Annotation, create_layer: bool = False):
-        if not self.has_layer(name):
+    def add(self, name: str, annotation: Optional[Annotation] = None, create_layer: bool = False):
+        if name not in self:
             if create_layer:
-                self.add_layer(name)
+                self[name] = AnnotationLayer()
             else:
                 raise ValueError(f"layer with name {name} does not exist")
-        self._layers[name].append(annotation)
+        if annotation is not None:
+            self._layers[name].append(annotation)
 
     def get(self, name: str, default: T_layer_default) -> Union[AnnotationLayer, T_layer_default]:
-        if self.has_layer(name):
+        if name in self:
             return self._layers[name]
         return default
 
-    def __getitem__(self, item) -> AnnotationLayer:
+    def __getitem__(self, item: str) -> AnnotationLayer:
         return self._layers[item]
+
+    def __setitem__(self, key: str, value: AnnotationLayer):
+        self._layers[key] = value
 
     def __delitem__(self, key):
         del self._layers[key]
+
+    def __contains__(self, item: str) -> bool:
+        return item in self._layers
 
     def __repr__(self) -> str:
         return f"AnnotationCollection(layers={self._layers})"
@@ -270,7 +262,7 @@ class Document:
         self.predictions.add(name=name, annotation=prediction, create_layer=True)
 
     def clear_predictions(self, name: str) -> None:
-        if self.predictions.has_layer(name):
+        if name in self.predictions:
             del self.predictions[name]
 
     def __repr__(self) -> str:
@@ -298,15 +290,13 @@ def construct_document(
 
     if spans is not None:
         for layer_name, layer_spans in spans.items():
-            span_layer = AnnotationLayer[LabeledSpan](layer_spans)
-            doc.annotations.add_layer(name=layer_name, layer=span_layer)
+            doc.annotations[layer_name] = AnnotationLayer[LabeledSpan](layer_spans)
             if assert_span_text:
                 for ann in doc.annotations[layer_name]:
                     _assert_span_text(doc, ann)
     if binary_relations is not None:
         for layer_name, layer_binary_relations in binary_relations.items():
-            rel_layer = AnnotationLayer[BinaryRelation](layer_binary_relations)
-            doc.annotations.add_layer(name=layer_name, layer=rel_layer)
+            doc.annotations[layer_name] = AnnotationLayer[BinaryRelation](layer_binary_relations)
 
     return doc
 
