@@ -1,15 +1,4 @@
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 
 class Annotation:
