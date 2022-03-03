@@ -425,7 +425,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         if statistics is not None:
             logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
-        return input_encoding, metadata, new_documents  # type: ignore
+        return input_encoding, metadata, new_documents
 
     def encode_target(
         self,
