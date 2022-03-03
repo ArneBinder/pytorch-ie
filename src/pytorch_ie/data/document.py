@@ -293,6 +293,23 @@ def construct_document(
     metadata: Optional[Dict[str, Any]] = None,
     assert_span_text: bool = False,
 ) -> Document:
+    """
+    Construct a `Document` from at least a text. If provided, add span and binary relation annotations,
+    a document id and metadata.
+
+    Args:
+        text: the document text
+        spans: a mapping from layer names to span annotations
+        binary_relations: a mapping from layer names to binary relation annotations
+        doc_id: a document id
+        metadata: the content of this dictionary is added to the document metadata
+        assert_span_text: If this is True, each span annotation in spans has to have an entry "text" in
+            its metadata that contains the respective text slice from the document text. This is useful
+            when creating spans with expected content (e.g. when writing tests).
+
+    returns:
+        The constructed document.
+    """
     doc = Document(text=text, doc_id=doc_id)
     if metadata is not None:
         doc.metadata.update(metadata)
