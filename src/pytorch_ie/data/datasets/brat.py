@@ -49,7 +49,7 @@ def convert_brat_to_document(
     doc = Document(text=brat_doc["context"], doc_id=brat_doc["file_name"])
 
     # add spans
-    doc.annotations.add(name=span_annotation_name, create_layer=True)
+    doc.annotations.create_layer(name=span_annotation_name)
     span_id_mapping = {}
     for brat_span in dl_to_ld(brat_doc["spans"]):
         locations = dl_to_ld(brat_span["locations"])
@@ -88,7 +88,7 @@ def convert_brat_to_document(
         doc.annotations.add(name=span_annotation_name, annotation=span)
 
     # add relations
-    doc.annotations.add(name=relation_annotation_name, create_layer=True)
+    doc.annotations.create_layer(name=relation_annotation_name)
     for brat_relation in dl_to_ld(brat_doc["relations"]):
         # strip annotation type identifier from id
         metadata = {"id": brat_relation["id"][1:]}

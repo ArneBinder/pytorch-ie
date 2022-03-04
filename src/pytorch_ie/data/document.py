@@ -204,14 +204,16 @@ class AnnotationCollection(Dict[str, AnnotationLayer]):
     def has_layer(self, name: str) -> bool:
         return name in self
 
-    def add(self, name: str, annotation: Optional[Annotation] = None, create_layer: bool = False):
-        if name not in self:
-            if create_layer:
-                self[name] = AnnotationLayer()
-            else:
-                raise ValueError(f"layer with name {name} does not exist")
-        if annotation is not None:
-            self[name].append(annotation)
+    def add(self, name: str, annotation: Annotation = None):
+        if not self.has_layer(name=name):
+            self.create_layer(name=name)
+        self[name].append(annotation)
+
+    def create_layer(self, name: str, allow_exists: bool = False) -> AnnotationLayer:
+        if self.has_layer(name) and not allow_exists:
+            raise ValueError(f"layer with name {name} already exists")
+        self[name] = AnnotationLayer()
+        return self[name]
 
     @property
     def named_layers(self) -> List[Tuple[str, AnnotationLayer]]:
@@ -239,10 +241,10 @@ class Document:
         return self._metadata
 
     def add_annotation(self, name: str, annotation: Annotation):
-        self.annotations.add(name=name, annotation=annotation, create_layer=True)
+        self.annotations.add(name=name, annotation=annotation)
 
     def add_prediction(self, name: str, prediction: Annotation):
-        self.predictions.add(name=name, annotation=prediction, create_layer=True)
+        self.predictions.add(name=name, annotation=prediction)
 
     def clear_predictions(self, name: str) -> None:
         if name in self.predictions:
