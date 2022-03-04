@@ -3,9 +3,8 @@ PyTorch-IE: State-of-the-art Information Extraction in PyTorch
 
 .. badges-begin
 
-| |Status| |Python Version| |Read the Docs| |License|
-| |Tests| |Codecov|
-| |pre-commit| |Black| |Contributor Covenant|
+| |Status| |Python Version| |License| |Read the Docs|
+| |Tests| |Codecov| |pre-commit| |Black| |Contributor Covenant|
 
 .. |Status| image:: https://badgen.net/badge/status/alpha/d8624d
    :target: https://badgen.net/badge/status/alpha/d8624d
@@ -133,8 +132,8 @@ __ https://pytorch-ie.readthedocs.io/
 Development Setup
 -----------------
 
-Credits
--------
+🏅 Acknowledgements
+---------------------
 
 - This package is based on the `sourcery-ai/python-best-practices-cookiecutter`_ and `cjolowicz/cookiecutter-hypermodern-python`_ project templates.
 
@@ -142,16 +141,18 @@ Credits
 .. _cjolowicz/cookiecutter-hypermodern-python: https://github.com/cjolowicz/cookiecutter-hypermodern-python
 
 
-BibTeX
-------
+📃 Citation
+-------------
 
 If you want to cite the framework feel free to use this:
 
 .. code:: bibtex
 
-    @article{alt2022pytorchie,
-    title={PyTorch-IE},
+    @misc{alt2022pytorchie,
     author={Christoph Alt, Arne Binder},
-    journal={GitHub. Note: https://github.com/ChristophAlt/pytorch-ie},
-    year={2022}
+    title = {PyTorch-IE: State-of-the-art Information Extraction in PyTorch},
+    year = {2022},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://github.com/ChristophAlt/pytorch-ie}}
     }
