@@ -68,8 +68,8 @@ Span-classification-based Named Entity Recognition
 
     ner_pipeline(document, predict_field="entities")
 
-    for entity in document.predictions("entities"):
-        entity_text = document.text[entity.start: entity.end]
+    for entity in document.predictions.spans["entities"]:
+        entity_text = document.text[entity.start : entity.end]
         label = entity.label
         print(f"{entity_text} -> {label}")
 
@@ -101,10 +101,10 @@ Text-classification-based Relation Extraction
 
     re_pipeline(document, predict_field="relations")
 
-    for relation in document.predictions("relations"):
+    for relation in document.predictions.binary_relations["relations"]:
         head, tail = relation.head, relation.tail
-        head_text = document.text[head.start: head.end]
-        tail_text = document.text[tail.start: tail.end]
+        head_text = document.text[head.start : head.end]
+        tail_text = document.text[tail.start : tail.end]
         label = relation.label
         print(f"({head_text} -> {tail_text}) -> {label}")
 
