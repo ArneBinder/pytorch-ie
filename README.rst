@@ -78,13 +78,8 @@ Span-classification-based Named Entity Recognition
     # Po Bronson -> PER
     # SOSV -> ORG
 
-More examples
--------------
-
-.. raw:: html
-
-    <details>
-    <summary><b>Text-classification-based Relation Extraction</b></summary>
+Text-classification-based Relation Extraction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
 
@@ -119,11 +114,8 @@ More examples
     # (SOSV -> Po Bronson) -> org:top_members/employees
     # (IndieBio -> Po Bronson) -> org:top_members/employees
 
-.. raw:: html
-
-    </details>
-
-    <!-- github-only -->
+..
+  github-only
 
 ✨📚✨ `Read the full documentation`__
 
