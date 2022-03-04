@@ -91,7 +91,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         )
 
     def document_to_target_string(self, document: Document) -> str:
-        relations = document.annotations[self.relation_annotation].as_binary_relations
+        relations = document.annotations.binary_relations[self.relation_annotation]
 
         head_to_relation: Dict[LabeledSpan, List[BinaryRelation]] = {}
         for relation in relations:

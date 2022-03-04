@@ -215,8 +215,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            entities = document.annotations[self.entity_annotation].as_spans
-            relations = document.annotations[self.relation_annotation].as_binary_relations
+            entities = document.annotations.spans[self.entity_annotation]
+            relations = document.annotations.binary_relations[self.relation_annotation]
 
             if self.add_type_to_marker:
                 for entity in entities:
@@ -286,16 +286,16 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         )
 
         for document in documents:
-            entities = document.annotations[self.entity_annotation].as_spans
-            if document.annotations.has_layer(self.relation_annotation):
-                relations = document.annotations[self.relation_annotation].as_binary_relations
+            entities = document.annotations.spans[self.entity_annotation]
+            if document.annotations.binary_relations.has_layer(self.relation_annotation):
+                relations = document.annotations.binary_relations[self.relation_annotation]
             else:
                 relations = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions = document.annotations[self.partition_annotation].as_spans
+                partitions = document.annotations.spans[self.partition_annotation]
             else:
                 # use single dummy partition
                 partitions = [None]
@@ -437,7 +437,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
-            relations = document.annotations[self.relation_annotation].as_binary_relations
+            relations = document.annotations.binary_relations[self.relation_annotation]
 
             head_tail_to_labels = {
                 (relation.head, relation.tail): relation.labels for relation in relations

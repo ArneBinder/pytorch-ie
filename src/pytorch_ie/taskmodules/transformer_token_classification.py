@@ -95,7 +95,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
     def prepare(self, documents: List[Document]) -> None:
         labels = set()
         for document in documents:
-            entities = document.annotations[self.entity_annotation].as_spans
+            entities = document.annotations.spans[self.entity_annotation]
 
             for entity in entities:
                 labels.update(entity.labels)
@@ -139,7 +139,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         for doc in documents:
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions = doc.annotations[self.partition_annotation].as_spans
+                partitions = doc.annotations.spans[self.partition_annotation]
             else:
                 partitions = [None]
 
@@ -228,11 +228,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         )
         for i, document in enumerate(documents):
             current_metadata = metadata[i]
-            entities = document.annotations[self.entity_annotation].as_spans
+            entities = document.annotations.spans[self.entity_annotation]
             partition = None
             if self.partition_annotation is not None:
                 partition_index = current_metadata["sentence_index"]
-                partitions = document.annotations[self.partition_annotation].as_spans
+                partitions = document.annotations.spans[self.partition_annotation]
                 partition = partitions[partition_index]
             tag_sequence = convert_span_annotations_to_tag_sequence(
                 spans=entities,
@@ -273,7 +273,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         offset = 0
         if self.partition_annotation is not None:
-            partitions = encoding.document.annotations[self.partition_annotation].as_spans
+            partitions = encoding.document.annotations.spans[self.partition_annotation]
             offset = partitions[encoding.metadata["sentence_index"]].start
 
         tag_sequence = [

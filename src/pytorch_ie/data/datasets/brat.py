@@ -49,7 +49,7 @@ def convert_brat_to_document(
     doc = Document(text=brat_doc["context"], doc_id=brat_doc["file_name"])
 
     # add spans
-    doc.annotations.create_layer(name=span_annotation_name)
+    doc.annotations.spans.create_layer(name=span_annotation_name)
     span_id_mapping = {}
     for brat_span in dl_to_ld(brat_doc["spans"]):
         locations = dl_to_ld(brat_span["locations"])
@@ -85,10 +85,10 @@ def convert_brat_to_document(
             brat_span["id"] not in span_id_mapping
         ), f'brat span id "{brat_span["id"]}" already exists'
         span_id_mapping[brat_span["id"]] = span
-        doc.annotations.add(name=span_annotation_name, annotation=span)
+        doc.add_annotation(name=span_annotation_name, annotation=span)
 
     # add relations
-    doc.annotations.create_layer(name=relation_annotation_name)
+    doc.annotations.binary_relations.create_layer(name=relation_annotation_name)
     for brat_relation in dl_to_ld(brat_doc["relations"]):
         # strip annotation type identifier from id
         metadata = {"id": brat_relation["id"][1:]}
@@ -102,7 +102,7 @@ def convert_brat_to_document(
         relation = BinaryRelation(
             label=brat_relation["type"], head=head, tail=tail, metadata=metadata
         )
-        doc.annotations.add(name=relation_annotation_name, annotation=relation)
+        doc.add_annotation(name=relation_annotation_name, annotation=relation)
 
     # add events -> not yet implement
     # add equivalence_relations -> not yet implement
@@ -221,12 +221,12 @@ def convert_document_to_brat(
     if relation_annotation_names is None:
         relation_annotation_names = [DEFAULT_RELATION_ANNOTATION_NAME]
     for entity_annotation_name in span_annotation_names:
-        if doc.annotations.has_layer(entity_annotation_name):
-            for span_ann in doc.annotations[entity_annotation_name].as_spans:
+        if doc.annotations.spans.has_layer(entity_annotation_name):
+            for span_ann in doc.annotations.spans[entity_annotation_name]:
                 serialized_annotations[span_ann] = serialize_labeled_span(span_ann, doc, **kwargs)
     for relation_annotation_name in relation_annotation_names:
-        if doc.annotations.has_layer(relation_annotation_name):
-            for rel_ann in doc.annotations[relation_annotation_name].as_binary_relations:
+        if doc.annotations.binary_relations.has_layer(relation_annotation_name):
+            for rel_ann in doc.annotations.binary_relations[relation_annotation_name]:
                 serialized_annotations[rel_ann] = serialize_binary_relation(
                     rel_ann,
                     doc,
@@ -234,7 +234,7 @@ def convert_document_to_brat(
                     tail_argument_name=tail_argument_name,
                     **kwargs,
                 )
-    for name, annots in doc.annotations.named_layers:
+    for layer_type, name, annots in doc.annotations.typed_named_layers:
         not_serialized = [ann for ann in annots if ann not in serialized_annotations]
         if len(not_serialized) > 0:
             logger.warning(

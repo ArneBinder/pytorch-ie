@@ -521,21 +521,21 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
         for doc in decoded_documents:
             assert doc not in set(documents)
 
-    predictions = decoded_documents[0].predictions["relations"]
+    predictions = decoded_documents[0].predictions.binary_relations["relations"]
     assert len(predictions) == 1
     prediction = predictions[0]
     assert prediction.label == DOC1_REL_LIVES_IN.label
     assert prediction.head == DOC1_ENTITY_JANE
     assert prediction.tail == DOC1_ENTITY_BERLIN
 
-    predictions = decoded_documents[1].predictions["relations"]
+    predictions = decoded_documents[1].predictions.binary_relations["relations"]
     assert len(predictions) == 1
     prediction = predictions[0]
     assert prediction.label == DOC2_REL_MAYOR_OF.label
     assert prediction.head == DOC2_ENTITY_JENNY
     assert prediction.tail == DOC2_ENTITY_SEATTLE
 
-    assert not decoded_documents[2].predictions.has_layer("relations")
+    assert not decoded_documents[2].predictions.binary_relations.has_layer("relations")
 
 
 def test_save_load(tmp_path, prepared_taskmodule):
@@ -551,7 +551,7 @@ def test_enumerate_entity_pairs(prepared_taskmodule, documents):
     This should return all combinations of entities.
     """
     document = documents[0]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 3
     assert entities[0] == DOC1_ENTITY_JANE
     assert entities[1] == DOC1_ENTITY_BERLIN
@@ -597,7 +597,7 @@ def test_enumerate_entity_pairs(prepared_taskmodule, documents):
     assert tail == DOC1_ENTITY_BERLIN
 
     document = documents[1]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 2
     assert entities[0] == DOC2_ENTITY_SEATTLE
     assert entities[1] == DOC2_ENTITY_JENNY
@@ -626,7 +626,7 @@ def test_enumerate_entity_pairs(prepared_taskmodule, documents):
     assert tail == DOC2_ENTITY_SEATTLE
 
     document = documents[2]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 2
     assert entities[0] == DOC3_ENTITY_KARL
     assert entities[1] == DOC3_ENTITY_BERLIN
@@ -660,12 +660,12 @@ def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
     This should return only combinations for which a relation exists.
     """
     document = documents[0]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 3
     assert entities[0] == DOC1_ENTITY_JANE
     assert entities[1] == DOC1_ENTITY_BERLIN
     assert entities[2] == DOC1_ENTITY_KARL
-    relations = document.annotations["relations"].as_binary_relations
+    relations = document.annotations.binary_relations["relations"]
     assert len(relations) == 1
     relation = relations[0]
     assert relation == DOC1_REL_LIVES_IN
@@ -693,11 +693,11 @@ def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
     assert tail == DOC1_ENTITY_BERLIN
 
     document = documents[1]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 2
     assert entities[0] == DOC2_ENTITY_SEATTLE
     assert entities[1] == DOC2_ENTITY_JENNY
-    relations = document.annotations["relations"].as_binary_relations
+    relations = document.annotations.binary_relations["relations"]
     assert len(relations) == 1
     relation = relations[0]
     assert relation == DOC2_REL_MAYOR_OF
@@ -726,11 +726,11 @@ def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
     assert tail == DOC2_ENTITY_SEATTLE
 
     document = documents[2]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 2
     assert entities[0] == DOC3_ENTITY_KARL
     assert entities[1] == DOC3_ENTITY_BERLIN
-    relations = document.annotations["relations"].as_binary_relations
+    relations = document.annotations.binary_relations["relations"]
     assert len(relations) == 0
 
     encoding = prepared_taskmodule._encode_text(
@@ -755,12 +755,12 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     This should return only combinations with entities in the same sentence.
     """
     document = documents[0]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 3
     assert entities[0] == DOC1_ENTITY_JANE
     assert entities[1] == DOC1_ENTITY_BERLIN
     assert entities[2] == DOC1_ENTITY_KARL
-    sentences = document.annotations["sentences"].as_spans
+    sentences = document.annotations.spans["sentences"]
     assert len(sentences) == 1
     partition = sentences[0]
     assert partition == DOC1_SENTENCE1
@@ -796,11 +796,11 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     assert tail == DOC1_ENTITY_JANE
 
     document = documents[1]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 2
     assert entities[0] == DOC2_ENTITY_SEATTLE
     assert entities[1] == DOC2_ENTITY_JENNY
-    sentences = document.annotations["sentences"].as_spans
+    sentences = document.annotations.spans["sentences"]
     assert len(sentences) == 2
     partition = sentences[0]
     assert partition == DOC2_SENTENCE1
@@ -862,11 +862,11 @@ def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
     assert len(enumerated_entity_pairs) == 0
 
     document = documents[2]
-    entities = document.annotations["entities"].as_spans
+    entities = document.annotations.spans["entities"]
     assert len(entities) == 2
     assert entities[0] == DOC3_ENTITY_KARL
     assert entities[1] == DOC3_ENTITY_BERLIN
-    sentences = document.annotations["sentences"].as_spans
+    sentences = document.annotations.spans["sentences"]
     assert len(sentences) == 1
     partition = sentences[0]
     assert partition == DOC3_SENTENCE1

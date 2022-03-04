@@ -24,7 +24,7 @@ def test_re_text_classification():
         document.add_annotation("entities", LabeledSpan(start, end, label))
 
     pipeline(document, predict_field="relations", batch_size=2)
-    relations: List[BinaryRelation] = document.predictions["relations"].as_binary_relations
+    relations: List[BinaryRelation] = document.predictions.binary_relations["relations"]
     assert len(relations) == 4
     sorted_relations = sorted(relations, key=lambda rel: (rel.head.start + rel.tail.start) / 2)
 

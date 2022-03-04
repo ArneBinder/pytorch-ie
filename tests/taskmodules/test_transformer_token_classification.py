@@ -1574,7 +1574,7 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
         assert set(decoded_documents).isdisjoint(set(documents))
 
     decoded_document = decoded_documents[0]
-    predictions = decoded_document.predictions["entities"]
+    predictions = decoded_document.predictions.spans["entities"]
     assert len(predictions) == 1
     entity = predictions[0]
     assert entity.label == "city"
@@ -1582,7 +1582,7 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     assert entity.end == 52
 
     decoded_document = decoded_documents[1]
-    predictions = decoded_document.predictions["entities"]
+    predictions = decoded_document.predictions.spans["entities"]
     assert len(predictions) == 1
     entity = predictions[0]
     assert entity.label == "city"
@@ -1590,7 +1590,7 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     assert entity.end == 58
 
     decoded_document = decoded_documents[2]
-    predictions = decoded_document.predictions["entities"]
+    predictions = decoded_document.predictions.spans["entities"]
     assert len(predictions) == 1
     entity = predictions[0]
     assert entity.label == "city"
