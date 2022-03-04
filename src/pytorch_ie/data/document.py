@@ -178,34 +178,28 @@ class AnnotationLayer(List[T_annotation]):
         self._check_type(type(value))
         super().__setitem__(i=key, o=value)
 
+    def as_type(self, annotation_type: Type) -> List[T_annotation]:
+        self._check_type(annotation_type)
+        return self
+
     @property
     def as_spans(self) -> List[LabeledSpan]:
-        self._check_type(LabeledSpan)
-        return cast(List[LabeledSpan], self)
+        return cast(List[LabeledSpan], self.as_type(LabeledSpan))
 
     @property
     def as_binary_relations(self) -> List[BinaryRelation]:
-        self._check_type(BinaryRelation)
-        return cast(List[BinaryRelation], self)
+        return cast(List[BinaryRelation], self.as_type(BinaryRelation))
 
     @property
     def as_labels(self) -> List[Label]:
-        self._check_type(Label)
-        return cast(List[Label], self)
+        return cast(List[Label], self.as_type(Label))
 
 
-T_layer_default = TypeVar("T_layer_default")
-
-
-class AnnotationCollection:
+class AnnotationCollection(Dict[str, AnnotationLayer]):
     """
-    An `AnnotationCollection` holds a mapping from layer names to `AnnotationLayers`. For the getters, it behaves
-    like a `Dict[str, AnnotationLayers]`, i.e. via `get` that takes a default value or via `[]`. However, it
+    An `AnnotationCollection` holds a mapping from layer names to `AnnotationLayers`. However, it
     also provides an `add` method to directly add an Annotation to a certain layer and create that if necessary.
     """
-
-    def __init__(self):
-        self._layers: Dict[str, AnnotationLayer] = {}
 
     def has_layer(self, name: str) -> bool:
         return name in self
@@ -217,31 +211,11 @@ class AnnotationCollection:
             else:
                 raise ValueError(f"layer with name {name} does not exist")
         if annotation is not None:
-            self._layers[name].append(annotation)
-
-    def get(self, name: str, default: T_layer_default) -> Union[AnnotationLayer, T_layer_default]:
-        if name in self:
-            return self._layers[name]
-        return default
-
-    def __getitem__(self, item: str) -> AnnotationLayer:
-        return self._layers[item]
-
-    def __setitem__(self, key: str, value: AnnotationLayer):
-        self._layers[key] = value
-
-    def __delitem__(self, key):
-        del self._layers[key]
-
-    def __contains__(self, item: str) -> bool:
-        return item in self._layers
-
-    def __repr__(self) -> str:
-        return f"AnnotationCollection(layers={self._layers})"
+            self[name].append(annotation)
 
     @property
     def named_layers(self) -> List[Tuple[str, AnnotationLayer]]:
-        return list(self._layers.items())
+        return list(self.items())
 
 
 class Document:
