@@ -43,8 +43,7 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         self,
         tokenizer_name_or_path: str,
         entity_annotation: str = "entities",
-        single_sentence: bool = False,
-        sentence_annotation: str = "sentences",
+        partition_annotation: Optional[str] = None,
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_length: Optional[int] = None,
@@ -57,8 +56,7 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
-        self.single_sentence = single_sentence
-        self.sentence_annotation = sentence_annotation
+        self.partition_annotation = partition_annotation
         self.label_to_id = label_to_id or {}
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
         self.padding = padding
@@ -95,8 +93,9 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
     def encode_input(
         self, documents: List[Document]
     ) -> Tuple[List[TransformerSetPredictionInputEncoding], List[Metadata], Optional[List[Document]]]:
+        # TODO: simplify (see other taskmodules)
         expanded_documents = None
-        if self.single_sentence:
+        if self.partition_annotation is not None:
             input_ = [
                 self.tokenizer(
                     doc.text[sent.start : sent.end],
@@ -108,10 +107,10 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
                     return_special_tokens_mask=True,
                 )
                 for doc in documents
-                for sent in doc.annotations.spans[self.sentence_annotation]
+                for sent in doc.annotations.spans[self.partition_annotation]
             ]
             expanded_documents = [
-                doc for doc in documents for _ in doc.annotations.spans[self.sentence_annotation]
+                doc for doc in documents for _ in doc.annotations.spans[self.partition_annotation]
             ]
         else:
             input_ = [
@@ -135,10 +134,10 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
             for inp in input_
         ]
 
-        if self.single_sentence:
+        if self.partition_annotation is not None:
             i = 0
             for document in documents:
-                for sentence_index in range(len(document.annotations.spans[self.sentence_annotation])):
+                for sentence_index in range(len(document.annotations.spans[self.partition_annotation])):
                     metadata[i]["sentence_index"] = sentence_index
                     i += 1
 
@@ -148,63 +147,29 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         self, documents: List[Document], input_: List[TransformerSetPredictionInputEncoding], metadata: List[Metadata]
     ) -> List[TransformerSetPredictionTargetEncoding]:
         target = []
-        if self.single_sentence:
-            i = 0
-            for document in documents:
-                entities = document.annotations.spans[self.entity_annotation]
-                sentences = document.annotations.spans[self.sentence_annotation]
+        i = 0
+        for document in documents:
+            entities = document.annotations.spans[self.entity_annotation]
 
-                for sentence in sentences:
-                    start_indices = []
-                    end_indices = []
-                    label_ids = []
-                    span_masks = []
-                    for entity in entities:
-                        if entity.start < sentence.start or entity.end > sentence.end:
-                            continue
+            if self.partition_annotation is not None:
+                partitions = document.annotations.spans[self.partition_annotation]
+            else:
+                partitions = [LabeledSpan(start=0, end=len(document.text), label="FULL_DOCUMENT")]
 
-                        entity_start = entity.start - sentence.start
-                        entity_end = entity.end - sentence.start
-
-                        start_idx = input_[i].char_to_token(entity_start)
-                        end_idx = input_[i].char_to_token(entity_end - 1)
-
-                        if start_idx is None or end_idx is None:
-                            continue
-
-                        start_indices.append(start_idx)
-                        end_indices.append(end_idx)
-                        label_ids.append(self.label_to_id[entity.label])
-
-                        span_mask = [
-                            1 if start_idx <= i <= end_idx else 0
-                            for i in range(len(input_[i].word_ids()))
-                        ]
-                        span_masks.append(span_mask)
-
-                    target.append(
-                        {
-                            "entities": {
-                                "start_index": start_indices,
-                                "end_index": end_indices,
-                                "label_ids": label_ids,
-                                # "span_position": span_positions,
-                                "span_mask": span_masks,
-                            }
-                        }
-                    )
-                    i += 1
-        else:
-            for i, document in enumerate(documents):
-                entities = document.annotations.spans[self.entity_annotation]
-
+            for partition in partitions:
                 start_indices = []
                 end_indices = []
                 label_ids = []
                 span_masks = []
                 for entity in entities:
-                    start_idx = input_[i].char_to_token(entity.start)
-                    end_idx = input_[i].char_to_token(entity.end - 1)
+                    if entity.start < partition.start or entity.end > partition.end:
+                        continue
+
+                    entity_start = entity.start - partition.start
+                    entity_end = entity.end - partition.start
+
+                    start_idx = input_[i].char_to_token(entity_start)
+                    end_idx = input_[i].char_to_token(entity_end - 1)
 
                     if start_idx is None or end_idx is None:
                         continue
@@ -230,7 +195,7 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
                         }
                     }
                 )
-
+                i += 1
         return target
 
     def unbatch_output(
@@ -277,45 +242,31 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         encoding: TransformerSetPredictionTaskEncoding,
         output: TransformerSetPredictionTaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
-        if self.single_sentence:
-            document = encoding.document
-            metadata = encoding.metadata
 
-            sentence = document.annotations.spans[self.sentence_annotation][
+        document = encoding.document
+        metadata = encoding.metadata
+
+        if self.partition_annotation is not None:
+            sentence = document.annotations.spans[self.partition_annotation][
                 metadata["sentence_index"]
             ]
-
-            # tag_sequence = [
-            #     "O" if stm else tag
-            #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-            # ]
-
-            # spans = bio_tags_to_spans(tag_sequence)
-            spans = output["tags"]
-            for label, (start, end) in spans:
-                yield self.entity_annotation, LabeledSpan(
-                        sentence.start + metadata["offset_mapping"][start][0],
-                        sentence.start + metadata["offset_mapping"][end][1],
-                        label,
-                    )
-
+            offset = sentence.start
         else:
-            document = encoding.document
-            metadata = encoding.metadata
+            offset = 0
 
-            # tag_sequence = [
-            #     "O" if stm else tag
-            #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-            # ]
+        # tag_sequence = [
+        #     "O" if stm else tag
+        #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
+        # ]
 
-            # spans = bio_tags_to_spans(tag_sequence)
-            spans = output["tags"]
-            for label, (start, end) in spans:
-                yield self.entity_annotation, LabeledSpan(
-                        metadata["offset_mapping"][start][0],
-                        metadata["offset_mapping"][end][1],
-                        label,
-                    )
+        # spans = bio_tags_to_spans(tag_sequence)
+        spans = output["tags"]
+        for label, (start, end) in spans:
+            yield self.entity_annotation, LabeledSpan(
+                    offset + metadata["offset_mapping"][start][0],
+                    offset + metadata["offset_mapping"][end][1],
+                    label,
+                )
 
     def collate(self, encodings: List[TransformerSetPredictionTaskEncoding]) -> TransformerSetPredictionModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
