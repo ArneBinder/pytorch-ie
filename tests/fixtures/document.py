@@ -1,6 +1,6 @@
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
-from tests.helpers.document_utils import construct_document
+from pytorch_ie.data.document import construct_document
 
 DOC1_TEXT = "Jane lives in Berlin. this is no sentence about Karl\n"
 DOC2_TEXT = "Seattle is a rainy city. Jenny Durkan is the city's mayor.\n"
@@ -76,40 +76,57 @@ DOC3_TOKENS = ["[CLS]", "Karl", "enjoys", "sunny", "days", "in", "Berlin", ".", 
 
 
 def get_doc1(
+    assert_span_text=True,
     **kwargs,
 ) -> Document:
     return construct_document(
         text=DOC1_TEXT,
-        tokens=DOC1_TOKENS,
-        sentences=[DOC1_SENTENCE1],
-        entities=[DOC1_ENTITY_JANE, DOC1_ENTITY_BERLIN, DOC1_ENTITY_KARL],
-        relations=[DOC1_REL_LIVES_IN],
+        metadata=dict(tokens=DOC1_TOKENS),
+        spans=dict(
+            sentences=[DOC1_SENTENCE1],
+            entities=[DOC1_ENTITY_JANE, DOC1_ENTITY_BERLIN, DOC1_ENTITY_KARL],
+        ),
+        binary_relations=dict(relations=[DOC1_REL_LIVES_IN]),
+        assert_span_text=assert_span_text,
         **kwargs,
     )
 
 
 def get_doc2(
+    assert_span_text=True,
     **kwargs,
 ) -> Document:
     return construct_document(
         text=DOC2_TEXT,
-        tokens=DOC2_TOKENS,
-        sentences=[DOC2_SENTENCE1, DOC2_SENTENCE2],
-        entities=[DOC2_ENTITY_SEATTLE, DOC2_ENTITY_JENNY],
-        relations=[DOC2_REL_MAYOR_OF],
+        metadata=dict(tokens=DOC2_TOKENS),
+        spans=dict(
+            sentences=[DOC2_SENTENCE1, DOC2_SENTENCE2],
+            entities=[DOC2_ENTITY_SEATTLE, DOC2_ENTITY_JENNY],
+        ),
+        binary_relations=dict(relations=[DOC2_REL_MAYOR_OF]),
+        assert_span_text=assert_span_text,
         **kwargs,
     )
 
 
-def get_doc3(relation_annotation_name: str = "relations", **kwargs) -> Document:
+def get_doc3(assert_span_text=True, **kwargs) -> Document:
     doc = construct_document(
         text=DOC3_TEXT,
-        tokens=DOC3_TOKENS,
-        sentences=[DOC3_SENTENCE1],
-        entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
+        metadata=dict(tokens=DOC3_TOKENS),
+        spans=dict(
+            sentences=[DOC3_SENTENCE1],
+            entities=[DOC3_ENTITY_KARL, DOC3_ENTITY_BERLIN],
+        ),
+        binary_relations=dict(
+            # We have to set relations with an empty list to create the
+            # annotation layer at all. This is important for some implementations
+            # of .encode_input() that assume that if relations are NOT available it is
+            # in inference mode where it will create all possible entity pairs as
+            # candidate relations.
+            relations=[],
+        ),
+        assert_span_text=assert_span_text,
         **kwargs,
     )
 
-    # TODO: this is kind of hacky
-    doc._annotations[relation_annotation_name] = []
     return doc

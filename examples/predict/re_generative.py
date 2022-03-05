@@ -26,7 +26,7 @@ def main():
     pipeline(document, predict_field="relations")
 
     relation: BinaryRelation
-    for relation in document.predictions("relations"):
+    for relation in document.predictions.binary_relations["relations"]:
         head, tail = relation.head, relation.tail
         head_text = document.text[head.start : head.end]
         tail_text = document.text[tail.start : tail.end]

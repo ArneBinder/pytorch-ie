@@ -1,11 +1,12 @@
 import os
-from typing import Dict, List
 
+import pytest
 from datasets import GenerateMode, set_caching_enabled
 
 from pytorch_ie import Document
 from pytorch_ie.data import BinaryRelation, LabeledSpan
 from pytorch_ie.data.datasets.brat import load_brat, serialize_brat, split_span_annotation
+from pytorch_ie.data.document import construct_document
 from tests import FIXTURES_ROOT
 
 TEXT_01 = "Jane lives in Berlin.\n"
@@ -27,32 +28,32 @@ ANNOTS_02_SPECIFIED_IDS = [
 ]
 
 
-def get_doc1(entity_annotation_name: str, with_ids: bool = False, **kwargs) -> Document:
-    doc = Document(text=TEXT_01, doc_id="1" if with_ids else None)
-    ent1 = LabeledSpan(start=0, end=4, label="person")
-    ent2 = LabeledSpan(start=14, end=20, label="city")
-    ent1.metadata["text"] = doc.text[ent1.start : ent1.end]
-    ent2.metadata["text"] = doc.text[ent2.start : ent2.end]
-    doc.add_annotation(name=entity_annotation_name, annotation=ent1)
-    doc.add_annotation(name=entity_annotation_name, annotation=ent2)
+def get_doc1(with_ids: bool = False, **kwargs) -> Document:
+    ent1 = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Jane"})
+    ent2 = LabeledSpan(start=14, end=20, label="city", metadata={"text": "Berlin"})
+    doc = construct_document(
+        text=TEXT_01,
+        spans=dict(entities=[ent1, ent2]),
+        binary_relations=dict(relations=[]),
+        **kwargs,
+    )
     if with_ids:
         ent1.metadata["id"] = "1"
         ent2.metadata["id"] = "2"
     return doc
 
 
-def get_doc2(
-    entity_annotation_name: str, relation_annotation_name: str, with_ids: bool = False
-) -> Document:
-    doc = Document(text=TEXT_02, doc_id="2" if with_ids else None)
-    ent1 = LabeledSpan(start=0, end=7, label="city")
-    ent2 = LabeledSpan(start=25, end=37, label="person")
-    ent1.metadata["text"] = doc.text[ent1.start : ent1.end]
-    ent2.metadata["text"] = doc.text[ent2.start : ent2.end]
-    doc.add_annotation(name=entity_annotation_name, annotation=ent1)
-    doc.add_annotation(name=entity_annotation_name, annotation=ent2)
+def get_doc2(with_ids: bool = False, **kwargs) -> Document:
+    text = TEXT_02
+    ent1 = LabeledSpan(start=0, end=7, label="city", metadata={"text": "Seattle"})
+    ent2 = LabeledSpan(start=25, end=37, label="person", metadata={"text": "Jenny Durkan"})
     rel1 = BinaryRelation(head=ent2, tail=ent1, label="mayor_of")
-    doc.add_annotation(name=relation_annotation_name, annotation=rel1)
+    doc = construct_document(
+        text=text,
+        spans=dict(entities=[ent1, ent2]),
+        binary_relations=dict(relations=[rel1]),
+        **kwargs,
+    )
     if with_ids:
         ent1.metadata["id"] = "1"
         ent2.metadata["id"] = "2"
@@ -60,24 +61,22 @@ def get_doc2(
     return doc
 
 
-def get_dataset(split_name: str = "train", with_ids: bool = False) -> Dict[str, List[Document]]:
-    entity_annotation_name = "entities"
-    relation_annotation_name = "relations"
-    dataset = {
-        split_name: [
-            get_doc1(
-                entity_annotation_name=entity_annotation_name,
-                relation_annotation_name=relation_annotation_name,
-                with_ids=with_ids,
-            ),
-            get_doc2(
-                entity_annotation_name=entity_annotation_name,
-                relation_annotation_name=relation_annotation_name,
-                with_ids=with_ids,
-            ),
-        ]
-    }
-    return dataset
+def get_documents(with_ids: bool = False):
+    doc_kwargs = dict(
+        with_ids=with_ids,
+        assert_span_text=True,
+    )
+    return [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs)]
+
+
+@pytest.fixture
+def dataset():
+    return {"train": get_documents(with_ids=False)}
+
+
+@pytest.fixture
+def dataset_with_ids():
+    return {"train": get_documents(with_ids=True)}
 
 
 def assert_dataset_equal(dataset, other):
@@ -90,15 +89,14 @@ def assert_dataset_equal(dataset, other):
             assert str(doc) == str(doc_loaded)
 
 
-def test_load_brat():
-    dataset = get_dataset(with_ids=True)
+def test_load_brat(dataset_with_ids):
     set_caching_enabled(False)
     dataset_loaded = load_brat(
         url=os.path.join(FIXTURES_ROOT, "datasets/brat"),
         conversion_kwargs=dict(head_argument_name="head", tail_argument_name="tail"),
         download_mode=GenerateMode.FORCE_REDOWNLOAD,
     )
-    assert_dataset_equal(dataset, dataset_loaded)
+    assert_dataset_equal(dataset_with_ids, dataset_loaded)
 
 
 def test_load_and_serialize_brat_in_memory():
@@ -132,11 +130,10 @@ def test_load_and_serialize_brat_in_memory():
     assert serialized_doc[2] == ANNOTS_02_SPECIFIED_IDS
 
 
-def test_serialize_brat_with_construct_ids_in_memory():
+def test_serialize_brat_with_construct_ids_in_memory(dataset):
     head_argument_name = "head"
     tail_argument_name = "tail"
 
-    dataset = get_dataset(with_ids=False)
     serialized_brat = serialize_brat(
         dataset,
         head_argument_name=head_argument_name,
@@ -158,9 +155,7 @@ def test_serialize_brat_with_construct_ids_in_memory():
     assert serialized_doc[2] == ANNOTS_02_GENERATED_IDS
 
 
-def test_serialize_brat_to_directories(tmp_path):
-
-    dataset = get_dataset(with_ids=False)
+def test_serialize_brat_to_directories(tmp_path, dataset):
 
     head_argument_name = "head"
     tail_argument_name = "tail"

@@ -16,7 +16,7 @@ def main():
 
     ner_pipeline(document, predict_field="entities")
 
-    for entity in document.predictions("entities"):
+    for entity in document.predictions.spans["entities"]:
         entity_text = document.text[entity.start : entity.end]
         label = entity.label
         print(f"{entity_text} -> {label}")

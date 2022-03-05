@@ -26,7 +26,7 @@ def test_ner_span_classification():
     ner_pipeline(documents, predict_field="entities", batch_size=2)
 
     for document in documents:
-        entities: List[LabeledSpan] = document.predictions("entities")  # typing: ignore
+        entities: List[LabeledSpan] = document.predictions.spans["entities"]
         assert len(entities) == 3
         entities_sorted = sorted(entities, key=lambda entity: (entity.start + entity.end) / 2)
 

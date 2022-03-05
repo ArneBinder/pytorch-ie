@@ -2,6 +2,7 @@ import pytest
 
 from pytorch_ie.data.document import (
     Annotation,
+    AnnotationLayer,
     BinaryRelation,
     Document,
     Label,
@@ -125,14 +126,13 @@ def test_document():
     assert document.id == "id"
     assert document.metadata == {"test": "test"}
 
-    annotation = document.annotations("annotation")
+    annotation = document.annotations.labels["annotation"]
     assert len(annotation) == 1
     assert annotation[0].label == "annotation_label"
 
-    prediction1 = document.predictions("prediction")
+    prediction1 = document.predictions.labels["prediction"]
     assert len(prediction1) == 1
     assert prediction1[0].label == "prediction_label"
 
     document.clear_predictions("prediction")
-    prediction2 = document.predictions("prediction")
-    assert prediction2 is None
+    assert not document.predictions.labels.has_layer("prediction")

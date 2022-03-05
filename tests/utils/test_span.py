@@ -10,9 +10,7 @@ from tests.fixtures.document import get_doc1, get_doc2, get_doc3
 @pytest.fixture
 def documents():
     doc_kwargs = dict(
-        entity_annotation_name="entities",
-        relation_annotation_name="relations",
-        sentence_annotation_name="sentences",
+        assert_span_text=True,
     )
     documents = [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs), get_doc3(**doc_kwargs)]
     return documents
@@ -32,7 +30,7 @@ def test_get_special_token_mask():
 
 def test_convert_span_annotations_to_tag_sequence(documents):
     doc = documents[0]
-    entities = doc.span_annotations("entities")
+    entities = doc.annotations.spans["entities"]
     assert len(entities) == 3
     char_to_token_mapping = {
         0: 1,
@@ -105,7 +103,7 @@ def test_convert_span_annotations_to_tag_sequence(documents):
     ]
 
     doc = documents[1]
-    entities = doc.span_annotations("entities")
+    entities = doc.annotations.spans["entities"]
     assert len(entities) == 2
     char_to_token_mapping = {
         0: 1,
@@ -189,7 +187,7 @@ def test_convert_span_annotations_to_tag_sequence(documents):
     ]
 
     doc = documents[2]
-    entities = doc.span_annotations("entities")
+    entities = doc.annotations.spans["entities"]
     assert len(entities) == 2
     char_to_token_mapping = {
         0: 1,
@@ -235,9 +233,9 @@ def test_convert_span_annotations_to_tag_sequence(documents):
 
 def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
     doc = documents[0]
-    entities = doc.span_annotations("entities")
+    entities = doc.annotations.spans["entities"]
     assert len(entities) == 3
-    partitions = doc.span_annotations("sentences")
+    partitions = doc.annotations.spans["sentences"]
     assert len(partitions) == 1
     partition = partitions[0]
     char_to_token_mapping = {
@@ -273,9 +271,9 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
     assert tag_sequence == [None, "B-person", "O", "O", "B-city", "O", None]
 
     doc = documents[1]
-    entities = doc.span_annotations("entities")
+    entities = doc.annotations.spans["entities"]
     assert len(entities) == 2
-    partitions = doc.span_annotations("sentences")
+    partitions = doc.annotations.spans["sentences"]
     assert len(partitions) == 2
     partition = partitions[0]
     char_to_token_mapping = {
@@ -369,9 +367,9 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
     ]
 
     doc = documents[2]
-    entities = doc.span_annotations("entities")
+    entities = doc.annotations.spans["entities"]
     assert len(entities) == 2
-    partitions = doc.span_annotations("sentences")
+    partitions = doc.annotations.spans["sentences"]
     assert len(partitions) == 1
     partition = partitions[0]
     char_to_token_mapping = {

@@ -1,4 +1,16 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 
 class Annotation:
@@ -65,11 +77,6 @@ class Annotation:
     @classmethod
     def from_dict(cls, dct: Dict[str, Any]) -> "Annotation":
         return cls(**dct)
-
-
-# just for now as simple type shortcuts
-AnnotationLayer = List[Annotation]
-AnnotationCollection = Dict[str, List[Annotation]]
 
 
 class Label(Annotation):
@@ -149,13 +156,81 @@ class BinaryRelation(Annotation):
         )
 
 
+# simple list for now
+AnnotationLayer = list
+T_annotation = TypeVar("T_annotation", bound=Annotation)
+
+
+class TypedAnnotationCollection(Generic[T_annotation], Dict[str, AnnotationLayer[T_annotation]]):
+    """
+    An `AnnotationCollection` holds a mapping from layer names to `AnnotationLayers`. However, it
+    also provides an `add` method to directly add an Annotation to a certain layer and create that if necessary.
+    """
+
+    def has_layer(self, name: str) -> bool:
+        return name in self
+
+    def add(self, name: str, annotation: T_annotation):
+        if not self.has_layer(name=name):
+            self.create_layer(name=name)
+        self[name].append(annotation)
+
+    def create_layer(self, name: str, allow_exists: bool = False) -> AnnotationLayer[T_annotation]:
+        if self.has_layer(name) and not allow_exists:
+            raise ValueError(f"layer with name {name} already exists")
+        self[name] = AnnotationLayer[T_annotation]()
+        return self[name]
+
+    @property
+    def named_layers(self) -> Sequence[Tuple[str, AnnotationLayer[T_annotation]]]:
+        return [item for item in self.items()]
+
+
+class AnnotationCollection:
+    def __init__(self):
+        self.labels = TypedAnnotationCollection[Label]()
+        self.spans = TypedAnnotationCollection[LabeledSpan]()
+        self.binary_relations = TypedAnnotationCollection[BinaryRelation]()
+
+        self._types_to_collections = {
+            Label: self.labels,
+            LabeledSpan: self.spans,
+            BinaryRelation: self.binary_relations,
+        }
+
+    def add(self, name: str, annotation: Annotation):
+        collection = self._types_to_collections.get(type(annotation))
+        if collection is None:
+            raise TypeError(f"annotation has unknown type: {type(annotation)}")
+        collection.add(name=name, annotation=annotation)
+
+    @property
+    def typed_collections(self) -> Sequence[Tuple[Type, TypedAnnotationCollection]]:
+        return [item for item in self._types_to_collections.items()]
+
+    @property
+    def typed_named_layers(self) -> Sequence[Tuple[Type, str, AnnotationLayer]]:
+        res = []
+        for base_type, typed_collection in self.typed_collections:
+            res.extend(
+                [(base_type, name, layer) for (name, layer) in typed_collection.named_layers]
+            )
+        return res
+
+    def __repr__(self) -> str:
+        return (
+            f"Document(labels={self.labels}, spans={self.spans}, "
+            f"binary_relations={self.binary_relations})"
+        )
+
+
 class Document:
     def __init__(self, text: str, doc_id: Optional[str] = None) -> None:
         self._text = text
         self._id = doc_id
         self._metadata: Dict[str, Any] = {}
-        self._annotations: AnnotationCollection = {}
-        self._predictions: AnnotationCollection = {}
+        self.annotations = AnnotationCollection()
+        self.predictions = AnnotationCollection()
 
     @property
     def text(self) -> str:
@@ -169,40 +244,77 @@ class Document:
     def metadata(self) -> Dict[str, Any]:
         return self._metadata
 
-    def add_annotation(self, name: str, annotation: Annotation) -> None:
-        if name not in self._annotations:
-            self._annotations[name] = []
+    def add_annotation(self, name: str, annotation: Annotation):
+        self.annotations.add(name=name, annotation=annotation)
 
-        self._annotations[name].append(annotation)
-
-    def add_prediction(self, name: str, prediction: Annotation) -> None:
-        if name not in self._predictions:
-            self._predictions[name] = []
-
-        self._predictions[name].append(prediction)
-
-    # TODO: rework all getters for annotations (e.g. remove type: ignore)
-    def annotations(self, name: str) -> Optional[AnnotationLayer]:
-        return self._annotations.get(name, None)
-
-    def span_annotations(self, name: str) -> Optional[List[LabeledSpan]]:
-        return self.annotations(name=name)  # type: ignore
-
-    def relation_annotations(self, name: str) -> Optional[List[BinaryRelation]]:
-        return self.annotations(name=name)  # type: ignore
-
-    def label_annotations(self, name: str) -> Optional[List[Label]]:
-        return self.annotations(name=name)  # type: ignore
-
-    def predictions(self, name: str) -> Optional[AnnotationLayer]:
-        return self._predictions.get(name, None)
+    def add_prediction(self, name: str, prediction: Annotation):
+        self.predictions.add(name=name, annotation=prediction)
 
     def clear_predictions(self, name: str) -> None:
-        if name in self._predictions:
-            del self._predictions[name]
+        # TODO: should we respect the base_type?
+        for base_type, collection in self.predictions.typed_collections:
+            if name in collection:
+                del collection[name]
 
     def __repr__(self) -> str:
         return (
-            f"Document(text={self.text}, annotations={self._annotations}, "
-            f"predictions={self._predictions}, metadata={self.metadata})"
+            f"Document(text={self.text}, annotations={self.annotations}, "
+            f"predictions={self.predictions}, metadata={self.metadata})"
         )
+
+
+def _assert_span_text(doc: Document, span: LabeledSpan):
+    assert doc.text[span.start : span.end] == span.metadata["text"]
+
+
+def construct_document(
+    text: str,
+    spans: Optional[Dict[str, Iterable[LabeledSpan]]] = None,
+    binary_relations: Optional[Dict[str, Iterable[BinaryRelation]]] = None,
+    doc_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    assert_span_text: bool = False,
+) -> Document:
+    """
+    Construct a `Document` from at least a text. If provided, add span and binary relation annotations,
+    a document id and metadata.
+
+    Args:
+        text: the document text
+        spans: a mapping from layer names to span annotations
+        binary_relations: a mapping from layer names to binary relation annotations
+        doc_id: a document id
+        metadata: the content of this dictionary is added to the document metadata
+        assert_span_text: If this is True, each span annotation in spans has to have an entry "text" in
+            its metadata that contains the respective text slice from the document text. This is useful
+            when creating spans with expected content (e.g. when writing tests).
+
+    returns:
+        The constructed document.
+    """
+    doc = Document(text=text, doc_id=doc_id)
+    if metadata is not None:
+        doc.metadata.update(metadata)
+
+    if spans is not None:
+        for layer_name, layer_spans in spans.items():
+            doc.annotations.spans[layer_name] = AnnotationLayer[LabeledSpan](layer_spans)
+            if assert_span_text:
+                for ann in doc.annotations.spans[layer_name]:
+                    _assert_span_text(doc, ann)
+    if binary_relations is not None:
+        for layer_name, layer_binary_relations in binary_relations.items():
+            doc.annotations.binary_relations[layer_name] = AnnotationLayer[BinaryRelation](
+                layer_binary_relations
+            )
+
+    return doc
+
+
+# This is currently not used.
+# However, these aliases can be used to cast layers without the need for
+# type specific getters (if we decide to strip them), e.g.:
+#   entities = cast(SpanLayer, doc.annotations["entities"])
+SpanLayer = AnnotationLayer[LabeledSpan]
+BinaryRelationLayer = AnnotationLayer[BinaryRelation]
+LabelLayer = AnnotationLayer[Label]
