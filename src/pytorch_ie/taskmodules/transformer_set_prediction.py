@@ -24,7 +24,7 @@ TransformerSetPredictionTaskEncoding = TaskEncoding[
 
 
 class TransformerSetPredictionTaskOutput(TypedDict, total=False):
-    labels: List[str]
+    tags: List[Tuple[str, Tuple[int, int]]]
     probabilities: List[float]
 
 
@@ -233,8 +233,9 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
 
         return target
 
-    # TODO: remove this, but implement unbatch_output
-    def decode_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def unbatch_output(
+        self, output: TransformerSetPredictionModelBatchOutput
+    ) -> Sequence[TransformerSetPredictionTaskOutput]:
         predictions = output["entities"]
 
         label_ids_pred_full = (
@@ -269,65 +270,55 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
             probabilities.append(current_probabilities)
 
         # labels = [[self.id_to_label[e] for e in b] for b in label_ids]
-        return [{"tags": t, "probabilities": p} for t, p in zip(tags, probabilities)]
+        return [TransformerSetPredictionTaskOutput(tags=t, probabilities=p) for t, p in zip(tags, probabilities)]
 
-    # TODO: remove this, but implement create_annotations_from_output
-    def combine(
+    def create_annotations_from_output(
         self,
-        encodings: List[TaskEncoding],
-        outputs: List[Dict[str, Any]],
-    ) -> None:
+        encoding: TransformerSetPredictionTaskEncoding,
+        output: TransformerSetPredictionTaskOutput,
+    ) -> Iterator[Tuple[str, Annotation]]:
         if self.single_sentence:
-            for encoding, output in zip(encodings, outputs):
-                document = encoding.document
-                metadata = encoding.metadata
+            document = encoding.document
+            metadata = encoding.metadata
 
-                sentence = document.annotations.spans[self.sentence_annotation][
-                    metadata["sentence_index"]
-                ]
+            sentence = document.annotations.spans[self.sentence_annotation][
+                metadata["sentence_index"]
+            ]
 
-                # tag_sequence = [
-                #     "O" if stm else tag
-                #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-                # ]
+            # tag_sequence = [
+            #     "O" if stm else tag
+            #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
+            # ]
 
-                # spans = bio_tags_to_spans(tag_sequence)
-                spans = output["tags"]
-                for label, (start, end) in spans:
-                    document.add_prediction(
-                        self.entity_annotation,
-                        LabeledSpan(
-                            sentence.start + metadata["offset_mapping"][start][0],
-                            sentence.start + metadata["offset_mapping"][end][1],
-                            label,
-                        ),
+            # spans = bio_tags_to_spans(tag_sequence)
+            spans = output["tags"]
+            for label, (start, end) in spans:
+                yield self.entity_annotation, LabeledSpan(
+                        sentence.start + metadata["offset_mapping"][start][0],
+                        sentence.start + metadata["offset_mapping"][end][1],
+                        label,
                     )
+
         else:
-            for encoding, output in zip(encodings, outputs):
-                document = encoding.document
-                metadata = encoding.metadata
+            document = encoding.document
+            metadata = encoding.metadata
 
-                # tag_sequence = [
-                #     "O" if stm else tag
-                #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
-                # ]
+            # tag_sequence = [
+            #     "O" if stm else tag
+            #     for tag, stm in zip(output["tags"], metadata["special_tokens_mask"])
+            # ]
 
-                # spans = bio_tags_to_spans(tag_sequence)
-                spans = output["tags"]
-                for label, (start, end) in spans:
-                    document.add_prediction(
-                        self.entity_annotation,
-                        LabeledSpan(
-                            metadata["offset_mapping"][start][0],
-                            metadata["offset_mapping"][end][1],
-                            label,
-                        ),
+            # spans = bio_tags_to_spans(tag_sequence)
+            spans = output["tags"]
+            for label, (start, end) in spans:
+                yield self.entity_annotation, LabeledSpan(
+                        metadata["offset_mapping"][start][0],
+                        metadata["offset_mapping"][end][1],
+                        label,
                     )
 
     def collate(self, encodings: List[TransformerSetPredictionTaskEncoding]) -> TransformerSetPredictionModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
-        metadata = [encoding.metadata for encoding in encodings]
-        documents = [encoding.document for encoding in encodings]
 
         input_ = self.tokenizer.pad(
             input_features,
@@ -338,7 +329,7 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         )
 
         if not encodings[0].has_target:
-            return input_, None, metadata, documents
+            return input_, None
 
         target: Dict[str, Dict[str, List[torch.Tensor]]] = {}
         for encoding in encodings:
@@ -368,19 +359,4 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
 
         input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
 
-        return input_, target, metadata, documents
-
-    def unbatch_output(self, output: TransformerSetPredictionModelBatchOutput) -> Sequence[TransformerSetPredictionTaskOutput]:
-        """
-        This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
-        outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the
-        same length as all model inputs.
-        """
-        raise NotImplementedError()
-
-    def create_annotations_from_output(
-        self,
-        encoding: TaskEncoding[TransformerSetPredictionInputEncoding, TransformerSetPredictionTargetEncoding],
-        output: TransformerSetPredictionTaskOutput,
-    ) -> Iterator[Tuple[str, Annotation]]:
-        raise NotImplementedError()
+        return input_, target

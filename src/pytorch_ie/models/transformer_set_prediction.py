@@ -27,14 +27,12 @@ from pytorch_ie.models.set_prediction.set_decoder import (
 from pytorch_ie.models.set_prediction.set_transformer import SetTransformer
 
 
-TransformerSetPredictionModelBatchEncoding = MutableMapping[str, Any]
-TransformerSetPredictionModelBatchOutput = Dict[str, Any]
+TransformerSetPredictionModelBatchEncoding = MutableMapping[str, Tensor]
+TransformerSetPredictionModelBatchOutput = Dict[str, Dict[str, Tensor]]
 
 TransformerSetPredictionModelStepBatchEncoding = Tuple[
-    Dict[str, Tensor],
+    TransformerSetPredictionModelBatchEncoding,
     Optional[Dict[str, Dict[str, List[Tensor]]]],
-    List[Metadata],
-    List[Document],
 ]
 
 
@@ -159,7 +157,10 @@ class TransformerSetPredictionModel(pl.LightningModule):
         return output
 
     def training_step(self, batch: TransformerSetPredictionModelStepBatchEncoding, batch_idx):
-        input_, target, _, docs = batch
+        input_, target = batch
+
+        if target is None:
+            raise ValueError("target is required for training_step")
 
         output = self(input_)
 
@@ -178,7 +179,10 @@ class TransformerSetPredictionModel(pl.LightningModule):
         return total_loss
 
     def validation_step(self, batch: TransformerSetPredictionModelStepBatchEncoding, batch_idx):
-        input_, target, _, docs = batch
+        input_, target = batch
+
+        if target is None:
+            raise ValueError("target is required for validation_step")
 
         output = self(input_)
 
