@@ -1,6 +1,11 @@
 import collections
+from typing import MutableMapping, Any, Dict, Tuple, Optional, List
 
 import pytorch_lightning as pl
+
+from pytorch_ie import Document
+from pytorch_ie.data import Metadata
+from torch import Tensor
 from transformers import AdamW, AutoConfig, AutoModel, BertConfig, get_linear_schedule_with_warmup
 
 from pytorch_ie.metrics.set_fbeta import SetFbetaScore
@@ -20,6 +25,17 @@ from pytorch_ie.models.set_prediction.set_decoder import (
     SpanLabelJointDecoder,
 )
 from pytorch_ie.models.set_prediction.set_transformer import SetTransformer
+
+
+TransformerSetPredictionModelBatchEncoding = MutableMapping[str, Any]
+TransformerSetPredictionModelBatchOutput = Dict[str, Any]
+
+TransformerSetPredictionModelStepBatchEncoding = Tuple[
+    Dict[str, Tensor],
+    Optional[Dict[str, Dict[str, List[Tensor]]]],
+    List[Metadata],
+    List[Document],
+]
 
 
 def flatten_dict(d, parent_key="", sep="."):
@@ -138,11 +154,11 @@ class TransformerSetPredictionModel(pl.LightningModule):
         self.train_f1 = SetFbetaScore(none_index=num_classes, beta=2.0)
         self.val_f1 = SetFbetaScore(none_index=num_classes, beta=2.0)
 
-    def forward(self, input_):
+    def forward(self, input_: TransformerSetPredictionModelBatchEncoding) -> TransformerSetPredictionModelBatchOutput:  # type: ignore
         output = self.model(**input_)
         return output
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: TransformerSetPredictionModelStepBatchEncoding, batch_idx):
         input_, target, _, docs = batch
 
         output = self(input_)
@@ -161,7 +177,7 @@ class TransformerSetPredictionModel(pl.LightningModule):
 
         return total_loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: TransformerSetPredictionModelStepBatchEncoding, batch_idx):
         input_, target, _, docs = batch
 
         output = self(input_)

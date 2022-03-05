@@ -1,18 +1,44 @@
-import json
-import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict, Sequence, Iterator
 
 import torch
 import torch.nn.functional as F
+from pytorch_ie.data import Metadata
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
 
-from pytorch_ie.data.document import Document, LabeledSpan
+from pytorch_ie.data.document import Document, LabeledSpan, Annotation
+from pytorch_ie.models.transformer_set_prediction import TransformerSetPredictionModelStepBatchEncoding, \
+    TransformerSetPredictionModelBatchOutput
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
 
-class TransformerSetPredictionTaskModule(TaskModule):
+TransformerSetPredictionInputEncoding = BatchEncoding
+# example of TransformerSetPredictionTargetEncoding:
+# {'entities': {'start_index': [7, 1, 3], 'end_index': [7, 1, 3], 'label_ids': [0, 3, 0], 'span_mask': [[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]]}}
+TransformerSetPredictionTargetEncoding = Dict[str, Dict[str, Any]]
+
+TransformerSetPredictionTaskEncoding = TaskEncoding[
+    TransformerSetPredictionInputEncoding, TransformerSetPredictionTargetEncoding
+]
+
+
+class TransformerSetPredictionTaskOutput(TypedDict, total=False):
+    labels: List[str]
+    probabilities: List[float]
+
+
+_TransformerSetPredictionTaskModule = TaskModule[
+    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TransformerSetPredictionInputEncoding,
+    TransformerSetPredictionTargetEncoding,
+    TransformerSetPredictionModelStepBatchEncoding,
+    TransformerSetPredictionModelBatchOutput,
+    TransformerSetPredictionTaskOutput,
+]
+
+
+class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -24,35 +50,32 @@ class TransformerSetPredictionTaskModule(TaskModule):
         max_length: Optional[int] = None,
         pad_to_multiple_of: Optional[int] = None,
         label_pad_token_id: int = -100,
+        label_to_id: Optional[Dict[str, int]] = None
     ) -> None:
-        super().__init__(
-            tokenizer_name_or_path=tokenizer_name_or_path,
-            entity_annotation=entity_annotation,
-            single_sentence=single_sentence,
-            sentence_annotation=sentence_annotation,
-            padding=padding,
-            truncation=truncation,
-            max_length=max_length,
-            pad_to_multiple_of=pad_to_multiple_of,
-            label_pad_token_id=label_pad_token_id,
-        )
+        super().__init__()
+        self.save_hyperparameters()
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
         self.single_sentence = single_sentence
         self.sentence_annotation = sentence_annotation
-        self.label_to_id = {}
-        self.id_to_label = {}
+        self.label_to_id = label_to_id or {}
+        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
         self.padding = padding
         self.truncation = truncation
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
         self.label_pad_token_id = label_pad_token_id
 
+    def _config(self) -> Dict[str, Any]:
+        config = super()._config()
+        config["label_to_id"] = self.label_to_id
+        return config
+
     def prepare(self, documents: List[Document]) -> None:
         labels = set()
         for document in documents:
-            entities = document.annotations(self.entity_annotation)
+            entities = document.annotations.spans[self.entity_annotation]
 
             for entity in entities:
                 entity_labels = entity.label if entity.is_multilabel else [entity.label]
@@ -71,7 +94,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[Dict[str, Any]], Optional[List[Dict[str, Any]]], Optional[List[Document]]]:
+    ) -> Tuple[List[TransformerSetPredictionInputEncoding], List[Metadata], Optional[List[Document]]]:
         expanded_documents = None
         if self.single_sentence:
             input_ = [
@@ -85,10 +108,10 @@ class TransformerSetPredictionTaskModule(TaskModule):
                     return_special_tokens_mask=True,
                 )
                 for doc in documents
-                for sent in doc.annotations(self.sentence_annotation)
+                for sent in doc.annotations.spans[self.sentence_annotation]
             ]
             expanded_documents = [
-                doc for doc in documents for _ in doc.annotations(self.sentence_annotation)
+                doc for doc in documents for _ in doc.annotations.spans[self.sentence_annotation]
             ]
         else:
             input_ = [
@@ -115,21 +138,21 @@ class TransformerSetPredictionTaskModule(TaskModule):
         if self.single_sentence:
             i = 0
             for document in documents:
-                for sentence_index in range(len(document.annotations(self.sentence_annotation))):
+                for sentence_index in range(len(document.annotations.spans[self.sentence_annotation])):
                     metadata[i]["sentence_index"] = sentence_index
                     i += 1
 
         return input_, metadata, expanded_documents
 
     def encode_target(
-        self, documents: List[Document], input_: List[Dict[str, Any]]
-    ) -> Union[List[List[int]], List[Dict[str, Any]]]:
+        self, documents: List[Document], input_: List[TransformerSetPredictionInputEncoding], metadata: List[Metadata]
+    ) -> List[TransformerSetPredictionTargetEncoding]:
         target = []
         if self.single_sentence:
             i = 0
             for document in documents:
-                entities = document.annotations(self.entity_annotation)
-                sentences = document.annotations(self.sentence_annotation)
+                entities = document.annotations.spans[self.entity_annotation]
+                sentences = document.annotations.spans[self.sentence_annotation]
 
                 for sentence in sentences:
                     start_indices = []
@@ -173,7 +196,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
                     i += 1
         else:
             for i, document in enumerate(documents):
-                entities = document.annotations(self.entity_annotation)
+                entities = document.annotations.spans[self.entity_annotation]
 
                 start_indices = []
                 end_indices = []
@@ -210,6 +233,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
 
         return target
 
+    # TODO: remove this, but implement unbatch_output
     def decode_output(self, output: Dict[str, Any]) -> List[Dict[str, Any]]:
         predictions = output["entities"]
 
@@ -247,6 +271,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
         # labels = [[self.id_to_label[e] for e in b] for b in label_ids]
         return [{"tags": t, "probabilities": p} for t, p in zip(tags, probabilities)]
 
+    # TODO: remove this, but implement create_annotations_from_output
     def combine(
         self,
         encodings: List[TaskEncoding],
@@ -257,7 +282,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
                 document = encoding.document
                 metadata = encoding.metadata
 
-                sentence = document.annotations(self.sentence_annotation)[
+                sentence = document.annotations.spans[self.sentence_annotation][
                     metadata["sentence_index"]
                 ]
 
@@ -299,7 +324,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
                         ),
                     )
 
-    def collate(self, encodings: List[TaskEncoding]) -> Dict[str, Any]:
+    def collate(self, encodings: List[TransformerSetPredictionTaskEncoding]) -> TransformerSetPredictionModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
         metadata = [encoding.metadata for encoding in encodings]
         documents = [encoding.document for encoding in encodings]
@@ -312,7 +337,7 @@ class TransformerSetPredictionTaskModule(TaskModule):
             return_tensors="pt",
         )
 
-        if encodings[0].target is None:
+        if not encodings[0].has_target:
             return input_, None, metadata, documents
 
         target: Dict[str, Dict[str, List[torch.Tensor]]] = {}
@@ -345,35 +370,17 @@ class TransformerSetPredictionTaskModule(TaskModule):
 
         return input_, target, metadata, documents
 
-    @classmethod
-    def from_pretrained(cls, save_directory: str) -> "TaskModule":
-        task_module_config_file = os.path.join(save_directory, "task_module.json")
+    def unbatch_output(self, output: TransformerSetPredictionModelBatchOutput) -> Sequence[TransformerSetPredictionTaskOutput]:
+        """
+        This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
+        outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the
+        same length as all model inputs.
+        """
+        raise NotImplementedError()
 
-        with open(task_module_config_file, "r", encoding="utf-8") as f:
-            init_kwargs = json.load(f)
-
-        task_module_class = init_kwargs.pop("task_module_class")
-        label_to_id = init_kwargs.pop("label_to_id")
-
-        task_module = cls(**init_kwargs)
-
-        if label_to_id is not None:
-            task_module.label_to_id = label_to_id
-            task_module.id_to_label = {v: k for k, v in label_to_id.items()}
-
-        return task_module
-
-    def save_pretrained(self, save_directory: str) -> None:
-        if os.path.isfile(save_directory):
-            return
-
-        os.makedirs(save_directory, exist_ok=True)
-
-        task_module_config_file = os.path.join(save_directory, "task_module.json")
-
-        task_module_config = self.init_kwargs
-        task_module_config["task_module_class"] = self.__class__.__name__
-        task_module_config["label_to_id"] = self.label_to_id
-
-        with open(task_module_config_file, "w", encoding="utf-8") as f:
-            f.write(json.dumps(task_module_config, ensure_ascii=False))
+    def create_annotations_from_output(
+        self,
+        encoding: TaskEncoding[TransformerSetPredictionInputEncoding, TransformerSetPredictionTargetEncoding],
+        output: TransformerSetPredictionTaskOutput,
+    ) -> Iterator[Tuple[str, Annotation]]:
+        raise NotImplementedError()
