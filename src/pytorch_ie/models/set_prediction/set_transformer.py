@@ -75,7 +75,9 @@ class SetTransformer(nn.Module):
         return outputs
 
     def get_loss(
-        self, outputs: Dict[str, Dict[str, torch.Tensor]], targets: Dict[str, Dict[str, List[torch.Tensor]]]
+        self,
+        outputs: Dict[str, Dict[str, torch.Tensor]],
+        targets: Dict[str, Dict[str, List[torch.Tensor]]],
     ) -> Dict[str, Dict[str, torch.Tensor]]:
         losses: Dict[str, Dict[str, float]] = {}
         prev_permutation_indices = None

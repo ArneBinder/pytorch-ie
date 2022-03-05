@@ -1,17 +1,18 @@
-from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict, Sequence, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union
 
 import torch
 import torch.nn.functional as F
-from pytorch_ie.data import Metadata
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import TruncationStrategy, BatchEncoding
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie.data.document import Document, LabeledSpan, Annotation
-from pytorch_ie.models.transformer_set_prediction import TransformerSetPredictionModelStepBatchEncoding, \
-    TransformerSetPredictionModelBatchOutput
+from pytorch_ie.data import Metadata
+from pytorch_ie.data.document import Annotation, Document, LabeledSpan
+from pytorch_ie.models.transformer_set_prediction import (
+    TransformerSetPredictionModelBatchOutput,
+    TransformerSetPredictionModelStepBatchEncoding,
+)
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
-
 
 TransformerSetPredictionInputEncoding = BatchEncoding
 # example of TransformerSetPredictionTargetEncoding:
@@ -49,7 +50,7 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         max_length: Optional[int] = None,
         pad_to_multiple_of: Optional[int] = None,
         label_pad_token_id: int = -100,
-        label_to_id: Optional[Dict[str, int]] = None
+        label_to_id: Optional[Dict[str, int]] = None,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -92,7 +93,9 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
 
     def encode_input(
         self, documents: List[Document]
-    ) -> Tuple[List[TransformerSetPredictionInputEncoding], List[Metadata], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerSetPredictionInputEncoding], List[Metadata], Optional[List[Document]]
+    ]:
         # TODO: simplify (see other taskmodules)
         expanded_documents = None
         if self.partition_annotation is not None:
@@ -137,14 +140,19 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         if self.partition_annotation is not None:
             i = 0
             for document in documents:
-                for sentence_index in range(len(document.annotations.spans[self.partition_annotation])):
+                for sentence_index in range(
+                    len(document.annotations.spans[self.partition_annotation])
+                ):
                     metadata[i]["sentence_index"] = sentence_index
                     i += 1
 
         return input_, metadata, expanded_documents
 
     def encode_target(
-        self, documents: List[Document], input_: List[TransformerSetPredictionInputEncoding], metadata: List[Metadata]
+        self,
+        documents: List[Document],
+        input_: List[TransformerSetPredictionInputEncoding],
+        metadata: List[Metadata],
     ) -> List[TransformerSetPredictionTargetEncoding]:
         target = []
         i = 0
@@ -235,7 +243,10 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
             probabilities.append(current_probabilities)
 
         # labels = [[self.id_to_label[e] for e in b] for b in label_ids]
-        return [TransformerSetPredictionTaskOutput(tags=t, probabilities=p) for t, p in zip(tags, probabilities)]
+        return [
+            TransformerSetPredictionTaskOutput(tags=t, probabilities=p)
+            for t, p in zip(tags, probabilities)
+        ]
 
     def create_annotations_from_output(
         self,
@@ -263,12 +274,14 @@ class TransformerSetPredictionTaskModule(_TransformerSetPredictionTaskModule):
         spans = output["tags"]
         for label, (start, end) in spans:
             yield self.entity_annotation, LabeledSpan(
-                    offset + metadata["offset_mapping"][start][0],
-                    offset + metadata["offset_mapping"][end][1],
-                    label,
-                )
+                offset + metadata["offset_mapping"][start][0],
+                offset + metadata["offset_mapping"][end][1],
+                label,
+            )
 
-    def collate(self, encodings: List[TransformerSetPredictionTaskEncoding]) -> TransformerSetPredictionModelStepBatchEncoding:
+    def collate(
+        self, encodings: List[TransformerSetPredictionTaskEncoding]
+    ) -> TransformerSetPredictionModelStepBatchEncoding:
         input_features = [encoding.input for encoding in encodings]
 
         input_ = self.tokenizer.pad(

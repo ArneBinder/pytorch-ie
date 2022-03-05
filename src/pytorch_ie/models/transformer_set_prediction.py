@@ -1,13 +1,12 @@
 import collections
-from typing import MutableMapping, Any, Dict, Tuple, Optional, List
+from typing import Any, Dict, List, MutableMapping, Optional, Tuple
 
 import pytorch_lightning as pl
-
-from pytorch_ie import Document
-from pytorch_ie.data import Metadata
 from torch import Tensor
 from transformers import AdamW, AutoConfig, AutoModel, BertConfig, get_linear_schedule_with_warmup
 
+from pytorch_ie import Document
+from pytorch_ie.data import Metadata
 from pytorch_ie.metrics.set_fbeta import SetFbetaScore
 from pytorch_ie.models.set_prediction.loss.loss_functions import (
     BinaryCrossEntropyLossFunction,
@@ -25,7 +24,6 @@ from pytorch_ie.models.set_prediction.set_decoder import (
     SpanLabelJointDecoder,
 )
 from pytorch_ie.models.set_prediction.set_transformer import SetTransformer
-
 
 TransformerSetPredictionModelBatchEncoding = MutableMapping[str, Tensor]
 TransformerSetPredictionModelBatchOutput = Dict[str, Dict[str, Tensor]]
@@ -170,7 +168,7 @@ class TransformerSetPredictionModel(pl.LightningModule):
         for loss_name, loss in flat_losses.items():
             self.log("train/" + loss_name, loss)
 
-        total_loss = sum([loss for _, loss in flat_losses.items()])
+        total_loss = sum(loss for _, loss in flat_losses.items())
         self.log("train/loss", total_loss, prog_bar=True)
 
         self.train_f1(output["entities"], target["entities"])
@@ -192,7 +190,7 @@ class TransformerSetPredictionModel(pl.LightningModule):
         for loss_name, loss in flat_losses.items():
             self.log("val/" + loss_name, loss)
 
-        total_loss = sum([loss for _, loss in flat_losses.items()])
+        total_loss = sum(loss for _, loss in flat_losses.items())
         self.log("val/loss", total_loss, prog_bar=True)
 
         self.val_f1(output["entities"], target["entities"])
@@ -246,6 +244,6 @@ class TransformerSetPredictionModel(pl.LightningModule):
             "scheduler": get_linear_schedule_with_warmup(
                 optimizer, int(self.t_total * self.warmup_proportion), self.t_total
             ),
-            "interval": "step"
+            "interval": "step",
         }
         return [optimizer], [scheduler]

@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from torch import nn, Tensor
+from torch import Tensor, nn
 
 from pytorch_ie.models.set_prediction.loss.loss_functions import LossFunction
 
