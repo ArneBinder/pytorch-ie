@@ -13,7 +13,7 @@ def main():
     model_output_path = "./model_output/"
     model_name = "bert-base-cased"
     num_epochs = 10
-    batch_size = 32
+    batch_size = 16  # tested on a single GeForce RTX 2080 Ti (11016 MB)
 
     train_docs, val_docs = load_conll2003(split="train"), load_conll2003(split="validation")
 
