@@ -11,7 +11,7 @@ class HungarianMatcher(nn.Module):
     def __init__(
         self,
         cost_functions: Dict[str, CostFunction],
-        cost_weights: Dict[str, int],
+        cost_weights: Dict[str, float],
         target_labels_attribute: str = "label_ids",
     ) -> None:
         super().__init__()
@@ -24,10 +24,10 @@ class HungarianMatcher(nn.Module):
     def forward(
         self,
         output: Dict[str, torch.Tensor],
-        targets: List[Dict[str, Any]],
+        targets: Dict[str, List[torch.Tensor]],
         prev_permutation_indices: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
     ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
-        costs: torch.Tensor = None
+        costs: Optional[torch.Tensor] = None
         for name, cost_function in self.cost_functions.items():
             cost = cost_function(name, output, targets, prev_permutation_indices)
             if cost is None:
@@ -39,6 +39,9 @@ class HungarianMatcher(nn.Module):
                 costs = cost
             else:
                 costs += cost
+
+        if costs is None:
+            raise ValueError("not any cost was calculated")
 
         costs = costs.cpu()  # [batch_size, num_queries, num_targets_total]
 
