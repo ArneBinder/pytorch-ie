@@ -69,6 +69,9 @@ class TaskModule(
         if isinstance(documents, Document):
             documents = [documents]
 
+        documents = self.prepare_documents(
+            documents=documents, ground_truth_available=encode_target
+        )
         input_encoding, metadata, new_documents = self.encode_input(documents)
 
         if new_documents is not None:
@@ -98,6 +101,11 @@ class TaskModule(
                 )
                 for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
             ]
+
+    def prepare_documents(
+        self, documents: List[Document], ground_truth_available: bool
+    ) -> List[Document]:
+        return documents
 
     @abstractmethod
     def encode_input(
