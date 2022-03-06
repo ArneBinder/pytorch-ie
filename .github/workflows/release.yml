@@ -45,7 +45,7 @@ jobs:
               run: |
                   poetry version patch &&
                   version=$(poetry version | awk '{ print $2 }') &&
-                  poetry version $version.dev.$(git rev-parse --short "$GITHUB_SHA")
+                  poetry version $version.dev.$(date +%s)
             - name: Build package
               run: |
                   poetry build --ansi
