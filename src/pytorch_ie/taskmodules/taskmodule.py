@@ -69,9 +69,6 @@ class TaskModule(
         if isinstance(documents, Document):
             documents = [documents]
 
-        documents = self.prepare_documents(
-            documents=documents, ground_truth_available=encode_target
-        )
         input_encoding, metadata, new_documents = self.encode_input(documents)
 
         if new_documents is not None:
