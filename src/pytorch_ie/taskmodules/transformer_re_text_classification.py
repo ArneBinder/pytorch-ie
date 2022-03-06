@@ -266,7 +266,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         return encoding
 
     def encode_input(
-        self, documents: List[Document]
+        self,
+        documents: List[Document],
+        is_training: bool = False,
     ) -> Tuple[
         List[TransformerReTextClassificationInputEncoding],
         List[Metadata],

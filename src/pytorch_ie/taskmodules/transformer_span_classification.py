@@ -99,7 +99,9 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
-        self, documents: List[Document]
+        self,
+        documents: List[Document],
+        is_training: bool = False,
     ) -> Tuple[
         List[TransformerSpanClassificationInputEncoding],
         List[Metadata],

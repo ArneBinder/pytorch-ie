@@ -101,7 +101,9 @@ class TaskModule(
 
     @abstractmethod
     def encode_input(
-        self, documents: List[Document]
+        self,
+        documents: List[Document],
+        is_training: bool = False,
     ) -> Tuple[List[InputEncoding], List[Metadata], Optional[List[Document]]]:
         raise NotImplementedError()
 

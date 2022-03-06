@@ -81,7 +81,9 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         ]
 
     def encode_input(
-        self, documents: List[Document]
+        self,
+        documents: List[Document],
+        is_training: bool = False,
     ) -> Tuple[List[TransformerSeq2SeqInputEncoding], List[Metadata], Optional[List[Document]]]:
         input_strings = [self.document_to_input_string(document) for document in documents]
         return (
