@@ -290,7 +290,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         for document in documents:
             entities = document.annotations.spans[self.entity_annotation]
             if is_training:
-                relations = document.annotations.binary_relations.get(self.relation_annotation, [])
+                relations = document.annotations.binary_relations[self.relation_annotation]
             else:
                 relations = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
