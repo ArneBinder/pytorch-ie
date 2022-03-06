@@ -99,11 +99,6 @@ class TaskModule(
                 for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
             ]
 
-    def prepare_documents(
-        self, documents: List[Document], ground_truth_available: bool
-    ) -> List[Document]:
-        return documents
-
     @abstractmethod
     def encode_input(
         self, documents: List[Document]
