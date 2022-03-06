@@ -127,7 +127,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         )
 
     def encode_input(
-        self, documents: List[Document], is_training: bool = False,
+        self,
+        documents: List[Document],
+        is_training: bool = False,
     ) -> Tuple[
         List[TransformerTokenClassificationInputEncoding],
         List[Metadata],
