@@ -24,6 +24,7 @@ from tests.fixtures.document import (
     DOC3_ENTITY_BERLIN,
     DOC3_ENTITY_KARL,
     DOC3_SENTENCE1,
+    DOC3_TEXT,
     DOC3_TOKENS,
     get_doc1,
     get_doc2,
@@ -123,129 +124,210 @@ def test_config(prepared_taskmodule_optional_marker):
         assert config["entity_labels"] == []
 
 
-def test_encode_input(prepared_taskmodule_optional_marker, documents):
+@pytest.mark.parametrize("is_training", [False, True])
+def test_encode_input(prepared_taskmodule_optional_marker, documents, is_training):
     (
         input_encoding,
         metadata,
         new_documents,
-    ) = prepared_taskmodule_optional_marker.encode_input(documents)
-    assert len(input_encoding) == 2
-    assert new_documents is not None
-    assert len(new_documents) == 2
-    encoding = input_encoding[0]
-    document = new_documents[0]
-    assert document.text == DOC1_TEXT
-    if prepared_taskmodule_optional_marker.add_type_to_marker:
-        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            encoding["input_ids"]
-        ) == [
-            "[CLS]",
-            "[H:person]",
-            "Jane",
-            "[/H:person]",
-            "lives",
-            "in",
-            "[T:city]",
-            "Berlin",
-            "[/T:city]",
-            ".",
-            "this",
-            "is",
-            "no",
-            "sentence",
-            "about",
-            "Karl",
-            "[SEP]",
-        ]
-    else:
-        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            encoding["input_ids"]
-        ) == [
-            "[CLS]",
-            "[H]",
-            "Jane",
-            "[/H]",
-            "lives",
-            "in",
-            "[T]",
-            "Berlin",
-            "[/T]",
-            ".",
-            "this",
-            "is",
-            "no",
-            "sentence",
-            "about",
-            "Karl",
-            "[SEP]",
-        ]
+    ) = prepared_taskmodule_optional_marker.encode_input(documents, is_training=is_training)
+    tokens = [
+        prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(encoding["input_ids"])
+        for encoding in input_encoding
+    ]
+    if is_training:
+        assert len(input_encoding) == 2
+        assert new_documents is not None
+        assert len(new_documents) == 2
+        assert new_documents[0].text == DOC1_TEXT
+        assert new_documents[1].text == DOC2_TEXT
 
-    encoding = input_encoding[1]
-    document = new_documents[1]
-    assert document.text == DOC2_TEXT
-    if prepared_taskmodule_optional_marker.add_type_to_marker:
-        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            encoding["input_ids"]
-        ) == [
-            "[CLS]",
-            "[T:city]",
-            "Seattle",
-            "[/T:city]",
-            "is",
-            "a",
-            "rainy",
-            "city",
-            ".",
-            "[H:person]",
-            "Jenny",
-            "Du",
-            "##rka",
-            "##n",
-            "[/H:person]",
-            "is",
-            "the",
-            "city",
-            "'",
-            "s",
-            "mayor",
-            ".",
-            "[SEP]",
-        ]
+        if prepared_taskmodule_optional_marker.add_type_to_marker:
+            assert tokens[0] == [
+                "[CLS]",
+                "[H:person]",
+                "Jane",
+                "[/H:person]",
+                "lives",
+                "in",
+                "[T:city]",
+                "Berlin",
+                "[/T:city]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+            ]
+            assert tokens[1] == [
+                "[CLS]",
+                "[T:city]",
+                "Seattle",
+                "[/T:city]",
+                "is",
+                "a",
+                "rainy",
+                "city",
+                ".",
+                "[H:person]",
+                "Jenny",
+                "Du",
+                "##rka",
+                "##n",
+                "[/H:person]",
+                "is",
+                "the",
+                "city",
+                "'",
+                "s",
+                "mayor",
+                ".",
+                "[SEP]",
+            ]
+        else:
+            assert tokens[0] == [
+                "[CLS]",
+                "[H]",
+                "Jane",
+                "[/H]",
+                "lives",
+                "in",
+                "[T]",
+                "Berlin",
+                "[/T]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+            ]
+            assert tokens[1] == [
+                "[CLS]",
+                "[T]",
+                "Seattle",
+                "[/T]",
+                "is",
+                "a",
+                "rainy",
+                "city",
+                ".",
+                "[H]",
+                "Jenny",
+                "Du",
+                "##rka",
+                "##n",
+                "[/H]",
+                "is",
+                "the",
+                "city",
+                "'",
+                "s",
+                "mayor",
+                ".",
+                "[SEP]",
+            ]
     else:
-        assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            encoding["input_ids"]
-        ) == [
-            "[CLS]",
-            "[T]",
-            "Seattle",
-            "[/T]",
-            "is",
-            "a",
-            "rainy",
-            "city",
-            ".",
-            "[H]",
-            "Jenny",
-            "Du",
-            "##rka",
-            "##n",
-            "[/H]",
-            "is",
-            "the",
-            "city",
-            "'",
-            "s",
-            "mayor",
-            ".",
-            "[SEP]",
-        ]
+        assert len(input_encoding) == 10
+        assert new_documents is not None
+        assert len(new_documents) == 10
+        assert new_documents[0].text == DOC1_TEXT
+        assert new_documents[6].text == DOC2_TEXT
+        assert new_documents[8].text == DOC3_TEXT
+
+        if prepared_taskmodule_optional_marker.add_type_to_marker:
+            # just check the first two entries
+            assert tokens[0] == [
+                "[CLS]",
+                "[H:person]",
+                "Jane",
+                "[/H:person]",
+                "lives",
+                "in",
+                "[T:city]",
+                "Berlin",
+                "[/T:city]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+            ]
+            assert tokens[1] == [
+                "[CLS]",
+                "[H:person]",
+                "Jane",
+                "[/H:person]",
+                "lives",
+                "in",
+                "Berlin",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "[T:person]",
+                "Karl",
+                "[/T:person]",
+                "[SEP]",
+            ]
+        else:
+            # just check the first two entries
+            assert tokens[0] == [
+                "[CLS]",
+                "[H]",
+                "Jane",
+                "[/H]",
+                "lives",
+                "in",
+                "[T]",
+                "Berlin",
+                "[/T]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+            ]
+            assert tokens[1] == [
+                "[CLS]",
+                "[H]",
+                "Jane",
+                "[/H]",
+                "lives",
+                "in",
+                "Berlin",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "[T]",
+                "Karl",
+                "[/T]",
+                "[SEP]",
+            ]
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_encode_target(prepared_taskmodule, documents, encode_target):
     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
-    assert len(task_encodings) == 2
     if encode_target:
+        # in this case, the existing relations were taken into account
+        assert len(task_encodings) == 2
         encoding = task_encodings[0]
         assert encoding.has_target
         target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
@@ -256,7 +338,11 @@ def test_encode_target(prepared_taskmodule, documents, encode_target):
         target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
         assert target_labels == [DOC2_REL_MAYOR_OF.label]
     else:
-        assert [encoding.has_target for encoding in task_encodings] == [False, False]
+        # all possible entity pairs are taken as candidates
+        assert len(task_encodings) == 10
+        assert [encoding.has_target for encoding in task_encodings] == [False] * len(
+            task_encodings
+        )
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
@@ -269,7 +355,7 @@ def test_encode_input_with_partitions(prepared_taskmodule_optional_marker, docum
     prepared_taskmodule_with_partitions = copy.deepcopy(prepared_taskmodule_optional_marker)
     prepared_taskmodule_with_partitions.partition_annotation = "sentences"
     input_encoding, metadata, new_documents = prepared_taskmodule_with_partitions.encode_input(
-        documents
+        documents, is_training=True
     )
     assert len(input_encoding) == 1
     assert new_documents is not None
@@ -313,8 +399,9 @@ def test_encode_with_windowing(prepared_taskmodule_optional_marker, documents):
     prepared_taskmodule_with_windowing = copy.deepcopy(prepared_taskmodule_optional_marker)
     prepared_taskmodule_with_windowing.max_window = 10
     task_encodings = prepared_taskmodule_with_windowing.encode(documents, encode_target=False)
-    assert len(task_encodings) == 1
+    assert len(task_encodings) == 2
 
+    # just check the first entry
     encoding = task_encodings[0]
     document = documents[0]
     assert encoding.document == document
@@ -344,135 +431,184 @@ def test_encode_with_windowing(prepared_taskmodule_optional_marker, documents):
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_collate(prepared_taskmodule_optional_marker, documents, encode_target):
     encodings = prepared_taskmodule_optional_marker.encode(documents, encode_target=encode_target)
-    assert len(encodings) == 2
 
     if encode_target:
+        assert len(encodings) == 2
         assert all([encoding.has_target for encoding in encodings])
     else:
+        assert len(encodings) == 10
         assert not any([encoding.has_target for encoding in encodings])
 
     batch_encoding = prepared_taskmodule_optional_marker.collate(encodings)
     inputs, targets = batch_encoding
     assert "input_ids" in inputs
     assert "attention_mask" in inputs
-    assert inputs["input_ids"].shape[0] == 2
     assert inputs["input_ids"].shape == inputs["attention_mask"].shape
+    tokens = [
+        prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(input_ids)
+        for input_ids in inputs["input_ids"].tolist()
+    ]
+    if encode_target:
+        assert inputs["input_ids"].shape[0] == 2
+        if prepared_taskmodule_optional_marker.add_type_to_marker:
+            assert tokens[0] == [
+                "[CLS]",
+                "[H:person]",
+                "Jane",
+                "[/H:person]",
+                "lives",
+                "in",
+                "[T:city]",
+                "Berlin",
+                "[/T:city]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+            ]
+            assert tokens[1] == [
+                "[CLS]",
+                "[T:city]",
+                "Seattle",
+                "[/T:city]",
+                "is",
+                "a",
+                "rainy",
+                "city",
+                ".",
+                "[H:person]",
+                "Jenny",
+                "Du",
+                "##rka",
+                "##n",
+                "[/H:person]",
+                "is",
+                "the",
+                "city",
+                "'",
+                "s",
+                "mayor",
+                ".",
+                "[SEP]",
+            ]
 
-    if prepared_taskmodule_optional_marker.add_type_to_marker:
-        tokens1 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            inputs["input_ids"].tolist()[0]
-        )
-        assert tokens1 == [
-            "[CLS]",
-            "[H:person]",
-            "Jane",
-            "[/H:person]",
-            "lives",
-            "in",
-            "[T:city]",
-            "Berlin",
-            "[/T:city]",
-            ".",
-            "this",
-            "is",
-            "no",
-            "sentence",
-            "about",
-            "Karl",
-            "[SEP]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-        ]
-        tokens2 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            inputs["input_ids"].tolist()[1]
-        )
-        assert tokens2 == [
-            "[CLS]",
-            "[T:city]",
-            "Seattle",
-            "[/T:city]",
-            "is",
-            "a",
-            "rainy",
-            "city",
-            ".",
-            "[H:person]",
-            "Jenny",
-            "Du",
-            "##rka",
-            "##n",
-            "[/H:person]",
-            "is",
-            "the",
-            "city",
-            "'",
-            "s",
-            "mayor",
-            ".",
-            "[SEP]",
-        ]
-
+        else:
+            assert tokens[0] == [
+                "[CLS]",
+                "[H]",
+                "Jane",
+                "[/H]",
+                "lives",
+                "in",
+                "[T]",
+                "Berlin",
+                "[/T]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+            ]
+            assert tokens[1] == [
+                "[CLS]",
+                "[T]",
+                "Seattle",
+                "[/T]",
+                "is",
+                "a",
+                "rainy",
+                "city",
+                ".",
+                "[H]",
+                "Jenny",
+                "Du",
+                "##rka",
+                "##n",
+                "[/H]",
+                "is",
+                "the",
+                "city",
+                "'",
+                "s",
+                "mayor",
+                ".",
+                "[SEP]",
+            ]
     else:
-        tokens1 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            inputs["input_ids"].tolist()[0]
-        )
-        assert tokens1 == [
-            "[CLS]",
-            "[H]",
-            "Jane",
-            "[/H]",
-            "lives",
-            "in",
-            "[T]",
-            "Berlin",
-            "[/T]",
-            ".",
-            "this",
-            "is",
-            "no",
-            "sentence",
-            "about",
-            "Karl",
-            "[SEP]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-            "[PAD]",
-        ]
-        tokens2 = prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-            inputs["input_ids"].tolist()[1]
-        )
-        assert tokens2 == [
-            "[CLS]",
-            "[T]",
-            "Seattle",
-            "[/T]",
-            "is",
-            "a",
-            "rainy",
-            "city",
-            ".",
-            "[H]",
-            "Jenny",
-            "Du",
-            "##rka",
-            "##n",
-            "[/H]",
-            "is",
-            "the",
-            "city",
-            "'",
-            "s",
-            "mayor",
-            ".",
-            "[SEP]",
-        ]
+        assert inputs["input_ids"].shape[0] == 10
+        if prepared_taskmodule_optional_marker.add_type_to_marker:
+            # just test the first entry
+            assert tokens[0] == [
+                "[CLS]",
+                "[H:person]",
+                "Jane",
+                "[/H:person]",
+                "lives",
+                "in",
+                "[T:city]",
+                "Berlin",
+                "[/T:city]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+            ]
+        else:
+            # just test the first entry
+            assert tokens[0] == [
+                "[CLS]",
+                "[H]",
+                "Jane",
+                "[/H]",
+                "lives",
+                "in",
+                "[T]",
+                "Berlin",
+                "[/T]",
+                ".",
+                "this",
+                "is",
+                "no",
+                "sentence",
+                "about",
+                "Karl",
+                "[SEP]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+                "[PAD]",
+            ]
 
     if encode_target:
         assert targets.shape == (2,)
@@ -505,8 +641,9 @@ def test_unbatch_output(prepared_taskmodule, model_output):
 
 @pytest.mark.parametrize("inplace", [False, True])
 def test_decode(prepared_taskmodule, documents, model_output, inplace):
-    encodings = prepared_taskmodule.encode(documents, encode_target=False)
+    encodings = prepared_taskmodule.encode(documents, encode_target=True)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
+    assert len(unbatched_outputs) == len(encodings)
     decoded_documents = prepared_taskmodule.decode(
         encodings=encodings,
         decoded_outputs=unbatched_outputs,
