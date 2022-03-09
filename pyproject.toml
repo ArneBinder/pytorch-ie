@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pytorch-ie"
-version = "0.3.0"
+version = "0.3.1"
 description = "State-of-the-art Information Extraction in PyTorch"
 readme = "README.rst"
 authors = ["Christoph Alt <christoph.alt@posteo.de>"]
