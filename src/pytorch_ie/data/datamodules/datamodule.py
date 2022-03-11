@@ -88,7 +88,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def setup(self, stage: Optional[str] = None, **kwargs):
 
-        if self.prepare_data_split in self.dataset:
+        if stage == "fit" or stage is None:
             self.task_module.prepare(self.dataset[self.prepare_data_split])
 
         for split in [self.train_split, self.val_split, self.test_split]:
