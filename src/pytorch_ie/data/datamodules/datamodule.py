@@ -54,7 +54,10 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         num_workers: int = 0,
         pin_memory: bool = False,
         data_config_path: Optional[str] = None,
-        prepare_data_split: str = "train",
+        train_split: Optional[str] = "train",
+        val_split: Optional[str] = "val",
+        test_split: Optional[str] = "test",
+        prepare_data_split: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -65,55 +68,53 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.pin_memory = pin_memory
         self.config_path = data_config_path
         self.dataset = dataset
-        self.prepare_data_split = prepare_data_split
         self.random_train_val_split = random_train_val_split
+        self.train_split = train_split
+        self.val_split = val_split
+        self.test_split = test_split
+        # per default, use train data to prepare the taskmodule
+        self.prepare_data_split = prepare_data_split or self.train_split
 
-        self.data_train: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
-        self.data_val: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
-        self.data_test: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
+        self._data: Dict[str, TaskEncodingDataset[InputEncoding, TargetEncoding]] = {}
 
     @property
     def num_train(self) -> int:
-        if self.data_train is None:
+        if self.train_split is None:
+            raise ValueError("no train_split assigned")
+        data_train = self._data.get(self.train_split, None)
+        if data_train is None:
             raise ValueError("can not get train size if setup() was not yet called")
-        return len(self.data_train)
+        return len(data_train)
 
     def setup(self, stage: Optional[str] = None, **kwargs):
 
-        for split, data in self.dataset.items():
+        if self.prepare_data_split in self.dataset:
+            self.task_module.prepare(self.dataset[self.prepare_data_split])
 
-            if split == self.prepare_data_split:
-                self.task_module.prepare(data)
-
-            if split == "train":
-                self.data_train = TaskEncodingDataset(
-                    self.task_module.encode(data, encode_target=True)
-                )
-            elif split == "val":
-                self.data_val = TaskEncodingDataset(
-                    self.task_module.encode(data, encode_target=True)
-                )
-            elif split == "test":
-                self.data_test = TaskEncodingDataset(
-                    self.task_module.encode(data, encode_target=True)
-                )
-            else:
-                raise ValueError(
-                    f'Unknowns split identifier: "{split}". Use one of "train", "val", or "test".'
-                )
+        for split in [self.train_split, self.val_split, self.test_split]:
+            if split is None:
+                continue
+            self._data[split] = TaskEncodingDataset(
+                self.task_module.encode(self.dataset[split], encode_target=True)
+            )
 
         if self.random_train_val_split is not None:
             assert (
-                self.data_train is not None
+                self.train_split is not None
             ), "data_train has to be set to create random train dev splits from it"
             # type checking is broken for random_split, so we ignore it
-            self.data_train, self.data_val = random_split(  # type: ignore
-                self.data_train, self.random_train_val_split
+            self._data[self.train_split], self._[self.val_split] = random_split(  # type: ignore
+                self._data[self.train_split], self.random_train_val_split
             )
+
+    def data_split(self, split: str) -> TaskEncodingDataset[InputEncoding, TargetEncoding]:
+        if split is None or split not in self._data:
+            raise ValueError(f"data for split={split} not available")
+        return self._data[split]
 
     def train_dataloader(self):
         return DataLoader(
-            dataset=self.data_train,
+            dataset=self.data_split(self.train_split),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
@@ -123,7 +124,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def val_dataloader(self):
         return DataLoader(
-            dataset=self.data_val,
+            dataset=self.data_split(self.val_split),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
@@ -133,7 +134,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def test_dataloader(self):
         return DataLoader(
-            dataset=self.data_test,
+            dataset=self.data_split(self.test_split),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
