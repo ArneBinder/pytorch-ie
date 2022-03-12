@@ -50,22 +50,16 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
         dataset: DatasetDict,
         random_train_val_split: Optional[Tuple[int, int]] = None,
-        batch_size: int = 32,
-        num_workers: int = 0,
-        pin_memory: bool = False,
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
         val_split: Optional[str] = "val",
         test_split: Optional[str] = "test",
         prepare_split: Optional[str] = None,
-        **kwargs,
+        **dataloader_kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.taskmodule = taskmodule
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
         self.config_path = data_config_path
         self.dataset = dataset
         self.random_train_val_split = random_train_val_split
@@ -74,6 +68,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.test_split = test_split
         # per default, use train data to prepare the taskmodule
         self.prepare_split = prepare_split or self.train_split
+        self.dataloader_kwargs = dataloader_kwargs
 
         self._data: Dict[str, TaskEncodingDataset[InputEncoding, TargetEncoding]] = {}
 
@@ -117,29 +112,23 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
     def train_dataloader(self):
         return DataLoader(
             dataset=self.data_split(self.train_split),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
             collate_fn=self.taskmodule.collate,
             shuffle=True,
+            **self.dataloader_kwargs
         )
 
     def val_dataloader(self):
         return DataLoader(
             dataset=self.data_split(self.val_split),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
             collate_fn=self.taskmodule.collate,
             shuffle=False,
+            **self.dataloader_kwargs
         )
 
     def test_dataloader(self):
         return DataLoader(
             dataset=self.data_split(self.test_split),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
             collate_fn=self.taskmodule.collate,
             shuffle=False,
+            **self.dataloader_kwargs
         )
