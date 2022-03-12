@@ -4,7 +4,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.dataset import Dataset
 
-from pytorch_ie import Document
+from pytorch_ie.data import DatasetDict
 from pytorch_ie.taskmodules.taskmodule import (
     InputEncoding,
     TargetEncoding,
@@ -47,8 +47,8 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def __init__(
         self,
-        task_module: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
-        dataset: Dict[str, List[Document]],
+        taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
+        dataset: DatasetDict,
         random_train_val_split: Optional[Tuple[int, int]] = None,
         batch_size: int = 32,
         num_workers: int = 0,
@@ -57,12 +57,12 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         train_split: Optional[str] = "train",
         val_split: Optional[str] = "val",
         test_split: Optional[str] = "test",
-        prepare_data_split: Optional[str] = None,
+        prepare_split: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        self.task_module = task_module
+        self.taskmodule = taskmodule
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -73,7 +73,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.val_split = val_split
         self.test_split = test_split
         # per default, use train data to prepare the taskmodule
-        self.prepare_data_split = prepare_data_split or self.train_split
+        self.prepare_split = prepare_split or self.train_split
 
         self._data: Dict[str, TaskEncodingDataset[InputEncoding, TargetEncoding]] = {}
 
@@ -89,15 +89,15 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
     def setup(self, stage: Optional[str] = None, **kwargs):
 
         if stage == "fit" or stage is None:
-            if self.prepare_data_split is None:
+            if self.prepare_split is None:
                 raise ValueError(f"prepare_data_split is required to prepare the taskmodule")
-            self.task_module.prepare(self.dataset[self.prepare_data_split])
+            self.taskmodule.prepare(self.dataset[self.prepare_split])
 
         for split in [self.train_split, self.val_split, self.test_split]:
             if split is None:
                 continue
             self._data[split] = TaskEncodingDataset(
-                self.task_module.encode(self.dataset[split], encode_target=True)
+                self.taskmodule.encode(self.dataset[split], encode_target=True)
             )
 
         if self.random_train_val_split is not None:
@@ -120,7 +120,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            collate_fn=self.task_module.collate,
+            collate_fn=self.taskmodule.collate,
             shuffle=True,
         )
 
@@ -130,7 +130,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            collate_fn=self.task_module.collate,
+            collate_fn=self.taskmodule.collate,
             shuffle=False,
         )
 
@@ -140,6 +140,6 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            collate_fn=self.task_module.collate,
+            collate_fn=self.taskmodule.collate,
             shuffle=False,
         )
