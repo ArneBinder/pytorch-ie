@@ -114,7 +114,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             dataset=self.data_split(self.train_split),
             collate_fn=self.taskmodule.collate,
             shuffle=True,
-            **self.dataloader_kwargs
+            **self.dataloader_kwargs,
         )
 
     def val_dataloader(self):
@@ -122,7 +122,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             dataset=self.data_split(self.val_split),
             collate_fn=self.taskmodule.collate,
             shuffle=False,
-            **self.dataloader_kwargs
+            **self.dataloader_kwargs,
         )
 
     def test_dataloader(self):
@@ -130,5 +130,5 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             dataset=self.data_split(self.test_split),
             collate_fn=self.taskmodule.collate,
             shuffle=False,
-            **self.dataloader_kwargs
+            **self.dataloader_kwargs,
         )
