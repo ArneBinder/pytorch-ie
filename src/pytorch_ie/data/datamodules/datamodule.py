@@ -96,12 +96,12 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             )
 
         if self.random_train_val_split is not None:
-            assert (
-                self.train_split is not None
-            ), "data_train has to be set to create random train dev splits from it"
+            train_val_data = self.data_split(self.train_split)[:sum(self.random_train_val_split)]
+            if self.train_split is None or self.val_split is None:
+                raise ValueError(f"train_split and val_split names have to be defined to assign random train dev splits")
             # type checking is broken for random_split, so we ignore it
-            self._data[self.train_split], self._[self.val_split] = random_split(  # type: ignore
-                self._data[self.train_split], self.random_train_val_split
+            self._data[self.train_split], self._data[self.val_split] = random_split(  # type: ignore
+                train_val_data, self.random_train_val_split
             )
 
     def data_split(self, split: Optional[str] = None) -> TaskEncodingDataset[InputEncoding, TargetEncoding]:
