@@ -1,26 +1,44 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
-from datasets import Dataset, IterableDataset, load_dataset
+from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, load_dataset
 from datasets.splits import Split
 
+from pytorch_ie.data.datasets import PIEDatasetDict
 from pytorch_ie.data.document import Document, LabeledSpan
 from pytorch_ie.utils.span import bio_tags_to_spans
 
 
-def load_conll2003(
-    split: Union[str, Split],
-) -> List[Document]:
-    path = "conll2003"
-    data = load_dataset("conll2003", split=split)
-    assert isinstance(data, (Dataset, IterableDataset)), (
-        f"`load_dataset` for `path={path}` and `split={split}` should return a single Dataset, "
-        f"but the result is of type: {type(data)}"
-    )
+def single_split_to_dict(
+    dataset: Union[DatasetDict, Dataset, IterableDatasetDict, IterableDataset],
+    split: Optional[Union[str, Split]] = None,
+) -> Union[DatasetDict, IterableDatasetDict]:
+    if isinstance(dataset, (DatasetDict, IterableDatasetDict)):
+        return dataset
+    if split is None:
+        raise ValueError(
+            "split name has to be provided to convert an (Iterable)Dataset to an (Iterable)DatasetDict"
+        )
+    if isinstance(dataset, Dataset):
+        return DatasetDict({split: dataset})
+    if isinstance(dataset, IterableDataset):
+        return IterableDatasetDict({split: dataset})
+    raise ValueError(f"dataset has unknown type: {type(dataset)}")
 
-    int_to_str = data.features["ner_tags"].feature.int2str
+
+def load_conll2003_hf(
+    split: Union[str, Split],
+) -> Union[DatasetDict, IterableDatasetDict]:
+    data = single_split_to_dict(load_dataset("conll2003", split=split), split=split)
+    return data
+
+
+def _convert_conll2003_hf_to_document_dataset(
+    dataset_hf: Union[Dataset, IterableDataset]
+) -> List[Document]:
+    int_to_str = dataset_hf.features["ner_tags"].feature.int2str
 
     documents = []
-    for example in data:
+    for example in dataset_hf:
         tokens = example["tokens"]
         ner_tags = example["ner_tags"]
 
@@ -47,5 +65,20 @@ def load_conll2003(
             )
 
         documents.append(document)
-
     return documents
+
+
+def convert_conll2003_hf_to_document_dataset(
+    dataset_hf: Union[DatasetDict, IterableDatasetDict]
+) -> PIEDatasetDict:
+    return {k: _convert_conll2003_hf_to_document_dataset(v) for k, v in dataset_hf.items()}
+
+
+# TODO: this should return a PIEDatasetDict
+def load_conll2003(
+    split: Union[str, Split],
+) -> List[Document]:
+    dataset_hf = load_conll2003_hf(split=split)
+    dataset = convert_conll2003_hf_to_document_dataset(dataset_hf=dataset_hf)
+
+    return dataset[split]
