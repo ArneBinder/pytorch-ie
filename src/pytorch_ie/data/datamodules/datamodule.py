@@ -4,7 +4,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.dataset import Dataset
 
-from pytorch_ie.data import DatasetDict
+from pytorch_ie.data.datasets import PIEDatasetDict
 from pytorch_ie.taskmodules.taskmodule import (
     InputEncoding,
     TargetEncoding,
@@ -48,7 +48,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
     def __init__(
         self,
         taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
-        dataset: DatasetDict,
+        dataset: PIEDatasetDict,
         random_train_val_split: Optional[Tuple[int, int]] = None,
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
