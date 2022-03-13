@@ -82,7 +82,8 @@ def from_hf(
     entity_layer: str = "entities",
 ) -> PIEDatasetDict:
     return {
-        k: _hf_to_document_dataset(v, entity_layer=entity_layer) for k, v in hf_dataset_dict.items()
+        k: _hf_to_document_dataset(v, entity_layer=entity_layer)
+        for k, v in hf_dataset_dict.items()
     }
 
 
