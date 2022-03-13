@@ -20,7 +20,7 @@ class TaskEncodingDataset(
     def __init__(self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]):
         self._encodings = encodings
 
-    def __getitem__(self, index) -> TaskEncoding[InputEncoding, TargetEncoding]:
+    def __getitem__(self, index):
         return self._encodings[index]
 
     def __len__(self):
@@ -104,7 +104,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
                 self._data[self.train_split], self.random_train_val_split
             )
 
-    def data_split(self, split: str) -> TaskEncodingDataset[InputEncoding, TargetEncoding]:
+    def data_split(self, split: Optional[str] = None) -> TaskEncodingDataset[InputEncoding, TargetEncoding]:
         if split is None or split not in self._data:
             raise ValueError(f"data for split={split} not available")
         return self._data[split]
