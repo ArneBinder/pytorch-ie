@@ -89,7 +89,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             self.taskmodule.prepare(self.dataset[self.prepare_split])
 
         for split in [self.train_split, self.val_split, self.test_split]:
-            if split is None:
+            if split is None or split not in self.dataset:
                 continue
             self._data[split] = TaskEncodingDataset(
                 self.taskmodule.encode(self.dataset[split], encode_target=True)
