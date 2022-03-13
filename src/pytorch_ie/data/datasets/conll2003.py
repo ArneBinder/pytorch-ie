@@ -26,7 +26,7 @@ def single_split_to_dict(
 
 
 def load_conll2003_hf(
-    split: Union[str, Split],
+    split: Optional[Union[str, Split]] = None,
 ) -> Union[DatasetDict, IterableDatasetDict]:
     data = single_split_to_dict(load_dataset("conll2003", split=split), split=split)
     return data
