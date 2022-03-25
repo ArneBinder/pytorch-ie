@@ -38,6 +38,7 @@ def load_conll2003(
         spans = bio_tags_to_spans(tag_sequence)
 
         document = Document(text)
+        document.annotations.spans.create_layer("entities")
 
         for label, (start, end) in spans:
             start_offset = token_offsets[start][0]
