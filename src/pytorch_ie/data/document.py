@@ -157,7 +157,7 @@ class BinaryRelation(Annotation):
 
 
 # simple list for now
-AnnotationLayer = list
+AnnotationLayer = List
 T_annotation = TypeVar("T_annotation", bound=Annotation)
 
 
