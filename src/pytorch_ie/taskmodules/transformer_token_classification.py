@@ -289,6 +289,10 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             tag_sequence, include_ill_formed=self.include_ill_formed_predictions
         )
         for label, (start, end) in spans:
+            if "window_labels" in encoding.metadata:
+                valid_token_start, valid_token_end = encoding.metadata["window_labels"]
+                if end < valid_token_start or valid_token_end <= start:
+                    continue
             yield (
                 self.entity_annotation,
                 LabeledSpan(
