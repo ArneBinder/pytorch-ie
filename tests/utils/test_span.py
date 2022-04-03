@@ -419,11 +419,11 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
 def test_has_overlap():
     # no overlap - not touching
     assert not has_overlap((3, 5), (6, 10))
-    assert not has_overlap((3, 5), (5, 10))
+    assert not has_overlap((6, 10), (3, 5))
 
     # no overlap - touching
-    assert not has_overlap((6, 10), (3, 5))
     assert not has_overlap((5, 10), (3, 5))
+    assert not has_overlap((3, 5), (5, 10))
 
     # partly overlap
     assert has_overlap((3, 5), (4, 10))
