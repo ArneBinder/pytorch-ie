@@ -2173,6 +2173,9 @@ def test_create_annotations_from_output_with_window_overlap_(
         {
             "tags": [
                 "SPECIAL_TOKEN",
+                # NOTE: This span _should_ be included in the output despite having a token overlap of 3.
+                #  This is because it is at the beginning of the input where we do not restrict the training
+                #  labels (same holds for the end of the input).
                 "B-city",
                 "O",
                 "O",
