@@ -3,6 +3,7 @@ import pytest
 from pytorch_ie.utils.span import (
     convert_span_annotations_to_tag_sequence,
     get_char_to_token_mapper,
+    has_overlap,
 )
 from tests.fixtures.document import get_doc1, get_doc2, get_doc3
 
@@ -413,3 +414,29 @@ def test_convert_span_annotations_to_tag_sequence_with_partition(documents):
         partition=partition,
     )
     assert tag_sequence == [None, "B-person", "O", "O", "O", "O", "B-city", "O", None]
+
+
+def test_has_overlap():
+    # no overlap - not touching
+    assert not has_overlap((3, 5), (6, 10))
+    assert not has_overlap((3, 5), (5, 10))
+
+    # no overlap - touching
+    assert not has_overlap((6, 10), (3, 5))
+    assert not has_overlap((5, 10), (3, 5))
+
+    # partly overlap
+    assert has_overlap((3, 5), (4, 10))
+    assert has_overlap((4, 10), (3, 5))
+
+    # partly overlap - same start
+    assert has_overlap((3, 5), (3, 10))
+    assert has_overlap((3, 10), (3, 5))
+
+    # partly overlap - same end
+    assert has_overlap((3, 5), (2, 5))
+    assert has_overlap((2, 5), (3, 5))
+
+    # total overlap (containing)
+    assert has_overlap((3, 5), (2, 10))
+    assert has_overlap((2, 10), (3, 5))
