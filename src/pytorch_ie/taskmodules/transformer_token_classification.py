@@ -293,7 +293,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             if "window_labels" in encoding.metadata:
                 # Take only spans into account that are at least partly in the window. The model was not
                 # trained to correctly predict spans that are just in the context.
-                if not has_overlap((start, end), encoding.metadata["window_labels"]):
+                # NOTE: The "end" index is exclusive, but encoding.metadata["window_labels"][1] is inclusive!
+                if not has_overlap((start, end + 1), encoding.metadata["window_labels"]):
                     continue
             yield (
                 self.entity_annotation,

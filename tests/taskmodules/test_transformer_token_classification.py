@@ -2184,23 +2184,28 @@ def test_create_annotations_from_output_with_window_overlap_(
                 "I-person",
                 "I-person",
                 "O",
-                # NOTE: This span should not be included in the output!
+                # NOTE: This span should _not_ be included in the output (token overlap is 3)!
                 "B-person",
-                "I-person",
+                # NOTE: This span should _not_ be included in the output!
+                "B-person",
                 "I-person",
                 "SPECIAL_TOKEN",
             ]
         },
-        {"tags": ["SPECIAL_TOKEN", "O", "O", "O", "O", "O", "O", "O", "O", "O", "SPECIAL_TOKEN"]},
         {
             "tags": [
                 "SPECIAL_TOKEN",
+                # NOTE: This span should _not_ be included in the output!
                 "B-person",
+                # NOTE: This span is just partly outside the valid window (token overlap is 3), so it _should_
+                # be included in the output!
+                "B-person",
+                "I-person",
+                "I-person",
                 "O",
                 "O",
                 "O",
                 "O",
-                "B-city",
                 "O",
                 "SPECIAL_TOKEN",
             ]
@@ -2236,4 +2241,8 @@ def test_create_annotations_from_output_with_window_overlap_(
             encoding=input_encoding, output=output
         )
     )
-    assert len(predicted_entities) == 0
+    assert len(predicted_entities) == 1
+    span_name, span = predicted_entities[0]
+    assert span.label == "person"
+    assert span.start == 36
+    assert span.end == 44
