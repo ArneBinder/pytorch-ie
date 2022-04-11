@@ -156,9 +156,12 @@ class BinaryRelation(Annotation):
         )
 
 
-# simple list for now
-AnnotationLayer = list
 T_annotation = TypeVar("T_annotation", bound=Annotation)
+T = TypeVar("T")
+
+
+class AnnotationLayer(Generic[T], list):
+    pass
 
 
 class TypedAnnotationCollection(Generic[T_annotation], Dict[str, AnnotationLayer[T_annotation]]):
