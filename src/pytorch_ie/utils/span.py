@@ -227,6 +227,15 @@ def is_contained_in(start_end: Tuple[int, int], other_start_end: Tuple[int, int]
     return other_start_end[0] <= start_end[0] and start_end[1] <= other_start_end[1]
 
 
+def has_overlap(start_end: Tuple[int, int], other_start_end: Tuple[int, int]):
+    return (
+        start_end[0] <= other_start_end[0] < start_end[1]
+        or start_end[0] < other_start_end[1] <= start_end[1]
+        or other_start_end[0] <= start_end[0] < other_start_end[1]
+        or other_start_end[0] < start_end[1] <= other_start_end[1]
+    )
+
+
 def _char_to_token_mapper(
     char_idx: int,
     char_to_token_mapping: Dict[int, int],

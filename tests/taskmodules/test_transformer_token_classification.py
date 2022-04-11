@@ -2148,3 +2148,104 @@ def test_create_annotations_from_output_with_window_overlap(
         predicted_name_and_span[0] == prepared_taskmodule_with_window_overlap.entity_annotation
     )  # prepared_taskmodule_with_partition.entity_annotation
     assert_entity_matches(predicted_name_and_span[1], DOC3_ENTITY_BERLIN)
+
+
+def test_create_annotations_from_output_with_window_overlap_(
+    prepared_taskmodule_with_window_overlap, documents
+):
+    assert prepared_taskmodule_with_window_overlap.entity_annotation == "entities"
+    input_encodings = prepared_taskmodule_with_window_overlap.encode(
+        [get_doc2()], encode_target=False
+    )
+    """
+    # create expected outputs via (NOTE: this requires encode_target=True)
+    outputs = [
+        {
+            "tags": [
+                prepared_taskmodule_with_window_overlap.id_to_label.get(_id, "SPECIAL_TOKEN")
+                for _id in input_encoding.target
+            ]
+        }
+        for input_encoding in input_encodings
+    ]
+    """
+    outputs = [
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                # NOTE: This span _should_ be included in the output despite having a token overlap of 3.
+                #  This is because it is at the beginning of the input where we do not restrict the training
+                #  labels (same holds for the end of the input).
+                "B-city",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "B-person",
+                "I-person",
+                "I-person",
+                "I-person",
+                "O",
+                # NOTE: This span should _not_ be included in the output (token overlap is 3)!
+                "B-person",
+                # NOTE: This span should _not_ be included in the output!
+                "B-person",
+                "I-person",
+                "SPECIAL_TOKEN",
+            ]
+        },
+        {
+            "tags": [
+                "SPECIAL_TOKEN",
+                # NOTE: This span should _not_ be included in the output!
+                "B-person",
+                # NOTE: This span is just partly outside the valid window (token overlap is 3), so it _should_
+                # be included in the output!
+                "B-person",
+                "I-person",
+                "I-person",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "SPECIAL_TOKEN",
+            ]
+        },
+    ]
+
+    output = outputs[0]
+    input_encoding = input_encodings[0]
+    predicted_entities = list(
+        prepared_taskmodule_with_window_overlap.create_annotations_from_output(
+            encoding=input_encoding, output=output
+        )
+    )
+    assert len(predicted_entities) == 2
+    predicted_entities_sorted = sorted(
+        predicted_entities, key=lambda name_and_annotation: name_and_annotation[1].start
+    )
+    predicted_name_and_span = predicted_entities_sorted[0]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_window_overlap.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC2_ENTITY_SEATTLE)
+    predicted_name_and_span = predicted_entities_sorted[1]
+    assert (
+        predicted_name_and_span[0] == prepared_taskmodule_with_window_overlap.entity_annotation
+    )  # prepared_taskmodule_with_partition.entity_annotation
+    assert_entity_matches(predicted_name_and_span[1], DOC2_ENTITY_JENNY)
+
+    output = outputs[1]
+    input_encoding = input_encodings[1]
+    predicted_entities = list(
+        prepared_taskmodule_with_window_overlap.create_annotations_from_output(
+            encoding=input_encoding, output=output
+        )
+    )
+    assert len(predicted_entities) == 1
+    span_name, span = predicted_entities[0]
+    assert span.label == "person"
+    assert span.start == 36
+    assert span.end == 44

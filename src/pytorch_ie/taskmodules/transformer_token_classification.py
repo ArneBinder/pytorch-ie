@@ -21,6 +21,7 @@ from pytorch_ie.utils.span import (
     convert_span_annotations_to_tag_sequence,
     get_char_to_token_mapper,
     get_special_token_mask,
+    has_overlap,
 )
 from pytorch_ie.utils.window import enumerate_windows
 
@@ -289,6 +290,12 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             tag_sequence, include_ill_formed=self.include_ill_formed_predictions
         )
         for label, (start, end) in spans:
+            if "window_labels" in encoding.metadata:
+                # Take only spans into account that are at least partly in the window. The model was not
+                # trained to correctly predict spans that are just in the context.
+                # NOTE: The "end" index is exclusive, but encoding.metadata["window_labels"][1] is inclusive!
+                if not has_overlap((start, end + 1), encoding.metadata["window_labels"]):
+                    continue
             yield (
                 self.entity_annotation,
                 LabeledSpan(
