@@ -1,0 +1,134 @@
+[
+    {
+        "id": "train_doc1",
+        "text": "A single sentence.",
+        "sentences": [
+            {"start": 0, "end": 18}
+        ],
+        "entities": [],
+        "relations": [],
+        "metadata": {
+            "usecase": "single sentence per document, without annotations"
+        }
+    },
+    {
+        "id": "train_doc2",
+        "text": "Entity A works at B.",
+        "sentences": [
+            {"start": 0, "end": 20}
+        ],
+        "entities": [
+            {"start": 0, "end": 8, "label": "PER"},
+            {"start": 18, "end": 19, "label": "ORG"}
+        ],
+        "relations": [
+            {"head": 0, "tail": 1, "label": "per:employee_of"}
+        ],
+        "metadata": {
+            "usecase": "single sentence per document"
+        }
+    },
+    {
+        "id": "train_doc3",
+        "text": "Entity C and D.",
+        "sentences": [
+            {"start": 0, "end": 15}
+        ],
+        "entities": [
+            {"start": 0, "end": 8, "label": "PER"},
+            {"start": 13, "end": 14, "label": "ORG"}
+        ],
+        "relations": [],
+        "metadata": {
+            "usecase": "single sentence without relation annotations"
+        }
+    },
+    {
+        "id": "train_doc4",
+        "text": "First sentence. Entity E and F.",
+        "sentences": [
+            {"start": 0, "end": 15},
+            {"start": 16, "end": 31}
+        ],
+        "entities": [
+            {"start": 16, "end": 24, "label": "PER"},
+            {"start": 29, "end": 30, "label": "ORG"}
+        ],
+        "relations": [],
+        "metadata": {
+            "usecase": "sentences without relation annotations"
+        }
+    },
+    {
+        "id": "train_doc5",
+        "text": "First sentence. Entity G works at H. And founded I.",
+        "sentences": [
+            {"start": 0, "end": 15},
+            {"start": 16, "end": 36},
+            {"start": 37, "end": 51}
+        ],
+        "entities": [
+            {"start": 16, "end": 24, "label": "PER"},
+            {"start": 34, "end": 35, "label": "ORG"},
+            {"start": 49, "end": 50, "label": "ORG"}
+        ],
+        "relations": [
+            {"head": 0, "tail": 1, "label": "per:employee_of"},
+            {"head": 0, "tail": 2, "label": "per:founder"},
+            {"head": 2, "tail": 1, "label": "org:founded_by"}
+        ],
+        "metadata": {
+            "usecase": "sentences with multiple relation annotations and cross-sentence relation"
+        }
+    },
+    {
+        "id": "train_doc6",
+        "text": "Entity J, K, and L.",
+        "sentences": [
+            {"start": 0, "end": 19}
+        ],
+        "entities": [
+            {"start": 7, "end": 8, "label": "PER"},
+            {"start": 10, "end": 1, "label": "ORG"},
+            {"start": 17, "end": 18, "label": "ORG"}
+        ],
+        "relations": [],
+        "metadata": {
+            "usecase": "sentences with more than two entity annotations"
+        }
+    },
+    {
+        "id": "val_doc1",
+        "text": "A single sentence.",
+        "sentences": [
+            {"start": 0, "end": 18}
+        ],
+        "entities": [],
+        "relations": [],
+        "metadata": {
+            "usecase": "single sentence per document, without annotations"
+        }
+    },
+    {
+        "id": "val_doc2",
+        "text": "First sentence. Entity M works at N. And founded O.",
+        "sentences": [
+            {"start": 0, "end": 15},
+            {"start": 16, "end": 36},
+            {"start": 16, "end": 51},
+        ],
+        "entities": [
+            {"start": 16, "end": 24, "label": "PER"},
+            {"start": 34, "end": 35, "label": "ORG"},
+            {"start": 49, "end": 50, "label": "ORG"}
+        ],
+        "relations": [
+            {"head": 0, "tail": 1, "label": "per:employee_of"},
+            {"head": 0, "tail": 2, "label": "per:founder"},
+            {"head": 2, "tail": 1, "label": "org:founded_by"}
+        ],
+        "metadata": {
+            "usecase": "sentences with multiple relation annotations and cross-sentence relation"
+        }
+    }
+]
