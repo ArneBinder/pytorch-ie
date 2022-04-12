@@ -99,7 +99,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             train_val_data = self.data_split(self.train_split)[: sum(self.random_train_val_split)]
             if self.train_split is None or self.val_split is None:
                 raise ValueError(
-                    f"train_split and val_split names have to be defined to assign random train dev splits"
+                    f"train_split and val_split names have to be defined to assign random train and val splits"
                 )
             # type checking is broken for random_split, so we ignore it
             self._data[self.train_split], self._data[self.val_split] = random_split(  # type: ignore
