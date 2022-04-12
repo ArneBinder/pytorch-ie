@@ -6,7 +6,7 @@
         "entities": [],
         "relations": [],
         "metadata": {
-            "usecase": "single sentence per document, without annotations"
+            "description": "single sentence per document, without annotations"
         }
     },
     {
@@ -28,7 +28,7 @@
             { "head": 2, "tail": 1, "label": "org:founded_by" }
         ],
         "metadata": {
-            "usecase": "sentences with multiple relation annotations and cross-sentence relation"
+            "description": "sentences with multiple relation annotations and cross-sentence relation"
         }
     }
 ]

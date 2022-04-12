@@ -6,7 +6,7 @@
         "entities": [],
         "relations": [],
         "metadata": {
-            "usecase": "single sentence per document, without annotations"
+            "description": "single sentence per document, without annotations"
         }
     },
     {
@@ -19,7 +19,7 @@
         ],
         "relations": [{ "head": 0, "tail": 1, "label": "per:employee_of" }],
         "metadata": {
-            "usecase": "single sentence per document"
+            "description": "single sentence per document"
         }
     },
     {
@@ -32,7 +32,7 @@
         ],
         "relations": [],
         "metadata": {
-            "usecase": "single sentence without relation annotations"
+            "description": "single sentence without relation annotations"
         }
     },
     {
@@ -48,7 +48,7 @@
         ],
         "relations": [],
         "metadata": {
-            "usecase": "sentences without relation annotations"
+            "description": "sentences without relation annotations"
         }
     },
     {
@@ -70,7 +70,7 @@
             { "head": 2, "tail": 1, "label": "org:founded_by" }
         ],
         "metadata": {
-            "usecase": "sentences with multiple relation annotations and cross-sentence relation"
+            "description": "sentences with multiple relation annotations and cross-sentence relation"
         }
     },
     {
@@ -84,7 +84,7 @@
         ],
         "relations": [],
         "metadata": {
-            "usecase": "sentences with more than two entity annotations"
+            "description": "sentences with more than two entity annotations"
         }
     },
     {
@@ -94,7 +94,7 @@
         "entities": [],
         "relations": [],
         "metadata": {
-            "usecase": "single sentence per document, without annotations"
+            "description": "single sentence per document, without annotations"
         }
     },
     {
@@ -116,7 +116,7 @@
             { "head": 2, "tail": 1, "label": "org:founded_by" }
         ],
         "metadata": {
-            "usecase": "sentences with multiple relation annotations and cross-sentence relation"
+            "description": "sentences with multiple relation annotations and cross-sentence relation"
         }
     }
 ]
