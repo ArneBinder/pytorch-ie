@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, List, Optional, Tuple
+from typing import Any, Dict, Generic, List, Optional, Tuple, Union
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
@@ -49,7 +49,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self,
         taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
         dataset: PIEDatasetDict,
-        random_train_val_split: Optional[Tuple[int, int]] = None,
+        random_train_val_split: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
         val_split: Optional[str] = "validation",
@@ -96,14 +96,20 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
             )
 
         if self.random_train_val_split is not None:
-            train_val_data = self.data_split(self.train_split)[: sum(self.random_train_val_split)]
+            original_train_data = self.data_split(self.train_split)
+            # convert relative sizes to absolutes
+            train_val_sizes = [
+                int(s * len(original_train_data)) if isinstance(s, float) else s
+                for s in self.random_train_val_split
+            ]
+            train_val_data = original_train_data[: sum(train_val_sizes)]
             if self.train_split is None or self.val_split is None:
                 raise ValueError(
                     f"train_split and val_split names have to be defined to assign random train and val splits"
                 )
             # type checking is broken for random_split, so we ignore it
             self._data[self.train_split], self._data[self.val_split] = random_split(  # type: ignore
-                train_val_data, self.random_train_val_split
+                train_val_data, train_val_sizes
             )
 
     def data_split(
