@@ -52,7 +52,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         random_train_val_split: Optional[Tuple[int, int]] = None,
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
-        val_split: Optional[str] = "val",
+        val_split: Optional[str] = "validation",
         test_split: Optional[str] = "test",
         prepare_split: Optional[str] = None,
         **dataloader_kwargs,
