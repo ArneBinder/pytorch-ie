@@ -49,7 +49,6 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self,
         taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
         dataset: PIEDatasetDict,
-        random_train_val_split: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
         val_split: Optional[str] = "validation",
@@ -62,7 +61,6 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.taskmodule = taskmodule
         self.config_path = data_config_path
         self.dataset = dataset
-        self.random_train_val_split = random_train_val_split
         self.train_split = train_split
         self.val_split = val_split
         self.test_split = test_split
@@ -93,23 +91,6 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
                 continue
             self._data[split] = TaskEncodingDataset(
                 self.taskmodule.encode(self.dataset[split], encode_target=True)
-            )
-
-        if self.random_train_val_split is not None:
-            original_train_data = self.data_split(self.train_split)
-            # convert relative sizes to absolutes
-            train_val_sizes = [
-                int(s * len(original_train_data)) if isinstance(s, float) else s
-                for s in self.random_train_val_split
-            ]
-            train_val_data = original_train_data[: sum(train_val_sizes)]
-            if self.train_split is None or self.val_split is None:
-                raise ValueError(
-                    f"train_split and val_split names have to be defined to assign random train and val splits"
-                )
-            # type checking is broken for random_split, so we ignore it
-            self._data[self.train_split], self._data[self.val_split] = random_split(  # type: ignore
-                train_val_data, train_val_sizes
             )
 
     def data_split(
