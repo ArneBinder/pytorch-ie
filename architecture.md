@@ -7,9 +7,9 @@ are realised and how different concepts are related and depend on each other.
 
 ### Document
 
-### Dataset and DatasetDict
-
 ### TaskEncoding
+
+### Dataset and DatasetDict
 
 ## Modules
 
