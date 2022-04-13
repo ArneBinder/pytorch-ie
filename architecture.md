@@ -5,6 +5,8 @@ are realised and how different concepts are related and depend on each other.
 
 ## Data
 
+### HF Sample
+
 ### Document
 
 ### TaskEncoding
