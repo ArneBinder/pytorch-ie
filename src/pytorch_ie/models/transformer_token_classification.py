@@ -44,7 +44,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
 
         self.f1 = nn.ModuleDict(
             {
-                stage: torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
+                f"stage_{stage}": torchmetrics.F1(
+                    num_classes=num_classes, ignore_index=ignore_index
+                )
                 for stage in [TRAINING, VALIDATION, TEST]
             }
         )
@@ -74,8 +76,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         valid_logits = output.logits.view(-1, self.num_classes)[valid_indices]
         valid_target = target_flat[valid_indices]
 
-        self.f1[stage](valid_logits, valid_target)
-        self.log(f"{stage}/f1", self.f1[stage], on_step=False, on_epoch=True, prog_bar=True)
+        f1 = self.f1[f"stage_{stage}"]
+        f1(valid_logits, valid_target)
+        self.log(f"{stage}/f1", f1, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
 
