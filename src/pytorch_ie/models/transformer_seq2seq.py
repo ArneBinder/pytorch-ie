@@ -63,5 +63,11 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         return loss
 
+    def test_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):  # type: ignore
+        loss = self.step(batch)
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+
+        return loss
+
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)

@@ -14,6 +14,10 @@ TransformerTextClassificationModelStepBatchEncoding = Tuple[
     Optional[Tensor],
 ]
 
+TRAINING = "train"
+VALIDATION = "val"
+TEST = "test"
+
 
 class TransformerTextClassificationModel(PyTorchIEModel):
     def __init__(
@@ -56,8 +60,14 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         self.loss_fct = nn.BCEWithLogitsLoss() if multi_label else nn.CrossEntropyLoss()
 
-        self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
-        self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
+        self.f1 = nn.ModuleDict(
+            {
+                f"stage_{stage}": torchmetrics.F1(
+                    num_classes=num_classes, ignore_index=ignore_index
+                )
+                for stage in [TRAINING, VALIDATION, TEST]
+            }
+        )
 
     def forward(self, input_: TransformerTextClassificationModelBatchEncoding) -> TransformerTextClassificationModelBatchOutput:  # type: ignore
         output = self.model(**input_)
@@ -69,7 +79,7 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return {"logits": logits}
 
-    def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+    def step(self, stage: str, batch: TransformerTextClassificationModelStepBatchEncoding):  # type: ignore
         input_, target = batch
         assert target is not None, "target has to be available for training"
 
@@ -77,27 +87,22 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         loss = self.loss_fct(logits, target)
 
-        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/loss", loss, on_step=(stage == TRAINING), on_epoch=True, prog_bar=True)
 
-        self.train_f1(logits, target)
-        self.log("train/f1", self.train_f1, on_step=False, on_epoch=True, prog_bar=True)
-
-        return loss
-
-    def validation_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
-        input_, target = batch
-        assert target is not None, "target has to be available for validation"
-
-        logits = self(input_)["logits"]
-
-        loss = self.loss_fct(logits, target)
-
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-
-        self.val_f1(logits, target)
-        self.log("val/f1", self.val_f1, on_step=False, on_epoch=True, prog_bar=True)
+        f1 = self.f1[f"stage_{stage}"]
+        f1(logits, target)
+        self.log(f"{stage}/f1", f1, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
+
+    def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=TRAINING, batch=batch)
+
+    def validation_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=VALIDATION, batch=batch)
+
+    def test_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=TEST, batch=batch)
 
     def configure_optimizers(self):
         optimizer = AdamW(self.parameters(), lr=self.learning_rate)
