@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from pytorch_ie.models import TransformerTokenClassificationModel
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 
-from typing import List, Optional, get_type_hints
+from typing import List, Optional, get_type_hints, Union
 
 from tests import FIXTURES_ROOT
 
@@ -38,6 +38,8 @@ class Document:
             target = field_.metadata.get("target")
             edges.add((name, target))
 
+            setattr(self, name, AnnotationList(self, target))
+
         self._targets = {}
         for edge in edges:
             src, dst = edge
@@ -54,6 +56,8 @@ class Document:
             else:
                 if isinstance(value, (list, tuple)):
                     dct[f.name] = list(type(value)(v.asdict() for v in value))
+                elif isinstance(value, AnnotationList):
+                    dct[f.name] = [v.asdict() for v in value]
                 else:
                     raise Exception("Error")
         return dct
@@ -82,12 +86,14 @@ class Document:
 
             # TODO: this seems a bit hacky
             # also, how to handle single annotations, e.g. a document-level label
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, (list, tuple, AnnotationList)):
                 annotation_class = get_type_hints(cls)[f.name].__args__[0]
                 for v in value:
                     v = dict(v)
                     annotation_id = v.pop("id")
                     annotations[annotation_id] = (f.name, annotation_class.fromdict(v, annotations))
+            else:
+                raise Exception("Error")
 
         for field_name, annotation in annotations.values():
             getattr(doc, field_name).append(annotation)
@@ -99,43 +105,50 @@ class Document:
 #     doc: Optional[Document] = field(default=None, init=False, repr=False, hash=False, compare=False)
 
 @dataclass(eq=True, frozen=True)
-class Span:
-    start: int
-    end: int
+class AnnotationBase:
+    _target: Optional[Union["AnnotationBase", str]] = field(default=None, init=False, repr=False, hash=False, compare=False)
+
+    def set_target(self, value):
+        object.__setattr__(self, '_target', value)
+        # self._target = target
+
+    def target(self):
+        return self._target
 
     def asdict(self):
         dct = dataclasses.asdict(self)
         dct["id"] = hash(self)
+        del dct["_target"]
         return dct
 
     @classmethod
     def fromdict(cls, dct, annotations=None):
         return cls(**dct)
+
+@dataclass(eq=True, frozen=True)
+class Span(AnnotationBase):
+    start: int
+    end: int
+
+    def text(self):
+        return self._target[self.start: self.end]
 
 @dataclass(eq=True, frozen=True)
 class LabeledSpan(Span):
     label: str
     score: float = 1.0
 
-    def asdict(self):
-        dct = dataclasses.asdict(self)
-        dct["id"] = hash(self)
-        return dct
-
-    @classmethod
-    def fromdict(cls, dct, annotations=None):
-        return cls(**dct)
-
 @dataclass(eq=True, frozen=True)
-class BinaryRelation:
+class BinaryRelation(AnnotationBase):
     head: Span
     tail: Span
     label: str
     score: float = 1.0
 
     def asdict(self):
-        dct = dataclasses.asdict(self)
-        dct["id"] = hash(self)
+        dct = super().asdict()
+        # dct = dataclasses.asdict(self)
+        # dct["id"] = hash(self)
         dct["head"] = hash(self.head)
         dct["tail"] = hash(self.tail)
         return dct
@@ -152,27 +165,43 @@ class BinaryRelation:
         return cls(**dct)
 
 @dataclass(eq=True, frozen=True)
-class Label:
+class Label(AnnotationBase):
     label: str
     score: float = 1.0
 
-    def asdict(self):
-        dct = dataclasses.asdict(self)
-        dct["id"] = hash(self)
-        return dct
+from collections.abc import Sequence
 
-    @classmethod
-    def fromdict(cls, dct, annotations=None):
-        return cls(**dct)
+class AnnotationList(Sequence):
+    def __init__(self, document, target):
+        self._document = document
+        self._target = target
+        self._annotations = []
+
+    # TODO: not sure this is a good idea
+    def __eq__(self, other: object) -> bool:
+        return self._target == other._target and self._annotations == other._annotations
+
+    def __getitem__(self, idx):
+        return self._annotations[idx]
+
+    def __len__(self):
+        return len(self._annotations)
+
+    def append(self, annotation: AnnotationBase):
+        annotation.set_target(getattr(self._document, self._target))
+        self._annotations.append(annotation)
+
+    def __repr__(self) -> str:
+        return f"AnnotationList({str(self._annotations)})"
 
 def annotation_field(target: Optional[str] = None):
-    return field(default_factory=list, metadata=dict(target=target))
+    return field(metadata=dict(target=target), init=False, repr=False)
 
 @dataclass
 class MyDocument(Document):
-    sentences: List[Span] = annotation_field(target="text")
-    entities: List[LabeledSpan] = annotation_field(target="text")
-    relations: List[BinaryRelation] = annotation_field(target="entities")
+    sentences: AnnotationList[Span] = annotation_field(target="text")
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
     # TODO: how to handle this case?
     # topic: Annotation[Label] = ???
 
@@ -264,7 +293,7 @@ def test_load_with_datasets():
 
     print(train_dataset)
 
-    print(train_dataset[1].fromdict())
+    print(MyDocument.fromdict())
 
 # def test_load_dataset_and_train():
 #     pass
