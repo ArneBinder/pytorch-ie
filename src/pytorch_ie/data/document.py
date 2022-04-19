@@ -61,6 +61,8 @@ class Document:
 
             if isinstance(value, AnnotationList):
                 dct[field.name] = [v.asdict() for v in value]
+            elif isinstance(value, dict):
+                dct[field.name] = value or None
             else:
                 dct[field.name] = value
 
