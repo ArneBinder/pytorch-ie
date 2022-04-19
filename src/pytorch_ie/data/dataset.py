@@ -1,9 +1,10 @@
+from functools import wraps
+from typing import Callable, List, Optional, Union
+
 import datasets
 from datasets.formatting import _register_formatter
-from pytorch_ie.data.dataset_formatter import DocumentFormatter
-from typing import Optional, Callable, Union, List
-from functools import wraps
 
+from pytorch_ie.data.dataset_formatter import DocumentFormatter
 
 _register_formatter(DocumentFormatter, "document")
 

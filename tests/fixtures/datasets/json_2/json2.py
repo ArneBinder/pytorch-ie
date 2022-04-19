@@ -1,20 +1,17 @@
 import io
 import json
 from dataclasses import dataclass
-from typing import Optional
-
-import pyarrow as pa
-import pyarrow.json as paj
+from typing import Optional, Union
 
 import datasets
+import pyarrow as pa
+import pyarrow.json as paj
 from datasets.table import table_cast
 from datasets.utils.file_utils import readline
-from typing import Union
-
 
 logger = datasets.utils.logging.get_logger(__name__)
 
-from tests.data.test_new_document_and_datasets import Dataset
+from pytorch_ie.data.dataset import Dataset
 
 
 @dataclass
@@ -46,7 +43,11 @@ class Json(datasets.ArrowBasedBuilder):
     #         datasets = datasets.DatasetDict(datasets)
     #     return datasets
 
-    def _as_dataset(self, split: Union[datasets.ReadInstruction, datasets.Split] = datasets.splits.Split.TRAIN, in_memory: bool = False) -> Dataset:
+    def _as_dataset(
+        self,
+        split: Union[datasets.ReadInstruction, datasets.Split] = datasets.splits.Split.TRAIN,
+        in_memory: bool = False,
+    ) -> Dataset:
         """Constructs a `Dataset`.
 
         This is the internal implementation to overwrite called when user calls
@@ -70,36 +71,47 @@ class Json(datasets.ArrowBasedBuilder):
         fingerprint = self._get_dataset_fingerprint(split)
         return Dataset(fingerprint=fingerprint, **dataset_kwargs)
 
-
     def _info(self):
         if self.config.block_size is not None:
-            logger.warning("The JSON loader parameter `block_size` is deprecated. Please use `chunksize` instead")
+            logger.warning(
+                "The JSON loader parameter `block_size` is deprecated. Please use `chunksize` instead"
+            )
             self.config.chunksize = self.config.block_size
         if self.config.use_threads is not True:
             logger.warning(
                 "The JSON loader parameter `use_threads` is deprecated and doesn't have any effect anymore."
             )
         if self.config.newlines_in_values is not None:
-            raise ValueError("The JSON loader parameter `newlines_in_values` is no longer supported")
+            raise ValueError(
+                "The JSON loader parameter `newlines_in_values` is no longer supported"
+            )
         return datasets.DatasetInfo(features=self.config.features)
 
     def _split_generators(self, dl_manager):
         """We handle string, list and dicts in datafiles"""
         if not self.config.data_files:
-            raise ValueError(f"At least one data file must be specified, but got data_files={self.config.data_files}")
+            raise ValueError(
+                f"At least one data file must be specified, but got data_files={self.config.data_files}"
+            )
         data_files = dl_manager.download_and_extract(self.config.data_files)
         if isinstance(data_files, (str, list, tuple)):
             files = data_files
             if isinstance(files, str):
                 files = [files]
             return [
-                datasets.SplitGenerator(name=datasets.Split.TRAIN, gen_kwargs={"files": dl_manager.iter_files(files)})
+                datasets.SplitGenerator(
+                    name=datasets.Split.TRAIN, gen_kwargs={"files": dl_manager.iter_files(files)}
+                )
             ]
         splits = []
         for split_name, files in data_files.items():
             if isinstance(files, str):
                 files = [files]
-            splits.append(datasets.SplitGenerator(name=split_name, gen_kwargs={"files": dl_manager.iter_files(files)}))
+            splits.append(
+                datasets.SplitGenerator(
+                    name=split_name, gen_kwargs={"files": dl_manager.iter_files(files)}
+                )
+            )
         return splits
 
     def _cast_classlabels(self, pa_table: pa.Table) -> pa.Table:
@@ -109,7 +121,9 @@ class Json(datasets.ArrowBasedBuilder):
                 if isinstance(self.config.features[col], datasets.ClassLabel):
                     if pa_table[col].type == pa.string():
                         pa_table = pa_table.set_column(
-                            i, self.config.schema.field(col), [self.config.features[col].str2int(pa_table[col])]
+                            i,
+                            self.config.schema.field(col),
+                            [self.config.features[col].str2int(pa_table[col])],
                         )
                     elif pa_table[col].type != self.config.schema.field(col).type:
                         raise ValueError(
@@ -132,7 +146,10 @@ class Json(datasets.ArrowBasedBuilder):
 
                 # We accept two format: a list of dicts or a dict of lists
                 if isinstance(dataset, (list, tuple)):
-                    mapping = {col: [dataset[i][col] for i in range(len(dataset))] for col in dataset[0].keys()}
+                    mapping = {
+                        col: [dataset[i][col] for i in range(len(dataset))]
+                        for col in dataset[0].keys()
+                    }
                 else:
                     mapping = dataset
                 pa_table = pa.Table.from_pydict(mapping=mapping)
@@ -158,7 +175,8 @@ class Json(datasets.ArrowBasedBuilder):
                             while True:
                                 try:
                                     pa_table = paj.read_json(
-                                        io.BytesIO(batch), read_options=paj.ReadOptions(block_size=block_size)
+                                        io.BytesIO(batch),
+                                        read_options=paj.ReadOptions(block_size=block_size),
                                     )
                                     break
                                 except (pa.ArrowInvalid, pa.ArrowNotImplementedError) as e:

@@ -1,8 +1,10 @@
+import abc
+from functools import wraps
+from typing import Mapping, Optional
+
 import datasets
 from datasets.load import load_dataset_builder
-import abc
-from typing import Optional, Mapping
-from functools import wraps
+
 from pytorch_ie.data.dataset import Dataset
 
 

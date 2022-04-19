@@ -1,7 +1,9 @@
-from datasets.formatting.formatting import Formatter
 from typing import List
-from pytorch_ie.data import Document
+
 import pyarrow as pa
+from datasets.formatting.formatting import Formatter
+
+from pytorch_ie.data import Document
 
 
 class DocumentFormatter(Formatter[Document, list, List[Document]]):
