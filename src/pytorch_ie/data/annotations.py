@@ -84,6 +84,38 @@ class MultiLabeledSpan(Span):
             )
 
 
+dataclass(eq=True, frozen=True)
+class LabeledMultiSpan(Annotation):
+    slices: List[Tuple[int, int]] = field(default_factory=list)
+    label: str
+    score: float = 1.0
+
+    def __post_init__(self) -> None:
+        if self.score is None:
+            self.score = [1.0] * len(self.label)
+
+        if len(self.label) != len(self.score):
+            raise ValueError(
+                f"Number of labels ({len(self.label)}) and scores ({len(self.score)}) must be equal."
+            )
+
+
+dataclass(eq=True, frozen=True)
+class MultiLabeledMultiSpan(Annotation):
+    slices: List[Tuple[int, int]] = field(default_factory=list)
+    label: List[str] = field(default_factory=list)
+    score: Optional[List[float]] = None
+
+    def __post_init__(self) -> None:
+        if self.score is None:
+            self.score = [1.0] * len(self.label)
+
+        if len(self.label) != len(self.score):
+            raise ValueError(
+                f"Number of labels ({len(self.label)}) and scores ({len(self.score)}) must be equal."
+            )
+
+
 @dataclass(eq=True, frozen=True)
 class BinaryRelation(Annotation):
     head: Span
@@ -93,8 +125,6 @@ class BinaryRelation(Annotation):
 
     def asdict(self) -> Dict[str, Any]:
         dct = super().asdict()
-        # dct = dataclasses.asdict(self)
-        # dct["id"] = hash(self)
         dct["head"] = hash(self.head)
         dct["tail"] = hash(self.tail)
         return dct
