@@ -5,8 +5,12 @@ from pytorch_ie.data.annotations import (
     AnnotationList,
     BinaryRelation,
     Label,
+    LabeledMultiSpan,
     LabeledSpan,
     MultiLabel,
+    MultiLabeledBinaryRelation,
+    MultiLabeledMultiSpan,
+    MultiLabeledSpan,
     Span,
 )
 from pytorch_ie.data.document import Document, TextDocument, annotation_field
@@ -18,12 +22,15 @@ __all__ = [
     "TextDocument",
     "Annotation",
     "AnnotationList",
-    "Span",
-    "LabeledSpan",
+    "BinaryRelation",
+    "MultiLabeledBinaryRelation",
     "Label",
     "MultiLabel",
-    "BinaryRelation",
-    # utility
+    "Span",
+    "LabeledSpan",
+    "MultiLabeledSpan",
+    "LabeledMultiSpan",
+    "MultiLabeledMultiSpan",
     "Metadata",
     "annotation_field",
 ]

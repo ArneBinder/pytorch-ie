@@ -28,7 +28,9 @@ def annotation_field(target: Optional[str] = None):
 
 @dataclasses.dataclass
 class Document:
-    _annotation_targets: Dict[str, str] = dataclasses.field(default_factory=dict, init=False)
+    _annotation_targets: Dict[str, str] = dataclasses.field(
+        default_factory=dict, init=False, repr=False
+    )
 
     def __post_init__(self):
         edges = set()
@@ -41,7 +43,7 @@ class Document:
             if field_origin is AnnotationList:
                 annotation_target = field.metadata.get("target")
                 edges.add((field.name, annotation_target))
-                field_value = field.type(document=self, target=field.name)
+                field_value = field.type(document=self, target=annotation_target)
                 setattr(self, field.name, field_value)
 
         self._annotation_targets = {}
