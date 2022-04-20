@@ -1,21 +1,17 @@
-import os
+import dataclasses
 
 import datasets
 import pytest
 
-from pytorch_ie.data import (
-    AnnotationList,
-    BinaryRelation,
-    LabeledSpan,
-    Span,
-    TextDocument,
-    annotation_field,
-)
+from pytorch_ie.annotations import AnnotationList, BinaryRelation, LabeledSpan, Span
+from pytorch_ie.data import Dataset
+from pytorch_ie.document import TextDocument, annotation_field
 from tests import FIXTURES_ROOT
 
 datasets.set_caching_enabled(False)
 
 
+@dataclasses.dataclass
 class TestDocument(TextDocument):
     sentences: AnnotationList[Span] = annotation_field(target="text")
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
@@ -69,10 +65,16 @@ def document_dataset(dataset):
 
         return doc.asdict()
 
-    doc_dataset = dataset.map(example_to_doc_dict)
-    doc_dataset.set_format("document")
+    mapped_dataset = dataset.map(example_to_doc_dict)
 
-    assert len(dataset) == 3
+    doc_dataset = datasets.DatasetDict(
+        {
+            k: Dataset.from_hf_dataset(dataset, document_type=TestDocument)
+            for k, dataset in mapped_dataset.items()
+        }
+    )
+
+    assert len(doc_dataset) == 3
     assert set(doc_dataset.keys()) == {"train", "validation", "test"}
 
     assert len(doc_dataset["train"]) == 8

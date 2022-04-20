@@ -2,6 +2,7 @@ from functools import wraps
 from typing import Callable, List, Optional, Union
 
 import datasets
+import pandas as pd
 from datasets.formatting import _register_formatter
 
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
@@ -10,20 +11,42 @@ _register_formatter(DocumentFormatter, "document")
 
 
 class Dataset(datasets.Dataset):
+    def __init__(
+        self,
+        document_type,
+        arrow_table: datasets.table.Table,
+        info: Optional[datasets.DatasetInfo] = None,
+        split: Optional[datasets.NamedSplit] = None,
+        indices_table: Optional[datasets.table.Table] = None,
+        fingerprint: Optional[str] = None,
+    ):
+        super().__init__(
+            arrow_table=arrow_table,
+            info=info,
+            split=split,
+            indices_table=indices_table,
+            fingerprint=fingerprint,
+        )
+
+        self.document_type = document_type
+        self.set_format("document", document_type=document_type)
+
     @classmethod
-    def from_hf_dataset(cls, dataset: datasets.Dataset):
-        return cls(
+    def from_hf_dataset(cls, dataset: datasets.Dataset, document_type):
+        document_dataset = cls(
+            document_type=document_type,
             arrow_table=dataset._data,
             info=dataset.info,
             split=dataset.split,
             indices_table=dataset._indices,
             fingerprint=dataset._fingerprint,
         )
+        return document_dataset
 
     def map(
         self,
         function: Optional[Callable] = None,
-        as_documents: bool = False,
+        as_documents: bool = True,
         with_indices: bool = False,
         with_rank: bool = False,
         input_columns: Optional[Union[str, List[str]]] = None,
@@ -44,16 +67,9 @@ class Dataset(datasets.Dataset):
         desc: Optional[str] = None,
     ) -> "Dataset":
         def decorate(f):
-            """
-            Decorate the mapped function, so that its first argument is wrapped with a LazyDict to be used internally
-            but a standard dictionary is returned at the end of the mapping.
-            """
-            import pandas as pd
-
             @wraps(f)
             def decorated(item, *args, **kwargs):
                 if isinstance(item, list):
-                    # return [e.asdict() for e in f(item)]
                     return pd.DataFrame([e.asdict() for e in f(item, *args, **kwargs)]).to_dict(
                         orient="list"
                     )
@@ -84,10 +100,4 @@ class Dataset(datasets.Dataset):
             desc=desc,
         )
 
-        return Dataset(
-            arrow_table=dataset._data,
-            info=dataset.info,
-            split=dataset.split,
-            indices_table=dataset._indices,
-            fingerprint=dataset._fingerprint,
-        )
+        return Dataset.from_hf_dataset(dataset, document_type=self.document_type)

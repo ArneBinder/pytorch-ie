@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar, Union, overload
 
 if TYPE_CHECKING:
-    from pytorch_ie.data.document import Document
+    from pytorch_ie.document import Document
 
 
 @dataclass(eq=True, frozen=True)

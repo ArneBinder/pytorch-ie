@@ -2,7 +2,7 @@ import dataclasses
 import typing
 from typing import Any, Dict, List, Optional, Set
 
-from pytorch_ie.data.annotations import AnnotationList
+from pytorch_ie.annotations import AnnotationList
 
 
 def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, str], node: str):

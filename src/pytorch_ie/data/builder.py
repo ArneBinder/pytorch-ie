@@ -73,7 +73,8 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
         mapped_dataset = dataset.map(decorate(self._generate_document), fn_kwargs=fn_kwargs)
 
-        document_dataset = Dataset.from_hf_dataset(mapped_dataset)
-        document_dataset.set_format("document", document_type=self.DOCUMENT_TYPE)
+        document_dataset = Dataset.from_hf_dataset(
+            mapped_dataset, document_type=self.DOCUMENT_TYPE
+        )
 
         return document_dataset
