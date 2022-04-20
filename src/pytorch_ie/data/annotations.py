@@ -9,7 +9,9 @@ if TYPE_CHECKING:
 @dataclass(eq=True, frozen=True)
 class Annotation:
     # _target: Optional[Union["Annotation", str]] = field(default=None, init=False, repr=False, hash=False, compare=False)
-    _target: Optional[Union["Annotation", str]] = field(default=None, init=False, repr=False)
+    _target: Optional[Union["Annotation", str]] = field(
+        default=None, init=False, repr=False, hash=False
+    )
 
     def set_target(self, value: Union["Annotation", str]):
         object.__setattr__(self, "_target", value)
@@ -30,12 +32,18 @@ class Annotation:
         dct: Dict[str, Any],
         annotations: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
     ):
-        if annotations is None:
-            tmp_dct = dict(dct)
-            tmp_dct.pop("id", None)
-            return cls(**tmp_dct)
+        tmp_dct = dict(dct)
+        tmp_dct.pop("id", None)
+        return cls(**tmp_dct)
 
-        return cls(**dct)
+
+class SingleLabelMixin:
+    def __post_init__(self) -> None:
+        if not isinstance(self.label, str):
+            raise ValueError("label must be a single string.")
+
+        if not isinstance(self.score, float):
+            raise ValueError("score must be a single float.")
 
 
 class MultiLabelMixin:
@@ -57,7 +65,7 @@ class MultiLabelMixin:
 
 
 @dataclass(eq=True, frozen=True)
-class Label(Annotation):
+class Label(Annotation, SingleLabelMixin):
     label: str
     score: float = 1.0
 
@@ -79,7 +87,7 @@ class Span(Annotation):
 
 
 @dataclass(eq=True, frozen=True)
-class LabeledSpan(Span):
+class LabeledSpan(Span, SingleLabelMixin):
     label: str
     score: float = 1.0
 
@@ -90,26 +98,27 @@ class MultiLabeledSpan(Span, MultiLabelMixin):
     score: Optional[Tuple[float]] = None
 
 
-dataclass(eq=True, frozen=True)
-
-
-class LabeledMultiSpan(Annotation):
-    slices: List[Tuple[int, int]] = field(default_factory=list)
+@dataclass(eq=True, frozen=True)
+class LabeledMultiSpan(Annotation, SingleLabelMixin):
+    slices: Tuple[Tuple[int, int]]
     label: str
     score: float = 1.0
 
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if isinstance(self.label, list):
+            object.__setattr__(self, "slices", tuple(self.slices))
 
-dataclass(eq=True, frozen=True)
 
-
+@dataclass(eq=True, frozen=True)
 class MultiLabeledMultiSpan(Annotation, MultiLabelMixin):
-    slices: List[Tuple[int, int]] = field(default_factory=list)
+    slices: Tuple[Tuple[int, int]]
     label: Tuple[str]
     score: Optional[Tuple[float]] = None
 
 
 @dataclass(eq=True, frozen=True)
-class BinaryRelation(Annotation):
+class BinaryRelation(Annotation, SingleLabelMixin):
     head: Span
     tail: Span
     label: str
@@ -127,14 +136,25 @@ class BinaryRelation(Annotation):
         dct: Dict[str, Any],
         annotations: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
     ):
-        if annotations is not None:
-            head_id = dct["head"]
-            tail_id = dct["tail"]
+        tmp_dct = dict(dct)
+        tmp_dct.pop("id", None)
 
-            dct["head"] = annotations[head_id][1]
-            dct["tail"] = annotations[tail_id][1]
+        head = tmp_dct["head"]
+        tail = tmp_dct["tail"]
 
-        return cls(**dct)
+        if isinstance(head, int):
+            if annotations is None:
+                raise ValueError("Unable to resolve head reference without annotations.")
+
+            tmp_dct["head"] = annotations[head][1]
+
+        if isinstance(tail, int):
+            if annotations is None:
+                raise ValueError("Unable to resolve tail reference without annotations.")
+
+            tmp_dct["tail"] = annotations[tail][1]
+
+        return cls(**tmp_dct)
 
 
 @dataclass(eq=True, frozen=True)
@@ -158,15 +178,25 @@ class MultiLabeledBinaryRelation(Annotation, MultiLabelMixin):
         dct: Dict[str, Any],
         annotations: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
     ):
-        if annotations is not None:
-            head_id = dct["head"]
-            tail_id = dct["tail"]
+        tmp_dct = dict(dct)
+        tmp_dct.pop("id", None)
 
-            # resolve annotation hashes to annotation objects
-            dct["head"] = annotations[head_id][1]
-            dct["tail"] = annotations[tail_id][1]
+        head = tmp_dct["head"]
+        tail = tmp_dct["tail"]
 
-        return cls(**dct)
+        if isinstance(head, int):
+            if annotations is None:
+                raise ValueError("Unable to resolve head reference without annotations.")
+
+            tmp_dct["head"] = annotations[head][1]
+
+        if isinstance(tail, int):
+            if annotations is None:
+                raise ValueError("Unable to resolve tail reference without annotations.")
+
+            tmp_dct["tail"] = annotations[tail][1]
+
+        return cls(**tmp_dct)
 
 
 T = TypeVar("T", covariant=True, bound=Annotation)

@@ -28,7 +28,7 @@ def annotation_field(target: Optional[str] = None):
 
 @dataclasses.dataclass
 class Document:
-    _annotation_targets: Dict[str, str] = dataclasses.field(
+    _annotation_targets: Dict[str, List[str]] = dataclasses.field(
         default_factory=dict, init=False, repr=False
     )
 
@@ -46,13 +46,13 @@ class Document:
                 field_value = field.type(document=self, target=annotation_target)
                 setattr(self, field.name, field_value)
 
-        self._annotation_targets = {}
         for edge in edges:
             src, dst = edge
             if dst not in self._annotation_targets:
                 self._annotation_targets[dst] = []
             self._annotation_targets[dst].append(src)
 
+    # TODO: predictions are not serialized yet
     def asdict(self):
         dct = {}
         for field in dataclasses.fields(self):
@@ -70,6 +70,7 @@ class Document:
 
         return dct
 
+    # TODO: predictions are not deserialized yet
     @classmethod
     def fromdict(cls, dct):
         fields = dataclasses.fields(cls)
