@@ -37,9 +37,10 @@ def test_dataset_map(document_dataset):
 
     assert sum(len(doc.relations) for doc in train_dataset) == 7
 
-    train_dataset1 = train_dataset.map(clear_relations)
+    mapped_dataset1 = train_dataset.map(clear_relations)
 
-    assert sum(len(doc.relations) for doc in train_dataset1) == 0
+    assert sum(len(doc.relations) for doc in mapped_dataset1) == 0
+    assert sum(len(doc.relations) for doc in train_dataset) == 7
 
 
 def test_dataset_map_batched(document_dataset):
@@ -53,9 +54,10 @@ def test_dataset_map_batched(document_dataset):
 
     assert sum(len(doc.relations) for doc in train_dataset) == 7
 
-    train_dataset1 = train_dataset.map(clear_relations_batched, batched=True, batch_size=2)
+    mapped_dataset1 = train_dataset.map(clear_relations_batched, batched=True, batch_size=2)
 
-    assert sum(len(doc.relations) for doc in train_dataset1) == 0
+    assert sum(len(doc.relations) for doc in mapped_dataset1) == 0
+    assert sum(len(doc.relations) for doc in train_dataset) == 7
 
 
 def test_with_tester():
@@ -80,6 +82,7 @@ def test_load_with_hf_datasets():
 
     # TODO: the updated CoNLL03 data files have two newlines at the end
     # this results in one additional example in train, validation, and test
+    # --> file a bug report in HF datasets
     assert len(dataset["train"]) == 14042  # 14041
     assert len(dataset["validation"]) == 3251
     assert len(dataset["test"]) == 3454

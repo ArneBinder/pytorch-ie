@@ -3,9 +3,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar, Union
 
+from pytorch_ie.annotations import Annotation
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data import Metadata
-from pytorch_ie.data.document import Annotation, Document
+from pytorch_ie.document import Document
 
 """
 workflow:
@@ -172,7 +173,7 @@ class TaskModule(
         for annotation_name, annotation in self.create_annotations_from_output(
             encoding=encoding, output=output
         ):
-            encoding.document.add_prediction(name=annotation_name, prediction=annotation)
+            encoding.document[annotation_name].predictions.append(annotation)
 
     @abstractmethod
     def create_annotations_from_output(

@@ -21,7 +21,8 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
+from pytorch_ie.annotations import Annotation, BinaryRelation, LabeledSpan
+from pytorch_ie.document import Document
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -215,8 +216,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            entities = document.annotations.spans[self.entity_annotation]
-            relations = document.annotations.binary_relations[self.relation_annotation]
+            entities = document[self.entity_annotation]
+            relations = document[self.relation_annotation]
 
             if self.add_type_to_marker:
                 for entity in entities:
@@ -288,16 +289,16 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         )
 
         for document in documents:
-            entities = document.annotations.spans[self.entity_annotation]
+            entities = document[self.entity_annotation]
             if is_training:
-                relations = document.annotations.binary_relations[self.relation_annotation]
+                relations = document[self.relation_annotation]
             else:
                 relations = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions = document.annotations.spans[self.partition_annotation]
+                partitions = document[self.partition_annotation]
             else:
                 # use single dummy partition
                 partitions = [None]
@@ -439,7 +440,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
-            relations = document.annotations.binary_relations[self.relation_annotation]
+            relations = document[self.relation_annotation]
 
             head_tail_to_labels = {
                 (relation.head, relation.tail): relation.labels for relation in relations

@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
-from pytorch_ie.data.document import Document
+from pytorch_ie.document import Document
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, TaskOutput
 
 logger = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ class Pipeline:
         """
 
         for document in documents:
-            document.clear_predictions(predict_field)
+            document[predict_field].predictions.clear()
 
         return self.taskmodule.encode(documents, encode_target=False)
 

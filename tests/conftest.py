@@ -24,7 +24,6 @@ def dataset():
 
     dataset = datasets.load_dataset(
         path="json",
-        # path=str(FIXTURES_ROOT / "datasets" / "json_2" / "json2.py"),
         field="data",
         data_files={
             "train": str(dataset_dir / "train.json"),
