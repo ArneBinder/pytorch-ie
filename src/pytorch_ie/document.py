@@ -1,5 +1,6 @@
 import dataclasses
 import typing
+from collections.abc import Mapping
 from typing import Any, Dict, List, Optional, Set
 
 from pytorch_ie.annotations import AnnotationList
@@ -27,10 +28,22 @@ def annotation_field(target: Optional[str] = None):
 
 
 @dataclasses.dataclass
-class Document:
+class Document(Mapping[str, Any]):
     _annotation_targets: Dict[str, List[str]] = dataclasses.field(
         default_factory=dict, init=False, repr=False
     )
+    _annotation_fields: Set[str] = dataclasses.field(default_factory=set, init=False, repr=False)
+
+    def __getitem__(self, key: str) -> AnnotationList:
+        if key not in self._annotation_fields:
+            raise KeyError(f"Document has no attribute '{key}'.")
+        return getattr(self, key)
+    
+    def __iter__(self):
+        return iter((field.name, getattr(self, field.name)) for field in self._annotation_fields)
+
+    def __len__(self):
+        return len(self._annotation_fields)
 
     def __post_init__(self):
         edges = set()
@@ -41,6 +54,8 @@ class Document:
             field_origin = typing.get_origin(field.type)
 
             if field_origin is AnnotationList:
+                self._annotation_fields.add(field.name)
+
                 annotation_target = field.metadata.get("target")
                 edges.add((field.name, annotation_target))
                 field_value = field.type(document=self, target=annotation_target)
@@ -56,7 +71,7 @@ class Document:
     def asdict(self):
         dct = {}
         for field in dataclasses.fields(self):
-            if field.name == "_annotation_targets":
+            if field.name in {"_annotation_targets", "_annotation_fields"}:
                 continue
 
             value = getattr(self, field.name)

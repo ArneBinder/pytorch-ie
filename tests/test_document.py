@@ -1,4 +1,6 @@
 import dataclasses
+import pytest
+import re
 
 from pytorch_ie.annotations import AnnotationList, BinaryRelation, LabeledSpan, Span
 from pytorch_ie.document import TextDocument, annotation_field
@@ -17,6 +19,7 @@ def test_text_document():
 
     assert document1 == TextDocument.fromdict(document1.asdict())
 
+
     document2 = TextDocument(text="text2", id="test_id", metadata={"key": "value"})
     assert document2.text == "text2"
     assert document2.id == "test_id"
@@ -31,7 +34,6 @@ def test_text_document():
     }
 
     assert document2 == TextDocument.fromdict(document2.asdict())
-
 
 def test_document_with_annotations():
     @dataclasses.dataclass
@@ -77,6 +79,15 @@ def test_document_with_annotations():
 
     assert document1 == TestDocument.fromdict(document1.asdict())
 
+    assert len(document1) == 3
+    assert len(document1["sentences"]) == 2
+    assert document1["sentences"][0].target == document1.text
+
+    with pytest.raises(
+        KeyError, match=re.escape("Document has no attribute 'non_existing_annotation'.")
+    ):
+        document1["non_existing_annotation"]
+
     span3 = Span(start=5, end=6)
     span4 = Span(start=7, end=8)
 
@@ -84,5 +95,7 @@ def test_document_with_annotations():
     document1.sentences.predictions.append(span4)
     assert len(document1.sentences.predictions) == 2
     assert document1.sentences.predictions[1].target == document1.text
+    assert len(document1["sentences"].predictions) == 2
+    assert document1["sentences"].predictions[1].target == document1.text
 
     assert document1 == TestDocument.fromdict(document1.asdict())
