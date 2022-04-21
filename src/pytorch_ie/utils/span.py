@@ -14,7 +14,7 @@ from typing import (
 
 from transformers import PreTrainedTokenizer
 
-from pytorch_ie.data import LabeledSpan
+from pytorch_ie import LabeledSpan
 
 TypedSpan = Tuple[int, Tuple[int, int]]
 TypedStringSpan = Tuple[str, Tuple[int, int]]
@@ -183,7 +183,7 @@ def convert_span_annotations_to_tag_sequence(
         end_idx = char_to_token_mapper(span.end - 1 - offset)
         if start_idx is None or end_idx is None:
             if statistics is not None:
-                statistics["skipped_unaligned"][span.label_single] += 1
+                statistics["skipped_unaligned"][span.label] += 1
             else:
                 logger.warning(
                     f"Entity annotation does not start or end with a token, it will be skipped: {span}"
@@ -199,10 +199,10 @@ def convert_span_annotations_to_tag_sequence(
                 # TODO: is ValueError a good exception type for this?
                 raise ValueError(f"tag already assigned (current span has an overlap: {span})")
             prefix = "B" if j == start_idx else "I"
-            tag_sequence[j] = f"{prefix}-{span.label_single}"
+            tag_sequence[j] = f"{prefix}-{span.label}"
 
         if statistics is not None:
-            statistics["added"][span.label_single] += 1
+            statistics["added"][span.label] += 1
 
     return tag_sequence
 

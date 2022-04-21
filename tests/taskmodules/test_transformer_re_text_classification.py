@@ -6,39 +6,6 @@
 
 # from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 # from pytorch_ie.taskmodules.transformer_re_text_classification import _enumerate_entity_pairs
-# from tests.fixtures.document import (
-#     DOC1_ENTITY_BERLIN,
-#     DOC1_ENTITY_JANE,
-#     DOC1_ENTITY_KARL,
-#     DOC1_REL_LIVES_IN,
-#     DOC1_SENTENCE1,
-#     DOC1_TEXT,
-#     DOC1_TOKENS,
-#     DOC2_ENTITY_JENNY,
-#     DOC2_ENTITY_SEATTLE,
-#     DOC2_REL_MAYOR_OF,
-#     DOC2_SENTENCE1,
-#     DOC2_SENTENCE2,
-#     DOC2_TEXT,
-#     DOC2_TOKENS,
-#     DOC3_ENTITY_BERLIN,
-#     DOC3_ENTITY_KARL,
-#     DOC3_SENTENCE1,
-#     DOC3_TEXT,
-#     DOC3_TOKENS,
-#     get_doc1,
-#     get_doc2,
-#     get_doc3,
-# )
-
-
-# @pytest.fixture
-# def documents():
-#     doc_kwargs = dict(
-#         assert_span_text=True,
-#     )
-#     documents = [get_doc1(**doc_kwargs), get_doc2(**doc_kwargs), get_doc3(**doc_kwargs)]
-#     return documents
 
 
 # @pytest.fixture(scope="module")

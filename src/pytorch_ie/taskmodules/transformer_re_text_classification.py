@@ -389,7 +389,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                                 if entity.is_multilabel:
                                     raise NotImplementedError
                                 markers[(arg_name, pos)] = argument_markers_to_id[
-                                    self.argument_markers[(arg_name, pos, entity.label_single)]
+                                    self.argument_markers[(arg_name, pos, entity.label)]
                                 ]
                             else:
                                 markers[(arg_name, pos)] = argument_markers_to_id[

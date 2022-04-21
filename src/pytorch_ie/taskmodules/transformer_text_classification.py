@@ -17,7 +17,8 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Annotation, Document, Label
+from pytorch_ie.annotations import Annotation, Label
+from pytorch_ie.document import Document
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -169,7 +170,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             else:
                 assert len(annotations) == 1 and not annotations[0].is_multilabel
 
-                label = annotations[0].label_single
+                label = annotations[0].label
                 label_ids = [self.label_to_id[label]]
 
             target.append(label_ids)

@@ -5,14 +5,14 @@ from tests import FIXTURES_ROOT
 from tests.data.dataset_tester import DatasetTester
 
 
-def test_dataset(document_dataset):
-    assert set(document_dataset.keys()) == {"train", "validation", "test"}
+def test_dataset(dataset):
+    assert set(dataset.keys()) == {"train", "validation", "test"}
 
-    assert len(document_dataset["train"]) == 8
-    assert len(document_dataset["validation"]) == 2
-    assert len(document_dataset["test"]) == 2
+    assert len(dataset["train"]) == 8
+    assert len(dataset["validation"]) == 2
+    assert len(dataset["test"]) == 2
 
-    train_doc5 = document_dataset["train"][4]
+    train_doc5 = dataset["train"][4]
     assert train_doc5.id == "train_doc5"
     assert len(train_doc5.sentences) == 3
     assert len(train_doc5.entities) == 3
@@ -21,15 +21,15 @@ def test_dataset(document_dataset):
     assert train_doc5.sentences[1].text == "Entity G works at H."
 
 
-def test_dataset_index(document_dataset):
-    train_dataset = document_dataset["train"]
+def test_dataset_index(dataset):
+    train_dataset = dataset["train"]
     assert train_dataset[4].id == "train_doc5"
     assert [doc.id for doc in train_dataset[0, 3, 5]] == ["train_doc1", "train_doc4", "train_doc6"]
     assert [doc.id for doc in train_dataset[2:5]] == ["train_doc3", "train_doc4", "train_doc5"]
 
 
-def test_dataset_map(document_dataset):
-    train_dataset = document_dataset["train"]
+def test_dataset_map(dataset):
+    train_dataset = dataset["train"]
 
     def clear_relations(document):
         document.relations.clear()
@@ -43,8 +43,8 @@ def test_dataset_map(document_dataset):
     assert sum(len(doc.relations) for doc in train_dataset) == 7
 
 
-def test_dataset_map_batched(document_dataset):
-    train_dataset = document_dataset["train"]
+def test_dataset_map_batched(dataset):
+    train_dataset = dataset["train"]
 
     def clear_relations_batched(documents):
         assert len(documents) == 2
@@ -76,6 +76,22 @@ def test_load_with_hf_datasets():
 
     dataset = datasets.load_dataset(
         path=str(dataset_dir / "conll2003.py"),
+    )
+
+    assert set(dataset.keys()) == {"train", "validation", "test"}
+
+    # TODO: the updated CoNLL03 data files have two newlines at the end
+    # this results in one additional example in train, validation, and test
+    # --> file a bug report in HF datasets
+    assert len(dataset["train"]) == 14042  # 14041
+    assert len(dataset["validation"]) == 3251
+    assert len(dataset["test"]) == 3454
+
+
+@pytest.mark.slow
+def test_load_with_hf_datasets_from_hub():
+    dataset = datasets.load_dataset(
+        path="pie/conll2003",
     )
 
     assert set(dataset.keys()) == {"train", "validation", "test"}

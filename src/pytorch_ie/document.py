@@ -38,7 +38,7 @@ class Document(Mapping[str, Any]):
         if key not in self._annotation_fields:
             raise KeyError(f"Document has no attribute '{key}'.")
         return getattr(self, key)
-    
+
     def __iter__(self):
         return iter((field.name, getattr(self, field.name)) for field in self._annotation_fields)
 

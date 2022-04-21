@@ -1,10 +1,14 @@
 from typing import Any, Dict
 
-from pytorch_ie.data.dataset import Dataset
+from .builder import GeneratorBasedBuilder
+from .dataset import Dataset
+from .dataset_formatter import DocumentFormatter
 
 Metadata = Dict[str, Any]
 
 __all__ = [
     "Metadata",
+    "GeneratorBasedBuilder",
     "Dataset",
+    "DocumentFormatter",
 ]

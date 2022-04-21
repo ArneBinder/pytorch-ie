@@ -140,17 +140,17 @@ class TaskModule(
         new annotations created from model predictions.
         """
         if not inplace:
-            copied_documents = {doc: copy.deepcopy(doc) for doc in input_documents}
+            copied_documents = {id(doc): copy.deepcopy(doc) for doc in input_documents}
             encodings = [
                 TaskEncoding[InputEncoding, TargetEncoding](
                     input=encoding.input,
-                    document=copied_documents[encoding.document],
+                    document=copied_documents[id(encoding.document)],
                     target=encoding.target if encoding.has_target else None,
                     metadata=encoding.metadata,
                 )
                 for encoding in encodings
             ]
-            documents = [copied_documents[doc] for doc in input_documents]
+            documents = [copied_documents[id(doc)] for doc in input_documents]
         else:
             documents = input_documents
 

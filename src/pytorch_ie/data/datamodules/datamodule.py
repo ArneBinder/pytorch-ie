@@ -4,7 +4,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.dataset import Dataset
 
-from pytorch_ie import Document
+from pytorch_ie.document import Document
 from pytorch_ie.taskmodules.taskmodule import (
     InputEncoding,
     TargetEncoding,

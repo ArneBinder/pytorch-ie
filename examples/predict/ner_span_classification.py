@@ -1,6 +1,13 @@
-from pytorch_ie import Document, Pipeline
+from dataclasses import dataclass
+
+from pytorch_ie import AnnotationList, LabeledSpan, Pipeline, TextDocument, annotation_field
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+
+
+@dataclass
+class ExampleDocument(TextDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
 def main():
@@ -10,16 +17,14 @@ def main():
 
     ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1)
 
-    document = Document(
+    document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
 
     ner_pipeline(document, predict_field="entities")
 
-    for entity in document.predictions.spans["entities"]:
-        entity_text = document.text[entity.start : entity.end]
-        label = entity.label
-        print(f"{entity_text} -> {label}")
+    for entity in document.entities.predictions:
+        print(f"{entity.text} -> {entity.label}")
 
 
 if __name__ == "__main__":

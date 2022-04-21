@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from datasets.builder import BuilderConfig
 from datasets.load import dataset_module_factory, import_main_class
-from datasets.utils.download_manager import GenerateMode
+from datasets.utils.download_manager import DownloadMode
 from datasets.utils.file_utils import DownloadConfig, is_remote_url
 from datasets.utils.logging import get_logger
 from datasets.utils.mock_download_manager import MockDownloadManager
@@ -95,7 +95,7 @@ class DatasetTester:
                 # generate examples from dummy data
                 dataset_builder.download_and_prepare(
                     dl_manager=mock_dl_manager,
-                    download_mode=GenerateMode.FORCE_REDOWNLOAD,
+                    download_mode=DownloadMode.FORCE_REDOWNLOAD,
                     ignore_verifications=True,
                     try_from_hf_gcs=False,
                 )

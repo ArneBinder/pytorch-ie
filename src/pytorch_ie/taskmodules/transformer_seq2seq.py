@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
+from pytorch_ie import BinaryRelation, LabeledSpan, TextDocument
 from pytorch_ie.models import (
     TransformerSeq2SeqModelBatchOutput,
     TransformerSeq2SeqModelStepBatchEncoding,
@@ -46,6 +46,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
     def __init__(
         self,
         tokenizer_name_or_path: str,
+        entity_annotation: str = "entities",
         relation_annotation: str = "relations",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
@@ -57,6 +58,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         self.save_hyperparameters()
 
         self.relation_annotation = relation_annotation
+        self.entity_annotation = entity_annotation
         self.padding = padding
         self.truncation = truncation
         self.max_input_length = max_input_length
@@ -65,7 +67,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
-    def document_to_input_string(self, document: Document) -> str:
+    def document_to_input_string(self, document: TextDocument) -> str:
         return document.text
 
     def encode_input_strings(self, inputs: List[str]) -> List[TransformerSeq2SeqInputEncoding]:
@@ -82,9 +84,11 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
     def encode_input(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         is_training: bool = False,
-    ) -> Tuple[List[TransformerSeq2SeqInputEncoding], List[Metadata], Optional[List[Document]]]:
+    ) -> Tuple[
+        List[TransformerSeq2SeqInputEncoding], List[Metadata], Optional[List[TextDocument]]
+    ]:
         input_strings = [self.document_to_input_string(document) for document in documents]
         return (
             self.encode_input_strings(input_strings),
@@ -92,8 +96,8 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             documents,
         )
 
-    def document_to_target_string(self, document: Document) -> str:
-        relations = document.annotations.binary_relations[self.relation_annotation]
+    def document_to_target_string(self, document: TextDocument) -> str:
+        relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
         head_to_relation: Dict[LabeledSpan, List[BinaryRelation]] = {}
         for relation in relations:
@@ -121,7 +125,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
                 if tail_relation.is_multilabel:
                     raise NotImplementedError
 
-                label = tail_relation.label_single
+                label = tail_relation.label
 
                 lin_triplets.append("<subj>")
                 lin_triplets.append(tail_entity)
@@ -146,7 +150,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
     def encode_target(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         input_encodings: List[TransformerSeq2SeqInputEncoding],
         metadata: List[Metadata],
     ) -> List[TransformerSeq2SeqTargetEncoding]:
@@ -170,7 +174,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         self,
         encoding: TransformerSeq2SeqTaskEncoding,
         output: TransformerSeq2SeqTaskOutput,
-    ) -> Iterator[Tuple[str, Annotation]]:
+    ) -> Iterator[Tuple[str, Union[LabeledSpan, BinaryRelation]]]:
         for relation in output:
             head_entity = relation["head"]
             tail_entity = relation["tail"]
@@ -190,14 +194,13 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             head = LabeledSpan(start=head_match.start(), end=head_match.end(), label="head")
             tail = LabeledSpan(start=tail_match.start(), end=tail_match.end(), label="tail")
 
-            yield (
-                self.relation_annotation,
-                BinaryRelation(
-                    head=head,
-                    tail=tail,
-                    label=label,
-                ),
-            )
+            relation = BinaryRelation(head=head, tail=tail, label=label)
+
+            yield from [
+                (self.entity_annotation, head),
+                (self.entity_annotation, tail),
+                (self.relation_annotation, relation),
+            ]
 
     def collate(
         self, encodings: List[TransformerSeq2SeqTaskEncoding]

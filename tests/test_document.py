@@ -1,6 +1,7 @@
 import dataclasses
-import pytest
 import re
+
+import pytest
 
 from pytorch_ie.annotations import AnnotationList, BinaryRelation, LabeledSpan, Span
 from pytorch_ie.document import TextDocument, annotation_field
@@ -19,7 +20,6 @@ def test_text_document():
 
     assert document1 == TextDocument.fromdict(document1.asdict())
 
-
     document2 = TextDocument(text="text2", id="test_id", metadata={"key": "value"})
     assert document2.text == "text2"
     assert document2.id == "test_id"
@@ -34,6 +34,7 @@ def test_text_document():
     }
 
     assert document2 == TextDocument.fromdict(document2.asdict())
+
 
 def test_document_with_annotations():
     @dataclasses.dataclass

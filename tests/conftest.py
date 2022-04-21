@@ -19,7 +19,7 @@ class TestDocument(TextDocument):
 
 
 @pytest.fixture
-def dataset():
+def json_dataset():
     dataset_dir = FIXTURES_ROOT / "datasets" / "json"
 
     dataset = datasets.load_dataset(
@@ -36,7 +36,7 @@ def dataset():
 
 
 @pytest.fixture
-def document_dataset(dataset):
+def dataset(json_dataset):
     def example_to_doc_dict(example):
         doc = TestDocument(text=example["text"], id=example["id"])
 
@@ -64,20 +64,25 @@ def document_dataset(dataset):
 
         return doc.asdict()
 
-    mapped_dataset = dataset.map(example_to_doc_dict)
+    mapped_dataset = json_dataset.map(example_to_doc_dict)
 
-    doc_dataset = datasets.DatasetDict(
+    dataset = datasets.DatasetDict(
         {
             k: Dataset.from_hf_dataset(dataset, document_type=TestDocument)
             for k, dataset in mapped_dataset.items()
         }
     )
 
-    assert len(doc_dataset) == 3
-    assert set(doc_dataset.keys()) == {"train", "validation", "test"}
+    assert len(dataset) == 3
+    assert set(dataset.keys()) == {"train", "validation", "test"}
 
-    assert len(doc_dataset["train"]) == 8
-    assert len(doc_dataset["validation"]) == 2
-    assert len(doc_dataset["test"]) == 2
+    assert len(dataset["train"]) == 8
+    assert len(dataset["validation"]) == 2
+    assert len(dataset["test"]) == 2
 
-    return doc_dataset
+    return dataset
+
+
+@pytest.fixture
+def documents(dataset):
+    return list(dataset["train"])

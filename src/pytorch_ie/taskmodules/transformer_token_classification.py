@@ -10,7 +10,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie.data.document import Annotation, Document, LabeledSpan
+from pytorch_ie import LabeledSpan, TextDocument
 from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchOutput,
     TransformerTokenClassificationModelStepBatchEncoding,
@@ -93,13 +93,14 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: List[Document]) -> None:
+    def prepare(self, documents: List[TextDocument]) -> None:
         labels = set()
         for document in documents:
-            entities = document.annotations.spans[self.entity_annotation]
+            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
 
             for entity in entities:
-                labels.update(entity.labels)
+                labels.add(entity.label)
+                # labels.update(entity.label)
 
         self.label_to_id["O"] = 0
         current_id = 1
@@ -129,12 +130,12 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def encode_input(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         is_training: bool = False,
     ) -> Tuple[
         List[TransformerTokenClassificationInputEncoding],
         List[Metadata],
-        Optional[List[Document]],
+        Optional[List[TextDocument]],
     ]:
         metadata = []
         expanded_documents = []
@@ -142,7 +143,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         for doc in documents:
             partitions: Sequence[Optional[LabeledSpan]]
             if self.partition_annotation is not None:
-                partitions = doc.annotations.spans[self.partition_annotation]
+                partitions = doc[self.partition_annotation]
             else:
                 partitions = [None]
 
@@ -221,7 +222,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def encode_target(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         input_encodings: List[TransformerTokenClassificationInputEncoding],
         metadata: List[Metadata],
     ) -> List[TransformerTokenClassificationTargetEncoding]:
@@ -231,11 +232,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         )
         for i, document in enumerate(documents):
             current_metadata = metadata[i]
-            entities = document.annotations.spans[self.entity_annotation]
+            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
             partition = None
             if self.partition_annotation is not None:
                 partition_index = current_metadata["sentence_index"]
-                partitions = document.annotations.spans[self.partition_annotation]
+                partitions = document[self.partition_annotation]
                 partition = partitions[partition_index]
             tag_sequence = convert_span_annotations_to_tag_sequence(
                 spans=entities,
@@ -272,11 +273,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self,
         encoding: TransformerTokenClassificationTaskEncoding,
         output: TransformerTokenClassificationTaskOutput,
-    ) -> Iterator[Tuple[str, Annotation]]:
+    ) -> Iterator[Tuple[str, LabeledSpan]]:
 
         offset = 0
         if self.partition_annotation is not None:
-            partitions = encoding.document.annotations.spans[self.partition_annotation]
+            partitions = encoding.document[self.partition_annotation]
             offset = partitions[encoding.metadata["sentence_index"]].start
 
         tag_sequence = [
