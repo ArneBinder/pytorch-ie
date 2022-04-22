@@ -213,7 +213,9 @@ def test_binary_relation():
         hash(head): ("head", head),
         hash(tail): ("tail", tail),
     }
-    binary_relation2 == BinaryRelation.fromdict(binary_relation2.asdict(), annotation_store=annotation_store)
+    binary_relation2 == BinaryRelation.fromdict(
+        binary_relation2.asdict(), annotation_store=annotation_store
+    )
 
     with pytest.raises(
         ValueError, match=re.escape("Unable to resolve head reference without annotations.")
