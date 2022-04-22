@@ -28,7 +28,7 @@ def test_label():
     assert label2.score == pytest.approx(0.5)
 
     assert label2.asdict() == {
-        "id": hash(label2),
+        "_id": hash(label2),
         "label": "label2",
         "score": 0.5,
     }
@@ -46,7 +46,7 @@ def test_multilabel():
     assert multilabel2.score == pytest.approx((0.4, 0.5))
 
     multilabel2.asdict() == {
-        "id": hash(multilabel2),
+        "_id": hash(multilabel2),
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
@@ -65,7 +65,7 @@ def test_span():
     assert span.end == 2
 
     span.asdict() == {
-        "id": hash(span),
+        "_id": hash(span),
         "start": 1,
         "end": 2,
     }
@@ -87,7 +87,7 @@ def test_labeled_span():
     assert labeled_span2.score == pytest.approx(0.5)
 
     labeled_span2.asdict() == {
-        "id": hash(labeled_span2),
+        "_id": hash(labeled_span2),
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
@@ -111,7 +111,7 @@ def test_multilabeled_span():
     assert multilabeled_span2.score == pytest.approx((0.4, 0.5))
 
     multilabeled_span2.asdict() == {
-        "id": hash(multilabeled_span2),
+        "_id": hash(multilabeled_span2),
         "start": 3,
         "end": 4,
         "label": ("label3", "label4"),
@@ -142,7 +142,7 @@ def test_labeled_multi_span():
     assert labeled_multi_span2.score == pytest.approx(0.5)
 
     labeled_multi_span2.asdict() == {
-        "id": hash(labeled_multi_span2),
+        "_id": hash(labeled_multi_span2),
         "slices": ((5, 6), (7, 8)),
         "label": "label2",
         "score": 0.5,
@@ -167,7 +167,7 @@ def test_multilabeled_multi_span():
     assert multilabeled_multi_span2.score == pytest.approx((0.4, 0.5))
 
     multilabeled_multi_span2.asdict() == {
-        "id": hash(multilabeled_multi_span2),
+        "_id": hash(multilabeled_multi_span2),
         "slices": ((5, 6), (7, 8)),
         "label": ("label2", "label3"),
         "score": (0.4, 0.5),
@@ -202,18 +202,18 @@ def test_binary_relation():
     assert binary_relation2.score == pytest.approx(0.5)
 
     binary_relation2.asdict() == {
-        "id": hash(binary_relation2),
+        "_id": hash(binary_relation2),
         "head": hash(head),
         "tail": hash(tail),
         "label": "label2",
         "score": 0.5,
     }
 
-    annotations = {
+    annotation_store = {
         hash(head): ("head", head),
         hash(tail): ("tail", tail),
     }
-    binary_relation2 == BinaryRelation.fromdict(binary_relation2.asdict(), annotations=annotations)
+    binary_relation2 == BinaryRelation.fromdict(binary_relation2.asdict(), annotation_store=annotation_store)
 
     with pytest.raises(
         ValueError, match=re.escape("Unable to resolve head reference without annotations.")
@@ -240,19 +240,19 @@ def test_multilabeled_binary_relation():
     assert binary_relation2.score == pytest.approx((0.4, 0.5))
 
     binary_relation2.asdict() == {
-        "id": hash(binary_relation2),
+        "_id": hash(binary_relation2),
         "head": hash(head),
         "tail": hash(tail),
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
 
-    annotations = {
+    annotation_store = {
         hash(head): ("head", head),
         hash(tail): ("tail", tail),
     }
     binary_relation2 == MultiLabeledBinaryRelation.fromdict(
-        binary_relation2.asdict(), annotations=annotations
+        binary_relation2.asdict(), annotation_store=annotation_store
     )
 
     with pytest.raises(

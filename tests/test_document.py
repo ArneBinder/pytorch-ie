@@ -53,9 +53,9 @@ def test_document_with_annotations():
     assert len(document1.sentences.predictions) == 0
     assert len(document1.entities.predictions) == 0
     assert len(document1.relations.predictions) == 0
-    assert set(document1._annotation_targets.keys()) == {"text", "entities"}
-    assert set(document1._annotation_targets["text"]) == {"sentences", "entities"}
-    assert set(document1._annotation_targets["entities"]) == {"relations"}
+    assert set(document1._annotation_graph.keys()) == {"text", "entities"}
+    assert set(document1._annotation_graph["text"]) == {"sentences", "entities"}
+    assert set(document1._annotation_graph["entities"]) == {"relations"}
 
     span1 = Span(start=1, end=2)
     span2 = Span(start=3, end=4)

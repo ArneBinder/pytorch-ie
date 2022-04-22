@@ -1,7 +1,7 @@
 import dataclasses
 import typing
 from collections.abc import Mapping
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from pytorch_ie.annotations import AnnotationList
 
@@ -29,10 +29,11 @@ def annotation_field(target: Optional[str] = None):
 
 @dataclasses.dataclass
 class Document(Mapping[str, Any]):
-    _annotation_targets: Dict[str, List[str]] = dataclasses.field(
+    _annotation_graph: Dict[str, List[str]] = dataclasses.field(
         default_factory=dict, init=False, repr=False
     )
     _annotation_fields: Set[str] = dataclasses.field(default_factory=set, init=False, repr=False)
+    _root_annotation: Optional[str] = dataclasses.field(default=None, init=False, repr=False)
 
     def __getitem__(self, key: str) -> AnnotationList:
         if key not in self._annotation_fields:
@@ -48,7 +49,7 @@ class Document(Mapping[str, Any]):
     def __post_init__(self):
         edges = set()
         for field in dataclasses.fields(self):
-            if field.name == "_annotation_targets":
+            if field.name == "_annotation_graph":
                 continue
 
             field_origin = typing.get_origin(field.type)
@@ -63,15 +64,15 @@ class Document(Mapping[str, Any]):
 
         for edge in edges:
             src, dst = edge
-            if dst not in self._annotation_targets:
-                self._annotation_targets[dst] = []
-            self._annotation_targets[dst].append(src)
+            if dst not in self._annotation_graph:
+                self._annotation_graph[dst] = []
+            self._annotation_graph[dst].append(src)
 
     # TODO: predictions are not serialized yet
     def asdict(self):
         dct = {}
         for field in dataclasses.fields(self):
-            if field.name in {"_annotation_targets", "_annotation_fields"}:
+            if field.name in {"_annotation_graph", "_annotation_fields", "_root_annotation"}:
                 continue
 
             value = getattr(self, field.name)
@@ -108,8 +109,8 @@ class Document(Mapping[str, Any]):
         _depth_first_search(
             lst=dependency_ordered_fields,
             visited=set(),
-            graph=doc._annotation_targets,
-            node="text",
+            graph=doc._annotation_graph,
+            node=doc._root_annotation,
         )
 
         annotations = {}
@@ -129,7 +130,7 @@ class Document(Mapping[str, Any]):
                 annotation_class = typing.get_args(field.type)[0]
                 for v in value:
                     v = dict(v)
-                    annotation_id = v.pop("id")
+                    annotation_id = v.pop("_id")
                     annotations[annotation_id] = (
                         field.name,
                         annotation_class.fromdict(v, annotations),
@@ -148,3 +149,4 @@ class TextDocument(Document):
     text: str
     id: Optional[str] = None
     metadata: Dict[str, Any] = dataclasses.field(default_factory=dict)
+    _root_annotation: str = dataclasses.field(default="text", init=False, repr=False)

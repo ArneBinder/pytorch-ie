@@ -8,7 +8,7 @@ from pytorch_ie.data import Dataset
 from pytorch_ie.document import TextDocument, annotation_field
 from tests import FIXTURES_ROOT
 
-datasets.set_caching_enabled(False)
+datasets.disable_caching()
 
 
 @dataclasses.dataclass

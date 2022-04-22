@@ -22,7 +22,7 @@ class Annotation:
 
     def asdict(self) -> Dict[str, Any]:
         dct = asdict(self)
-        dct["id"] = hash(self)
+        dct["_id"] = hash(self)
         del dct["_target"]
         return dct
 
@@ -30,10 +30,10 @@ class Annotation:
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotations: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
     ):
         tmp_dct = dict(dct)
-        tmp_dct.pop("id", None)
+        tmp_dct.pop("_id", None)
         return cls(**tmp_dct)
 
 
@@ -134,25 +134,25 @@ class BinaryRelation(Annotation, SingleLabelMixin):
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotations: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
     ):
         tmp_dct = dict(dct)
-        tmp_dct.pop("id", None)
+        tmp_dct.pop("_id", None)
 
         head = tmp_dct["head"]
         tail = tmp_dct["tail"]
 
         if isinstance(head, int):
-            if annotations is None:
-                raise ValueError("Unable to resolve head reference without annotations.")
+            if annotation_store is None:
+                raise ValueError("Unable to resolve head reference without annotation_store.")
 
-            tmp_dct["head"] = annotations[head][1]
+            tmp_dct["head"] = annotation_store[head][1]
 
         if isinstance(tail, int):
-            if annotations is None:
-                raise ValueError("Unable to resolve tail reference without annotations.")
+            if annotation_store is None:
+                raise ValueError("Unable to resolve tail reference without annotation_store.")
 
-            tmp_dct["tail"] = annotations[tail][1]
+            tmp_dct["tail"] = annotation_store[tail][1]
 
         return cls(**tmp_dct)
 
@@ -176,25 +176,25 @@ class MultiLabeledBinaryRelation(Annotation, MultiLabelMixin):
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotations: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
     ):
         tmp_dct = dict(dct)
-        tmp_dct.pop("id", None)
+        tmp_dct.pop("_id", None)
 
         head = tmp_dct["head"]
         tail = tmp_dct["tail"]
 
         if isinstance(head, int):
-            if annotations is None:
-                raise ValueError("Unable to resolve head reference without annotations.")
+            if annotation_store is None:
+                raise ValueError("Unable to resolve head reference without annotation_store.")
 
-            tmp_dct["head"] = annotations[head][1]
+            tmp_dct["head"] = annotation_store[head][1]
 
         if isinstance(tail, int):
-            if annotations is None:
-                raise ValueError("Unable to resolve tail reference without annotations.")
+            if annotation_store is None:
+                raise ValueError("Unable to resolve tail reference without annotation_store.")
 
-            tmp_dct["tail"] = annotations[tail][1]
+            tmp_dct["tail"] = annotation_store[tail][1]
 
         return cls(**tmp_dct)
 
