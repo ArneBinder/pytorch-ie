@@ -1,321 +1,269 @@
-# import copy
-# import os
+import copy
+import os
 
-# import pytest
-# import torch
+import numpy
+import pytest
+import torch
 
-# from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
-# from pytorch_ie.taskmodules.transformer_re_text_classification import _enumerate_entity_pairs
-
-
-# @pytest.fixture(scope="module")
-# def taskmodule():
-#     tokenizer_name_or_path = "bert-base-cased"
-#     taskmodule = TransformerRETextClassificationTaskModule(
-#         tokenizer_name_or_path=tokenizer_name_or_path,
-#     )
-#     return taskmodule
+from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
+from pytorch_ie.taskmodules.transformer_re_text_classification import _enumerate_entity_pairs
 
 
-# @pytest.fixture
-# def prepared_taskmodule(taskmodule, documents):
-#     taskmodule.prepare(documents)
-#     return taskmodule
+@pytest.fixture(scope="module")
+def taskmodule():
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path
+    )
+    return taskmodule
 
 
-# @pytest.fixture(scope="module", params=[False, True])
-# def taskmodule_optional_marker(request):
-#     tokenizer_name_or_path = "bert-base-cased"
-#     taskmodule = TransformerRETextClassificationTaskModule(
-#         tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
-#     )
-#     return taskmodule
+@pytest.fixture(scope="module", params=[False, True])
+def taskmodule_optional_marker(request):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
+    )
+    return taskmodule
 
 
-# @pytest.fixture
-# def prepared_taskmodule_optional_marker(taskmodule_optional_marker, documents):
-#     taskmodule_optional_marker.prepare(documents)
-#     return taskmodule_optional_marker
+@pytest.fixture
+def prepared_taskmodule(taskmodule, documents):
+    taskmodule.prepare(documents)
+    return taskmodule
 
 
-# @pytest.fixture
-# def model_output():
-#     return {
-#         "logits": torch.tensor(
-#             [
-#                 [-1.6924, 9.5473, -1.9625],
-#                 [-0.9995, -2.5705, 10.0095],
-#             ]
-#         ),
-#     }
+@pytest.fixture
+def prepared_taskmodule_optional_marker(taskmodule_optional_marker, documents):
+    taskmodule_optional_marker.prepare(documents)
+    return taskmodule_optional_marker
 
 
-# def test_prepare(taskmodule_optional_marker, documents):
-#     assert not taskmodule_optional_marker.is_prepared()
-#     taskmodule_optional_marker.prepare(documents)
-#     assert taskmodule_optional_marker.is_prepared()
-#     assert set(taskmodule_optional_marker.label_to_id.keys()) == {
-#         "no_relation",
-#         "mayor_of",
-#         "lives_in",
-#     }
-#     assert taskmodule_optional_marker.label_to_id["no_relation"] == 0
-#     if taskmodule_optional_marker.add_type_to_marker:
-#         assert taskmodule_optional_marker.argument_markers == {
-#             ("head", "end", "city"): "[/H:city]",
-#             ("head", "end", "person"): "[/H:person]",
-#             ("tail", "end", "city"): "[/T:city]",
-#             ("tail", "end", "person"): "[/T:person]",
-#             ("head", "start", "city"): "[H:city]",
-#             ("head", "start", "person"): "[H:person]",
-#             ("tail", "start", "city"): "[T:city]",
-#             ("tail", "start", "person"): "[T:person]",
-#         }
-#     else:
-#         assert taskmodule_optional_marker.argument_markers == {
-#             ("head", "end"): "[/H]",
-#             ("tail", "end"): "[/T]",
-#             ("head", "start"): "[H]",
-#             ("tail", "start"): "[T]",
-#         }
+@pytest.fixture
+def model_output():
+    return {
+        "logits": torch.from_numpy(
+            numpy.log(
+                [
+                    # O, org:founded_by, per:employee_of, per:founder
+                    [0.1, 0.6, 0.1, 0.2],
+                    [0.5, 0.2, 0.2, 0.1],
+                    [0.1, 0.2, 0.6, 0.1],
+                    [0.1, 0.2, 0.2, 0.5],
+                    [0.2, 0.4, 0.3, 0.1],
+                    [0.5, 0.2, 0.2, 0.1],
+                    [0.6, 0.1, 0.2, 0.1],
+                    [0.5, 0.2, 0.2, 0.1],
+                ]
+            )
+        ),
+    }
 
 
-# def test_config(prepared_taskmodule_optional_marker):
-#     config = prepared_taskmodule_optional_marker._config()
-#     assert config["taskmodule_type"] == "TransformerRETextClassificationTaskModule"
-#     assert "label_to_id" in config
-#     assert set(config["label_to_id"]) == {"no_relation", "mayor_of", "lives_in"}
-#     if prepared_taskmodule_optional_marker.add_type_to_marker:
-#         assert set(config["entity_labels"]) == {"person", "city"}
-#     else:
-#         assert config["entity_labels"] == []
+def test_prepare(taskmodule_optional_marker, documents):
+    taskmodule = taskmodule_optional_marker
+    assert not taskmodule.is_prepared()
+    taskmodule.prepare(documents)
+    assert taskmodule.is_prepared()
+
+    if taskmodule.add_type_to_marker:
+        assert taskmodule.entity_labels == ["ORG", "PER"]
+        assert taskmodule.argument_markers == {
+            ("head", "start", "PER"): "[H:PER]",
+            ("head", "end", "PER"): "[/H:PER]",
+            ("tail", "start", "PER"): "[T:PER]",
+            ("tail", "end", "PER"): "[/T:PER]",
+            ("head", "start", "ORG"): "[H:ORG]",
+            ("head", "end", "ORG"): "[/H:ORG]",
+            ("tail", "start", "ORG"): "[T:ORG]",
+            ("tail", "end", "ORG"): "[/T:ORG]",
+        }
+    else:
+        assert taskmodule.entity_labels == []
+        assert taskmodule.argument_markers == {
+            ("head", "start"): "[H]",
+            ("head", "end"): "[/H]",
+            ("tail", "start"): "[T]",
+            ("tail", "end"): "[/T]",
+        }
+
+    assert set(taskmodule.label_to_id.keys()) == {
+        taskmodule.none_label,
+        "per:employee_of",
+        "org:founded_by",
+        "per:founder",
+    }
+    assert [taskmodule.id_to_label[i] for i in range(4)] == [
+        taskmodule.none_label,
+        "org:founded_by",
+        "per:employee_of",
+        "per:founder",
+    ]
+    assert taskmodule.label_to_id[taskmodule.none_label] == 0
 
 
-# @pytest.mark.parametrize("is_training", [False, True])
-# def test_encode_input(prepared_taskmodule_optional_marker, documents, is_training):
-#     (
-#         input_encoding,
-#         metadata,
-#         new_documents,
-#     ) = prepared_taskmodule_optional_marker.encode_input(documents, is_training=is_training)
-#     tokens = [
-#         prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(encoding["input_ids"])
-#         for encoding in input_encoding
-#     ]
-#     if is_training:
-#         assert len(input_encoding) == 2
-#         assert new_documents is not None
-#         assert len(new_documents) == 2
-#         assert new_documents[0].text == DOC1_TEXT
-#         assert new_documents[1].text == DOC2_TEXT
+def test_config(prepared_taskmodule_optional_marker):
+    prepared_taskmodule = prepared_taskmodule_optional_marker
 
-#         if prepared_taskmodule_optional_marker.add_type_to_marker:
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H:person]",
-#                 "Jane",
-#                 "[/H:person]",
-#                 "lives",
-#                 "in",
-#                 "[T:city]",
-#                 "Berlin",
-#                 "[/T:city]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#             ]
-#             assert tokens[1] == [
-#                 "[CLS]",
-#                 "[T:city]",
-#                 "Seattle",
-#                 "[/T:city]",
-#                 "is",
-#                 "a",
-#                 "rainy",
-#                 "city",
-#                 ".",
-#                 "[H:person]",
-#                 "Jenny",
-#                 "Du",
-#                 "##rka",
-#                 "##n",
-#                 "[/H:person]",
-#                 "is",
-#                 "the",
-#                 "city",
-#                 "'",
-#                 "s",
-#                 "mayor",
-#                 ".",
-#                 "[SEP]",
-#             ]
-#         else:
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H]",
-#                 "Jane",
-#                 "[/H]",
-#                 "lives",
-#                 "in",
-#                 "[T]",
-#                 "Berlin",
-#                 "[/T]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#             ]
-#             assert tokens[1] == [
-#                 "[CLS]",
-#                 "[T]",
-#                 "Seattle",
-#                 "[/T]",
-#                 "is",
-#                 "a",
-#                 "rainy",
-#                 "city",
-#                 ".",
-#                 "[H]",
-#                 "Jenny",
-#                 "Du",
-#                 "##rka",
-#                 "##n",
-#                 "[/H]",
-#                 "is",
-#                 "the",
-#                 "city",
-#                 "'",
-#                 "s",
-#                 "mayor",
-#                 ".",
-#                 "[SEP]",
-#             ]
-#     else:
-#         assert len(input_encoding) == 10
-#         assert new_documents is not None
-#         assert len(new_documents) == 10
-#         assert new_documents[0].text == DOC1_TEXT
-#         assert new_documents[6].text == DOC2_TEXT
-#         assert new_documents[8].text == DOC3_TEXT
+    config = prepared_taskmodule._config()
+    assert config["taskmodule_type"] == "TransformerRETextClassificationTaskModule"
+    assert "label_to_id" in config
+    assert config["label_to_id"] == {
+        prepared_taskmodule.none_label: 0,
+        "org:founded_by": 1,
+        "per:employee_of": 2,
+        "per:founder": 3,
+    }
 
-#         if prepared_taskmodule_optional_marker.add_type_to_marker:
-#             # just check the first two entries
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H:person]",
-#                 "Jane",
-#                 "[/H:person]",
-#                 "lives",
-#                 "in",
-#                 "[T:city]",
-#                 "Berlin",
-#                 "[/T:city]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#             ]
-#             assert tokens[1] == [
-#                 "[CLS]",
-#                 "[H:person]",
-#                 "Jane",
-#                 "[/H:person]",
-#                 "lives",
-#                 "in",
-#                 "Berlin",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "[T:person]",
-#                 "Karl",
-#                 "[/T:person]",
-#                 "[SEP]",
-#             ]
-#         else:
-#             # just check the first two entries
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H]",
-#                 "Jane",
-#                 "[/H]",
-#                 "lives",
-#                 "in",
-#                 "[T]",
-#                 "Berlin",
-#                 "[/T]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#             ]
-#             assert tokens[1] == [
-#                 "[CLS]",
-#                 "[H]",
-#                 "Jane",
-#                 "[/H]",
-#                 "lives",
-#                 "in",
-#                 "Berlin",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "[T]",
-#                 "Karl",
-#                 "[/T]",
-#                 "[SEP]",
-#             ]
+    if prepared_taskmodule.add_type_to_marker:
+        assert config["entity_labels"] == ["ORG", "PER"]
+    else:
+        assert config["entity_labels"] == []
 
 
-# @pytest.mark.parametrize("encode_target", [False, True])
-# def test_encode_target(prepared_taskmodule, documents, encode_target):
-#     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
-#     if encode_target:
-#         # in this case, the existing relations were taken into account
-#         assert len(task_encodings) == 2
-#         encoding = task_encodings[0]
-#         assert encoding.has_target
-#         target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
-#         assert target_labels == [DOC1_REL_LIVES_IN.label]
+@pytest.mark.parametrize("encode_target", [False, True])
+def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
+    prepared_taskmodule = prepared_taskmodule_optional_marker
 
-#         encoding = task_encodings[1]
-#         assert encoding.has_target
-#         target_labels = [prepared_taskmodule.id_to_label[_id] for _id in encoding.target]
-#         assert target_labels == [DOC2_REL_MAYOR_OF.label]
-#     else:
-#         # all possible entity pairs are taken as candidates
-#         assert len(task_encodings) == 10
-#         assert [encoding.has_target for encoding in task_encodings] == [False] * len(
-#             task_encodings
-#         )
+    task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
+
+    if encode_target:
+        assert len(task_encodings) == 7
+    else:
+        assert len(task_encodings) == 24
+
+    encoding = task_encodings[0]
+
+    tokens = prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.input["input_ids"])
+
+    if prepared_taskmodule.add_type_to_marker:
+        tokens == [
+            "[CLS]",
+            "[H:PER]",
+            "En",
+            "##ti",
+            "##ty",
+            "A",
+            "[/H:PER]",
+            "works",
+            "at",
+            "[T:ORG]",
+            "B",
+            "[/T:ORG]",
+            ".",
+            "[SEP]",
+        ]
+    else:
+        tokens == [
+            "[CLS]",
+            "[H]",
+            "En",
+            "##ti",
+            "##ty",
+            "A",
+            "[/H]",
+            "works",
+            "at",
+            "[T]",
+            "B",
+            "[/T]",
+            ".",
+            "[SEP]",
+        ]
+
+    if encode_target:
+        assert encoding.target == [2]
+    else:
+        assert encoding.target is None
+        assert not encoding.has_target
 
 
-# @pytest.mark.parametrize("encode_target", [False, True])
-# def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
-#     # the code is actually tested in test_encode_input() and test_encode_target(). Here we only test assertions in encode().
-#     task_encodings = prepared_taskmodule_optional_marker.encode(documents, encode_target=True)
+@pytest.mark.parametrize("encode_target", [False, True])
+def test_collate(prepared_taskmodule, documents, encode_target):
+    documents = [documents[i] for i in [0, 1, 4]]
+
+    encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
+
+    if encode_target:
+        assert len(encodings) == 4
+        assert all([encoding.has_target for encoding in encodings])
+    else:
+        assert len(encodings) == 8
+        assert not any([encoding.has_target for encoding in encodings])
+
+    batch_encoding = prepared_taskmodule.collate(encodings)
+    inputs, targets = batch_encoding
+
+    assert "input_ids" in inputs
+    assert "attention_mask" in inputs
+    assert inputs["input_ids"].shape == inputs["attention_mask"].shape
+
+    if encode_target:
+        assert inputs["input_ids"].shape == (4, 21)
+        assert len(targets) == 4
+    else:
+        assert inputs["input_ids"].shape == (8, 21)
+        assert targets is None
+
+
+def test_unbatch_output(prepared_taskmodule, model_output):
+    unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
+
+    assert len(unbatched_outputs) == 8
+
+    labels = [
+        "org:founded_by",
+        "no_relation",
+        "per:employee_of",
+        "per:founder",
+        "org:founded_by",
+        "no_relation",
+        "no_relation",
+        "no_relation",
+    ]
+    probabilities = [0.6, 0.5, 0.6, 0.5, 0.4, 0.5, 0.6, 0.5]
+
+    for output, label, probability in zip(unbatched_outputs, labels, probabilities):
+        assert set(output.keys()) == {"labels", "probabilities"}
+        assert output["labels"] == [label]
+        assert output["probabilities"] == pytest.approx([probability])
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+def test_decode(prepared_taskmodule, documents, model_output, inplace):
+    documents = [documents[i] for i in [0, 1, 4]]
+
+    encodings = prepared_taskmodule.encode(documents, encode_target=False)
+    unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
+    decoded_documents = prepared_taskmodule.decode(
+        encodings=encodings,
+        decoded_outputs=unbatched_outputs,
+        input_documents=documents,
+        inplace=inplace,
+    )
+
+    assert len(decoded_documents) == len(documents)
+
+    if inplace:
+        assert {id(doc) for doc in decoded_documents} == {id(doc) for doc in documents}
+    else:
+        assert {id(doc) for doc in decoded_documents}.isdisjoint({id(doc) for doc in documents})
+
+    expected_scores = [0.6, 0.5, 0.6, 0.5, 0.4, 0.5, 0.6, 0.5]
+    i = 0
+    for document in decoded_documents:
+        for relation_expected, relation_decoded in zip(
+            document["entities"], document["entities"].predictions
+        ):
+            assert relation_expected.start == relation_decoded.start
+            assert relation_expected.end == relation_decoded.end
+            assert relation_expected.label == relation_decoded.label
+            assert expected_scores[i] == pytest.approx(relation_decoded.score)
+            i += 1
+
+    if not inplace:
+        for document in documents:
+            assert not document["relations"].predictions
 
 
 # def test_encode_input_with_partitions(prepared_taskmodule_optional_marker, documents):
@@ -393,253 +341,6 @@
 #         assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
 #             encoding.input["input_ids"]
 #         ) == ["[CLS]", "[H]", "Jane", "[/H]", "lives", "in", "[T]", "Berlin", "[/T]", "[SEP]"]
-
-
-# @pytest.mark.parametrize("encode_target", [False, True])
-# def test_collate(prepared_taskmodule_optional_marker, documents, encode_target):
-#     encodings = prepared_taskmodule_optional_marker.encode(documents, encode_target=encode_target)
-
-#     if encode_target:
-#         assert len(encodings) == 2
-#         assert all([encoding.has_target for encoding in encodings])
-#     else:
-#         assert len(encodings) == 10
-#         assert not any([encoding.has_target for encoding in encodings])
-
-#     batch_encoding = prepared_taskmodule_optional_marker.collate(encodings)
-#     inputs, targets = batch_encoding
-#     assert "input_ids" in inputs
-#     assert "attention_mask" in inputs
-#     assert inputs["input_ids"].shape == inputs["attention_mask"].shape
-#     tokens = [
-#         prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(input_ids)
-#         for input_ids in inputs["input_ids"].tolist()
-#     ]
-#     if encode_target:
-#         assert inputs["input_ids"].shape[0] == 2
-#         if prepared_taskmodule_optional_marker.add_type_to_marker:
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H:person]",
-#                 "Jane",
-#                 "[/H:person]",
-#                 "lives",
-#                 "in",
-#                 "[T:city]",
-#                 "Berlin",
-#                 "[/T:city]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#             ]
-#             assert tokens[1] == [
-#                 "[CLS]",
-#                 "[T:city]",
-#                 "Seattle",
-#                 "[/T:city]",
-#                 "is",
-#                 "a",
-#                 "rainy",
-#                 "city",
-#                 ".",
-#                 "[H:person]",
-#                 "Jenny",
-#                 "Du",
-#                 "##rka",
-#                 "##n",
-#                 "[/H:person]",
-#                 "is",
-#                 "the",
-#                 "city",
-#                 "'",
-#                 "s",
-#                 "mayor",
-#                 ".",
-#                 "[SEP]",
-#             ]
-
-#         else:
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H]",
-#                 "Jane",
-#                 "[/H]",
-#                 "lives",
-#                 "in",
-#                 "[T]",
-#                 "Berlin",
-#                 "[/T]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#             ]
-#             assert tokens[1] == [
-#                 "[CLS]",
-#                 "[T]",
-#                 "Seattle",
-#                 "[/T]",
-#                 "is",
-#                 "a",
-#                 "rainy",
-#                 "city",
-#                 ".",
-#                 "[H]",
-#                 "Jenny",
-#                 "Du",
-#                 "##rka",
-#                 "##n",
-#                 "[/H]",
-#                 "is",
-#                 "the",
-#                 "city",
-#                 "'",
-#                 "s",
-#                 "mayor",
-#                 ".",
-#                 "[SEP]",
-#             ]
-#     else:
-#         assert inputs["input_ids"].shape[0] == 10
-#         if prepared_taskmodule_optional_marker.add_type_to_marker:
-#             # just test the first entry
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H:person]",
-#                 "Jane",
-#                 "[/H:person]",
-#                 "lives",
-#                 "in",
-#                 "[T:city]",
-#                 "Berlin",
-#                 "[/T:city]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#             ]
-#         else:
-#             # just test the first entry
-#             assert tokens[0] == [
-#                 "[CLS]",
-#                 "[H]",
-#                 "Jane",
-#                 "[/H]",
-#                 "lives",
-#                 "in",
-#                 "[T]",
-#                 "Berlin",
-#                 "[/T]",
-#                 ".",
-#                 "this",
-#                 "is",
-#                 "no",
-#                 "sentence",
-#                 "about",
-#                 "Karl",
-#                 "[SEP]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#                 "[PAD]",
-#             ]
-
-#     if encode_target:
-#         assert targets.shape == (2,)
-#         labels = [
-#             prepared_taskmodule_optional_marker.id_to_label[target_id]
-#             for target_id in targets.tolist()
-#         ]
-#         assert labels == [DOC1_REL_LIVES_IN.label, DOC2_REL_MAYOR_OF.label]
-#     else:
-#         assert targets is None
-
-
-# def test_unbatch_output(prepared_taskmodule, model_output):
-#     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
-
-#     assert len(unbatched_outputs) == 2
-
-#     unbatched_output1 = unbatched_outputs[0]
-#     assert len(unbatched_output1["labels"]) == 1
-#     assert len(unbatched_output1["probabilities"]) == 1
-#     assert unbatched_output1["labels"][0] == DOC1_REL_LIVES_IN.label
-#     assert unbatched_output1["probabilities"][0] == pytest.approx(0.9999768733978271)
-
-#     unbatched_output2 = unbatched_outputs[1]
-#     assert len(unbatched_output2["labels"]) == 1
-#     assert len(unbatched_output2["probabilities"]) == 1
-#     assert unbatched_output2["labels"][0] == DOC2_REL_MAYOR_OF.label
-#     assert unbatched_output2["probabilities"][0] == pytest.approx(0.9999799728393555)
-
-
-# @pytest.mark.parametrize("inplace", [False, True])
-# def test_decode(prepared_taskmodule, documents, model_output, inplace):
-#     encodings = prepared_taskmodule.encode(documents, encode_target=True)
-#     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
-#     assert len(unbatched_outputs) == len(encodings)
-#     decoded_documents = prepared_taskmodule.decode(
-#         encodings=encodings,
-#         decoded_outputs=unbatched_outputs,
-#         inplace=inplace,
-#         input_documents=documents,
-#     )
-
-#     assert len(decoded_documents) == 3
-#     if inplace:
-#         assert set(documents) == set(decoded_documents)
-#     else:
-#         for doc in decoded_documents:
-#             assert doc not in set(documents)
-
-#     predictions = decoded_documents[0].predictions.binary_relations["relations"]
-#     assert len(predictions) == 1
-#     prediction = predictions[0]
-#     assert prediction.label == DOC1_REL_LIVES_IN.label
-#     assert prediction.head == DOC1_ENTITY_JANE
-#     assert prediction.tail == DOC1_ENTITY_BERLIN
-
-#     predictions = decoded_documents[1].predictions.binary_relations["relations"]
-#     assert len(predictions) == 1
-#     prediction = predictions[0]
-#     assert prediction.label == DOC2_REL_MAYOR_OF.label
-#     assert prediction.head == DOC2_ENTITY_JENNY
-#     assert prediction.tail == DOC2_ENTITY_SEATTLE
-
-#     assert not decoded_documents[2].predictions.binary_relations.has_layer("relations")
 
 
 # def test_save_load(tmp_path, prepared_taskmodule):

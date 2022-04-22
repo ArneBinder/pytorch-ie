@@ -216,15 +216,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            entities = document[self.entity_annotation]
-            relations = document[self.relation_annotation]
+            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
             if self.add_type_to_marker:
                 for entity in entities:
-                    entity_labels.update(entity.labels)
+                    entity_labels.add(entity.label)
 
             for relation in relations:
-                relation_labels.update(relation.labels)
+                relation_labels.add(relation.label)
 
         if self.none_label in relation_labels:
             relation_labels.remove(self.none_label)
@@ -291,9 +291,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         for document in documents:
             entities = document[self.entity_annotation]
             if is_training:
-                relations = document[self.relation_annotation]
+                relations: Sequence[BinaryRelation] = document[self.relation_annotation]
             else:
-                relations = None
+                relations: Sequence[BinaryRelation] = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
             partitions: Sequence[Optional[LabeledSpan]]
@@ -386,8 +386,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     for entity, arg_name in zip(entity_pair, entity_args):
                         for pos in [START, END]:
                             if self.add_type_to_marker:
-                                if entity.is_multilabel:
-                                    raise NotImplementedError
                                 markers[(arg_name, pos)] = argument_markers_to_id[
                                     self.argument_markers[(arg_name, pos, entity.label)]
                                 ]
@@ -440,10 +438,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
-            relations = document[self.relation_annotation]
+            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
             head_tail_to_labels = {
-                (relation.head, relation.tail): relation.labels for relation in relations
+                (relation.head, relation.tail): [relation.label] for relation in relations
             }
 
             labels = head_tail_to_labels.get((meta[HEAD], meta[TAIL]), [self.none_label])

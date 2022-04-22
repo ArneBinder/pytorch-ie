@@ -97,7 +97,7 @@ tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["pytorch_ie", "tests"]
+source = ["pytorch_ie"]
 
 [tool.coverage.report]
 show_missing = true

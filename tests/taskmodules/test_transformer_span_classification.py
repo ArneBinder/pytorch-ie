@@ -46,6 +46,7 @@ def model_output():
 def test_prepare(taskmodule, documents):
     taskmodule.prepare(documents)
     assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
+    assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
     assert taskmodule.label_to_id["O"] == 0
 
 
@@ -53,7 +54,7 @@ def test_config(prepared_taskmodule):
     config = prepared_taskmodule._config()
     assert config["taskmodule_type"] == "TransformerSpanClassificationTaskModule"
     assert "label_to_id" in config
-    assert set(config["label_to_id"]) == {"PER", "ORG", "O"}
+    assert config["label_to_id"] == {"O": 0, "ORG": 1, "PER": 2}
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
@@ -98,7 +99,8 @@ def test_unbatch_output(prepared_taskmodule, model_output):
     }
 
 
-def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
+@pytest.mark.parametrize("inplace", [False, True])
+def test_decode(prepared_taskmodule, documents, model_output, inplace):
     documents = documents[:3]
 
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
@@ -107,42 +109,31 @@ def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
         encodings=encodings,
         decoded_outputs=unbatched_outputs,
         input_documents=documents,
-        inplace=False,
+        inplace=inplace,
     )
 
     assert len(decoded_documents) == len(documents)
-    assert {id(doc) for doc in decoded_documents}.isdisjoint({id(doc) for doc in documents})
 
+    if inplace:
+        assert {id(doc) for doc in decoded_documents} == {id(doc) for doc in documents}
+    else:
+        assert {id(doc) for doc in decoded_documents}.isdisjoint({id(doc) for doc in documents})
+
+    expected_scores = [0.8, 0.5, 0.5, 0.6]
+    i = 0
     for document in decoded_documents:
         for entity_expected, entity_decoded in zip(
             document["entities"], document["entities"].predictions
         ):
-            assert entity_expected == entity_decoded
+            assert entity_expected.start == entity_decoded.start
+            assert entity_expected.end == entity_decoded.end
+            assert entity_expected.label == entity_decoded.label
+            assert expected_scores[i] == pytest.approx(entity_decoded.score)
+            i += 1
 
-    for document in documents:
-        assert not document["entities"].predictions
-
-
-def test_decode_inplace(prepared_taskmodule, documents, model_output):
-    documents = documents[:3]
-
-    encodings = prepared_taskmodule.encode(documents, encode_target=False)
-    unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
-    decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings,
-        decoded_outputs=unbatched_outputs,
-        input_documents=documents,
-        inplace=True,
-    )
-
-    assert len(decoded_documents) == len(documents)
-    assert {id(doc) for doc in decoded_documents} == {id(doc) for doc in documents}
-
-    for document in decoded_documents:
-        for entity_expected, entity_decoded in zip(
-            document["entities"], document["entities"].predictions
-        ):
-            assert entity_expected == entity_decoded
+    if not inplace:
+        for document in documents:
+            assert not document["entities"].predictions
 
 
 @pytest.mark.parametrize("encode_target", [False, True])

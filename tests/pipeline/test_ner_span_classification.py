@@ -36,15 +36,15 @@ def test_ner_span_classification():
 
         entity1 = entities_sorted[0]
         assert entity1.label == "PER"
-        assert entity1.score == pytest.approx(1.0)
+        assert entity1.score == pytest.approx(0.98, abs=1e-2)
         assert (entity1.start, entity1.end) == (65, 75)
 
         entity2 = entities_sorted[1]
         assert entity2.label == "ORG"
-        assert entity2.score == pytest.approx(1.0)
+        assert entity2.score == pytest.approx(0.96, abs=1e-2)
         assert (entity2.start, entity2.end) == (96, 100)
 
         entity3 = entities_sorted[2]
         assert entity3.label == "ORG"
-        assert entity3.score == pytest.approx(1.0)
+        assert entity3.score == pytest.approx(0.95, abs=1e-2)
         assert (entity3.start, entity3.end) == (126, 134)

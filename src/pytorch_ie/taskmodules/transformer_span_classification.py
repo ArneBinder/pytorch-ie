@@ -240,13 +240,15 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             sentence = partitions[metadata["sentence_index"]]
 
             spans = output["tags"]
-            for label, (start, end) in spans:
+            probabilities = output["probabilities"]
+            for (label, (start, end)), probability in zip(spans, probabilities):
                 yield (
                     self.entity_annotation,
                     LabeledSpan(
                         start=sentence.start + metadata["offset_mapping"][start][0],
                         end=sentence.start + metadata["offset_mapping"][end][1],
                         label=label,
+                        score=float(probability),
                     ),
                 )
         else:
@@ -254,13 +256,15 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             metadata = encoding.metadata
 
             spans = output["tags"]
-            for label, (start, end) in spans:
+            probabilities = output["probabilities"]
+            for (label, (start, end)), probability in zip(spans, probabilities):
                 yield (
                     self.entity_annotation,
                     LabeledSpan(
                         start=metadata["offset_mapping"][start][0],
                         end=metadata["offset_mapping"][end][1],
                         label=label,
+                        score=float(probability),
                     ),
                 )
 
