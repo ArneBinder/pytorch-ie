@@ -218,7 +218,7 @@ def test_binary_relation():
     )
 
     with pytest.raises(
-        ValueError, match=re.escape("Unable to resolve head reference without annotations.")
+        ValueError, match=re.escape("Unable to resolve head reference without annotation_store.")
     ):
         binary_relation2 == BinaryRelation.fromdict(binary_relation2.asdict())
 
@@ -258,7 +258,7 @@ def test_multilabeled_binary_relation():
     )
 
     with pytest.raises(
-        ValueError, match=re.escape("Unable to resolve head reference without annotations.")
+        ValueError, match=re.escape("Unable to resolve head reference without annotation_store.")
     ):
         binary_relation2 == MultiLabeledBinaryRelation.fromdict(binary_relation2.asdict())
 
