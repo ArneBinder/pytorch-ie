@@ -5,9 +5,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from datasets import DatasetDict, load_dataset
 
-from pytorch_ie import Document
+from pytorch_ie.annotations import Document, Annotation, BinaryRelation, LabeledMultiSpan, LabeledSpan
 from pytorch_ie.data.datasets import HF_DATASETS_ROOT
-from pytorch_ie.data.document import Annotation, BinaryRelation, LabeledMultiSpan, LabeledSpan
 
 DEFAULT_HEAD_ARGUMENT_NAME: str = "Arg1"
 DEFAULT_TAIL_ARGUMENT_NAME: str = "Arg2"
