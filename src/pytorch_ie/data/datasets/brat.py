@@ -5,13 +5,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from datasets import DatasetDict, load_dataset
 
-from pytorch_ie.annotations import (
-    Annotation,
+from pytorch_ie import (
     BinaryRelation,
     Document,
     LabeledMultiSpan,
     LabeledSpan,
 )
+from pytorch_ie.annotations import Annotation
 from pytorch_ie.data.datasets import HF_DATASETS_ROOT
 
 DEFAULT_HEAD_ARGUMENT_NAME: str = "Arg1"
