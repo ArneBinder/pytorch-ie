@@ -69,8 +69,8 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         self.loss_fct = nn.CrossEntropyLoss()
 
-        self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
-        self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
+        self.train_f1 = torchmetrics.F1Score(num_classes=num_classes, ignore_index=ignore_index)
+        self.val_f1 = torchmetrics.F1Score(num_classes=num_classes, ignore_index=ignore_index)
 
     def _start_end_and_span_length_span_index(
         self, batch_size: int, max_seq_length: int, seq_lengths: Optional[Iterable[int]] = None
