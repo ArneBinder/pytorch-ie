@@ -14,7 +14,7 @@ from pytorch_ie.annotations import (
     MultiLabeledSpan,
     Span,
 )
-from pytorch_ie.document import TextDocument, annotation_field, AnnotationList
+from pytorch_ie.document import AnnotationList, TextDocument, annotation_field
 
 
 def test_label():

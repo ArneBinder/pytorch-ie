@@ -168,8 +168,6 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
                         label_id = self.label_to_id[label]
                         label_ids[label_id] = 1
             else:
-                assert len(annotations) == 1 and not annotations[0].is_multilabel
-
                 label = annotations[0].label
                 label_ids = [self.label_to_id[label]]
 

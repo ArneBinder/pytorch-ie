@@ -13,6 +13,7 @@ from datasets.utils.mock_download_manager import MockDownloadManager
 logger = get_logger(__name__)
 
 
+# Taken from https://github.com/huggingface/datasets/blob/207be676bffe9d164740a41a883af6125edef135/tests/test_dataset_common.py#L101
 class DatasetTester:
     def __init__(self, parent):
         self.parent = parent if parent is not None else TestCase()

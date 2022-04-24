@@ -3,9 +3,14 @@ from typing import Sequence
 
 import pytest
 
-from pytorch_ie import Pipeline
-from pytorch_ie.annotations import AnnotationList, BinaryRelation, LabeledSpan
-from pytorch_ie.document import TextDocument, annotation_field
+from pytorch_ie import (
+    AnnotationList,
+    BinaryRelation,
+    LabeledSpan,
+    Pipeline,
+    TextDocument,
+    annotation_field,
+)
 from pytorch_ie.models import TransformerTextClassificationModel
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 

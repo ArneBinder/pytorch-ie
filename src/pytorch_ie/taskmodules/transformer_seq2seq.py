@@ -122,9 +122,6 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             ):
                 tail_entity = document.text[tail_relation.tail.start : tail_relation.tail.end]
 
-                if tail_relation.is_multilabel:
-                    raise NotImplementedError
-
                 label = tail_relation.label
 
                 lin_triplets.append("<subj>")

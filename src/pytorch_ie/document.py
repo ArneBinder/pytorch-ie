@@ -2,6 +2,7 @@ import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Optional, Set, TypeVar, overload
+
 from pytorch_ie.annotations import Annotation
 
 
@@ -75,7 +76,11 @@ class AnnotationList(Sequence[T]):
 
     # TODO: check if the comparison logic is sufficient
     def __eq__(self, other: object) -> bool:
-        return self._target == other._target and self._annotations == other._annotations
+        return (
+            self._target == other._target
+            and self._annotations == other._annotations
+            and self.predictions == other.predictions
+        )
 
     @overload
     def __getitem__(self, idx: int) -> T:

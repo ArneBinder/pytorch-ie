@@ -1,18 +1,8 @@
 from dataclasses import dataclass
 
 import pytorch_ie.data.builder
-from pytorch_ie.annotations import AnnotationList, LabeledSpan
-from pytorch_ie.document import TextDocument, annotation_field
-
-# import tests.data.test_new_document_and_datasets
+from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
 from pytorch_ie.utils.span import bio_tags_to_spans
-
-# from tests.data.test_new_document_and_datasets import (
-#     AnnotationList,
-#     Document,
-#     LabeledSpan,
-#     annotation_field,
-# )
 
 
 @dataclass

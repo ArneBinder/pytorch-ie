@@ -1,13 +1,12 @@
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import pyarrow as pa
 from datasets.formatting.formatting import Formatter
 
-if TYPE_CHECKING:
-    from pytorch_ie.data import Document
+from pytorch_ie.document import Document
 
 
-class DocumentFormatter(Formatter["Document", list, List["Document"]]):
+class DocumentFormatter(Formatter[Document, list, List[Document]]):
     def __init__(self, document_type, features=None, decoded=True, **kwargs):
         super().__init__(features=None, decoded=None)
         self.document_type = document_type

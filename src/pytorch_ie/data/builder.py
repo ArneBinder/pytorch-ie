@@ -5,14 +5,10 @@ from typing import Mapping, Optional
 import datasets
 from datasets.load import load_dataset_builder
 
-from pytorch_ie.data.dataset import Dataset
+from pytorch_ie.data.dataset import Dataset, decorate_convert_to_dict_of_lists
 
 
 class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
-    # Default batch size used by the ArrowWriter
-    # It defines the number of samples that are kept in memory before writing them
-    # and also the length of the arrow chunks
-    # None means that the ArrowWriter will use its default value
     DOCUMENT_TYPE = None
 
     BASE_PATH = None
@@ -52,26 +48,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         if additional_kwargs is not None:
             fn_kwargs.update(additional_kwargs)
 
-        def decorate(f):
-            """
-            Decorate the mapped function, so that its first argument is wrapped with a LazyDict to be used internally
-            but a standard dictionary is returned at the end of the mapping.
-            """
-            import pandas as pd
-
-            @wraps(f)
-            def decorated(item, *args, **kwargs):
-                if isinstance(item, list):
-                    # return [e.asdict() for e in f(item)]
-                    return pd.DataFrame([e.asdict() for e in f(item, *args, **kwargs)]).to_dict(
-                        orient="list"
-                    )
-                else:
-                    return f(item, *args, **kwargs).asdict()
-
-            return decorated
-
-        mapped_dataset = dataset.map(decorate(self._generate_document), fn_kwargs=fn_kwargs)
+        mapped_dataset = dataset.map(
+            decorate_convert_to_dict_of_lists(self._generate_document), fn_kwargs=fn_kwargs
+        )
 
         document_dataset = Dataset.from_hf_dataset(
             mapped_dataset, document_type=self.DOCUMENT_TYPE

@@ -94,11 +94,15 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             ]
 
             for entity in entities:
+                if self.multi_label and not isinstance(entity, MultiLabeledSpan):
+                    raise ValueError("Spans must be MultiLabeledSpan if multi_label=True.")
+
+                if not self.multi_label and not isinstance(entity, LabeledSpan):
+                    raise ValueError("Spans must be LabeledSpan if multi_label=False.")
+
                 if self.multi_label:
-                    assert isinstance(entity, MultiLabeledSpan)
                     labels.update(entity.label)
                 else:
-                    assert isinstance(entity, LabeledSpan)
                     labels.add(entity.label)
 
         self.label_to_id["O"] = 0

@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 
 @dataclass(eq=True, frozen=True)
@@ -193,4 +193,3 @@ class MultiLabeledBinaryRelation(Annotation, MultiLabelMixin):
             tmp_dct["tail"] = annotation_store[tail][1]
 
         return cls(**tmp_dct)
-

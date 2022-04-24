@@ -12,5 +12,5 @@ from .annotations import (
     Span,
 )
 from .data import *
-from .document import Document, TextDocument, annotation_field, AnnotationList
+from .document import AnnotationList, Document, TextDocument, annotation_field
 from .pipeline import Pipeline

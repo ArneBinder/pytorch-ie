@@ -1,19 +1,39 @@
 from functools import wraps
-from typing import Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Type, Union
 
 import datasets
 import pandas as pd
 from datasets.formatting import _register_formatter
 
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
+from pytorch_ie.document import Document
 
 _register_formatter(DocumentFormatter, "document")
+
+
+def decorate_convert_to_dict_of_lists(f):
+    """
+    Decorate the mapped function, so that converts a single Document to a dict,
+    and a list of Documents into a dict of lists.
+    """
+
+    @wraps(f)
+    def decorated(item, *args, **kwargs):
+        if isinstance(item, list):
+            # Convert a list of dicts into a dict of lists.
+            return pd.DataFrame([e.asdict() for e in f(item, *args, **kwargs)]).to_dict(
+                orient="list"
+            )
+        else:
+            return f(item, *args, **kwargs).asdict()
+
+    return decorated
 
 
 class Dataset(datasets.Dataset):
     def __init__(
         self,
-        document_type,
+        document_type: Type[Document],
         arrow_table: datasets.table.Table,
         info: Optional[datasets.DatasetInfo] = None,
         split: Optional[datasets.NamedSplit] = None,
@@ -66,20 +86,9 @@ class Dataset(datasets.Dataset):
         new_fingerprint: Optional[str] = None,
         desc: Optional[str] = None,
     ) -> "Dataset":
-        def decorate(f):
-            @wraps(f)
-            def decorated(item, *args, **kwargs):
-                if isinstance(item, list):
-                    return pd.DataFrame([e.asdict() for e in f(item, *args, **kwargs)]).to_dict(
-                        orient="list"
-                    )
-                else:
-                    return f(item, *args, **kwargs).asdict()
-
-            return decorated
 
         dataset = super().map(
-            function=decorate(function) if as_documents else function,
+            function=decorate_convert_to_dict_of_lists(function) if as_documents else function,
             with_indices=with_indices,
             with_rank=with_rank,
             input_columns=input_columns,
