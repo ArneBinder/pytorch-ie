@@ -6,6 +6,7 @@ from torch.utils.data.dataset import Dataset
 
 from pytorch_ie.data.datasets import PIEDatasetDict
 from pytorch_ie.taskmodules.taskmodule import (
+    DocumentType,
     InputEncoding,
     TargetEncoding,
     TaskEncoding,
@@ -14,20 +15,20 @@ from pytorch_ie.taskmodules.taskmodule import (
 
 
 class TaskEncodingDataset(
-    Dataset[TaskEncoding[InputEncoding, TargetEncoding]],
-    Generic[InputEncoding, TargetEncoding],
+    Dataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+    Generic[DocumentType, InputEncoding, TargetEncoding],
 ):
-    def __init__(self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]):
+    def __init__(self, encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]):
         self._encodings = encodings
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> TaskEncoding[DocumentType, InputEncoding, TargetEncoding]:
         return self._encodings[index]
 
     def __len__(self):
         return len(self._encodings)
 
 
-class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
+class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, TargetEncoding]):
     """
     Example of LightningDataModule for MNIST dataset.
 
@@ -47,8 +48,8 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def __init__(
         self,
-        taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
-        dataset: PIEDatasetDict,
+        taskmodule: TaskModule[DocumentType, InputEncoding, TargetEncoding, Any, Any, Any],
+        dataset: Dict[str, List[DocumentType]],
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
         val_split: Optional[str] = "validation",
@@ -68,7 +69,9 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.prepare_split = prepare_split or self.train_split
         self.dataloader_kwargs = dataloader_kwargs
 
-        self._data: Dict[str, TaskEncodingDataset[InputEncoding, TargetEncoding]] = {}
+        self._data: Dict[
+            str, TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]
+        ] = {}
 
     @property
     def num_train(self) -> int:
@@ -95,7 +98,7 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def data_split(
         self, split: Optional[str] = None
-    ) -> TaskEncodingDataset[InputEncoding, TargetEncoding]:
+    ) -> TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]:
         if split is None or split not in self._data:
             raise ValueError(f"data for split={split} not available")
         return self._data[split]

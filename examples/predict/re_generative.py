@@ -1,7 +1,21 @@
-from pytorch_ie import Document, Pipeline
-from pytorch_ie.data import BinaryRelation
+from dataclasses import dataclass
+
+from pytorch_ie import (
+    AnnotationList,
+    BinaryRelation,
+    LabeledSpan,
+    Pipeline,
+    TextDocument,
+    annotation_field,
+)
 from pytorch_ie.models import TransformerSeq2SeqModel
 from pytorch_ie.taskmodules import TransformerSeq2SeqTaskModule
+
+
+@dataclass
+class ExampleDocument(TextDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
 
 
 def main():
@@ -19,19 +33,14 @@ def main():
 
     pipeline = Pipeline(model=model, taskmodule=taskmodule, device=-1)
 
-    document = Document(
+    document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
 
     pipeline(document, predict_field="relations")
 
-    relation: BinaryRelation
-    for relation in document.predictions.binary_relations["relations"]:
-        head, tail = relation.head, relation.tail
-        head_text = document.text[head.start : head.end]
-        tail_text = document.text[tail.start : tail.end]
-        label = relation.label
-        print(f"({head_text} -> {tail_text}) -> {label}")
+    for relation in document.relations.predictions:
+        print(f"({relation.head} -> {relation.tail}) -> {relation.label}")
 
 
 if __name__ == "__main__":

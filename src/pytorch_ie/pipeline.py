@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
-from pytorch_ie.data.document import Document
+from pytorch_ie.document import Document
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, TaskOutput
 
 logger = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ class Pipeline:
         """
 
         for document in documents:
-            document.clear_predictions(predict_field)
+            document[predict_field].predictions.clear()
 
         return self.taskmodule.encode(documents, encode_target=False)
 
@@ -291,6 +291,12 @@ class Pipeline:
             forward_params,
             postprocess_params,
         ) = self._sanitize_parameters(**kwargs)
+
+        if "TOKENIZERS_PARALLELISM" not in os.environ:
+            logger.info(
+                "Disabling tokenizer parallelism, we're using DataLoader multithreading already"
+            )
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
         # Fuse __init__ params and __call__ params without modifying the __init__ ones.
         preprocess_params = {**self._preprocess_params, **preprocess_params}

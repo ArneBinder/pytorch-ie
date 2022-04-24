@@ -1,8 +1,8 @@
+import datasets
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 
-from pytorch_ie.data.datasets.conll2003 import load_conll2003
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
@@ -17,7 +17,10 @@ def main():
     num_epochs = 10
     batch_size = 32
 
-    train_docs, val_docs = load_conll2003(split="train"), load_conll2003(split="validation")
+    dataset = datasets.load_dataset(
+        path="pie/conll2003",
+    )
+    train_docs, val_docs = list(dataset["train"]), list(dataset["validation"])
 
     print("train docs: ", len(train_docs))
     print("val docs: ", len(val_docs))
@@ -66,7 +69,7 @@ def main():
     trainer = pl.Trainer(
         fast_dev_run=False,
         max_epochs=num_epochs,
-        gpus=1,
+        gpus=0,
         checkpoint_callback=False,
         # callbacks=[checkpoint_callback],
         precision=32,

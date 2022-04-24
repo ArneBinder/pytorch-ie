@@ -1,0 +1,36 @@
+{
+    "data": [
+        {
+            "id": "val_doc1",
+            "text": "A single sentence.",
+            "sentences": [{ "start": 0, "end": 18 }],
+            "entities": [],
+            "relations": [],
+            "metadata": {
+                "description": "single sentence per document, without annotations"
+            }
+        },
+        {
+            "id": "val_doc2",
+            "text": "First sentence. Entity M works at N. And founded O.",
+            "sentences": [
+                { "start": 0, "end": 15 },
+                { "start": 16, "end": 36 },
+                { "start": 16, "end": 51 }
+            ],
+            "entities": [
+                { "start": 16, "end": 24, "label": "PER" },
+                { "start": 34, "end": 35, "label": "ORG" },
+                { "start": 49, "end": 50, "label": "ORG" }
+            ],
+            "relations": [
+                { "head": 0, "tail": 1, "label": "per:employee_of" },
+                { "head": 0, "tail": 2, "label": "per:founder" },
+                { "head": 2, "tail": 1, "label": "org:founded_by" }
+            ],
+            "metadata": {
+                "description": "sentences with multiple relation annotations and cross-sentence relation"
+            }
+        }
+    ]
+}

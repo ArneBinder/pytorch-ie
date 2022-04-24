@@ -1,13 +1,14 @@
 from typing import Any, Dict
 
-from pytorch_ie.data.document import BinaryRelation, Document, LabeledSpan
+from .builder import GeneratorBasedBuilder
+from .dataset import Dataset
+from .dataset_formatter import DocumentFormatter
 
 Metadata = Dict[str, Any]
 
 __all__ = [
-    "Document",
-    "LabeledSpan",
-    "BinaryRelation",
-    # utility
     "Metadata",
+    "GeneratorBasedBuilder",
+    "Dataset",
+    "DocumentFormatter",
 ]

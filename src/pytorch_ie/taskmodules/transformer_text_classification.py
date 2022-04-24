@@ -17,7 +17,8 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie.data.document import Annotation, Document, Label
+from pytorch_ie import Label, MultiLabel, TextDocument
+from pytorch_ie.annotations import Annotation
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -37,7 +38,9 @@ TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
 TransformerTextClassificationTargetEncoding = List[int]
 
 TransformerTextClassificationTaskEncoding = TaskEncoding[
-    TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
+    TextDocument,
+    TransformerTextClassificationInputEncoding,
+    TransformerTextClassificationTargetEncoding,
 ]
 
 
@@ -58,6 +61,7 @@ TransformerTextClassificationTaskOutput = Union[
 
 _TransformerTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -82,6 +86,11 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         super().__init__()
         self.save_hyperparameters()
 
+        if multi_label:
+            raise NotImplementedError(
+                "Multi-label classification (multi_label=True) is not supported yet."
+            )
+
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
         self.annotation = annotation
@@ -99,20 +108,17 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: List[Document]) -> None:
+    def prepare(self, documents: List[TextDocument]) -> None:
         labels = set()
         for document in documents:
-            annotations = document.annotations.labels[self.annotation]
+            annotations: Sequence[Label] = document[self.annotation]
 
             for annotation in annotations:
-                # TODO: labels is a set...
-                for label in annotation.labels:
-                    if label not in labels:
-                        labels.add(label)
+                labels.add(annotation.label)
 
         self.label_to_id["O"] = 0
         current_id = 1
-        for label in labels:
+        for label in sorted(labels):
             self.label_to_id[label] = current_id
             current_id += 1
 
@@ -120,12 +126,12 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
     def encode_input(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         is_training: bool = False,
     ) -> Tuple[
         List[TransformerTextClassificationInputEncoding],
         List[Metadata],
-        Optional[List[Document]],
+        Optional[List[TextDocument]],
     ]:
         input_encoding = [
             self.tokenizer(
@@ -152,24 +158,25 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
     def encode_target(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         input_encodings: List[TransformerTextClassificationInputEncoding],
         metadata: List[Metadata],
     ) -> List[TransformerTextClassificationTargetEncoding]:
 
+        # TODO: adapt this when single annotations are available
         target: List[TransformerTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
-            annotations = document.annotations.labels[self.annotation]
+            annotations: Sequence[Union[Label, MultiLabel]] = document[self.annotation]
+            annotation = annotations[0]
             if self.multi_label:
+                assert isinstance(annotation, MultiLabel)
                 label_ids = [0] * len(self.label_to_id)
-                for annotation in annotations:
-                    for label in annotation.labels:
-                        label_id = self.label_to_id[label]
-                        label_ids[label_id] = 1
+                for label in annotation.label:
+                    label_id = self.label_to_id[label]
+                    label_ids[label_id] = 1
             else:
-                assert len(annotations) == 1 and not annotations[0].is_multilabel
-
-                label = annotations[0].label_single
+                assert isinstance(annotation, Label)
+                label = annotation.label
                 label_ids = [self.label_to_id[label]]
 
             target.append(label_ids)

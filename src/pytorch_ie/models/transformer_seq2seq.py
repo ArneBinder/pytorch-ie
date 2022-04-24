@@ -5,13 +5,14 @@ from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data import Document, Metadata
+from pytorch_ie.data import Metadata
+from pytorch_ie.document import TextDocument
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?
 
 TransformerSeq2SeqModelStepBatchEncoding = Tuple[
-    TransformerSeq2SeqModelBatchEncoding, None, List[Metadata], List[Document]
+    TransformerSeq2SeqModelBatchEncoding, None, List[Metadata], List[TextDocument]
 ]
 
 

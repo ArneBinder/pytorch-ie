@@ -45,9 +45,10 @@ class MockModel:
 
 @pytest.fixture
 def mock_model(monkeypatch, documents, prepared_taskmodule):
+    documents = documents[:3]
+
     encodings = prepared_taskmodule.encode(documents, encode_target=True)
 
-    # inputs are of length [17, 10, 8]
     inputs, _ = prepared_taskmodule.collate(encodings)
 
     batch_size, seq_len = inputs["input_ids"].shape
@@ -78,16 +79,17 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
 
 @pytest.mark.parametrize("no_attention_mask", [False, True])
 def test_forward(documents, prepared_taskmodule, mock_model, no_attention_mask):
+    documents = documents[:3]
+
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
 
-    # inputs are of length [17, 10, 8]
     inputs, _ = prepared_taskmodule.collate(encodings)
 
     if no_attention_mask:
         inputs.pop("attention_mask")
 
     num_classes = 5
-    num_spans = 99 if no_attention_mask else 67
+    num_spans = 57 if no_attention_mask else 47
 
     output = mock_model(inputs)
 
@@ -103,9 +105,10 @@ def test_forward(documents, prepared_taskmodule, mock_model, no_attention_mask):
 
 @pytest.mark.parametrize("no_attention_mask", [False, True])
 def test_training_step(documents, prepared_taskmodule, mock_model, no_attention_mask):
+    documents = documents[:3]
+
     encodings = prepared_taskmodule.encode(documents, encode_target=True)
 
-    # inputs are of length [17, 10, 8]
     inputs, targets = prepared_taskmodule.collate(encodings)
 
     if no_attention_mask:
@@ -118,9 +121,10 @@ def test_training_step(documents, prepared_taskmodule, mock_model, no_attention_
 
 @pytest.mark.parametrize("no_attention_mask", [False, True])
 def test_validation_step(documents, prepared_taskmodule, mock_model, no_attention_mask):
+    documents = documents[:3]
+
     encodings = prepared_taskmodule.encode(documents, encode_target=True)
 
-    # inputs are of length [17, 10, 8]
     inputs, targets = prepared_taskmodule.collate(encodings)
 
     if no_attention_mask:

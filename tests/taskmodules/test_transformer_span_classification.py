@@ -26,17 +26,27 @@ def prepared_taskmodule(taskmodule, documents):
 def model_output():
     return {
         "logits": torch.from_numpy(
-            numpy.log([[0.2, 0.5, 0.3], [0.8, 0.1, 0.1], [0.1, 0.4, 0.5], [0.1, 0.5, 0.4]])
+            numpy.log(
+                [
+                    # O, ORG, PER
+                    [0.5, 0.2, 0.3],
+                    [0.1, 0.1, 0.8],
+                    [0.1, 0.5, 0.4],
+                    [0.1, 0.4, 0.5],
+                    [0.1, 0.6, 0.3],
+                ]
+            )
         ),
-        "start_indices": torch.tensor([1, 2, 3, 4]),
-        "end_indices": torch.tensor([2, 3, 4, 5]),
-        "batch_indices": torch.tensor([0, 1, 2, 2]),
+        "start_indices": torch.tensor([1, 1, 7, 1, 6]),
+        "end_indices": torch.tensor([2, 4, 7, 4, 6]),
+        "batch_indices": torch.tensor([0, 1, 1, 2, 2]),
     }
 
 
 def test_prepare(taskmodule, documents):
     taskmodule.prepare(documents)
-    assert set(taskmodule.label_to_id.keys()) == {"PER", "LOC", "ORG", "O"}
+    assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
+    assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
     assert taskmodule.label_to_id["O"] == 0
 
 
@@ -44,16 +54,16 @@ def test_config(prepared_taskmodule):
     config = prepared_taskmodule._config()
     assert config["taskmodule_type"] == "TransformerSpanClassificationTaskModule"
     assert "label_to_id" in config
-    assert set(config["label_to_id"]) == {"PER", "LOC", "ORG", "O"}
+    assert config["label_to_id"] == {"O": 0, "ORG": 1, "PER": 2}
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_encode(prepared_taskmodule, documents, encode_target):
     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
-    assert len(task_encodings) == 3
+    assert len(task_encodings) == 8
 
-    encoding = task_encodings[0]
-    document = documents[0]
+    encoding = task_encodings[5]
+    document = documents[5]
     assert encoding.document == document
     assert "input_ids" in encoding.input
     assert (
@@ -63,10 +73,9 @@ def test_encode(prepared_taskmodule, documents, encode_target):
 
     if encode_target:
         assert encoding.target == [
-            (1, 1, prepared_taskmodule.label_to_id["PER"]),
-            (4, 4, prepared_taskmodule.label_to_id["LOC"]),
-            (6, 6, prepared_taskmodule.label_to_id["LOC"]),
-            (9, 9, prepared_taskmodule.label_to_id["LOC"]),
+            (1, 4, prepared_taskmodule.label_to_id["PER"]),
+            (6, 6, prepared_taskmodule.label_to_id["ORG"]),
+            (9, 9, prepared_taskmodule.label_to_id["ORG"]),
         ]
     else:
         assert not encoding.has_target
@@ -77,62 +86,60 @@ def test_unbatch_output(prepared_taskmodule, model_output):
 
     assert len(unbatched_outputs) == 3
 
-    unbatched_output1 = unbatched_outputs[0]
-    assert unbatched_output1["tags"] == [(prepared_taskmodule.id_to_label[1], (1, 2))]
-    assert len(unbatched_output1["probabilities"]) == 1
-    assert unbatched_output1["probabilities"][0] == pytest.approx(0.5)
+    assert unbatched_outputs[0] == {"tags": [], "probabilities": []}
 
-    unbatched_output2 = unbatched_outputs[1]
-    assert len(unbatched_output2["tags"]) == 0
-    assert len(unbatched_output2["probabilities"]) == 0
+    assert unbatched_outputs[1] == {
+        "tags": [("PER", (1, 4)), ("ORG", (7, 7))],
+        "probabilities": pytest.approx([0.8, 0.5]),
+    }
 
-    unbatched_output3 = unbatched_outputs[2]
-    assert len(unbatched_output3["tags"]) == 2
-    assert len(unbatched_output3["probabilities"]) == 2
+    assert unbatched_outputs[2] == {
+        "tags": [("PER", (1, 4)), ("ORG", (6, 6))],
+        "probabilities": pytest.approx([0.5, 0.6]),
+    }
 
 
-def test_decode_not_inplace(prepared_taskmodule, documents, model_output):
+@pytest.mark.parametrize("inplace", [False, True])
+def test_decode(prepared_taskmodule, documents, model_output, inplace):
+    documents = documents[:3]
+
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
         encodings=encodings,
         decoded_outputs=unbatched_outputs,
         input_documents=documents,
-        inplace=False,
+        inplace=inplace,
     )
 
     assert len(decoded_documents) == len(documents)
-    assert set(decoded_documents).isdisjoint(set(documents))
 
-    decoded_document = decoded_documents[2]
-    predictions = decoded_document.predictions.spans["entities"]
-    assert len(predictions) == 2
-    assert predictions[0].start == 10
-    assert predictions[0].end == 20
+    if inplace:
+        assert {id(doc) for doc in decoded_documents} == {id(doc) for doc in documents}
+    else:
+        assert {id(doc) for doc in decoded_documents}.isdisjoint({id(doc) for doc in documents})
 
+    expected_scores = [0.8, 0.5, 0.5, 0.6]
+    i = 0
+    for document in decoded_documents:
+        for entity_expected, entity_decoded in zip(
+            document["entities"], document["entities"].predictions
+        ):
+            assert entity_expected.start == entity_decoded.start
+            assert entity_expected.end == entity_decoded.end
+            assert entity_expected.label == entity_decoded.label
+            assert expected_scores[i] == pytest.approx(entity_decoded.score)
+            i += 1
 
-def test_decode_inplace(prepared_taskmodule, documents, model_output):
-    encodings = prepared_taskmodule.encode(documents, encode_target=False)
-    unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
-    decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings,
-        decoded_outputs=unbatched_outputs,
-        input_documents=documents,
-        inplace=True,
-    )
-
-    assert len(decoded_documents) == len(documents)
-    assert set(decoded_documents) == set(documents)
-
-    decoded_document = decoded_documents[2]
-    predictions = decoded_document.predictions.spans["entities"]
-    assert len(predictions) == 2
-    assert predictions[0].start == 10
-    assert predictions[0].end == 20
+    if not inplace:
+        for document in documents:
+            assert not document["entities"].predictions
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
 def test_collate(prepared_taskmodule, documents, encode_target):
+    documents = documents[:3]
+
     encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
     assert len(encodings) == 3
 

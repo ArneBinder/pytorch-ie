@@ -1,10 +1,16 @@
-from pytorch_ie import models, taskmodules
-from pytorch_ie.data.document import Document
-from pytorch_ie.pipeline import Pipeline
+# flake8: noqa
 
-__all__ = [
-    "taskmodules",
-    "models",
-    "Document",
-    "Pipeline",
-]
+from .annotations import (
+    BinaryRelation,
+    Label,
+    LabeledMultiSpan,
+    LabeledSpan,
+    MultiLabel,
+    MultiLabeledBinaryRelation,
+    MultiLabeledMultiSpan,
+    MultiLabeledSpan,
+    Span,
+)
+from .data import *
+from .document import AnnotationList, Document, TextDocument, annotation_field
+from .pipeline import Pipeline

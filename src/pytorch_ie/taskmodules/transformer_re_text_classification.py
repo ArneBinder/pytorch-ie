@@ -21,7 +21,8 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie.data.document import Annotation, BinaryRelation, Document, LabeledSpan
+from pytorch_ie.annotations import Annotation, BinaryRelation, LabeledSpan, Span
+from pytorch_ie.document import TextDocument
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -43,7 +44,9 @@ TransformerReTextClassificationInputEncoding = Dict[str, Any]
 TransformerReTextClassificationTargetEncoding = List[int]
 
 TransformerReTextClassificationTaskEncoding = TaskEncoding[
-    TransformerReTextClassificationInputEncoding, TransformerReTextClassificationTargetEncoding
+    TextDocument,
+    TransformerReTextClassificationInputEncoding,
+    TransformerReTextClassificationTargetEncoding,
 ]
 
 
@@ -54,6 +57,7 @@ class TransformerReTextClassificationTaskOutput(TypedDict, total=False):
 
 _TransformerReTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerReTextClassificationInputEncoding,
     TransformerReTextClassificationTargetEncoding,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -92,23 +96,21 @@ def _create_argument_markers(
 
 
 def _enumerate_entity_pairs(
-    entities: List[LabeledSpan],
-    partition: Optional[LabeledSpan] = None,
-    relations: List[BinaryRelation] = None,
+    entities: Sequence[Span],
+    partition: Optional[Span] = None,
+    relations: Optional[Sequence[BinaryRelation]] = None,
 ):
     """
     Given a list of `entities` iterate all valid pairs of entities. If a `partition` is provided,
     restrict pairs to be contained in that. If `relations` are given, return only pairs for which a relation exists.
     """
     existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
-    head: LabeledSpan
     for head in entities:
         if partition is not None and not is_contained_in(
             (head.start, head.end), (partition.start, partition.end)
         ):
             continue
 
-        tail: LabeledSpan
         for tail in entities:
             if partition is not None and not is_contained_in(
                 (tail.start, tail.end), (partition.start, partition.end)
@@ -211,19 +213,19 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         """
         return self.entity_labels is not None and self.label_to_id is not None
 
-    def prepare(self, documents: List[Document]) -> None:
+    def prepare(self, documents: List[TextDocument]) -> None:
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            entities = document.annotations.spans[self.entity_annotation]
-            relations = document.annotations.binary_relations[self.relation_annotation]
+            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
             if self.add_type_to_marker:
                 for entity in entities:
-                    entity_labels.update(entity.labels)
+                    entity_labels.add(entity.label)
 
             for relation in relations:
-                relation_labels.update(relation.labels)
+                relation_labels.add(relation.label)
 
         if self.none_label in relation_labels:
             relation_labels.remove(self.none_label)
@@ -245,8 +247,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def _encode_text(
         self,
-        document: Document,
-        partition: Optional[LabeledSpan] = None,
+        document: TextDocument,
+        partition: Optional[Span] = None,
         add_special_tokens: bool = True,
     ) -> BatchEncoding:
         text = (
@@ -267,12 +269,12 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def encode_input(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         is_training: bool = False,
     ) -> Tuple[
         List[TransformerReTextClassificationInputEncoding],
         List[Metadata],
-        Optional[List[Document]],
+        Optional[List[TextDocument]],
     ]:
         assert (
             self.argument_markers is not None
@@ -288,16 +290,17 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         )
 
         for document in documents:
-            entities = document.annotations.spans[self.entity_annotation]
+            entities: Sequence[Span] = document[self.entity_annotation]
+            relations: Optional[Sequence[BinaryRelation]]
             if is_training:
-                relations = document.annotations.binary_relations[self.relation_annotation]
+                relations = document[self.relation_annotation]
             else:
                 relations = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
-            partitions: Sequence[Optional[LabeledSpan]]
+            partitions: Sequence[Optional[Span]]
             if self.partition_annotation is not None:
-                partitions = document.annotations.spans[self.partition_annotation]
+                partitions = document[self.partition_annotation]
             else:
                 # use single dummy partition
                 partitions = [None]
@@ -385,10 +388,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     for entity, arg_name in zip(entity_pair, entity_args):
                         for pos in [START, END]:
                             if self.add_type_to_marker:
-                                if entity.is_multilabel:
-                                    raise NotImplementedError
                                 markers[(arg_name, pos)] = argument_markers_to_id[
-                                    self.argument_markers[(arg_name, pos, entity.label_single)]
+                                    self.argument_markers[(arg_name, pos, entity.label)]
                                 ]
                             else:
                                 markers[(arg_name, pos)] = argument_markers_to_id[
@@ -431,7 +432,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def encode_target(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         input_encodings: List[TransformerReTextClassificationInputEncoding],
         metadata: List[Metadata],
     ) -> List[TransformerReTextClassificationTargetEncoding]:
@@ -439,10 +440,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         target: List[TransformerReTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             meta = metadata[i]
-            relations = document.annotations.binary_relations[self.relation_annotation]
+            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
             head_tail_to_labels = {
-                (relation.head, relation.tail): relation.labels for relation in relations
+                (relation.head, relation.tail): [relation.label] for relation in relations
             }
 
             labels = head_tail_to_labels.get((meta[HEAD], meta[TAIL]), [self.none_label])
@@ -488,8 +489,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 BinaryRelation(
                     head=encoding.metadata[HEAD],
                     tail=encoding.metadata[TAIL],
-                    label=labels if self.multi_label else labels[0],
-                    score=probabilities if self.multi_label else probabilities[0],
+                    label=labels[0],
+                    score=probabilities[0],
                 ),
             )
 
