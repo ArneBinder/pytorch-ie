@@ -17,6 +17,7 @@ workflow:
     -> Document
 """
 
+DocumentType = TypeVar("DocumentType", bound=Document)
 InputEncoding = TypeVar("InputEncoding")
 TargetEncoding = TypeVar("TargetEncoding")
 # TaskEncoding: defined below
@@ -29,11 +30,11 @@ TaskOutput = TypeVar("TaskOutput")
 logger = logging.getLogger(__name__)
 
 
-class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
+class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
     def __init__(
         self,
         input: InputEncoding,
-        document: Document,
+        document: DocumentType,
         target: Optional[TargetEncoding] = None,
         metadata: Optional[Metadata] = None,
     ) -> None:
@@ -47,25 +48,34 @@ class TaskEncoding(Generic[InputEncoding, TargetEncoding]):
         return self._target is not None
 
     @property
-    def target(self) -> Optional[TargetEncoding]:
+    def target(self) -> TargetEncoding:
+        # TODO: find a better solution
+        assert self._target is not None, "input encoding has no target"
         return self._target
 
 
 class TaskModule(
     ABC,
     PyTorchIETaskmoduleModelHubMixin,
-    Generic[InputEncoding, TargetEncoding, TaskBatchEncoding, ModelBatchOutput, TaskOutput],
+    Generic[
+        DocumentType,
+        InputEncoding,
+        TargetEncoding,
+        TaskBatchEncoding,
+        ModelBatchOutput,
+        TaskOutput,
+    ],
 ):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def prepare(self, documents: List[Document]) -> None:
+    def prepare(self, documents: List[DocumentType]) -> None:
         return
 
     def encode(
-        self, documents: Union[Document, List[Document]], encode_target: bool = False
-    ) -> List[TaskEncoding[InputEncoding, TargetEncoding]]:
-        if isinstance(documents, Document):
+        self, documents: Union[DocumentType, List[DocumentType]], encode_target: bool = False
+    ) -> List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
+        if not isinstance(documents, list):
             documents = [documents]
 
         input_encoding, metadata, new_documents = self.encode_input(
@@ -84,7 +94,7 @@ class TaskModule(
         ), "'input_encoding', 'metadata', and 'documents' must be of same length."
         if target is None:
             return [
-                TaskEncoding[InputEncoding, TargetEncoding](
+                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
                     input=enc_inp, metadata=md, document=doc
                 )
                 for enc_inp, md, doc in zip(input_encoding, metadata, documents)
@@ -94,7 +104,7 @@ class TaskModule(
                 target
             ), "'input_encoding' and 'target' must be of same length."
             return [
-                TaskEncoding[InputEncoding, TargetEncoding](
+                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
                     input=enc_inp, document=doc, target=tgt, metadata=md
                 )
                 for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
@@ -103,15 +113,15 @@ class TaskModule(
     @abstractmethod
     def encode_input(
         self,
-        documents: List[Document],
+        documents: List[DocumentType],
         is_training: bool = False,
-    ) -> Tuple[List[InputEncoding], List[Metadata], Optional[List[Document]]]:
+    ) -> Tuple[List[InputEncoding], List[Metadata], Optional[List[DocumentType]]]:
         raise NotImplementedError()
 
     @abstractmethod
     def encode_target(
         self,
-        documents: List[Document],
+        documents: List[DocumentType],
         input_encodings: List[InputEncoding],
         metadata: List[Metadata],
     ) -> List[TargetEncoding]:
@@ -128,11 +138,11 @@ class TaskModule(
 
     def decode(
         self,
-        encodings: List[TaskEncoding[InputEncoding, TargetEncoding]],
+        encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         decoded_outputs: List[TaskOutput],
-        input_documents: List[Document],
+        input_documents: List[DocumentType],
         inplace: bool = True,
-    ) -> List[Document]:
+    ) -> List[DocumentType]:
         """
         This method takes the model inputs and (unbatched) model outputs and creates a list of documents that hold the
         new annotations created from model predictions.
@@ -140,7 +150,7 @@ class TaskModule(
         if not inplace:
             copied_documents = {id(doc): copy.deepcopy(doc) for doc in input_documents}
             encodings = [
-                TaskEncoding[InputEncoding, TargetEncoding](
+                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
                     input=encoding.input,
                     document=copied_documents[id(encoding.document)],
                     target=encoding.target if encoding.has_target else None,
@@ -157,7 +167,7 @@ class TaskModule(
 
     def combine_outputs(
         self,
-        encodings: List[TaskEncoding[InputEncoding, TargetEncoding]],
+        encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         outputs: List[TaskOutput],
     ):
         for encoding, output in zip(encodings, outputs):
@@ -165,7 +175,7 @@ class TaskModule(
 
     def combine_output(
         self,
-        encoding: TaskEncoding[InputEncoding, TargetEncoding],
+        encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
         output: TaskOutput,
     ):
         for annotation_name, annotation in self.create_annotations_from_output(
@@ -176,13 +186,13 @@ class TaskModule(
     @abstractmethod
     def create_annotations_from_output(
         self,
-        encoding: TaskEncoding[InputEncoding, TargetEncoding],
+        encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
         output: TaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
         raise NotImplementedError()
 
     @abstractmethod
     def collate(
-        self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]
+        self, encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
     ) -> TaskBatchEncoding:
         raise NotImplementedError()

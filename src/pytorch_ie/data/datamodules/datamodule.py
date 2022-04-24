@@ -4,8 +4,9 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.dataset import Dataset
 
-from pytorch_ie.document import Document
+from pytorch_ie import Document
 from pytorch_ie.taskmodules.taskmodule import (
+    DocumentType,
     InputEncoding,
     TargetEncoding,
     TaskEncoding,
@@ -14,20 +15,20 @@ from pytorch_ie.taskmodules.taskmodule import (
 
 
 class TaskEncodingDataset(
-    Dataset[TaskEncoding[InputEncoding, TargetEncoding]],
-    Generic[InputEncoding, TargetEncoding],
+    Dataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+    Generic[DocumentType, InputEncoding, TargetEncoding],
 ):
-    def __init__(self, encodings: List[TaskEncoding[InputEncoding, TargetEncoding]]):
+    def __init__(self, encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]):
         self._encodings = encodings
 
-    def __getitem__(self, index) -> TaskEncoding[InputEncoding, TargetEncoding]:
+    def __getitem__(self, index) -> TaskEncoding[DocumentType, InputEncoding, TargetEncoding]:
         return self._encodings[index]
 
     def __len__(self):
         return len(self._encodings)
 
 
-class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
+class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, TargetEncoding]):
     """
     Example of LightningDataModule for MNIST dataset.
 
@@ -47,8 +48,8 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
 
     def __init__(
         self,
-        task_module: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
-        dataset: Dict[str, List[Document]],
+        task_module: TaskModule[DocumentType, InputEncoding, TargetEncoding, Any, Any, Any],
+        dataset: Dict[str, List[DocumentType]],
         random_train_val_split: Optional[Tuple[int, int]] = None,
         batch_size: int = 32,
         num_workers: int = 0,
@@ -68,9 +69,15 @@ class DataModule(LightningDataModule, Generic[InputEncoding, TargetEncoding]):
         self.prepare_data_split = prepare_data_split
         self.random_train_val_split = random_train_val_split
 
-        self.data_train: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
-        self.data_val: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
-        self.data_test: Optional[TaskEncodingDataset[InputEncoding, TargetEncoding]] = None
+        self.data_train: Optional[
+            TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]
+        ] = None
+        self.data_val: Optional[
+            TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]
+        ] = None
+        self.data_test: Optional[
+            TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]
+        ] = None
 
     @property
     def num_train(self) -> int:

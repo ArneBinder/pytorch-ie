@@ -21,8 +21,8 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie.annotations import Annotation, BinaryRelation, LabeledSpan
-from pytorch_ie.document import Document
+from pytorch_ie.annotations import Annotation, BinaryRelation, LabeledSpan, Span
+from pytorch_ie.document import TextDocument
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -44,7 +44,9 @@ TransformerReTextClassificationInputEncoding = Dict[str, Any]
 TransformerReTextClassificationTargetEncoding = List[int]
 
 TransformerReTextClassificationTaskEncoding = TaskEncoding[
-    TransformerReTextClassificationInputEncoding, TransformerReTextClassificationTargetEncoding
+    TextDocument,
+    TransformerReTextClassificationInputEncoding,
+    TransformerReTextClassificationTargetEncoding,
 ]
 
 
@@ -55,6 +57,7 @@ class TransformerReTextClassificationTaskOutput(TypedDict, total=False):
 
 _TransformerReTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerReTextClassificationInputEncoding,
     TransformerReTextClassificationTargetEncoding,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -93,9 +96,9 @@ def _create_argument_markers(
 
 
 def _enumerate_entity_pairs(
-    entities: List[LabeledSpan],
+    entities: Sequence[LabeledSpan],
     partition: Optional[LabeledSpan] = None,
-    relations: List[BinaryRelation] = None,
+    relations: Optional[Sequence[BinaryRelation]] = None,
 ):
     """
     Given a list of `entities` iterate all valid pairs of entities. If a `partition` is provided,
@@ -212,7 +215,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         """
         return self.entity_labels is not None and self.label_to_id is not None
 
-    def prepare(self, documents: List[Document]) -> None:
+    def prepare(self, documents: List[TextDocument]) -> None:
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
@@ -246,7 +249,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def _encode_text(
         self,
-        document: Document,
+        document: TextDocument,
         partition: Optional[LabeledSpan] = None,
         add_special_tokens: bool = True,
     ) -> BatchEncoding:
@@ -268,12 +271,12 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def encode_input(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         is_training: bool = False,
     ) -> Tuple[
         List[TransformerReTextClassificationInputEncoding],
         List[Metadata],
-        Optional[List[Document]],
+        Optional[List[TextDocument]],
     ]:
         assert (
             self.argument_markers is not None
@@ -289,14 +292,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         )
 
         for document in documents:
-            entities = document[self.entity_annotation]
+            entities: Sequence[Span] = document[self.entity_annotation]
+            relations: Optional[Sequence[BinaryRelation]]
             if is_training:
-                relations: Sequence[BinaryRelation] = document[self.relation_annotation]
+                relations = document[self.relation_annotation]
             else:
-                relations: Sequence[BinaryRelation] = None
+                relations = None
             relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
-            partitions: Sequence[Optional[LabeledSpan]]
+            partitions: Sequence[Optional[Span]]
             if self.partition_annotation is not None:
                 partitions = document[self.partition_annotation]
             else:
@@ -430,7 +434,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def encode_target(
         self,
-        documents: List[Document],
+        documents: List[TextDocument],
         input_encodings: List[TransformerReTextClassificationInputEncoding],
         metadata: List[Metadata],
     ) -> List[TransformerReTextClassificationTargetEncoding]:

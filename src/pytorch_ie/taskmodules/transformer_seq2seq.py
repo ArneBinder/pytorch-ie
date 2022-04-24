@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie import BinaryRelation, LabeledSpan, TextDocument
+from pytorch_ie import BinaryRelation, LabeledSpan, Span, TextDocument
 from pytorch_ie.models import (
     TransformerSeq2SeqModelBatchOutput,
     TransformerSeq2SeqModelStepBatchEncoding,
@@ -26,12 +26,13 @@ TransformerSeq2SeqInputEncoding = Dict[str, List[int]]
 TransformerSeq2SeqTargetEncoding = Dict[str, List[int]]
 
 TransformerSeq2SeqTaskEncoding = TaskEncoding[
-    TransformerSeq2SeqInputEncoding, TransformerSeq2SeqTargetEncoding
+    TextDocument, TransformerSeq2SeqInputEncoding, TransformerSeq2SeqTargetEncoding
 ]
 TransformerSeq2SeqTaskOutput = List[Dict[str, Any]]
 
 _TransformerSeq2SeqTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerSeq2SeqInputEncoding,
     TransformerSeq2SeqTargetEncoding,
     TransformerSeq2SeqModelStepBatchEncoding,
@@ -99,7 +100,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
     def document_to_target_string(self, document: TextDocument) -> str:
         relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
-        head_to_relation: Dict[LabeledSpan, List[BinaryRelation]] = {}
+        head_to_relation: Dict[Span, List[BinaryRelation]] = {}
         for relation in relations:
             if relation.head not in head_to_relation:
                 head_to_relation[relation.head] = []

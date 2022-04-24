@@ -1,14 +1,15 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Tuple, Union, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+
 from pytorch_ie.document import AnnotationList
 
 
 def _validate_single_label(self):
-        if not isinstance(self.label, str):
-            raise ValueError("label must be a single string.")
+    if not isinstance(self.label, str):
+        raise ValueError("label must be a single string.")
 
-        if not isinstance(self.score, float):
-            raise ValueError("score must be a single float.")
+    if not isinstance(self.score, float):
+        raise ValueError("score must be a single float.")
 
 
 def _validate_multi_label(self):
@@ -75,6 +76,7 @@ class MultiLabel(Annotation):
     def __post_init__(self) -> None:
         _validate_multi_label(self)
 
+
 @dataclass(eq=True, frozen=True)
 class Span(Annotation):
     start: int
@@ -113,7 +115,7 @@ class LabeledMultiSpan(Annotation):
     def __post_init__(self) -> None:
         if isinstance(self.label, list):
             object.__setattr__(self, "slices", tuple(self.slices))
-        
+
         _validate_single_label(self)
 
 

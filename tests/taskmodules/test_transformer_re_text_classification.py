@@ -1,5 +1,4 @@
-import copy
-import os
+import re
 
 import numpy
 import pytest
@@ -174,8 +173,10 @@ def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
     if encode_target:
         assert encoding.target == [2]
     else:
-        assert encoding.target is None
         assert not encoding.has_target
+
+        with pytest.raises(AssertionError, match=re.escape("input encoding has no target")):
+            encoding.target
 
 
 @pytest.mark.parametrize("encode_target", [False, True])

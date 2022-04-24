@@ -101,7 +101,7 @@ source = ["pytorch_ie"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 60
+fail_under = 40
 
 [tool.pytest.ini_options]
 testpaths = "tests/"

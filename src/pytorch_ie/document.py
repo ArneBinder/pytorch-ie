@@ -1,7 +1,7 @@
 import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
-from typing import Any, Dict, List, Optional, Set, TypeVar, overload, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, TypeVar, Union, overload
 
 if TYPE_CHECKING:
     from pytorch_ie.annotations import Annotation

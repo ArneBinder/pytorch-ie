@@ -1,17 +1,17 @@
 import abc
-from functools import wraps
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Type
 
 import datasets
 from datasets.load import load_dataset_builder
 
 from pytorch_ie.data.dataset import Dataset, decorate_convert_to_dict_of_lists
+from pytorch_ie.document import Document
 
 
 class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
-    DOCUMENT_TYPE = None
+    DOCUMENT_TYPE: Optional[Type[Document]] = None
 
-    BASE_PATH = None
+    BASE_PATH: Optional[str] = None
 
     def __init__(self, **kwargs):
         builder_kwargs = dict(kwargs)

@@ -17,7 +17,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie import TextDocument, Label, MultiLabel
+from pytorch_ie import Label, MultiLabel, TextDocument
 from pytorch_ie.annotations import Annotation
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
@@ -38,7 +38,9 @@ TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
 TransformerTextClassificationTargetEncoding = List[int]
 
 TransformerTextClassificationTaskEncoding = TaskEncoding[
-    TransformerTextClassificationInputEncoding, TransformerTextClassificationTargetEncoding
+    TextDocument,
+    TransformerTextClassificationInputEncoding,
+    TransformerTextClassificationTargetEncoding,
 ]
 
 
@@ -59,6 +61,7 @@ TransformerTextClassificationTaskOutput = Union[
 
 _TransformerTextClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
     TransformerTextClassificationModelStepBatchEncoding,
@@ -111,14 +114,11 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             annotations: Sequence[Label] = document[self.annotation]
 
             for annotation in annotations:
-                # TODO: labels is a set...
-                for label in annotation.labels:
-                    if label not in labels:
-                        labels.add(label)
+                labels.add(annotation.label)
 
         self.label_to_id["O"] = 0
         current_id = 1
-        for label in labels:
+        for label in sorted(labels):
             self.label_to_id[label] = current_id
             current_id += 1
 

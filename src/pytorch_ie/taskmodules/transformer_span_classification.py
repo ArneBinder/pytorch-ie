@@ -28,12 +28,15 @@ TransformerSpanClassificationInputEncoding = BatchEncoding
 TransformerSpanClassificationTargetEncoding = List[Tuple[int, int, int]]
 
 TransformerSpanClassificationTaskEncoding = TaskEncoding[
-    TransformerSpanClassificationInputEncoding, TransformerSpanClassificationTargetEncoding
+    TextDocument,
+    TransformerSpanClassificationInputEncoding,
+    TransformerSpanClassificationTargetEncoding,
 ]
 TransformerSpanClassificationTaskOutput = Dict[str, Any]
 
 _TransformerSpanClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationTargetEncoding,
     TransformerSpanClassificationModelStepBatchEncoding,
@@ -125,10 +128,11 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         inputs = []
         expanded_documents = []
         for doc in documents:
+            partitions: Sequence[Span]
             if self.single_sentence:
-                partitions: List[Span] = doc[self.sentence_annotation]
+                partitions = doc[self.sentence_annotation]
             else:
-                partitions: List[Span] = [Span(start=0, end=len(doc.text))]
+                partitions = [Span(start=0, end=len(doc.text))]
             for partition in partitions:
                 encoding = self.tokenizer(
                     doc.text[partition.start : partition.end],
@@ -166,9 +170,10 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         metadata: List[Metadata],
     ) -> List[TransformerSpanClassificationTargetEncoding]:
         target = []
+        entities: Sequence[LabeledSpan]
         if self.single_sentence:
             for i, document in enumerate(documents):
-                entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+                entities = document[self.entity_annotation]
                 sentence_idx = metadata[i]["sentence_index"]
                 partitions: Sequence[Span] = document[self.sentence_annotation]
                 assert (
@@ -198,7 +203,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                 target.append(label_ids)
         else:
             for i, document in enumerate(documents):
-                entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+                entities = document[self.entity_annotation]
                 label_ids = []
                 for entity in entities:
                     start_idx = input_encodings[i].char_to_token(entity.start)

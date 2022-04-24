@@ -8,6 +8,7 @@ from typing import (
     List,
     MutableSequence,
     Optional,
+    Sequence,
     Set,
     Tuple,
 )
@@ -32,7 +33,9 @@ class InvalidTagSequence(Exception):
 
 
 def bio_tags_to_spans(
-    tag_sequence: List[str], classes_to_ignore: List[str] = None, include_ill_formed: bool = True
+    tag_sequence: Sequence[str],
+    classes_to_ignore: List[str] = None,
+    include_ill_formed: bool = True,
 ) -> List[TypedStringSpan]:
     """
     Given a sequence corresponding to BIO tags, extracts spans.
@@ -157,8 +160,8 @@ def io_tags_to_spans(
 
 
 def convert_span_annotations_to_tag_sequence(
-    spans: List[LabeledSpan],
-    special_tokens_mask: List[int],
+    spans: Sequence[LabeledSpan],
+    special_tokens_mask: Sequence[int],
     char_to_token_mapper: Callable[[int], Optional[int]],
     partition: Optional[LabeledSpan] = None,
     statistics: Optional[DefaultDict[str, Counter]] = None,

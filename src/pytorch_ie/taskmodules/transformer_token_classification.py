@@ -37,12 +37,15 @@ TransformerTokenClassificationInputEncoding = BatchEncoding
 TransformerTokenClassificationTargetEncoding = List[int]
 
 TransformerTokenClassificationTaskEncoding = TaskEncoding[
-    TransformerTokenClassificationInputEncoding, TransformerTokenClassificationTargetEncoding
+    TextDocument,
+    TransformerTokenClassificationInputEncoding,
+    TransformerTokenClassificationTargetEncoding,
 ]
 TransformerTokenClassificationTaskOutput = Dict[str, Any]
 
 _TransformerTokenClassificationTaskModule = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+    TextDocument,
     TransformerTokenClassificationInputEncoding,
     TransformerTokenClassificationTargetEncoding,
     TransformerTokenClassificationModelStepBatchEncoding,
