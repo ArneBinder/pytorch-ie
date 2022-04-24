@@ -63,6 +63,7 @@ def test_document_with_annotations():
     document1.sentences.append(span1)
     document1.sentences.append(span2)
     assert len(document1.sentences) == 2
+    assert document1.sentences[:2] == [span1, span2]
     assert document1.sentences[0].target == document1.text
 
     labeled_span1 = LabeledSpan(start=1, end=2, label="label1")

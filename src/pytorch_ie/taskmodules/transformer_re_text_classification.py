@@ -487,8 +487,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 BinaryRelation(
                     head=encoding.metadata[HEAD],
                     tail=encoding.metadata[TAIL],
-                    label=labels if self.multi_label else labels[0],
-                    score=probabilities if self.multi_label else probabilities[0],
+                    label=labels[0],
+                    score=probabilities[0],
                 ),
             )
 

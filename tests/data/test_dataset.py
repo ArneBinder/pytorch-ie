@@ -18,7 +18,7 @@ def test_dataset(dataset):
     assert len(train_doc5.entities) == 3
     assert len(train_doc5.relations) == 3
 
-    assert train_doc5.sentences[1].text == "Entity G works at H."
+    assert str(train_doc5.sentences[1]) == "Entity G works at H."
 
 
 def test_dataset_index(dataset):

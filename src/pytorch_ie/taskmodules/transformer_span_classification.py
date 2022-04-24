@@ -126,9 +126,9 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         expanded_documents = []
         for doc in documents:
             if self.single_sentence:
-                partitions: Sequence[Span] = doc[self.sentence_annotation]
+                partitions: List[Span] = doc[self.sentence_annotation]
             else:
-                partitions: Sequence[Span] = [Span(start=0, end=len(doc.text))]
+                partitions: List[Span] = [Span(start=0, end=len(doc.text))]
             for partition in partitions:
                 encoding = self.tokenizer(
                     doc.text[partition.start : partition.end],

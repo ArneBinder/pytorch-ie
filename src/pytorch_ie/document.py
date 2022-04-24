@@ -1,16 +1,17 @@
 import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
-from typing import Any, Dict, List, Optional, Set, TypeVar, overload
+from typing import Any, Dict, List, Optional, Set, TypeVar, overload, TYPE_CHECKING, Union
 
-from pytorch_ie.annotations import Annotation
+if TYPE_CHECKING:
+    from pytorch_ie.annotations import Annotation
 
 
-def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, str], node: str):
+def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, List[str]], node: str):
     if node not in visited:
         lst.append(node)
         visited.add(node)
-        neighbours = graph.get(node) or []
+        neighbours: List[str] = graph.get(node) or []
         for neighbour in neighbours:
             _depth_first_search(lst, visited, graph, neighbour)
 
@@ -23,7 +24,7 @@ def annotation_field(target: Optional[str] = None):
     return dataclasses.field(metadata=dict(target=target), init=False, repr=False)
 
 
-T = TypeVar("T", covariant=True, bound=Annotation)
+T = TypeVar("T", covariant=False, bound="Annotation")
 
 
 class PredictionList(Sequence[T]):
@@ -34,6 +35,8 @@ class PredictionList(Sequence[T]):
 
     # TODO: check if the comparison logic is sufficient
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PredictionList):
+            return NotImplemented
         return self._target == other._target and self._predictions == other._predictions
 
     @overload
@@ -41,10 +44,10 @@ class PredictionList(Sequence[T]):
         ...
 
     @overload
-    def __getitem__(self, s: slice) -> Sequence[T]:
+    def __getitem__(self, s: slice) -> List[T]:
         ...
 
-    def __getitem__(self, idx) -> T:
+    def __getitem__(self, idx: Union[int, slice]) -> Union[T, List[T]]:
         return self._predictions[idx]
 
     def __len__(self) -> int:
@@ -76,6 +79,9 @@ class AnnotationList(Sequence[T]):
 
     # TODO: check if the comparison logic is sufficient
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AnnotationList):
+            return NotImplemented
+
         return (
             self._target == other._target
             and self._annotations == other._annotations
@@ -87,10 +93,10 @@ class AnnotationList(Sequence[T]):
         ...
 
     @overload
-    def __getitem__(self, s: slice) -> Sequence[T]:
+    def __getitem__(self, s: slice) -> List[T]:
         ...
 
-    def __getitem__(self, idx) -> T:
+    def __getitem__(self, idx: Union[int, slice]) -> Union[T, List[T]]:
         return self._annotations[idx]
 
     def __len__(self) -> int:

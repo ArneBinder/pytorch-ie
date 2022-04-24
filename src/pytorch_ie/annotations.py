@@ -1,19 +1,44 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, List, TYPE_CHECKING
+from pytorch_ie.document import AnnotationList
+
+
+def _validate_single_label(self):
+        if not isinstance(self.label, str):
+            raise ValueError("label must be a single string.")
+
+        if not isinstance(self.score, float):
+            raise ValueError("score must be a single float.")
+
+
+def _validate_multi_label(self):
+    if self.score is None:
+        score = tuple([1.0] * len(self.label))
+        object.__setattr__(self, "score", score)
+
+    if not isinstance(self.label, tuple):
+        object.__setattr__(self, "label", tuple(self.label))
+
+    if not isinstance(self.score, tuple):
+        object.__setattr__(self, "score", tuple(self.score))
+
+    if len(self.label) != len(self.score):
+        raise ValueError(
+            f"Number of labels ({len(self.label)}) and scores ({len(self.score)}) must be equal."
+        )
 
 
 @dataclass(eq=True, frozen=True)
 class Annotation:
-    # _target: Optional[Union["Annotation", str]] = field(default=None, init=False, repr=False, hash=False, compare=False)
-    _target: Optional[Union["Annotation", str]] = field(
+    _target: Optional[Union[AnnotationList, str]] = field(
         default=None, init=False, repr=False, hash=False
     )
 
-    def set_target(self, value: Union["Annotation", str]):
+    def set_target(self, value: Union[AnnotationList, str, None]):
         object.__setattr__(self, "_target", value)
 
     @property
-    def target(self) -> Union["Annotation", str]:
+    def target(self) -> Optional[Union[AnnotationList, str]]:
         return self._target
 
     def asdict(self) -> Dict[str, Any]:
@@ -33,92 +58,87 @@ class Annotation:
         return cls(**tmp_dct)
 
 
-class SingleLabelMixin:
-    def __post_init__(self) -> None:
-        if not isinstance(self.label, str):
-            raise ValueError("label must be a single string.")
-
-        if not isinstance(self.score, float):
-            raise ValueError("score must be a single float.")
-
-
-class MultiLabelMixin:
-    def __post_init__(self) -> None:
-        if self.score is None:
-            score = tuple([1.0] * len(self.label))
-            object.__setattr__(self, "score", score)
-
-        if isinstance(self.label, list):
-            object.__setattr__(self, "label", tuple(self.label))
-
-        if isinstance(self.score, list):
-            object.__setattr__(self, "score", tuple(self.score))
-
-        if len(self.label) != len(self.score):
-            raise ValueError(
-                f"Number of labels ({len(self.label)}) and scores ({len(self.score)}) must be equal."
-            )
-
-
 @dataclass(eq=True, frozen=True)
-class Label(Annotation, SingleLabelMixin):
+class Label(Annotation):
     label: str
     score: float = 1.0
 
+    def __post_init__(self) -> None:
+        _validate_single_label(self)
+
 
 @dataclass(eq=True, frozen=True)
-class MultiLabel(Annotation, MultiLabelMixin):
+class MultiLabel(Annotation):
     label: Tuple[str]
     score: Optional[Tuple[float]] = None
 
+    def __post_init__(self) -> None:
+        _validate_multi_label(self)
 
 @dataclass(eq=True, frozen=True)
 class Span(Annotation):
     start: int
     end: int
 
-    @property
-    def text(self) -> str:
-        return self.target[self.start : self.end]
+    def __str__(self) -> str:
+        if self.target is None:
+            return ""
+        return str(self.target[self.start : self.end])
 
 
 @dataclass(eq=True, frozen=True)
-class LabeledSpan(Span, SingleLabelMixin):
+class LabeledSpan(Span):
     label: str
     score: float = 1.0
 
+    def __post_init__(self) -> None:
+        _validate_single_label(self)
+
 
 @dataclass(eq=True, frozen=True)
-class MultiLabeledSpan(Span, MultiLabelMixin):
+class MultiLabeledSpan(Span):
     label: Tuple[str]
     score: Optional[Tuple[float]] = None
 
+    def __post_init__(self) -> None:
+        _validate_multi_label(self)
+
 
 @dataclass(eq=True, frozen=True)
-class LabeledMultiSpan(Annotation, SingleLabelMixin):
+class LabeledMultiSpan(Annotation):
     slices: Tuple[Tuple[int, int]]
     label: str
     score: float = 1.0
 
     def __post_init__(self) -> None:
-        super().__post_init__()
         if isinstance(self.label, list):
             object.__setattr__(self, "slices", tuple(self.slices))
+        
+        _validate_single_label(self)
 
 
 @dataclass(eq=True, frozen=True)
-class MultiLabeledMultiSpan(Annotation, MultiLabelMixin):
+class MultiLabeledMultiSpan(Annotation):
     slices: Tuple[Tuple[int, int]]
     label: Tuple[str]
     score: Optional[Tuple[float]] = None
 
+    def __post_init__(self) -> None:
+        if isinstance(self.label, list):
+            object.__setattr__(self, "slices", tuple(self.slices))
+
+        _validate_multi_label(self)
+
 
 @dataclass(eq=True, frozen=True)
-class BinaryRelation(Annotation, SingleLabelMixin):
+class BinaryRelation(Annotation):
     head: Span
     tail: Span
     label: str
     score: float = 1.0
+
+    def __post_init__(self) -> None:
+        _validate_single_label(self)
 
     def asdict(self) -> Dict[str, Any]:
         dct = super().asdict()
@@ -154,11 +174,14 @@ class BinaryRelation(Annotation, SingleLabelMixin):
 
 
 @dataclass(eq=True, frozen=True)
-class MultiLabeledBinaryRelation(Annotation, MultiLabelMixin):
+class MultiLabeledBinaryRelation(Annotation):
     head: Span
     tail: Span
     label: Tuple[str]
     score: Optional[Tuple[float]] = None
+
+    def __post_init__(self) -> None:
+        _validate_multi_label(self)
 
     def asdict(self) -> Dict[str, Any]:
         dct = super().asdict()

@@ -40,10 +40,7 @@ def main():
     pipeline(document, predict_field="relations")
 
     for relation in document.relations.predictions:
-        head_text = relation.head.text
-        tail_text = relation.tail.text
-        label = relation.label
-        print(f"({head_text} -> {tail_text}) -> {label}")
+        print(f"({relation.head} -> {relation.tail}) -> {relation.label}")
 
 
 if __name__ == "__main__":

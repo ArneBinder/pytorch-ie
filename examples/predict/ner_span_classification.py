@@ -24,7 +24,7 @@ def main():
     ner_pipeline(document, predict_field="entities")
 
     for entity in document.entities.predictions:
-        print(f"{entity.text} -> {entity.label}")
+        print(f"{entity} -> {entity.label}")
 
 
 if __name__ == "__main__":

@@ -172,10 +172,10 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         encoding: TransformerSeq2SeqTaskEncoding,
         output: TransformerSeq2SeqTaskOutput,
     ) -> Iterator[Tuple[str, Union[LabeledSpan, BinaryRelation]]]:
-        for relation in output:
-            head_entity = relation["head"]
-            tail_entity = relation["tail"]
-            label = relation["type"]
+        for relation_dct in output:
+            head_entity = relation_dct["head"]
+            tail_entity = relation_dct["tail"]
+            label = relation_dct["type"]
 
             if label == "no_relation":
                 continue

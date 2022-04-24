@@ -300,8 +300,8 @@ def test_annotation_list():
     assert document.entities[1].target == document.text
     assert entity1.target == document.text
     assert entity2.target == document.text
-    assert document.entities[0].text == "Entity A"
-    assert document.entities[1].text == "B"
+    assert str(document.entities[0]) == "Entity A"
+    assert str(document.entities[1]) == "B"
 
     assert len(document.entities.predictions) == 2
     assert document.entities.predictions[0] == entity3
@@ -310,8 +310,8 @@ def test_annotation_list():
     assert document.entities.predictions[1].target == document.text
     assert entity3.target == document.text
     assert entity4.target == document.text
-    assert document.entities.predictions[0].text == "B"
-    assert document.entities.predictions[1].text == "Entity A"
+    assert str(document.entities.predictions[0]) == "B"
+    assert str(document.entities.predictions[1]) == "Entity A"
 
     document.entities.clear()
     assert len(document.entities) == 0
