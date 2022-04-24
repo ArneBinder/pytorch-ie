@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
-from torch import Tensor
+from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
@@ -14,6 +14,11 @@ TransformerTokenClassificationModelStepBatchEncoding = Tuple[
     Dict[str, Tensor],
     Optional[Tensor],
 ]
+
+
+TRAINING = "train"
+VALIDATION = "val"
+TEST = "test"
 
 
 class TransformerTokenClassificationModel(PyTorchIEModel):
@@ -30,19 +35,31 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
 
         self.learning_rate = learning_rate
         self.label_pad_token_id = label_pad_token_id
+        self.num_classes = num_classes
 
         config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_classes)
         self.model = AutoModelForTokenClassification.from_pretrained(
             model_name_or_path, config=config
         )
 
-        self.train_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
-        self.val_f1 = torchmetrics.F1(num_classes=num_classes, ignore_index=ignore_index)
+        self.f1 = nn.ModuleDict(
+            {
+                f"stage_{stage}": torchmetrics.F1(
+                    num_classes=num_classes, ignore_index=ignore_index
+                )
+                for stage in [TRAINING, VALIDATION, TEST]
+            }
+        )
 
     def forward(self, input_: TransformerTokenClassificationModelBatchEncoding) -> TransformerTokenClassificationModelBatchOutput:  # type: ignore
         return self.model(**input_)
 
-    def training_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+    def step(
+        self,
+        stage: str,
+        batch: TransformerTokenClassificationModelStepBatchEncoding,
+    ):
+
         input_, target = batch
         assert target is not None, "target has to be available for training"
 
@@ -50,43 +67,29 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         output = self(input_)
 
         loss = output.loss
-        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        # show loss on each step only during training
+        self.log(f"{stage}/loss", loss, on_step=(stage == TRAINING), on_epoch=True, prog_bar=True)
 
         target_flat = target.view(-1)
 
         valid_indices = target_flat != self.label_pad_token_id
-        # ignore typing because hparams is Union
-        num_classes: int = self.hparams.num_classes  # type: ignore
-        valid_logits = output.logits.view(-1, num_classes)[valid_indices]
+        valid_logits = output.logits.view(-1, self.num_classes)[valid_indices]
         valid_target = target_flat[valid_indices]
 
-        self.train_f1(valid_logits, valid_target)
-        self.log("train/f1", self.train_f1, on_step=False, on_epoch=True, prog_bar=True)
+        f1 = self.f1[f"stage_{stage}"]
+        f1(valid_logits, valid_target)
+        self.log(f"{stage}/f1", f1, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
 
-    def validation_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
-        input_, target = batch
-        assert target is not None, "target has to be available for validation"
+    def training_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=TRAINING, batch=batch)
 
-        input_["labels"] = target
-        output = self(input_)
+    def validation_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=VALIDATION, batch=batch)
 
-        loss = output.loss
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-
-        target_flat = target.view(-1)
-
-        valid_indices = target_flat != self.label_pad_token_id
-        # ignore typing because hparams is Union
-        num_classes: int = self.hparams.num_classes  # type: ignore
-        valid_logits = output.logits.view(-1, num_classes)[valid_indices]
-        valid_target = target_flat[valid_indices]
-
-        self.val_f1(valid_logits, valid_target)
-        self.log("val/f1", self.val_f1, on_step=False, on_epoch=True, prog_bar=True)
-
-        return loss
+    def test_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=TEST, batch=batch)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
