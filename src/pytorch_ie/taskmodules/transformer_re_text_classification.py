@@ -96,8 +96,8 @@ def _create_argument_markers(
 
 
 def _enumerate_entity_pairs(
-    entities: Sequence[LabeledSpan],
-    partition: Optional[LabeledSpan] = None,
+    entities: Sequence[Span],
+    partition: Optional[Span] = None,
     relations: Optional[Sequence[BinaryRelation]] = None,
 ):
     """
@@ -105,14 +105,12 @@ def _enumerate_entity_pairs(
     restrict pairs to be contained in that. If `relations` are given, return only pairs for which a relation exists.
     """
     existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
-    head: LabeledSpan
     for head in entities:
         if partition is not None and not is_contained_in(
             (head.start, head.end), (partition.start, partition.end)
         ):
             continue
 
-        tail: LabeledSpan
         for tail in entities:
             if partition is not None and not is_contained_in(
                 (tail.start, tail.end), (partition.start, partition.end)
@@ -250,7 +248,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     def _encode_text(
         self,
         document: TextDocument,
-        partition: Optional[LabeledSpan] = None,
+        partition: Optional[Span] = None,
         add_special_tokens: bool = True,
     ) -> BatchEncoding:
         text = (

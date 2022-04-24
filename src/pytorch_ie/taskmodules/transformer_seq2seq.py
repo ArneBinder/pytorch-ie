@@ -7,6 +7,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie import BinaryRelation, LabeledSpan, Span, TextDocument
+from pytorch_ie.annotations import Annotation
 from pytorch_ie.models import (
     TransformerSeq2SeqModelBatchOutput,
     TransformerSeq2SeqModelStepBatchEncoding,
@@ -172,7 +173,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         self,
         encoding: TransformerSeq2SeqTaskEncoding,
         output: TransformerSeq2SeqTaskOutput,
-    ) -> Iterator[Tuple[str, Union[LabeledSpan, BinaryRelation]]]:
+    ) -> Iterator[Tuple[str, Annotation]]:
         for relation_dct in output:
             head_entity = relation_dct["head"]
             tail_entity = relation_dct["tail"]

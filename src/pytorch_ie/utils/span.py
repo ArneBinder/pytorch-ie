@@ -15,7 +15,7 @@ from typing import (
 
 from transformers import PreTrainedTokenizer
 
-from pytorch_ie import LabeledSpan
+from pytorch_ie import LabeledSpan, Span
 
 TypedSpan = Tuple[int, Tuple[int, int]]
 TypedStringSpan = Tuple[str, Tuple[int, int]]
@@ -163,7 +163,7 @@ def convert_span_annotations_to_tag_sequence(
     spans: Sequence[LabeledSpan],
     special_tokens_mask: Sequence[int],
     char_to_token_mapper: Callable[[int], Optional[int]],
-    partition: Optional[LabeledSpan] = None,
+    partition: Optional[Span] = None,
     statistics: Optional[DefaultDict[str, Counter]] = None,
 ) -> MutableSequence[Optional[str]]:
     """

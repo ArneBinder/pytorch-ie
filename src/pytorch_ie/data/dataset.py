@@ -66,7 +66,6 @@ class Dataset(datasets.Dataset):
     def map(
         self,
         function: Optional[Callable] = None,
-        as_documents: bool = True,
         with_indices: bool = False,
         with_rank: bool = False,
         input_columns: Optional[Union[str, List[str]]] = None,
@@ -85,6 +84,7 @@ class Dataset(datasets.Dataset):
         suffix_template: str = "_{rank:05d}_of_{num_proc:05d}",
         new_fingerprint: Optional[str] = None,
         desc: Optional[str] = None,
+        as_documents: bool = True,
     ) -> "Dataset":
 
         dataset = super().map(

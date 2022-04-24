@@ -163,17 +163,20 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         metadata: List[Metadata],
     ) -> List[TransformerTextClassificationTargetEncoding]:
 
+        # TODO: adapt this when single annotations are available
         target: List[TransformerTextClassificationTargetEncoding] = []
         for i, document in enumerate(documents):
             annotations: Sequence[Union[Label, MultiLabel]] = document[self.annotation]
+            annotation = annotations[0]
             if self.multi_label:
+                assert isinstance(annotation, MultiLabel)
                 label_ids = [0] * len(self.label_to_id)
-                for annotation in annotations:
-                    for label in annotation.label:
-                        label_id = self.label_to_id[label]
-                        label_ids[label_id] = 1
+                for label in annotation.label:
+                    label_id = self.label_to_id[label]
+                    label_ids[label_id] = 1
             else:
-                label = annotations[0].label
+                assert isinstance(annotation, Label)
+                label = annotation.label
                 label_ids = [self.label_to_id[label]]
 
             target.append(label_ids)
