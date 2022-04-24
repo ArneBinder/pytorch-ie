@@ -1,7 +1,6 @@
 # flake8: noqa
 
 from .annotations import (
-    AnnotationList,
     BinaryRelation,
     Label,
     LabeledMultiSpan,
@@ -13,8 +12,5 @@ from .annotations import (
     Span,
 )
 from .data import *
-from .document import Document, TextDocument, annotation_field
+from .document import Document, TextDocument, annotation_field, AnnotationList
 from .pipeline import Pipeline
-
-# from .models import *
-# from .taskmodules import *

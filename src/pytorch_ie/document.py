@@ -1,9 +1,8 @@
 import dataclasses
 import typing
-from collections.abc import Mapping
-from typing import Any, Dict, List, Optional, Set, Union
-
-from pytorch_ie.annotations import AnnotationList
+from collections.abc import Mapping, Sequence
+from typing import Any, Dict, List, Optional, Set, TypeVar, overload
+from pytorch_ie.annotations import Annotation
 
 
 def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, str], node: str):
@@ -16,15 +15,93 @@ def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, str]
 
 
 def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.Field]:
-    annotation_fields: Set[dataclasses.Field] = set()
-    for field in fields:
-        if typing.get_origin(field.type) is AnnotationList:
-            annotation_fields.add(field)
-    return annotation_fields
+    return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
 
 def annotation_field(target: Optional[str] = None):
     return dataclasses.field(metadata=dict(target=target), init=False, repr=False)
+
+
+T = TypeVar("T", covariant=True, bound=Annotation)
+
+
+class PredictionList(Sequence[T]):
+    def __init__(self, document: "Document", target: "str"):
+        self._document = document
+        self._target = target
+        self._predictions: List[T] = []
+
+    # TODO: check if the comparison logic is sufficient
+    def __eq__(self, other: object) -> bool:
+        return self._target == other._target and self._predictions == other._predictions
+
+    @overload
+    def __getitem__(self, idx: int) -> T:
+        ...
+
+    @overload
+    def __getitem__(self, s: slice) -> Sequence[T]:
+        ...
+
+    def __getitem__(self, idx) -> T:
+        return self._predictions[idx]
+
+    def __len__(self) -> int:
+        return len(self._predictions)
+
+    def append(self, prediction: T) -> None:
+        prediction.set_target(getattr(self._document, self._target))
+        self._predictions.append(prediction)
+
+    def __repr__(self) -> str:
+        return f"PredictionList({str(self._predictions)})"
+
+    def clear(self):
+        for prediction in self._predictions:
+            prediction.set_target(None)
+        self._predictions = []
+
+
+class AnnotationList(Sequence[T]):
+    def __init__(self, document: "Document", target: "str"):
+        self._document = document
+        self._target = target
+        self._annotations: List[T] = []
+        self._predictions: PredictionList[T] = PredictionList(document, target)
+
+    @property
+    def predictions(self) -> PredictionList[T]:
+        return self._predictions
+
+    # TODO: check if the comparison logic is sufficient
+    def __eq__(self, other: object) -> bool:
+        return self._target == other._target and self._annotations == other._annotations
+
+    @overload
+    def __getitem__(self, idx: int) -> T:
+        ...
+
+    @overload
+    def __getitem__(self, s: slice) -> Sequence[T]:
+        ...
+
+    def __getitem__(self, idx) -> T:
+        return self._annotations[idx]
+
+    def __len__(self) -> int:
+        return len(self._annotations)
+
+    def append(self, annotation: T) -> None:
+        annotation.set_target(getattr(self._document, self._target))
+        self._annotations.append(annotation)
+
+    def __repr__(self) -> str:
+        return f"AnnotationList({str(self._annotations)})"
+
+    def clear(self):
+        for annotation in self._annotations:
+            annotation.set_target(None)
+        self._annotations = []
 
 
 @dataclasses.dataclass
