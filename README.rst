@@ -53,6 +53,7 @@ Span-classification-based Named Entity Recognition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
+
     from dataclasses import dataclass
 
     from pytorch_ie import AnnotationList, LabeledSpan, Pipeline, TextDocument, annotation_field
@@ -89,6 +90,7 @@ Text-classification-based Relation Extraction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
+
     from dataclasses import dataclass
 
     from pytorch_ie import AnnotationList, BinaryRelation, LabeledSpan, Pipeline, TextDocument, annotation_field
