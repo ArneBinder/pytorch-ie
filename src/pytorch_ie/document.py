@@ -37,10 +37,7 @@ class BaseAnnotationList(Sequence[T]):
         if not isinstance(other, BaseAnnotationList):
             return NotImplemented
 
-        return (
-            self._target == other._target
-            and self._annotations == other._annotations
-        )
+        return self._target == other._target and self._annotations == other._annotations
 
     @overload
     def __getitem__(self, idx: int) -> T:
