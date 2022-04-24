@@ -27,65 +27,20 @@ def annotation_field(target: Optional[str] = None):
 T = TypeVar("T", covariant=False, bound="Annotation")
 
 
-class PredictionList(Sequence[T]):
-    def __init__(self, document: "Document", target: "str"):
-        self._document = document
-        self._target = target
-        self._predictions: List[T] = []
-
-    # TODO: check if the comparison logic is sufficient
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, PredictionList):
-            return NotImplemented
-        return self._target == other._target and self._predictions == other._predictions
-
-    @overload
-    def __getitem__(self, idx: int) -> T:
-        ...
-
-    @overload
-    def __getitem__(self, s: slice) -> List[T]:
-        ...
-
-    def __getitem__(self, idx: Union[int, slice]) -> Union[T, List[T]]:
-        return self._predictions[idx]
-
-    def __len__(self) -> int:
-        return len(self._predictions)
-
-    def append(self, prediction: T) -> None:
-        prediction.set_target(getattr(self._document, self._target))
-        self._predictions.append(prediction)
-
-    def __repr__(self) -> str:
-        return f"PredictionList({str(self._predictions)})"
-
-    def clear(self):
-        for prediction in self._predictions:
-            prediction.set_target(None)
-        self._predictions = []
-
-
-class AnnotationList(Sequence[T]):
+class BaseAnnotationList(Sequence[T]):
     def __init__(self, document: "Document", target: "str"):
         self._document = document
         self._target = target
         self._annotations: List[T] = []
-        self._predictions: PredictionList[T] = PredictionList(document, target)
 
-    @property
-    def predictions(self) -> PredictionList[T]:
-        return self._predictions
-
-    # TODO: check if the comparison logic is sufficient
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, AnnotationList):
+        if not isinstance(other, BaseAnnotationList):
             return NotImplemented
 
         return (
             self._target == other._target
-            and self._annotations == other._annotations
-            and self.predictions == other.predictions
+            and len(self._annotations) == len(other._annotations)
+            and all(a == a_other for a, a_other in zip(self._annotations, other._annotations))
         )
 
     @overload
@@ -107,12 +62,31 @@ class AnnotationList(Sequence[T]):
         self._annotations.append(annotation)
 
     def __repr__(self) -> str:
-        return f"AnnotationList({str(self._annotations)})"
+        return f"BaseAnnotationList({str(self._annotations)})"
 
     def clear(self):
         for annotation in self._annotations:
             annotation.set_target(None)
         self._annotations = []
+
+
+class AnnotationList(BaseAnnotationList[T]):
+    def __init__(self, document: "Document", target: "str"):
+        super().__init__(document=document, target=target)
+        self._predictions: BaseAnnotationList[T] = BaseAnnotationList(document, target)
+
+    @property
+    def predictions(self) -> BaseAnnotationList[T]:
+        return self._predictions
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AnnotationList):
+            return NotImplemented
+
+        return super().__eq__(other) and self.predictions == other.predictions
+
+    def __repr__(self) -> str:
+        return f"AnnotationList({str(self._annotations)})"
 
 
 @dataclasses.dataclass
