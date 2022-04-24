@@ -48,7 +48,7 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
 
     def __init__(
         self,
-        taskmodule: TaskModule[InputEncoding, TargetEncoding, Any, Any, Any],
+        taskmodule: TaskModule[DocumentType, InputEncoding, TargetEncoding, Any, Any, Any],
         dataset: Dict[str, List[DocumentType]],
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
@@ -69,7 +69,9 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         self.prepare_split = prepare_split or self.train_split
         self.dataloader_kwargs = dataloader_kwargs
 
-        self._data: Dict[str, TaskEncodingDataset[InputEncoding, TargetEncoding]] = {}
+        self._data: Dict[
+            str, TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]
+        ] = {}
 
     @property
     def num_train(self) -> int:
@@ -96,7 +98,7 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
 
     def data_split(
         self, split: Optional[str] = None
-    ) -> TaskEncodingDataset[InputEncoding, TargetEncoding]:
+    ) -> TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]:
         if split is None or split not in self._data:
             raise ValueError(f"data for split={split} not available")
         return self._data[split]
