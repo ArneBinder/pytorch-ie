@@ -39,8 +39,7 @@ class BaseAnnotationList(Sequence[T]):
 
         return (
             self._target == other._target
-            and len(self._annotations) == len(other._annotations)
-            and all(a == a_other for a, a_other in zip(self._annotations, other._annotations))
+            and self._annotations == other._annotations
         )
 
     @overload
