@@ -48,6 +48,10 @@ PyTorch-IE: State-of-the-art Information Extraction in PyTorch
 
 ⚡️ Examples
 ------------
+**Note:** Setting ``num_workers=0`` in the pipeline is only necessary when running an example in an
+interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
+interpreter, see `here <https://docs.python.org/3/library/multiprocessing.html#using-a-pool-of-workers>`_
+for details.
 
 Span-classification-based Named Entity Recognition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -70,7 +74,7 @@ Span-classification-based Named Entity Recognition
     ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
     ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
 
-    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1)
+    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
@@ -108,7 +112,7 @@ Text-classification-based Relation Extraction
     re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
     re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
 
-    re_pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
+    re_pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1, num_workers=0)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
