@@ -50,7 +50,7 @@ PyTorch-IE: State-of-the-art Information Extraction in PyTorch
 ------------
 **Note:** Setting ``num_workers=0`` in the pipeline is only necessary when running an example in an 
 interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
-interpreter, see [here](https://docs.python.org/3/library/multiprocessing.html#using-a-pool-of-workers) 
+interpreter, see `here <https://docs.python.org/3/library/multiprocessing.html#using-a-pool-of-workers>`_
 for details.
 
 Span-classification-based Named Entity Recognition
