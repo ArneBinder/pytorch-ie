@@ -1,8 +1,6 @@
 import copy
-import json
 import logging
-from collections import Counter, defaultdict
-from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -10,7 +8,7 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie import LabeledSpan, TextDocument
+from pytorch_ie import LabeledSpan, Span, TextDocument
 from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchOutput,
     TransformerTokenClassificationModelStepBatchEncoding,
@@ -33,8 +31,8 @@ workflow:
         -> TaskOutput
     -> Document
 """
-TransformerTokenClassificationInputEncoding = BatchEncoding
-TransformerTokenClassificationTargetEncoding = List[int]
+TransformerTokenClassificationInputEncoding = Union[Dict[str, Any], BatchEncoding]
+TransformerTokenClassificationTargetEncoding = Sequence[int]
 
 TransformerTokenClassificationTaskEncoding = TaskEncoding[
     TextDocument,
@@ -96,7 +94,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: List[TextDocument]) -> None:
+    def prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
             entities: Sequence[LabeledSpan] = document[self.entity_annotation]
@@ -115,10 +113,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_text(
-        self, text, partition: Optional[LabeledSpan] = None, add_special_tokens: bool = True
-    ):
+        self, text, partition: Optional[Span] = None, add_special_tokens: bool = True
+    ) -> BatchEncoding:
         if self.partition_annotation is not None and partition is None:
             raise ValueError(f"partitioning is enabled, but no partition is provided")
+
         text_partition = text[partition.start : partition.end] if partition is not None else text
         return self.tokenizer(
             text_partition,
@@ -133,140 +132,142 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def encode_input(
         self,
-        documents: List[TextDocument],
+        document: TextDocument,
         is_training: bool = False,
-    ) -> Tuple[
-        List[TransformerTokenClassificationInputEncoding],
-        List[Metadata],
-        Optional[List[TextDocument]],
+    ) -> Optional[
+        Union[
+            TransformerTokenClassificationTaskEncoding,
+            Sequence[TransformerTokenClassificationTaskEncoding],
+        ]
     ]:
-        metadata = []
-        expanded_documents = []
-        input_ = []
-        for doc in documents:
-            partitions: Sequence[Optional[LabeledSpan]]
-            if self.partition_annotation is not None:
-                partitions = doc[self.partition_annotation]
-            else:
-                partitions = [None]
+        partitions: Sequence[Optional[Span]]
+        if self.partition_annotation is not None:
+            partitions = document[self.partition_annotation]
+        else:
+            partitions = [None]
 
-            for partition_index, partition in enumerate(partitions):
-                add_special_tokens = self.max_window is None
-                encoding = self.encode_text(
-                    text=doc.text, partition=partition, add_special_tokens=add_special_tokens
+        task_encodings: List[TransformerTokenClassificationTaskEncoding] = []
+        for partition_index, partition in enumerate(partitions):
+            add_special_tokens = self.max_window is None
+            inputs: BatchEncoding = self.encode_text(
+                text=document.text, partition=partition, add_special_tokens=add_special_tokens
+            )
+
+            metadata = {
+                "offset_mapping": inputs.pop("offset_mapping"),
+                "special_tokens_mask": inputs.pop("special_tokens_mask"),
+                "char_to_token_mapper": inputs.char_to_token,
+            }
+
+            if partition is not None:
+                metadata["sentence_index"] = partition_index
+
+            if self.max_window is None:
+                task_encodings.append(
+                    TaskEncoding(
+                        document=document,
+                        inputs=inputs,
+                        metadata=metadata,
+                    )
                 )
-                current_metadata = {
-                    "offset_mapping": encoding.pop("offset_mapping"),
-                    "special_tokens_mask": encoding.pop("special_tokens_mask"),
-                    "char_to_token_mapper": encoding.char_to_token,
-                }
-                if partition is not None:
-                    current_metadata["sentence_index"] = partition_index
-                if self.max_window is None:
-                    metadata.append(current_metadata)
-                    input_.append(encoding)
-                    expanded_documents.append(doc)
-                else:
-                    offset_mapping = current_metadata.pop("offset_mapping")
-                    # The actual number of tokens will be lower than max_window because we add the default special
-                    # tokens later on (e.g. CLS and SEP).
-                    max_window = self.max_window - self.tokenizer.num_special_tokens_to_add()
-                    token_ids = encoding["input_ids"]
-                    for token_slice, label_offset_slice in enumerate_windows(
-                        sequence=token_ids, max_size=max_window, overlap=self.window_overlap
-                    ):
-                        start_idx, end_idx = token_slice
-                        new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
-                            token_ids_0=token_ids[start_idx:end_idx]
-                        )
-                        new_special_tokens_mask = get_special_token_mask(
-                            token_ids_0=new_input_ids, tokenizer=self.tokenizer
-                        )
-                        new_encoding = {"input_ids": new_input_ids}
-                        # for now, we copy just to keep "sentence_index"
-                        new_metadata = copy.deepcopy(current_metadata)
-                        new_metadata["special_tokens_mask"] = new_special_tokens_mask
-                        offset_mapping_without_special_tokens = offset_mapping[start_idx:end_idx]
-                        j = 0
-                        current_offset_mapping: List[Tuple[int, int]] = []
-                        # this maps from positions without special tokens to positions with special tokens
-                        position_with_special_tokens = {}
-                        for i, is_special_token in enumerate(new_special_tokens_mask):
-                            if is_special_token:
-                                current_offset_mapping.append((0, 0))
-                            else:
-                                position_with_special_tokens[j] = i
-                                current_offset_mapping.append(
-                                    offset_mapping_without_special_tokens[j]
-                                )
-                                j += 1
-                        new_metadata["offset_mapping"] = current_offset_mapping
-                        char_to_token_mapping: Dict[int, int] = {}
-                        for token_idx, (char_start, char_end) in enumerate(current_offset_mapping):
-                            for char_idx in range(char_start, char_end):
-                                char_to_token_mapping[char_idx] = token_idx
-                        new_metadata["char_to_token_mapper"] = get_char_to_token_mapper(
-                            char_to_token_mapping=char_to_token_mapping,
-                            char_start=offset_mapping_without_special_tokens[0][0],
-                            char_end=offset_mapping_without_special_tokens[-1][1],
-                        )
-                        # new_metadata["window_tokens"] = token_slice
-                        new_metadata["window_labels"] = (
-                            position_with_special_tokens[label_offset_slice[0]],
-                            # we have to look up the actual index, not the pythonic end position
-                            position_with_special_tokens[label_offset_slice[1] - 1] + 1,
-                        )
+            else:
+                offset_mapping = metadata.pop("offset_mapping")
+                # The actual number of tokens will be lower than max_window because we add the default special
+                # tokens later on (e.g. CLS and SEP).
+                max_window = self.max_window - self.tokenizer.num_special_tokens_to_add()
+                token_ids = inputs["input_ids"]
+                for token_slice, label_offset_slice in enumerate_windows(
+                    sequence=token_ids, max_size=max_window, overlap=self.window_overlap
+                ):
+                    start_idx, end_idx = token_slice
+                    new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                        token_ids_0=token_ids[start_idx:end_idx]
+                    )
+                    new_special_tokens_mask = get_special_token_mask(
+                        token_ids_0=new_input_ids, tokenizer=self.tokenizer
+                    )
+                    window_inputs = {"input_ids": new_input_ids}
+                    # for now, we copy just to keep "sentence_index"
+                    window_metadata = copy.deepcopy(metadata)
+                    window_metadata["special_tokens_mask"] = new_special_tokens_mask
+                    offset_mapping_without_special_tokens = offset_mapping[start_idx:end_idx]
+                    j = 0
+                    current_offset_mapping: List[Tuple[int, int]] = []
+                    # this maps from positions without special tokens to positions with special tokens
+                    position_with_special_tokens = {}
+                    for i, is_special_token in enumerate(new_special_tokens_mask):
+                        if is_special_token:
+                            current_offset_mapping.append((0, 0))
+                        else:
+                            position_with_special_tokens[j] = i
+                            current_offset_mapping.append(offset_mapping_without_special_tokens[j])
+                            j += 1
+                    window_metadata["offset_mapping"] = current_offset_mapping
+                    char_to_token_mapping: Dict[int, int] = {}
+                    for token_idx, (char_start, char_end) in enumerate(current_offset_mapping):
+                        for char_idx in range(char_start, char_end):
+                            char_to_token_mapping[char_idx] = token_idx
+                    window_metadata["char_to_token_mapper"] = get_char_to_token_mapper(
+                        char_to_token_mapping=char_to_token_mapping,
+                        char_start=offset_mapping_without_special_tokens[0][0],
+                        char_end=offset_mapping_without_special_tokens[-1][1],
+                    )
+                    # new_metadata["window_tokens"] = token_slice
+                    window_metadata["window_labels"] = (
+                        position_with_special_tokens[label_offset_slice[0]],
+                        # we have to look up the actual index, not the pythonic end position
+                        position_with_special_tokens[label_offset_slice[1] - 1] + 1,
+                    )
 
-                        metadata.append(new_metadata)
-                        input_.append(new_encoding)
-                        expanded_documents.append(doc)
+                    task_encodings.append(
+                        TaskEncoding(
+                            document=document,
+                            inputs=window_inputs,
+                            metadata=window_metadata,
+                        )
+                    )
 
-        return input_, metadata, expanded_documents
+        return task_encodings
 
     def encode_target(
         self,
-        documents: List[TextDocument],
-        input_encodings: List[TransformerTokenClassificationInputEncoding],
-        metadata: List[Metadata],
-    ) -> List[TransformerTokenClassificationTargetEncoding]:
-        target = []
-        statistics: Optional[DefaultDict[str, Counter]] = (
-            defaultdict(Counter) if self.show_statistics else None
-        )
-        for i, document in enumerate(documents):
-            current_metadata = metadata[i]
-            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
-            partition = None
-            if self.partition_annotation is not None:
-                partition_index = current_metadata["sentence_index"]
-                partitions = document[self.partition_annotation]
-                partition = partitions[partition_index]
-            tag_sequence = convert_span_annotations_to_tag_sequence(
-                spans=entities,
-                special_tokens_mask=current_metadata["special_tokens_mask"],
-                char_to_token_mapper=current_metadata["char_to_token_mapper"],
-                partition=partition,
-                statistics=statistics,
-            )
-            # exclude labels that are out of the window (when overlap is used)
-            window_labels = current_metadata.get("window_labels")
-            if window_labels is not None:
-                tag_sequence[0 : window_labels[0]] = [None] * window_labels[0]
-                tag_sequence[window_labels[1] :] = [None] * len(tag_sequence[window_labels[1] :])
-            label_ids = [
-                self.label_to_id[tag] if tag is not None else self.label_pad_token_id
-                for tag in tag_sequence
-            ]
-            target.append(label_ids)
+        task_encoding: TransformerTokenClassificationTaskEncoding,
+    ) -> TransformerTokenClassificationTargetEncoding:
+        metadata = task_encoding.metadata
+        document = task_encoding.document
 
-        if statistics is not None:
-            logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
-        return target
+        entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+
+        partition = None
+        if self.partition_annotation is not None:
+            partition_index = metadata["sentence_index"]
+            partitions = document[self.partition_annotation]
+            partition = partitions[partition_index]
+        tag_sequence = convert_span_annotations_to_tag_sequence(
+            spans=entities,
+            special_tokens_mask=metadata["special_tokens_mask"],
+            char_to_token_mapper=metadata["char_to_token_mapper"],
+            partition=partition,
+            statistics=None,
+        )
+
+        # exclude labels that are out of the window (when overlap is used)
+        window_labels = metadata.get("window_labels")
+        if window_labels is not None:
+            tag_sequence[0 : window_labels[0]] = [None] * window_labels[0]
+            tag_sequence[window_labels[1] :] = [None] * len(tag_sequence[window_labels[1] :])
+
+        targets = [
+            self.label_to_id[tag] if tag is not None else self.label_pad_token_id
+            for tag in tag_sequence
+        ]
+
+        return targets
 
     def unbatch_output(
-        self, output: TransformerTokenClassificationModelBatchOutput
+        self, model_output: TransformerTokenClassificationModelBatchOutput
     ) -> Sequence[TransformerTokenClassificationTaskOutput]:
-        logits = output["logits"]
+        logits = model_output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
         tags = [[self.id_to_label[e] for e in b] for b in indices]
@@ -274,19 +275,19 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def create_annotations_from_output(
         self,
-        encoding: TransformerTokenClassificationTaskEncoding,
-        output: TransformerTokenClassificationTaskOutput,
+        task_encoding: TransformerTokenClassificationTaskEncoding,
+        task_output: TransformerTokenClassificationTaskOutput,
     ) -> Iterator[Tuple[str, LabeledSpan]]:
 
         offset = 0
         if self.partition_annotation is not None:
-            partitions = encoding.document[self.partition_annotation]
-            offset = partitions[encoding.metadata["sentence_index"]].start
+            partitions = task_encoding.document[self.partition_annotation]
+            offset = partitions[task_encoding.metadata["sentence_index"]].start
 
         tag_sequence = [
             "O" if is_special_token else tag
             for tag, is_special_token in zip(
-                output["tags"], encoding.metadata["special_tokens_mask"]
+                task_output["tags"], task_encoding.metadata["special_tokens_mask"]
             )
         ]
 
@@ -294,27 +295,27 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             tag_sequence, include_ill_formed=self.include_ill_formed_predictions
         )
         for label, (start, end) in spans:
-            if "window_labels" in encoding.metadata:
+            if "window_labels" in task_encoding.metadata:
                 # Take only spans into account that are at least partly in the window. The model was not
                 # trained to correctly predict spans that are just in the context.
                 # NOTE: The "end" index is exclusive, but encoding.metadata["window_labels"][1] is inclusive!
-                if not has_overlap((start, end + 1), encoding.metadata["window_labels"]):
+                if not has_overlap((start, end + 1), task_encoding.metadata["window_labels"]):
                     continue
             yield (
                 self.entity_annotation,
                 LabeledSpan(
-                    encoding.metadata["offset_mapping"][start][0] + offset,
-                    encoding.metadata["offset_mapping"][end][1] + offset,
+                    task_encoding.metadata["offset_mapping"][start][0] + offset,
+                    task_encoding.metadata["offset_mapping"][end][1] + offset,
                     label,
                 ),
             )
 
     def collate(
-        self, encodings: List[TransformerTokenClassificationTaskEncoding]
+        self, task_encodings: Sequence[TransformerTokenClassificationTaskEncoding]
     ) -> TransformerTokenClassificationModelStepBatchEncoding:
-        input_features = [encoding.input for encoding in encodings]
+        input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
-        input_ = self.tokenizer.pad(
+        inputs = self.tokenizer.pad(
             input_features,
             padding=self.padding,
             max_length=self.max_length,
@@ -322,14 +323,14 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             return_tensors="pt",
         )
 
-        if not encodings[0].has_target:
-            return input_, None
+        if not task_encodings[0].has_targets:
+            return inputs, None
 
         target_list: List[TransformerTokenClassificationTargetEncoding] = [
-            encoding.target for encoding in encodings
+            task_encoding.targets for task_encoding in task_encodings
         ]
 
-        sequence_length = torch.tensor(input_["input_ids"]).shape[1]
+        sequence_length = torch.tensor(inputs["input_ids"]).shape[1]
         padding_side = self.tokenizer.padding_side
         if padding_side == "right":
             target_list_padded = [
@@ -342,7 +343,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 for t in target_list
             ]
 
-        input_ = {k: torch.tensor(v, dtype=torch.int64) for k, v in input_.items()}
-        target = torch.tensor(target_list_padded, dtype=torch.int64)
+        inputs = {k: torch.tensor(v, dtype=torch.int64) for k, v in inputs.items()}
+        targets = torch.tensor(target_list_padded, dtype=torch.int64)
 
-        return input_, target
+        return inputs, targets

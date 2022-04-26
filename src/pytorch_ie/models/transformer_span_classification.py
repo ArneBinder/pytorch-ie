@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
 import torchmetrics
@@ -19,7 +19,7 @@ TransformerSpanClassificationModelBatchOutput = Dict[str, Any]
 
 TransformerSpanClassificationModelStepBatchEncoding = Tuple[
     Dict[str, Tensor],
-    Optional[List[List[Tuple[int, int, int]]]],
+    Optional[Sequence[Sequence[Tuple[int, int, int]]]],
 ]
 
 
@@ -107,7 +107,7 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
     # TODO: this should live in the taskmodule
     def _expand_target_tuples(
         self,
-        target_tuples: List[List[Tuple[int, int, int]]],
+        target_tuples: Sequence[Sequence[Tuple[int, int, int]]],
         batch_size: int,
         max_seq_length: int,
         seq_lengths: Optional[Iterable[int]] = None,

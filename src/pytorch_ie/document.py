@@ -40,15 +40,15 @@ class BaseAnnotationList(Sequence[T]):
         return self._target == other._target and self._annotations == other._annotations
 
     @overload
-    def __getitem__(self, idx: int) -> T:
+    def __getitem__(self, index: int) -> T:
         ...
 
     @overload
     def __getitem__(self, s: slice) -> List[T]:
         ...
 
-    def __getitem__(self, idx: Union[int, slice]) -> Union[T, List[T]]:
-        return self._annotations[idx]
+    def __getitem__(self, index: Union[int, slice]) -> Union[T, List[T]]:
+        return self._annotations[index]
 
     def __len__(self) -> int:
         return len(self._annotations)

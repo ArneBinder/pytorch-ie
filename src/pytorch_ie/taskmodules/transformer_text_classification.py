@@ -18,12 +18,11 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie import Label, MultiLabel, TextDocument
-from pytorch_ie.annotations import Annotation
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
-from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
 """
 workflow:
@@ -35,7 +34,7 @@ workflow:
 """
 
 TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
-TransformerTextClassificationTargetEncoding = List[int]
+TransformerTextClassificationTargetEncoding = Sequence[int]
 
 TransformerTextClassificationTaskEncoding = TaskEncoding[
     TextDocument,
@@ -45,13 +44,13 @@ TransformerTextClassificationTaskEncoding = TaskEncoding[
 
 
 class TransformerTextClassificationTaskOutputSingle(TypedDict, total=False):
-    labels: List[str]
-    probabilities: List[float]
+    labels: Sequence[str]
+    probabilities: Sequence[float]
 
 
 class TransformerTextClassificationTaskOutputMulti(TypedDict, total=False):
-    labels: List[List[str]]
-    probabilities: List[List[float]]
+    labels: Sequence[Sequence[str]]
+    probabilities: Sequence[Sequence[float]]
 
 
 TransformerTextClassificationTaskOutput = Union[
@@ -108,7 +107,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: List[TextDocument]) -> None:
+    def prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
             annotations: Sequence[Label] = document[self.annotation]
@@ -126,92 +125,70 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
     def encode_input(
         self,
-        documents: List[TextDocument],
+        document: TextDocument,
         is_training: bool = False,
-    ) -> Tuple[
-        List[TransformerTextClassificationInputEncoding],
-        List[Metadata],
-        Optional[List[TextDocument]],
+    ) -> Optional[
+        Union[
+            TransformerTextClassificationTaskEncoding,
+            Sequence[TransformerTextClassificationTaskEncoding],
+        ]
     ]:
-        input_encoding = [
-            self.tokenizer(
-                doc.text,
-                padding=False,
-                truncation=self.truncation,
-                max_length=self.max_length,
-                is_split_into_words=False,
-                return_offsets_mapping=True,
-                return_special_tokens_mask=True,
-            )
-            for doc in documents
-        ]
+        inputs = self.tokenizer(
+            document.text,
+            padding=False,
+            truncation=self.truncation,
+            max_length=self.max_length,
+            is_split_into_words=False,
+            return_offsets_mapping=True,
+            return_special_tokens_mask=True,
+        )
 
-        metadata = [
-            {
-                "offset_mapping": encoding.pop("offset_mapping"),
-                "special_tokens_mask": encoding.pop("special_tokens_mask"),
-            }
-            for encoding in input_encoding
-        ]
+        metadata = {
+            "offset_mapping": inputs.pop("offset_mapping"),
+            "special_tokens_mask": inputs.pop("special_tokens_mask"),
+        }
 
-        return input_encoding, metadata, documents
+        return TaskEncoding(
+            document=document,
+            inputs=inputs,
+            metadata=metadata,
+        )
 
     def encode_target(
         self,
-        documents: List[TextDocument],
-        input_encodings: List[TransformerTextClassificationInputEncoding],
-        metadata: List[Metadata],
-    ) -> List[TransformerTextClassificationTargetEncoding]:
+        task_encoding: TransformerTextClassificationTaskEncoding,
+    ) -> TransformerTextClassificationTargetEncoding:
+        label_annotation: Sequence[Union[Label, MultiLabel]] = task_encoding.document[
+            self.annotation
+        ]
 
-        # TODO: adapt this when single annotations are available
-        target: List[TransformerTextClassificationTargetEncoding] = []
-        for i, document in enumerate(documents):
-            annotations: Sequence[Union[Label, MultiLabel]] = document[self.annotation]
-            annotation = annotations[0]
-            if self.multi_label:
-                assert isinstance(annotation, MultiLabel)
-                label_ids = [0] * len(self.label_to_id)
-                for label in annotation.label:
-                    label_id = self.label_to_id[label]
-                    label_ids[label_id] = 1
-            else:
-                assert isinstance(annotation, Label)
-                label = annotation.label
-                label_ids = [self.label_to_id[label]]
+        targets: TransformerTextClassificationTargetEncoding
+        if self.multi_label:
+            assert isinstance(label_annotation, MultiLabel)
+            targets = [0] * len(self.label_to_id)
+            for label in label.label:
+                label_id = self.label_to_id[label]
+                targets[label_id] = 1
+        else:
+            assert isinstance(label_annotation, Label)
+            label = label_annotation.label
+            targets = [self.label_to_id[label]]
 
-            target.append(label_ids)
-
-        return target
+        return targets
 
     def unbatch_output(
-        self, output: TransformerTextClassificationModelBatchOutput
+        self, model_output: TransformerTextClassificationModelBatchOutput
     ) -> Sequence[TransformerTextClassificationTaskOutput]:
-        logits = output["logits"]
+        logits = model_output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
         output_label_probs = output_label_probs.detach().cpu().numpy()
 
         if self.multi_label:
-            raise NotImplementedError
-            # labels = [[] for _ in range(batch_size)]
-            # probabilities = [[] for _ in range(batch_size)]
-            # for batch_idx in range(batch_size):
-            #     for label_idx in range(num_labels):
-            #         prob = label_probs[batch_idx, label_idx]
-            #         if prob > 0.5:
-            #             label = index_to_label[label_idx]
-            #             labels[batch_idx].append(label)
-            #             probabilities[batch_idx].append(prob)
-
-            # labels = [[self.id_to_label[e] for e in b] for b in label_ids]
-            # labels = []
-            # for instance_label_probs in output_label_probs:
-            #     instance_labels = []
-            #     for label_id in example_label_ids:
-            #         example_labels.append(self.id_to_label[label_id])
+            raise NotImplementedError()
 
         else:
-            decoded_output = []
+            unbatched_output = []
             label_ids = np.argmax(output_label_probs, axis=-1)
             for batch_idx, label_id in enumerate(label_ids):
                 label = self.id_to_label[label_id]
@@ -221,36 +198,36 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
                     "probabilities": [prob],
                 }
 
-                decoded_output.append(result)
+                unbatched_output.append(result)
 
-            return decoded_output
+            return unbatched_output
 
     def create_annotations_from_output(
         self,
-        encoding: TransformerTextClassificationTaskEncoding,
-        output: TransformerTextClassificationTaskOutput,
-    ) -> Iterator[Tuple[str, Annotation]]:
+        task_encodings: TransformerTextClassificationTaskEncoding,
+        task_outputs: TransformerTextClassificationTaskOutput,
+    ) -> Iterator[Tuple[str, Union[Label, MultiLabel]]]:
         if self.multi_label:
             # Note: we can not use isinstance since that does not work with TypedDicts
-            multi_output: TransformerTextClassificationTaskOutputMulti = output  # type: ignore
+            multi_output: TransformerTextClassificationTaskOutputMulti = task_outputs  # type: ignore
             for labels, probabilities in zip(
                 multi_output["labels"], multi_output["probabilities"]
             ):
                 yield self.annotation, Label(label=labels[0], score=probabilities[0])
         else:
             # Note: we can not use isinstance since that does not work with TypedDicts
-            single_output: TransformerTextClassificationTaskOutputSingle = output  # type: ignore
+            single_output: TransformerTextClassificationTaskOutputSingle = task_outputs  # type: ignore
             for label, probability in zip(single_output["labels"], single_output["probabilities"]):
                 yield self.annotation, Label(label=label, score=probability)
 
     def collate(
-        self, encodings: List[TransformerTextClassificationTaskEncoding]
+        self, task_encodings: Sequence[TransformerTextClassificationTaskEncoding]
     ) -> TransformerTextClassificationModelStepBatchEncoding:
-        input_features = [encoding.input for encoding in encodings]
-        metadata = [encoding.metadata for encoding in encodings]
-        documents = [encoding.document for encoding in encodings]
+        input_features = [task_encoding.inputs for task_encoding in task_encodings]
+        metadata = [task_encoding.metadata for task_encoding in task_encodings]
+        documents = [task_encoding.document for task_encoding in task_encodings]
 
-        input_ = self.tokenizer.pad(
+        inputs = self.tokenizer.pad(
             input_features,
             padding=self.padding,
             max_length=self.max_length,
@@ -258,16 +235,16 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             return_tensors="pt",
         )
 
-        if not encodings[0].has_target:
-            return input_, None
+        if not task_encodings[0].has_targets:
+            return inputs, None
 
         target_list: List[TransformerTextClassificationTargetEncoding] = [
-            encoding.target for encoding in encodings
+            task_encoding.targets for task_encoding in task_encodings
         ]
 
-        target = torch.tensor(target_list, dtype=torch.int64)
+        targets = torch.tensor(target_list, dtype=torch.int64)
 
         if not self.multi_label:
-            target = target.flatten()
+            targets = targets.flatten()
 
-        return input_, target
+        return inputs, targets

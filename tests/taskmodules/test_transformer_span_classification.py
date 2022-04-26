@@ -62,23 +62,25 @@ def test_encode(prepared_taskmodule, documents, encode_target):
     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
     assert len(task_encodings) == 8
 
-    encoding = task_encodings[5]
+    task_encoding = task_encodings[5]
     document = documents[5]
-    assert encoding.document == document
-    assert "input_ids" in encoding.input
+    assert task_encoding.document == document
+    assert "input_ids" in task_encoding.inputs
     assert (
-        prepared_taskmodule.tokenizer.decode(encoding.input["input_ids"], skip_special_tokens=True)
+        prepared_taskmodule.tokenizer.decode(
+            task_encoding.inputs["input_ids"], skip_special_tokens=True
+        )
         == document.text
     )
 
     if encode_target:
-        assert encoding.target == [
+        assert task_encoding.targets == [
             (1, 4, prepared_taskmodule.label_to_id["PER"]),
             (6, 6, prepared_taskmodule.label_to_id["ORG"]),
             (9, 9, prepared_taskmodule.label_to_id["ORG"]),
         ]
     else:
-        assert not encoding.has_target
+        assert not task_encoding.has_targets
 
 
 def test_unbatch_output(prepared_taskmodule, model_output):
@@ -106,9 +108,8 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings,
-        decoded_outputs=unbatched_outputs,
-        input_documents=documents,
+        task_encodings=encodings,
+        task_outputs=unbatched_outputs,
         inplace=inplace,
     )
 
@@ -140,15 +141,15 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
 def test_collate(prepared_taskmodule, documents, encode_target):
     documents = documents[:3]
 
-    encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
-    assert len(encodings) == 3
+    task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
+    assert len(task_encodings) == 3
 
     if encode_target:
-        assert all([encoding.has_target for encoding in encodings])
+        assert all([task_encoding.has_targets for task_encoding in task_encodings])
     else:
-        assert not any([encoding.has_target for encoding in encodings])
+        assert all([not task_encoding.has_targets for task_encoding in task_encodings])
 
-    batch_encoding = prepared_taskmodule.collate(encodings)
+    batch_encoding = prepared_taskmodule.collate(task_encodings)
     inputs, targets = batch_encoding
     assert inputs["input_ids"].shape[0] == 3
 

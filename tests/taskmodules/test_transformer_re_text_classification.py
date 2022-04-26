@@ -133,7 +133,7 @@ def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
 
     encoding = task_encodings[0]
 
-    tokens = prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.input["input_ids"])
+    tokens = prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.inputs["input_ids"])
 
     if prepared_taskmodule.add_type_to_marker:
         tokens == [
@@ -171,12 +171,12 @@ def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
         ]
 
     if encode_target:
-        assert encoding.target == [2]
+        assert encoding.targets == [2]
     else:
-        assert not encoding.has_target
+        assert not encoding.has_targets
 
-        with pytest.raises(AssertionError, match=re.escape("input encoding has no target")):
-            encoding.target
+        with pytest.raises(AssertionError, match=re.escape("task encoding has no target")):
+            encoding.targets
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
@@ -187,10 +187,10 @@ def test_collate(prepared_taskmodule, documents, encode_target):
 
     if encode_target:
         assert len(encodings) == 4
-        assert all([encoding.has_target for encoding in encodings])
+        assert all([encoding.has_targets for encoding in encodings])
     else:
         assert len(encodings) == 8
-        assert not any([encoding.has_target for encoding in encodings])
+        assert not any([encoding.has_targets for encoding in encodings])
 
     batch_encoding = prepared_taskmodule.collate(encodings)
     inputs, targets = batch_encoding
@@ -237,9 +237,8 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
     decoded_documents = prepared_taskmodule.decode(
-        encodings=encodings,
-        decoded_outputs=unbatched_outputs,
-        input_documents=documents,
+        task_encodings=encodings,
+        task_outputs=unbatched_outputs,
         inplace=inplace,
     )
 

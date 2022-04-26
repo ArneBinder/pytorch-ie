@@ -1,19 +1,5 @@
-import json
 import logging
-from collections import Counter, defaultdict
-from typing import (
-    Any,
-    DefaultDict,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 import numpy as np
 import torch
@@ -21,13 +7,12 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie.annotations import Annotation, BinaryRelation, LabeledSpan, Span
-from pytorch_ie.document import TextDocument
+from pytorch_ie import BinaryRelation, LabeledSpan, MultiLabeledBinaryRelation, Span, TextDocument
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
-from pytorch_ie.taskmodules.taskmodule import Metadata, TaskEncoding, TaskModule
+from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
 from pytorch_ie.utils.window import get_window_around_slice
 
@@ -41,7 +26,7 @@ workflow:
 """
 
 TransformerReTextClassificationInputEncoding = Dict[str, Any]
-TransformerReTextClassificationTargetEncoding = List[int]
+TransformerReTextClassificationTargetEncoding = Sequence[int]
 
 TransformerReTextClassificationTaskEncoding = TaskEncoding[
     TextDocument,
@@ -51,8 +36,8 @@ TransformerReTextClassificationTaskEncoding = TaskEncoding[
 
 
 class TransformerReTextClassificationTaskOutput(TypedDict, total=False):
-    labels: List[str]
-    probabilities: List[float]
+    labels: Sequence[str]
+    probabilities: Sequence[float]
 
 
 _TransformerReTextClassificationTaskModule = TaskModule[
@@ -163,7 +148,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
         max_window: Optional[int] = None,
-        show_statistics: bool = False,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -184,7 +168,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.partition_annotation = partition_annotation
         self.none_label = none_label
         self.max_window = max_window
-        self.show_statistics = show_statistics
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
@@ -213,7 +196,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         """
         return self.entity_labels is not None and self.label_to_id is not None
 
-    def prepare(self, documents: List[TextDocument]) -> None:
+    def prepare(self, documents: Sequence[TextDocument]) -> None:
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
@@ -269,198 +252,188 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def encode_input(
         self,
-        documents: List[TextDocument],
+        document: TextDocument,
         is_training: bool = False,
-    ) -> Tuple[
-        List[TransformerReTextClassificationInputEncoding],
-        List[Metadata],
-        Optional[List[TextDocument]],
+    ) -> Optional[
+        Union[
+            TransformerReTextClassificationTaskEncoding,
+            Sequence[TransformerReTextClassificationTaskEncoding],
+        ]
     ]:
+        # TODO (CA): can't this be moved to some other place?
         assert (
             self.argument_markers is not None
         ), f"No argument markers available, was `prepare` already called?"
         argument_markers_to_id = {
             marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
         }
-        input_encoding = []
-        metadata = []
-        new_documents = []
-        statistics: Optional[DefaultDict[str, Counter]] = (
-            defaultdict(Counter) if self.show_statistics else None
-        )
 
-        for document in documents:
-            entities: Sequence[Span] = document[self.entity_annotation]
-            relations: Optional[Sequence[BinaryRelation]]
-            if is_training:
-                relations = document[self.relation_annotation]
-            else:
-                relations = None
-            relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
+        entities: Sequence[Span] = document[self.entity_annotation]
 
-            partitions: Sequence[Optional[Span]]
-            if self.partition_annotation is not None:
-                partitions = document[self.partition_annotation]
-            else:
-                # use single dummy partition
-                partitions = [None]
+        relations: Optional[Sequence[BinaryRelation]]
+        if is_training:
+            relations = document[self.relation_annotation]
+        else:
+            relations = None
+        # relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
-            for partition_idx, partition in enumerate(partitions):
-                partition_offset = 0 if partition is None else partition.start
-                add_special_tokens = self.max_window is None
-                encoding = self._encode_text(
-                    document=document, partition=partition, add_special_tokens=add_special_tokens
+        partitions: Sequence[Optional[Span]]
+        if self.partition_annotation is not None:
+            partitions = document[self.partition_annotation]
+        else:
+            # use single dummy partition
+            partitions = [None]
+
+        task_encodings: List[TransformerReTextClassificationTaskEncoding] = []
+        for partition_idx, partition in enumerate(partitions):
+            partition_offset = 0 if partition is None else partition.start
+            add_special_tokens = self.max_window is None
+            encoding = self._encode_text(
+                document=document, partition=partition, add_special_tokens=add_special_tokens
+            )
+
+            for head, tail, in _enumerate_entity_pairs(
+                entities=entities,
+                partition=partition,
+                relations=relations,
+            ):
+                head_token_slice = get_token_slice(
+                    character_slice=(head.start, head.end),
+                    char_to_token_mapper=encoding.char_to_token,
+                    character_offset=partition_offset,
                 )
+                tail_token_slice = get_token_slice(
+                    character_slice=(tail.start, tail.end),
+                    char_to_token_mapper=encoding.char_to_token,
+                    character_offset=partition_offset,
+                )
+                # this happens if the head/tail start/end does not match a token start/end
+                if head_token_slice is None or tail_token_slice is None:
+                    # if statistics is not None:
+                    #     statistics["entity_token_alignment_error"][
+                    #         relation_mapping.get((head, tail), "TO_PREDICT")
+                    #     ] += 1
+                    continue
 
-                for head, tail, in _enumerate_entity_pairs(
-                    entities=entities,
-                    partition=partition,
-                    relations=relations,
-                ):
-                    head_token_slice = get_token_slice(
-                        character_slice=(head.start, head.end),
-                        char_to_token_mapper=encoding.char_to_token,
-                        character_offset=partition_offset,
+                input_ids = encoding["input_ids"]
+
+                # windowing
+                if self.max_window is not None:
+                    head_start, head_end = head_token_slice
+                    tail_start, tail_end = tail_token_slice
+                    # The actual number of tokens will be lower than max_window because we add the
+                    # 4 marker tokens (before / after the head /tail) and the default special tokens
+                    # (e.g. CLS and SEP).
+                    num_added_special_tokens = len(
+                        self.tokenizer.build_inputs_with_special_tokens([])
                     )
-                    tail_token_slice = get_token_slice(
-                        character_slice=(tail.start, tail.end),
-                        char_to_token_mapper=encoding.char_to_token,
-                        character_offset=partition_offset,
+                    max_tokens = self.max_window - 4 - num_added_special_tokens
+                    # the slice from the beginning of the first entity to the end of the second is required
+                    slice_required = (min(head_start, tail_start), max(head_end, tail_end))
+                    window_slice = get_window_around_slice(
+                        slice=slice_required,
+                        max_window_size=max_tokens,
+                        available_input_length=len(input_ids),
                     )
-                    # this happens if the head/tail start/end does not match a token start/end
-                    if head_token_slice is None or tail_token_slice is None:
-                        if statistics is not None:
-                            statistics["entity_token_alignment_error"][
-                                relation_mapping.get((head, tail), "TO_PREDICT")
-                            ] += 1
+                    # this happens if slice_required does not fit into max_tokens
+                    if window_slice is None:
+                        # if statistics is not None:
+                        #     statistics["out_of_token_window"][
+                        #         relation_mapping.get((head, tail), "TO_PREDICT")
+                        #     ] += 1
                         continue
 
-                    input_ids = encoding["input_ids"]
+                    window_start, window_end = window_slice
+                    input_ids = input_ids[window_start:window_end]
 
-                    # windowing
-                    if self.max_window is not None:
-                        head_start, head_end = head_token_slice
-                        tail_start, tail_end = tail_token_slice
-                        # The actual number of tokens will be lower than max_window because we add the
-                        # 4 marker tokens (before / after the head /tail) and the default special tokens
-                        # (e.g. CLS and SEP).
-                        num_added_special_tokens = len(
-                            self.tokenizer.build_inputs_with_special_tokens([])
-                        )
-                        max_tokens = self.max_window - 4 - num_added_special_tokens
-                        # the slice from the beginning of the first entity to the end of the second is required
-                        slice_required = (min(head_start, tail_start), max(head_end, tail_end))
-                        window_slice = get_window_around_slice(
-                            slice=slice_required,
-                            max_window_size=max_tokens,
-                            available_input_length=len(input_ids),
-                        )
-                        # this happens if slice_required does not fit into max_tokens
-                        if window_slice is None:
-                            if statistics is not None:
-                                statistics["out_of_token_window"][
-                                    relation_mapping.get((head, tail), "TO_PREDICT")
-                                ] += 1
-                            continue
+                    head_token_slice = head_start - window_start, head_end - window_start
+                    tail_token_slice = tail_start - window_start, tail_end - window_start
 
-                        window_start, window_end = window_slice
-                        input_ids = input_ids[window_start:window_end]
+                if head_token_slice[0] < tail_token_slice[0]:
+                    assert (
+                        head_token_slice[1] <= tail_token_slice[0]
+                    ), f"the head and tail entities are not allowed to overlap"
+                    entity_pair = (head, tail)
+                    entity_slices = (head_token_slice, tail_token_slice)
+                    entity_args = (HEAD, TAIL)
+                else:
+                    assert (
+                        tail_token_slice[1] <= head_token_slice[0]
+                    ), f"the head and tail entities are not allowed to overlap"
+                    entity_pair = (tail, head)
+                    entity_slices = (tail_token_slice, head_token_slice)
+                    entity_args = (TAIL, HEAD)
 
-                        head_token_slice = head_start - window_start, head_end - window_start
-                        tail_token_slice = tail_start - window_start, tail_end - window_start
+                markers = {}
+                for entity, arg_name in zip(entity_pair, entity_args):
+                    for pos in [START, END]:
+                        if self.add_type_to_marker:
+                            markers[(arg_name, pos)] = argument_markers_to_id[
+                                self.argument_markers[(arg_name, pos, entity.label)]
+                            ]
+                        else:
+                            markers[(arg_name, pos)] = argument_markers_to_id[
+                                self.argument_markers[(arg_name, pos)]
+                            ]
 
-                    if head_token_slice[0] < tail_token_slice[0]:
-                        assert (
-                            head_token_slice[1] <= tail_token_slice[0]
-                        ), f"the head and tail entities are not allowed to overlap"
-                        entity_pair = (head, tail)
-                        entity_slices = (head_token_slice, tail_token_slice)
-                        entity_args = (HEAD, TAIL)
-                    else:
-                        assert (
-                            tail_token_slice[1] <= head_token_slice[0]
-                        ), f"the head and tail entities are not allowed to overlap"
-                        entity_pair = (tail, head)
-                        entity_slices = (tail_token_slice, head_token_slice)
-                        entity_args = (TAIL, HEAD)
+                new_input_ids = (
+                    input_ids[: entity_slices[0][0]]
+                    + [markers[(entity_args[0], START)]]
+                    + input_ids[entity_slices[0][0] : entity_slices[0][1]]
+                    + [markers[(entity_args[0], END)]]
+                    + input_ids[entity_slices[0][1] : entity_slices[1][0]]
+                    + [markers[(entity_args[1], START)]]
+                    + input_ids[entity_slices[1][0] : entity_slices[1][1]]
+                    + [markers[(entity_args[1], END)]]
+                    + input_ids[entity_slices[1][1] :]
+                )
 
-                    markers = {}
-                    for entity, arg_name in zip(entity_pair, entity_args):
-                        for pos in [START, END]:
-                            if self.add_type_to_marker:
-                                markers[(arg_name, pos)] = argument_markers_to_id[
-                                    self.argument_markers[(arg_name, pos, entity.label)]
-                                ]
-                            else:
-                                markers[(arg_name, pos)] = argument_markers_to_id[
-                                    self.argument_markers[(arg_name, pos)]
-                                ]
-
-                    new_input_ids = (
-                        input_ids[: entity_slices[0][0]]
-                        + [markers[(entity_args[0], START)]]
-                        + input_ids[entity_slices[0][0] : entity_slices[0][1]]
-                        + [markers[(entity_args[0], END)]]
-                        + input_ids[entity_slices[0][1] : entity_slices[1][0]]
-                        + [markers[(entity_args[1], START)]]
-                        + input_ids[entity_slices[1][0] : entity_slices[1][1]]
-                        + [markers[(entity_args[1], END)]]
-                        + input_ids[entity_slices[1][1] :]
+                # when windowing is used, we have to add the special tokens manually
+                if not add_special_tokens:
+                    new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
+                        token_ids_0=new_input_ids
                     )
 
-                    # when windowing is used, we have to add the special tokens manually
-                    if not add_special_tokens:
-                        new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
-                            token_ids_0=new_input_ids
-                        )
+                task_encodings.append(
+                    TaskEncoding(
+                        document=document,
+                        inputs={"input_ids": new_input_ids},
+                        metadata={
+                            HEAD: head,
+                            TAIL: tail,
+                        },
+                    )
+                )
 
-                    input_encoding.append({"input_ids": new_input_ids})
-                    new_documents.append(document)
-                    doc_metadata = {
-                        HEAD: head,
-                        TAIL: tail,
-                    }
-                    metadata.append(doc_metadata)
-                    if statistics is not None:
-                        statistics["candidates"][
-                            relation_mapping.get((head, tail), "TO_PREDICT")
-                        ] += 1
-
-        if statistics is not None:
-            logger.info(f"statistics:\n{json.dumps(statistics, indent=2)}")
-        return input_encoding, metadata, new_documents
+        return task_encodings
 
     def encode_target(
         self,
-        documents: List[TextDocument],
-        input_encodings: List[TransformerReTextClassificationInputEncoding],
-        metadata: List[Metadata],
-    ) -> List[TransformerReTextClassificationTargetEncoding]:
+        task_encoding: TransformerReTextClassificationTaskEncoding,
+    ) -> TransformerReTextClassificationTargetEncoding:
+        metadata = task_encoding.metadata
+        document = task_encoding.document
 
-        target: List[TransformerReTextClassificationTargetEncoding] = []
-        for i, document in enumerate(documents):
-            meta = metadata[i]
-            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
+        relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
-            head_tail_to_labels = {
-                (relation.head, relation.tail): [relation.label] for relation in relations
-            }
+        head_tail_to_labels = {
+            (relation.head, relation.tail): [relation.label] for relation in relations
+        }
 
-            labels = head_tail_to_labels.get((meta[HEAD], meta[TAIL]), [self.none_label])
-            label_ids = [self.label_to_id[label] for label in labels]
-            target.append(label_ids)
+        labels = head_tail_to_labels.get((metadata[HEAD], metadata[TAIL]), [self.none_label])
+        target = [self.label_to_id[label] for label in labels]
 
         return target
 
     def unbatch_output(
-        self, output: TransformerTextClassificationModelBatchOutput
+        self, model_output: TransformerTextClassificationModelBatchOutput
     ) -> Sequence[TransformerReTextClassificationTaskOutput]:
-        logits = output["logits"]
+        logits = model_output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
         output_label_probs = output_label_probs.detach().cpu().numpy()
 
-        decoded_output = []
+        unbatched_output = []
         if self.multi_label:
             raise NotImplementedError
         else:
@@ -472,35 +445,35 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     "labels": [label],
                     "probabilities": [prob],
                 }
-                decoded_output.append(result)
+                unbatched_output.append(result)
 
-        return decoded_output
+        return unbatched_output
 
     def create_annotations_from_output(
         self,
-        encoding: TransformerReTextClassificationTaskEncoding,
-        output: TransformerReTextClassificationTaskOutput,
-    ) -> Iterator[Tuple[str, Annotation]]:
-        labels = output["labels"]
-        probabilities = output["probabilities"]
+        task_encoding: TransformerReTextClassificationTaskEncoding,
+        task_output: TransformerReTextClassificationTaskOutput,
+    ) -> Iterator[Tuple[str, Union[BinaryRelation, MultiLabeledBinaryRelation]]]:
+        labels = task_output["labels"]
+        probabilities = task_output["probabilities"]
         if labels != [self.none_label]:
             yield (
                 self.relation_annotation,
                 BinaryRelation(
-                    head=encoding.metadata[HEAD],
-                    tail=encoding.metadata[TAIL],
+                    head=task_encoding.metadata[HEAD],
+                    tail=task_encoding.metadata[TAIL],
                     label=labels[0],
                     score=probabilities[0],
                 ),
             )
 
     def collate(
-        self, encodings: List[TransformerReTextClassificationTaskEncoding]
+        self, task_encodings: Sequence[TransformerReTextClassificationTaskEncoding]
     ) -> TransformerTextClassificationModelStepBatchEncoding:
 
-        input_features = [encoding.input for encoding in encodings]
+        input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
-        input_ = self.tokenizer.pad(
+        inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(
             input_features,
             padding=self.padding,
             max_length=self.max_length,
@@ -508,15 +481,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             return_tensors="pt",
         )
 
-        if not encodings[0].has_target:
-            return input_, None
+        if not task_encodings[0].has_targets:
+            return inputs, None
 
         target_list: List[TransformerReTextClassificationTargetEncoding] = [
-            encoding.target for encoding in encodings
+            task_encoding.targets for task_encoding in task_encodings
         ]
-        target = torch.tensor(target_list, dtype=torch.int64)
+        targets = torch.tensor(target_list, dtype=torch.int64)
 
         if not self.multi_label:
-            target = target.flatten()
+            targets = targets.flatten()
 
-        return input_, target
+        return inputs, targets

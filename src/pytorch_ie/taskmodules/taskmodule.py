@@ -1,12 +1,24 @@
+import collections.abc
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
+from pytorch_ie import Dataset, Document
 from pytorch_ie.annotations import Annotation
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data import Metadata
-from pytorch_ie.document import Document
 
 """
 workflow:
@@ -30,28 +42,77 @@ TaskOutput = TypeVar("TaskOutput")
 logger = logging.getLogger(__name__)
 
 
+class InplaceNotSupportedException(Exception):
+    pass
+
+
 class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
     def __init__(
         self,
-        input: InputEncoding,
         document: DocumentType,
-        target: Optional[TargetEncoding] = None,
+        inputs: Optional[InputEncoding] = None,
+        targets: Optional[TargetEncoding] = None,
         metadata: Optional[Metadata] = None,
     ) -> None:
-        self.input = input
         self.document = document
-        self._target = target
+        self._inputs = inputs
+        self._targets = targets
         self.metadata = metadata or {}
 
     @property
-    def has_target(self) -> bool:
-        return self._target is not None
+    def has_inputs(self) -> bool:
+        return self._inputs is not None
 
     @property
-    def target(self) -> TargetEncoding:
+    def inputs(self) -> InputEncoding:
         # TODO: find a better solution
-        assert self._target is not None, "input encoding has no target"
-        return self._target
+        assert self._inputs is not None, "task encoding has no inputs"
+        return self._inputs
+
+    @property
+    def has_targets(self) -> bool:
+        return self._targets is not None
+
+    @property
+    def targets(self) -> TargetEncoding:
+        # TODO: find a better solution
+        assert self._targets is not None, "task encoding has no targets"
+        return self._targets
+
+    @targets.setter
+    def targets(self, value) -> None:
+        self._targets = value
+
+
+TaskEncodingType = TypeVar("TaskEncodingType", bound=TaskEncoding)
+
+
+class TaskEncodingSequence(
+    collections.abc.Sequence[TaskEncodingType], Generic[TaskEncodingType, DocumentType]
+):
+    def __init__(
+        self,
+        task_encodings: Sequence[TaskEncodingType],
+        documents_in_order: Sequence[DocumentType],
+    ):
+        self.task_encodings = task_encodings
+        self.documents_in_order = documents_in_order
+
+    @overload
+    def __getitem__(self, index: int) -> TaskEncodingType:
+        ...
+
+    @overload
+    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]:
+        ...
+
+    def __getitem__(
+        self, index: Union[int, slice]
+    ) -> Union[TaskEncodingType, Sequence[TaskEncodingType]]:
+        return self.task_encodings[index]
+
+    def __len__(self) -> int:
+        return len(self.task_encodings)
 
 
 class TaskModule(
@@ -69,130 +130,174 @@ class TaskModule(
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def prepare(self, documents: List[DocumentType]) -> None:
-        return
+    def prepare(self, documents: Sequence[DocumentType]) -> None:
+        return None
 
     def encode(
-        self, documents: Union[DocumentType, List[DocumentType]], encode_target: bool = False
-    ) -> List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
-        if not isinstance(documents, list):
+        self,
+        documents: Union[DocumentType, Sequence[DocumentType], Dataset],
+        encode_target: bool = False,
+    ) -> TaskEncodingSequence[
+        TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+    ]:
+        if not isinstance(documents, (Sequence, Dataset)):
             documents = [documents]
 
-        input_encoding, metadata, new_documents = self.encode_input(
-            documents, is_training=encode_target
-        )
+        task_encodings = self.encode_inputs(documents, is_training=encode_target)
 
-        if new_documents is not None:
-            documents = new_documents
-
-        target = None
         if encode_target:
-            target = self.encode_target(documents, input_encoding, metadata)
+            self.encode_targets(task_encodings)
 
-        assert len(input_encoding) == len(metadata) and len(input_encoding) == len(
-            documents
-        ), "'input_encoding', 'metadata', and 'documents' must be of same length."
-        if target is None:
-            return [
-                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
-                    input=enc_inp, metadata=md, document=doc
-                )
-                for enc_inp, md, doc in zip(input_encoding, metadata, documents)
-            ]
-        else:
-            assert len(input_encoding) == len(
-                target
-            ), "'input_encoding' and 'target' must be of same length."
-            return [
-                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
-                    input=enc_inp, document=doc, target=tgt, metadata=md
-                )
-                for enc_inp, md, tgt, doc in zip(input_encoding, metadata, target, documents)
-            ]
+        return task_encodings
+
+    def encode_inputs(
+        self,
+        documents: Union[Sequence[DocumentType], Dataset],
+        is_training: bool = False,
+    ) -> TaskEncodingSequence[
+        TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+    ]:
+        documents_in_order: List[DocumentType] = []
+        task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
+        for document in documents:
+            # a document might be generated on the fly (e.g. with a Dataset), so we add it here
+            documents_in_order.append(document)
+
+            possible_task_encodings = self.encode_input(document, is_training)
+
+            # encode_input returns None or an empty list
+            if possible_task_encodings is None or not possible_task_encodings:
+                continue
+
+            elif isinstance(possible_task_encodings, TaskEncoding):
+                task_encodings.append(possible_task_encodings)
+
+            else:
+                task_encodings.extend(possible_task_encodings)
+
+        return TaskEncodingSequence(
+            task_encodings=task_encodings, documents_in_order=documents_in_order
+        )
 
     @abstractmethod
     def encode_input(
         self,
-        documents: List[DocumentType],
+        document: DocumentType,
         is_training: bool = False,
-    ) -> Tuple[List[InputEncoding], List[Metadata], Optional[List[DocumentType]]]:
-        raise NotImplementedError()
+    ) -> Optional[
+        Union[
+            TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
+            Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        ]
+    ]:
+        pass
+
+    def encode_targets(
+        self,
+        task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+    ) -> None:
+        for task_encoding in task_encodings:
+            if not task_encoding.has_inputs:
+                continue
+
+            target_encoding = self.encode_target(task_encoding)
+            task_encoding.targets = target_encoding
 
     @abstractmethod
     def encode_target(
         self,
-        documents: List[DocumentType],
-        input_encodings: List[InputEncoding],
-        metadata: List[Metadata],
-    ) -> List[TargetEncoding]:
-        raise NotImplementedError()
+        task_encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
+    ) -> TargetEncoding:
+        pass
 
     @abstractmethod
-    def unbatch_output(self, output: ModelBatchOutput) -> Sequence[TaskOutput]:
+    def unbatch_output(self, model_output: ModelBatchOutput) -> Sequence[TaskOutput]:
         """
         This method has to convert the batch output of the model (i.e. a dict of lists) to the list of individual
         outputs (i.e. a list of dicts). This is in preparation to generate a list of all model outputs that has the
         same length as all model inputs.
         """
-        raise NotImplementedError()
+        pass
 
     def decode(
         self,
-        encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-        decoded_outputs: List[TaskOutput],
-        input_documents: List[DocumentType],
+        task_encodings: Union[
+            Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+            TaskEncodingSequence[
+                TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+            ],
+        ],
+        task_outputs: Sequence[TaskOutput],
         inplace: bool = True,
-    ) -> List[DocumentType]:
+    ) -> Sequence[DocumentType]:
         """
         This method takes the model inputs and (unbatched) model outputs and creates a list of documents that hold the
         new annotations created from model predictions.
         """
-        if not inplace:
-            copied_documents = {id(doc): copy.deepcopy(doc) for doc in input_documents}
-            encodings = [
-                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
-                    input=encoding.input,
-                    document=copied_documents[id(encoding.document)],
-                    target=encoding.target if encoding.has_target else None,
-                    metadata=encoding.metadata,
-                )
-                for encoding in encodings
-            ]
-            documents = [copied_documents[id(doc)] for doc in input_documents]
-        else:
-            documents = input_documents
+        documents: Dict[int, DocumentType] = {}
 
-        self.combine_outputs(encodings, decoded_outputs)
-        return documents
+        # TaskEncodingSequence provides us with the correct ordering
+        if isinstance(task_encodings, TaskEncodingSequence):
+            for document in task_encodings.documents_in_order:
+                document_id = id(document)
+                documents[document_id] = document if inplace else copy.deepcopy(document)
+        # Otherwise we assume that documents are ordered according to the sequence of
+        # unique documents defined by the sequence of task encodings
+        else:
+            for task_encoding in task_encodings:
+                document = task_encoding.document
+                document_id = id(document)
+                if document_id not in documents:
+                    documents[document_id] = document if inplace else copy.deepcopy(document)
+
+        task_encodings = [
+            task_encoding for task_encoding in task_encodings if task_encoding.has_inputs
+        ]
+
+        if not inplace:
+            task_encodings = [
+                TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
+                    document=documents[id(task_encoding.document)],
+                    inputs=task_encoding.inputs if task_encoding.has_inputs else None,
+                    targets=task_encoding.targets if task_encoding.has_targets else None,
+                    metadata=task_encoding.metadata,
+                )
+                for task_encoding in task_encodings
+            ]
+
+        self.combine_outputs(task_encodings, task_outputs)
+
+        unique_documents = list(documents.values())
+        return unique_documents
 
     def combine_outputs(
         self,
-        encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-        outputs: List[TaskOutput],
+        task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        task_outputs: Sequence[TaskOutput],
     ):
-        for encoding, output in zip(encodings, outputs):
-            self.combine_output(encoding=encoding, output=output)
+        for task_encoding, task_output in zip(task_encodings, task_outputs):
+            self.combine_output(task_encoding, task_output)
 
     def combine_output(
         self,
-        encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
-        output: TaskOutput,
+        task_encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
+        task_output: TaskOutput,
     ):
         for annotation_name, annotation in self.create_annotations_from_output(
-            encoding=encoding, output=output
+            task_encoding, task_output
         ):
-            encoding.document[annotation_name].predictions.append(annotation)
+            task_encoding.document[annotation_name].predictions.append(annotation)
 
     @abstractmethod
     def create_annotations_from_output(
         self,
-        encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
-        output: TaskOutput,
+        task_encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
+        task_output: TaskOutput,
     ) -> Iterator[Tuple[str, Annotation]]:
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def collate(
-        self, encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
+        self, task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
     ) -> TaskBatchEncoding:
-        raise NotImplementedError()
+        pass
