@@ -58,6 +58,7 @@ class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
         self.inputs = inputs
         self._targets = targets
         self.metadata = metadata or {}
+        self._doc_idx: Optional[int] = None
 
     @property
     def has_targets(self) -> bool:
@@ -72,6 +73,16 @@ class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
     @targets.setter
     def targets(self, value) -> None:
         self._targets = value
+
+    @property
+    def doc_idx(self) -> int:
+        if self._doc_idx is None:
+            raise Exception(f"doc_idx is not set")
+        return self._doc_idx
+
+    @doc_idx.setter
+    def doc_idx(self, value: int):
+        self._doc_idx = value
 
 
 TaskEncodingType = TypeVar("TaskEncodingType", bound=TaskEncoding)
@@ -127,9 +138,7 @@ class TaskModule(
         self,
         documents: Union[DocumentType, Sequence[DocumentType], Dataset],
         encode_target: bool = False,
-    ) -> TaskEncodingSequence[
-        TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-    ]:
+    ) -> Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         if not isinstance(documents, (Sequence, Dataset)):
             documents = [documents]
 
@@ -144,30 +153,29 @@ class TaskModule(
         self,
         documents: Union[Sequence[DocumentType], Dataset],
         is_training: bool = False,
-    ) -> TaskEncodingSequence[
-        TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-    ]:
-        documents_in_order: List[DocumentType] = []
+    ) -> Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
-        for document in documents:
-            # a document might be generated on the fly (e.g. with a Dataset), so we add it here
-            documents_in_order.append(document)
+
+        for idx, document in enumerate(documents):
 
             possible_task_encodings = self.encode_input(document, is_training)
+            current_encodings = []
 
             # encode_input returns None or an empty list
             if possible_task_encodings is None or not possible_task_encodings:
                 continue
-
             elif isinstance(possible_task_encodings, TaskEncoding):
-                task_encodings.append(possible_task_encodings)
-
+                current_encodings.append(possible_task_encodings)
             else:
-                task_encodings.extend(possible_task_encodings)
+                current_encodings.extend(possible_task_encodings)
 
-        return TaskEncodingSequence(
-            task_encodings=task_encodings, documents_in_order=documents_in_order
-        )
+            # remember the document index since the document id may change to allow correct decoding
+            for encoding in current_encodings:
+                encoding.doc_idx = idx
+
+            task_encodings.extend(current_encodings)
+
+        return task_encodings
 
     @abstractmethod
     def encode_input(
@@ -208,39 +216,28 @@ class TaskModule(
 
     def decode(
         self,
-        task_encodings: Union[
-            Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-            TaskEncodingSequence[
-                TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-            ],
-        ],
+        task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         task_outputs: Sequence[TaskOutput],
+        documents_in_encode_order: Union[Sequence[Document], Dataset],
         inplace: bool = True,
     ) -> Sequence[DocumentType]:
         """
         This method takes the model inputs and (unbatched) model outputs and creates a list of documents that hold the
         new annotations created from model predictions.
         """
-        documents: Dict[int, DocumentType] = {}
+        encode_idx_to_document: Dict[int, DocumentType] = {
+            idx: doc if inplace else copy.deepcopy(doc)
+            for idx, doc in enumerate(documents_in_encode_order)
+        }
 
-        # TaskEncodingSequence provides us with the correct ordering
-        if isinstance(task_encodings, TaskEncodingSequence):
-            for document in task_encodings.documents_in_order:
-                document_id = id(document)
-                documents[document_id] = document if inplace else copy.deepcopy(document)
-        # Otherwise we assume that documents are ordered according to the sequence of
-        # unique documents defined by the sequence of task encodings
-        else:
+        if inplace:
             for task_encoding in task_encodings:
                 document = task_encoding.document
-                document_id = id(document)
-                if document_id not in documents:
-                    documents[document_id] = document if inplace else copy.deepcopy(document)
-
-        if not inplace:
+                encode_idx_to_document[task_encoding.doc_idx] = document
+        else:
             task_encodings = [
                 TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
-                    document=documents[id(task_encoding.document)],
+                    document=encode_idx_to_document[task_encoding.doc_idx],
                     inputs=task_encoding.inputs,
                     targets=task_encoding.targets if task_encoding.has_targets else None,
                     metadata=task_encoding.metadata,
@@ -250,8 +247,7 @@ class TaskModule(
 
         self.combine_outputs(task_encodings, task_outputs)
 
-        unique_documents = list(documents.values())
-        return unique_documents
+        return [encode_idx_to_document[idx] for idx in sorted(encode_idx_to_document)]
 
     def combine_outputs(
         self,

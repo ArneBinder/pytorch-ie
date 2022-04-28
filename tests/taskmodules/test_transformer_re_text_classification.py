@@ -239,6 +239,7 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
     decoded_documents = prepared_taskmodule.decode(
         task_encodings=encodings,
         task_outputs=unbatched_outputs,
+        documents_in_encode_order=documents,
         inplace=inplace,
     )
 

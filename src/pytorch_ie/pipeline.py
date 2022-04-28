@@ -228,6 +228,8 @@ class Pipeline:
         self,
         model_inputs: Sequence[TaskEncoding],
         model_outputs: Sequence[TaskOutput],
+        documents_in_order: Union[Sequence[Document], Dataset],
+        inplace: bool = True,
         **postprocess_parameters,
     ) -> Sequence[Document]:
         """
@@ -235,11 +237,14 @@ class Pipeline:
         something more friendly. Generally it will output a list of documents.
         """
         # This creates annotations from the model outputs and attaches them to the correct documents.
-        return self.taskmodule.decode(
+        decoded_documents = self.taskmodule.decode(
             task_encodings=model_inputs,
             task_outputs=model_outputs,
+            inplace=inplace,
+            documents_in_encode_order=documents_in_order,
             **postprocess_parameters,
         )
+        return decoded_documents
 
     def get_inference_context(self):
         inference_context = (
@@ -344,6 +349,7 @@ class Pipeline:
         documents = self.postprocess(
             model_inputs=model_inputs,
             model_outputs=model_outputs,
+            documents_in_order=documents,
             **postprocess_params,
         )
         if single_document:

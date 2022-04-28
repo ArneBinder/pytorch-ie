@@ -144,6 +144,7 @@ def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_targe
     decoded_documents = taskmodule.decode(
         task_encodings=task_encodings,
         task_outputs=unbatched_outputs,
+        documents_in_encode_order=train_dataset,
         inplace=inplace,
     )
 
