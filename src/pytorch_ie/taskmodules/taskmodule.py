@@ -50,24 +50,14 @@ class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
     def __init__(
         self,
         document: DocumentType,
-        inputs: Optional[InputEncoding] = None,
+        inputs: InputEncoding,
         targets: Optional[TargetEncoding] = None,
         metadata: Optional[Metadata] = None,
     ) -> None:
         self.document = document
-        self._inputs = inputs
+        self.inputs = inputs
         self._targets = targets
         self.metadata = metadata or {}
-
-    @property
-    def has_inputs(self) -> bool:
-        return self._inputs is not None
-
-    @property
-    def inputs(self) -> InputEncoding:
-        # TODO: find a better solution
-        assert self._inputs is not None, "task encoding has no inputs"
-        return self._inputs
 
     @property
     def has_targets(self) -> bool:
@@ -197,9 +187,6 @@ class TaskModule(
         task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ) -> None:
         for task_encoding in task_encodings:
-            if not task_encoding.has_inputs:
-                continue
-
             target_encoding = self.encode_target(task_encoding)
             task_encoding.targets = target_encoding
 
@@ -250,15 +237,11 @@ class TaskModule(
                 if document_id not in documents:
                     documents[document_id] = document if inplace else copy.deepcopy(document)
 
-        task_encodings = [
-            task_encoding for task_encoding in task_encodings if task_encoding.has_inputs
-        ]
-
         if not inplace:
             task_encodings = [
                 TaskEncoding[DocumentType, InputEncoding, TargetEncoding](
                     document=documents[id(task_encoding.document)],
-                    inputs=task_encoding.inputs if task_encoding.has_inputs else None,
+                    inputs=task_encoding.inputs,
                     targets=task_encoding.targets if task_encoding.has_targets else None,
                     metadata=task_encoding.metadata,
                 )
