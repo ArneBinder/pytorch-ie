@@ -127,12 +127,17 @@ class TaskModule(
         self,
         documents: Union[DocumentType, Sequence[DocumentType], Dataset],
         encode_target: bool = False,
-    ) -> TaskEncodingSequence[
-        TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+    ) -> Union[
+        Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        TaskEncodingSequence[
+            TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+        ],
     ]:
         if not isinstance(documents, (Sequence, Dataset)):
             documents = [documents]
 
+        # TODO: revisit the assumption that encode_target=True always implies that
+        # is_training=True
         task_encodings = self.encode_inputs(documents, is_training=encode_target)
 
         if encode_target:
@@ -144,8 +149,11 @@ class TaskModule(
         self,
         documents: Union[Sequence[DocumentType], Dataset],
         is_training: bool = False,
-    ) -> TaskEncodingSequence[
-        TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+    ) -> Union[
+        Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        TaskEncodingSequence[
+            TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
+        ],
     ]:
         documents_in_order: List[DocumentType] = []
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
@@ -165,9 +173,15 @@ class TaskModule(
             else:
                 task_encodings.extend(possible_task_encodings)
 
-        return TaskEncodingSequence(
-            task_encodings=task_encodings, documents_in_order=documents_in_order
-        )
+        # during training we return only the sequence of task_encodings, because
+        # we don't need the ordering of input documents and also don't re-assign
+        # task encodings to input documents
+        if is_training:
+            return task_encodings
+        else:
+            return TaskEncodingSequence(
+                task_encodings=task_encodings, documents_in_order=documents_in_order
+            )
 
     @abstractmethod
     def encode_input(

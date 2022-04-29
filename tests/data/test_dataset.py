@@ -1,14 +1,12 @@
-import re
+from typing import Sequence
 
 import datasets
 import numpy
 import pytest
 import torch
 
-from pytorch_ie.taskmodules import (
-    InplaceNotSupportedException,
-    TransformerSpanClassificationTaskModule,
-)
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+from pytorch_ie.taskmodules.taskmodule import TaskEncodingSequence
 from tests import FIXTURES_ROOT
 from tests.data.dataset_tester import DatasetTester
 
@@ -120,6 +118,11 @@ def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_targe
 
     task_encodings = taskmodule.encode(train_dataset, encode_target=encode_target)
     assert len(task_encodings) == 8
+
+    if encode_target:
+        assert isinstance(task_encodings, Sequence)
+    else:
+        assert isinstance(task_encodings, TaskEncodingSequence)
 
     task_encoding = task_encodings[5]
     document = train_dataset[5]
