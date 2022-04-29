@@ -1,8 +1,20 @@
 from dataclasses import dataclass
 
+import datasets
 import pytorch_ie.data.builder
 from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
 from pytorch_ie.utils.span import bio_tags_to_spans
+
+
+class Conll2003Config(datasets.BuilderConfig):
+    """BuilderConfig for Conll2003"""
+
+    def __init__(self, **kwargs):
+        """BuilderConfig forConll2003.
+        Args:
+          **kwargs: keyword arguments forwarded to super.
+        """
+        super(Conll2003Config, self).__init__(**kwargs)
 
 
 @dataclass
@@ -13,7 +25,11 @@ class CoNLL2003Document(TextDocument):
 class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
     DOCUMENT_TYPE = CoNLL2003Document
 
-    BASE_PATH = "conll2003"
+    BASE_DATASET_PATH = "conll2003"
+
+    BUILDER_CONFIGS = [
+        Conll2003Config(name="conll2003", version=datasets.Version("1.0.0"), description="Conll2003 dataset"),
+    ]
 
     def _generate_document_kwargs(self, dataset):
         return {"int_to_str": dataset.features["ner_tags"].feature.int2str}

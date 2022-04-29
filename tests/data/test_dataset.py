@@ -1,10 +1,10 @@
 from typing import Sequence
 
-import datasets
 import numpy
 import pytest
 import torch
 
+import datasets
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 from pytorch_ie.taskmodules.taskmodule import TaskEncodingSequence
 from tests import FIXTURES_ROOT
@@ -94,16 +94,6 @@ def test_dataset_map_batched(dataset):
 
     assert sum(len(doc.relations) for doc in mapped_dataset1) == 0
     assert sum(len(doc.relations) for doc in train_dataset) == 7
-
-
-def test_with_tester():
-    dataset_name = FIXTURES_ROOT / "datasets" / "conll2003"
-
-    dataset_tester = DatasetTester(parent=None)
-    configs = dataset_tester.load_all_configs(dataset_name, is_local=True)[:1]
-    dataset_tester.check_load_dataset(
-        dataset_name=dataset_name, configs=configs, is_local=True, use_local_dummy_data=True
-    )
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
