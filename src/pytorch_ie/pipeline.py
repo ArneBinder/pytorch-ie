@@ -1,10 +1,9 @@
-import collections
 import logging
 import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Sequence, Tuple, Union
 
 import torch
 import tqdm
@@ -12,9 +11,10 @@ from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from pytorch_ie import Dataset, Document
 from pytorch_ie.core.pytorch_ie import PyTorchIEModel
 from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
-from pytorch_ie.document import Document
+from pytorch_ie.taskmodules import InplaceNotSupportedException
 from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, TaskOutput
 
 logger = logging.getLogger(__name__)
@@ -188,14 +188,17 @@ class Pipeline:
 
         # set postprocess parameters
         for p_name in ["inplace"]:
-            if p_name in postprocess_parameters:
+            if p_name in pipeline_parameters:
                 postprocess_parameters[p_name] = pipeline_parameters[p_name]
 
         return preprocess_parameters, dataloader_params, forward_parameters, postprocess_parameters
 
     def preprocess(
-        self, documents: List[Document], predict_field: str, **preprocess_parameters: Dict
-    ) -> List[TaskEncoding]:
+        self,
+        documents: Union[Sequence[Document], Dataset],
+        predict_field: str,
+        **preprocess_parameters: Dict,
+    ) -> Sequence[TaskEncoding]:
         """
         Preprocess will take the `input_` of a specific pipeline and return a dictionnary of everything necessary for
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
@@ -223,20 +226,18 @@ class Pipeline:
 
     def postprocess(
         self,
-        model_inputs: List[TaskEncoding],
-        model_outputs: List[TaskOutput],
-        input_documents: List[Document],
+        model_inputs: Sequence[TaskEncoding],
+        model_outputs: Sequence[TaskOutput],
         **postprocess_parameters,
-    ) -> List[Document]:
+    ) -> Sequence[Document]:
         """
         Postprocess will receive the model inputs and (unbatched) model outputs and reformat them into
         something more friendly. Generally it will output a list of documents.
         """
         # This creates annotations from the model outputs and attaches them to the correct documents.
         return self.taskmodule.decode(
-            encodings=model_inputs,
-            decoded_outputs=model_outputs,
-            input_documents=input_documents,
+            task_encodings=model_inputs,
+            task_outputs=model_outputs,
             **postprocess_parameters,
         )
 
@@ -261,7 +262,7 @@ class Pipeline:
 
     def get_dataloader(
         self,
-        model_inputs: List[TaskEncoding],
+        model_inputs: Sequence[TaskEncoding],
         batch_size: int = 1,
         num_workers: int = 8,
         **kwargs,
@@ -279,10 +280,10 @@ class Pipeline:
 
     def __call__(
         self,
-        documents: Union[Document, List[Document]],
+        documents: Union[Document, Sequence[Document], Dataset],
         *args,
         **kwargs,
-    ) -> Union[Document, List[Document]]:
+    ) -> Union[Document, Sequence[Document]]:
         if args:
             logger.warning(f"Ignoring args : {args}")
         (
@@ -291,6 +292,12 @@ class Pipeline:
             forward_params,
             postprocess_params,
         ) = self._sanitize_parameters(**kwargs)
+
+        in_place: bool = postprocess_params.get("inplace", True)
+        if in_place and isinstance(documents, Dataset):
+            raise InplaceNotSupportedException(
+                "Datasets can't be modified in place. Please set inplace=False."
+            )
 
         if "TOKENIZERS_PARALLELISM" not in os.environ:
             logger.info(
@@ -312,7 +319,7 @@ class Pipeline:
             )
 
         single_document = False
-        if isinstance(documents, Document):
+        if not isinstance(documents, (Sequence, Dataset)):
             single_document = True
             documents = [documents]
 
@@ -329,6 +336,7 @@ class Pipeline:
                 output = self.forward(batch, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
+
         assert len(model_inputs) == len(
             model_outputs
         ), f"length mismatch: len(model_inputs) [{len(model_inputs)}] != len(model_outputs) [{len(model_outputs)}]"
@@ -336,7 +344,6 @@ class Pipeline:
         documents = self.postprocess(
             model_inputs=model_inputs,
             model_outputs=model_outputs,
-            input_documents=documents,
             **postprocess_params,
         )
         if single_document:

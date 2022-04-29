@@ -1,7 +1,7 @@
-from typing import Any, Dict, Generic, List, Optional, Tuple, Union
+from typing import Any, Dict, Generic, List, Optional, Sequence
 
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 
 from pytorch_ie.data.datasets import PIEDatasetDict
@@ -18,7 +18,9 @@ class TaskEncodingDataset(
     Dataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     Generic[DocumentType, InputEncoding, TargetEncoding],
 ):
-    def __init__(self, encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]):
+    def __init__(
+        self, encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
+    ):
         self._encodings = encodings
 
     def __getitem__(self, index) -> TaskEncoding[DocumentType, InputEncoding, TargetEncoding]:
@@ -49,7 +51,7 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
     def __init__(
         self,
         taskmodule: TaskModule[DocumentType, InputEncoding, TargetEncoding, Any, Any, Any],
-        dataset: Dict[str, List[DocumentType]],
+        dataset: Dict[str, Sequence[DocumentType]],
         data_config_path: Optional[str] = None,
         train_split: Optional[str] = "train",
         val_split: Optional[str] = "validation",

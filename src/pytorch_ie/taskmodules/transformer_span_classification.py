@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 import torch
@@ -25,7 +25,7 @@ workflow:
 """
 
 TransformerSpanClassificationInputEncoding = BatchEncoding
-TransformerSpanClassificationTargetEncoding = List[Tuple[int, int, int]]
+TransformerSpanClassificationTargetEncoding = Sequence[Tuple[int, int, int]]
 
 TransformerSpanClassificationTaskEncoding = TaskEncoding[
     TextDocument,
@@ -89,8 +89,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: List[TextDocument]) -> None:
-        labels = set()
+    def prepare(self, documents: Sequence[TextDocument]) -> None:
+        labels: Set[str] = set()
         for document in documents:
             entities: Union[Sequence[LabeledSpan], Sequence[MultiLabeledSpan]] = document[
                 self.entity_annotation
@@ -109,121 +109,114 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                     labels.add(entity.label)
 
         self.label_to_id["O"] = 0
-        current_id = 1
+        label_id = 1
         for label in sorted(labels):
-            self.label_to_id[label] = current_id
-            current_id += 1
+            self.label_to_id[label] = label_id
+            label_id += 1
 
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
         self,
-        documents: List[TextDocument],
+        document: TextDocument,
         is_training: bool = False,
-    ) -> Tuple[
-        List[TransformerSpanClassificationInputEncoding],
-        List[Metadata],
-        Optional[List[TextDocument]],
-    ]:
-        inputs = []
-        expanded_documents = []
-        for doc in documents:
-            partitions: Sequence[Span]
-            if self.single_sentence:
-                partitions = doc[self.sentence_annotation]
-            else:
-                partitions = [Span(start=0, end=len(doc.text))]
-            for partition in partitions:
-                encoding = self.tokenizer(
-                    doc.text[partition.start : partition.end],
-                    padding=False,
-                    truncation=self.truncation,
-                    max_length=self.max_length,
-                    is_split_into_words=False,
-                    return_offsets_mapping=True,
-                    return_special_tokens_mask=True,
-                )
-                inputs.append(encoding)
-                expanded_documents.append(doc)
-
-        metadata = [
-            {
-                "offset_mapping": inp.pop("offset_mapping"),
-                "special_tokens_mask": inp.pop("special_tokens_mask"),
-            }
-            for inp in inputs
+    ) -> Optional[
+        Union[
+            TransformerSpanClassificationTaskEncoding,
+            Sequence[TransformerSpanClassificationTaskEncoding],
         ]
-
+    ]:
+        partitions: Sequence[Span]
         if self.single_sentence:
-            i = 0
-            for document in documents:
-                for sentence_index in range(len(document[self.sentence_annotation])):
-                    metadata[i]["sentence_index"] = sentence_index
-                    i += 1
+            partitions = document[self.sentence_annotation]
+        else:
+            partitions = [Span(start=0, end=len(document.text))]
 
-        return inputs, metadata, expanded_documents
+        task_encodings: List[TaskEncoding] = []
+        for partition_idx, partition in enumerate(partitions):
+            inputs = self.tokenizer(
+                document.text[partition.start : partition.end],
+                padding=False,
+                truncation=self.truncation,
+                max_length=self.max_length,
+                is_split_into_words=False,
+                return_offsets_mapping=True,
+                return_special_tokens_mask=True,
+            )
+
+            metadata = {
+                "offset_mapping": inputs.pop("offset_mapping"),
+                "special_tokens_mask": inputs.pop("special_tokens_mask"),
+            }
+
+            if self.single_sentence:
+                metadata["partition_idx"] = partition_idx
+
+            task_encodings.append(
+                TaskEncoding(
+                    document=document,
+                    inputs=inputs,
+                    metadata=metadata,
+                )
+            )
+
+        return task_encodings
 
     def encode_target(
         self,
-        documents: List[TextDocument],
-        input_encodings: List[TransformerSpanClassificationInputEncoding],
-        metadata: List[Metadata],
-    ) -> List[TransformerSpanClassificationTargetEncoding]:
-        target = []
-        entities: Sequence[LabeledSpan]
+        task_encoding: TransformerSpanClassificationTaskEncoding,
+    ) -> TransformerSpanClassificationTargetEncoding:
+        # inputs is a transformers BatchEncoding object
+        document = task_encoding.document
+        inputs = task_encoding.inputs
+        metadata = task_encoding.metadata
+
+        targets: List[Tuple[int, int, int]] = []
+        entities: Sequence[LabeledSpan] = document[self.entity_annotation]
         if self.single_sentence:
-            for i, document in enumerate(documents):
-                entities = document[self.entity_annotation]
-                sentence_idx = metadata[i]["sentence_index"]
-                partitions: Sequence[Span] = document[self.sentence_annotation]
-                assert (
-                    partitions is not None
-                ), f"document has no span annotations with name '{self.sentence_annotation}'"
-                sentence = partitions[sentence_idx]
+            partition_idx = metadata["partition_idx"]
+            partitions: Sequence[Span] = document[self.sentence_annotation]
+            assert (
+                partitions is not None
+            ), f"document has no span annotations with name '{self.sentence_annotation}'"
+            partition = partitions[partition_idx]
 
-                label_ids = []
-                for entity in entities:
-                    if entity.start < sentence.start or entity.end > sentence.end:
-                        continue
+            for entity in entities:
+                if entity.start < partition.start or entity.end > partition.end:
+                    continue
 
-                    entity_start = entity.start - sentence.start
-                    entity_end = entity.end - sentence.start
+                entity_start = entity.start - partition.start
+                entity_end = entity.end - partition.start
 
-                    start_idx = input_encodings[i].char_to_token(entity_start)
-                    end_idx = input_encodings[i].char_to_token(entity_end - 1)
-                    # TODO: remove this is if case
-                    if start_idx is None or end_idx is None:
-                        logger.warning(
-                            f"Entity annotation does not start or end with a token, it will be skipped: {entity}"
-                        )
-                        continue
+                start_idx = inputs.char_to_token(entity_start)
+                end_idx = inputs.char_to_token(entity_end - 1)
 
-                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
+                # TODO: remove this is if case
+                if start_idx is None or end_idx is None:
+                    logger.warning(
+                        f"Entity annotation does not start or end with a token, it will be skipped: {entity}"
+                    )
+                    continue
 
-                target.append(label_ids)
+                targets.append((start_idx, end_idx, self.label_to_id[entity.label]))
         else:
-            for i, document in enumerate(documents):
-                entities = document[self.entity_annotation]
-                label_ids = []
-                for entity in entities:
-                    start_idx = input_encodings[i].char_to_token(entity.start)
-                    end_idx = input_encodings[i].char_to_token(entity.end - 1)
-                    label_ids.append((start_idx, end_idx, self.label_to_id[entity.label]))
+            for entity in entities:
+                start_idx = inputs.char_to_token(entity.start)
+                end_idx = inputs.char_to_token(entity.end - 1)
+                targets.append((start_idx, end_idx, self.label_to_id[entity.label]))
 
-                target.append(label_ids)
-
-        return target
+        return targets
 
     def unbatch_output(
-        self, output: TransformerSpanClassificationModelBatchOutput
+        self, model_output: TransformerSpanClassificationModelBatchOutput
     ) -> Sequence[TransformerSpanClassificationTaskOutput]:
-        logits = output["logits"]
+        logits = model_output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
 
-        start_indices = output["start_indices"].detach().cpu().numpy()
-        end_indices = output["end_indices"].detach().cpu().numpy()
-        batch_indices = output["batch_indices"].detach().cpu().numpy()
+        start_indices = model_output["start_indices"].detach().cpu().numpy()
+        end_indices = model_output["end_indices"].detach().cpu().numpy()
+        batch_indices = model_output["batch_indices"].detach().cpu().numpy()
 
         tags: List[List[Tuple[str, Tuple[int, int]]]] = [[] for _ in np.unique(batch_indices)]
         probabilities: List[List[float]] = [[] for _ in np.unique(batch_indices)]
@@ -239,17 +232,18 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def create_annotations_from_output(
         self,
-        encoding: TransformerSpanClassificationTaskEncoding,
-        output: TransformerSpanClassificationTaskOutput,
+        task_encoding: TransformerSpanClassificationTaskEncoding,
+        task_output: TransformerSpanClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Union[LabeledSpan, MultiLabeledSpan]]]:
+        document = task_encoding.document
+        metadata = task_encoding.metadata
+
         if self.single_sentence:
-            document = encoding.document
-            metadata = encoding.metadata
             partitions: Sequence[Span] = document[self.sentence_annotation]
             sentence = partitions[metadata["sentence_index"]]
 
-            spans = output["tags"]
-            probabilities = output["probabilities"]
+            spans = task_output["tags"]
+            probabilities = task_output["probabilities"]
             for (label, (start, end)), probability in zip(spans, probabilities):
                 yield (
                     self.entity_annotation,
@@ -261,11 +255,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                     ),
                 )
         else:
-
-            metadata = encoding.metadata
-
-            spans = output["tags"]
-            probabilities = output["probabilities"]
+            spans = task_output["tags"]
+            probabilities = task_output["probabilities"]
             for (label, (start, end)), probability in zip(spans, probabilities):
                 yield (
                     self.entity_annotation,
@@ -278,11 +269,11 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                 )
 
     def collate(
-        self, encodings: List[TransformerSpanClassificationTaskEncoding]
+        self, task_encodings: Sequence[TransformerSpanClassificationTaskEncoding]
     ) -> TransformerSpanClassificationModelStepBatchEncoding:
-        input_features = [encoding.input for encoding in encodings]
+        input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
-        inputs = self.tokenizer.pad(
+        inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(
             input_features,
             padding=self.padding,
             max_length=self.max_length,
@@ -290,12 +281,13 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
             return_tensors="pt",
         )
 
-        if not encodings[0].has_target:
+        if not task_encodings[0].has_targets:
             return inputs, None
 
-        target_list: List[TransformerSpanClassificationTargetEncoding] = [
-            encoding.target for encoding in encodings
+        targets: Sequence[TransformerSpanClassificationTargetEncoding] = [
+            task_encoding.targets for task_encoding in task_encodings
         ]
+
         inputs = {k: torch.tensor(v, dtype=torch.int64) for k, v in inputs.items()}
 
-        return inputs, target_list
+        return inputs, targets

@@ -20,7 +20,7 @@ def main():
     dataset = datasets.load_dataset(
         path="pie/conll2003",
     )
-    train_docs, val_docs = list(dataset["train"]), list(dataset["validation"])
+    train_docs, val_docs = dataset["train"], dataset["validation"]
 
     print("train docs: ", len(train_docs))
     print("val docs: ", len(val_docs))

@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple
+from typing import Any, List, Sequence, Tuple
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, BatchEncoding
@@ -12,7 +12,7 @@ TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?
 
 TransformerSeq2SeqModelStepBatchEncoding = Tuple[
-    TransformerSeq2SeqModelBatchEncoding, None, List[Metadata], List[TextDocument]
+    TransformerSeq2SeqModelBatchEncoding, None, Sequence[Metadata], Sequence[TextDocument]
 ]
 
 
