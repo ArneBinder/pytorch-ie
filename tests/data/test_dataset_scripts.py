@@ -42,7 +42,9 @@ class TestDatasetScripts(TestCase):
             # use `re.finditer` to handle the case where the ignored groups would be matched first by `re.search`
             matches = regexp.finditer(input_text)
 
-        filtered_matches = [match for match in matches if match is not None and match.group(1) is not None]
+        filtered_matches = [
+            match for match in matches if match is not None and match.group(1) is not None
+        ]
         return filtered_matches[0] if filtered_matches else None
 
     def test_no_encoding_on_file_open(self):

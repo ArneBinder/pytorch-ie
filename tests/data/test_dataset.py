@@ -162,10 +162,10 @@ def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_targe
 
 @pytest.mark.slow
 def test_load_with_hf_datasets():
-    dataset_dir = FIXTURES_ROOT / "datasets" / "conll2003"
+    dataset_path = "./datasets/conll2003"
 
     dataset = datasets.load_dataset(
-        path=str(dataset_dir / "conll2003.py"),
+        path=str(dataset_path),
     )
 
     assert set(dataset.keys()) == {"train", "validation", "test"}
