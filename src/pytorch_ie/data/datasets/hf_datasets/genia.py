@@ -3,10 +3,11 @@
 
 import os
 
-import datasets
 import spacy
 from spacy.lang.en import English
 from spacy.symbols import ORTH
+
+import datasets
 
 _CITATION_GENIA = """\
 @article{article,

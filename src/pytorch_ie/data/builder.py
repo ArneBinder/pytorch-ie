@@ -1,9 +1,9 @@
 import abc
 from typing import Mapping, Optional, Type
 
-import datasets
 from datasets.load import load_dataset_builder
 
+import datasets
 from pytorch_ie.data.dataset import Dataset, decorate_convert_to_dict_of_lists
 from pytorch_ie.document import Document
 
@@ -11,16 +11,20 @@ from pytorch_ie.document import Document
 class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     DOCUMENT_TYPE: Optional[Type[Document]] = None
 
-    BASE_PATH: Optional[str] = None
+    BASE_DATASET_PATH: Optional[str] = None
 
     def __init__(self, **kwargs):
         builder_kwargs = dict(kwargs)
         builder_kwargs.pop("hash", None)
         builder_kwargs.pop("base_path", None)
-        self.base_builder = load_dataset_builder(
-            path=self.BASE_PATH,
-            **builder_kwargs,
-        )
+
+        self.base_builder = None
+        if self.BASE_DATASET_PATH is not None:
+            self.base_builder = load_dataset_builder(
+                path=self.BASE_DATASET_PATH,
+                **builder_kwargs,
+            )
+
         super().__init__(**kwargs)
 
     def _info(self):

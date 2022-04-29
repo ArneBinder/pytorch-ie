@@ -66,6 +66,7 @@ sh = "^1.14.2"
 types-requests = "^2.27.7"
 nox = "^2022.1.7"
 nox-poetry = "^0.9.0"
+absl-py = "^1.0.0"
 
 [tool.black]
 line-length = 99
