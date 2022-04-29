@@ -1,7 +1,8 @@
 import os
 
-import datasets
 from tqdm import tqdm
+
+import datasets
 
 _CITATION = """
 """

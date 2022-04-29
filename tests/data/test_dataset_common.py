@@ -1,20 +1,23 @@
-import os
 import glob
+import os
 import tempfile
-import pytest
 
-from tests.data.dataset_tester import DatasetTester
+import pytest
+from absl.testing import parameterized
 from datasets.builder import BuilderConfig, DatasetBuilder
 from datasets.load import dataset_module_factory, import_main_class, load_dataset
 from datasets.utils.download_manager import DownloadMode
 from datasets.utils.file_utils import DownloadConfig
-from absl.testing import parameterized
+
+from tests.data.dataset_tester import DatasetTester
 
 
 def test_datasets_dir_and_script_names():
     for dataset_dir in glob.glob("./datasets/*/"):
         name = dataset_dir.split(os.sep)[-2]
-        if not name.startswith("__") and len(os.listdir(dataset_dir)) > 0:  # ignore __pycache__ and empty dirs
+        if (
+            not name.startswith("__") and len(os.listdir(dataset_dir)) > 0
+        ):  # ignore __pycache__ and empty dirs
             # check that the script name is the same as the dir name
             assert os.path.exists(
                 os.path.join(dataset_dir, name + ".py")
@@ -48,7 +51,9 @@ class LocalDatasetTest(parameterized.TestCase):
 
     def test_load_dataset(self, dataset_name):
         configs = self.dataset_tester.load_all_configs(dataset_name, is_local=True)[:1]
-        self.dataset_tester.check_load_dataset(dataset_name, configs, is_local=True, use_local_dummy_data=True)
+        self.dataset_tester.check_load_dataset(
+            dataset_name, configs, is_local=True, use_local_dummy_data=True
+        )
 
     def test_builder_class(self, dataset_name):
         builder_cls = self.dataset_tester.load_builder_class(dataset_name, is_local=True)
@@ -67,17 +72,24 @@ class LocalDatasetTest(parameterized.TestCase):
     @pytest.mark.slow
     def test_load_dataset_all_configs(self, dataset_name):
         configs = self.dataset_tester.load_all_configs(dataset_name, is_local=True)
-        self.dataset_tester.check_load_dataset(dataset_name, configs, is_local=True, use_local_dummy_data=True)
+        self.dataset_tester.check_load_dataset(
+            dataset_name, configs, is_local=True, use_local_dummy_data=True
+        )
 
     @pytest.mark.slow
     def test_load_real_dataset(self, dataset_name):
         path = "./datasets/" + dataset_name
-        dataset_module = dataset_module_factory(path, download_config=DownloadConfig(local_files_only=True))
+        dataset_module = dataset_module_factory(
+            path, download_config=DownloadConfig(local_files_only=True)
+        )
         builder_cls = import_main_class(dataset_module.module_path)
         name = builder_cls.BUILDER_CONFIGS[0].name if builder_cls.BUILDER_CONFIGS else None
         with tempfile.TemporaryDirectory() as temp_cache_dir:
             dataset = load_dataset(
-                path, name=name, cache_dir=temp_cache_dir, download_mode=DownloadMode.FORCE_REDOWNLOAD
+                path,
+                name=name,
+                cache_dir=temp_cache_dir,
+                download_mode=DownloadMode.FORCE_REDOWNLOAD,
             )
             for split in dataset.keys():
                 self.assertTrue(len(dataset[split]) > 0)
@@ -86,15 +98,22 @@ class LocalDatasetTest(parameterized.TestCase):
     @pytest.mark.slow
     def test_load_real_dataset_all_configs(self, dataset_name):
         path = "./datasets/" + dataset_name
-        dataset_module = dataset_module_factory(path, download_config=DownloadConfig(local_files_only=True))
+        dataset_module = dataset_module_factory(
+            path, download_config=DownloadConfig(local_files_only=True)
+        )
         builder_cls = import_main_class(dataset_module.module_path)
         config_names = (
-            [config.name for config in builder_cls.BUILDER_CONFIGS] if len(builder_cls.BUILDER_CONFIGS) > 0 else [None]
+            [config.name for config in builder_cls.BUILDER_CONFIGS]
+            if len(builder_cls.BUILDER_CONFIGS) > 0
+            else [None]
         )
         for name in config_names:
             with tempfile.TemporaryDirectory() as temp_cache_dir:
                 dataset = load_dataset(
-                    path, name=name, cache_dir=temp_cache_dir, download_mode=DownloadMode.FORCE_REDOWNLOAD
+                    path,
+                    name=name,
+                    cache_dir=temp_cache_dir,
+                    download_mode=DownloadMode.FORCE_REDOWNLOAD,
                 )
                 for split in dataset.keys():
                     self.assertTrue(len(dataset[split]) > 0)

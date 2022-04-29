@@ -3,8 +3,8 @@
 import os
 
 import pytest
-from datasets import DownloadMode, set_caching_enabled
 
+from datasets import DownloadMode, set_caching_enabled
 from pytorch_ie import BinaryRelation, Document, LabeledSpan
 from pytorch_ie.data.datasets.brat import load_brat, serialize_brat, split_span_annotation
 

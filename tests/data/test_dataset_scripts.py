@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 from unittest import TestCase
 
+
 # taken from https://github.com/huggingface/datasets/blob/master/tests/test_dataset_scripts.py
 class TestDatasetScripts(TestCase):
     def _no_encoding_on_file_open(self, filepath: str):
@@ -15,7 +16,9 @@ class TestDatasetScripts(TestCase):
         """
 
         with open(filepath, encoding="utf-8") as input_file:
-            regexp = re.compile(r"(?!.*\b(?:encoding|rb|w|wb|w+|wb+|ab|ab+)\b)(?<=\s)(open)\((.*)\)")
+            regexp = re.compile(
+                r"(?!.*\b(?:encoding|rb|w|wb|w+|wb+|ab|ab+)\b)(?<=\s)(open)\((.*)\)"
+            )
             input_text = input_file.read()
             match = regexp.search(input_text)
 
@@ -31,13 +34,16 @@ class TestDatasetScripts(TestCase):
         """
 
         with open(filepath, encoding="utf-8") as input_file:
-            regexp = re.compile(r"#[^\r\n]*print\(|\"[^\r\n]*print\(|\"\"\".*?print\(.*?\"\"\"|(print\()", re.DOTALL)
+            regexp = re.compile(
+                r"#[^\r\n]*print\(|\"[^\r\n]*print\(|\"\"\".*?print\(.*?\"\"\"|(print\()",
+                re.DOTALL,
+            )
             input_text = input_file.read()
             # use `re.finditer` to handle the case where the ignored groups would be matched first by `re.search`
             matches = regexp.finditer(input_text)
 
-        matches = [match for match in matches if match is not None and match.group(1) is not None]
-        return matches[0] if matches else None
+        filtered_matches = [match for match in matches if match is not None and match.group(1) is not None]
+        return filtered_matches[0] if filtered_matches else None
 
     def test_no_encoding_on_file_open(self):
         dataset_paths = Path("./datasets")
@@ -53,4 +59,6 @@ class TestDatasetScripts(TestCase):
 
         for dataset in dataset_files:
             if self._no_print_statements(str(dataset)):
-                raise AssertionError(f"print statement found in {dataset}. Use datasets.logger/logging instead.")
+                raise AssertionError(
+                    f"print statement found in {dataset}. Use datasets.logger/logging instead."
+                )

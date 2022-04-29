@@ -4,9 +4,10 @@
 import os
 import re
 
-import datasets
 import tensorflow as tf
 from spacy.lang.en import English
+
+import datasets
 
 _CITATION_WEBRED = """\
 @misc{ormandi2021webred,

@@ -14,7 +14,7 @@ class Conll2003Config(datasets.BuilderConfig):
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
-        super(Conll2003Config, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 @dataclass
@@ -28,7 +28,9 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
     BASE_DATASET_PATH = "conll2003"
 
     BUILDER_CONFIGS = [
-        Conll2003Config(name="conll2003", version=datasets.Version("1.0.0"), description="Conll2003 dataset"),
+        Conll2003Config(
+            name="conll2003", version=datasets.Version("1.0.0"), description="Conll2003 dataset"
+        ),
     ]
 
     def _generate_document_kwargs(self, dataset):
