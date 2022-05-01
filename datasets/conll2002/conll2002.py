@@ -6,11 +6,11 @@ from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_fie
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
-class WNUT_17Config(datasets.BuilderConfig):
-    """The WNUT 17 Emerging Entities Dataset."""
+class Conll2002Config(datasets.BuilderConfig):
+    """BuilderConfig for Conll2002"""
 
     def __init__(self, **kwargs):
-        """BuilderConfig for WNUT 17.
+        """BuilderConfig forConll2002.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -18,21 +18,18 @@ class WNUT_17Config(datasets.BuilderConfig):
 
 
 @dataclass
-class WNUT17Document(TextDocument):
+class CoNLL2002Document(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
-class WNUT17(pytorch_ie.data.builder.GeneratorBasedBuilder):
-    """The WNUT 17 Emerging Entities Dataset."""
+class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
+    DOCUMENT_TYPE = CoNLL2002Document
 
-    DOCUMENT_TYPE = WNUT17Document
-
-    BASE_DATASET_PATH = "wnut_17"
+    BASE_DATASET_PATH = "conll2002"
 
     BUILDER_CONFIGS = [
-        WNUT_17Config(
-            name="wnut_17", version=datasets.Version("1.0.0"), description="The WNUT 17 Emerging Entities Dataset"
-        ),
+        Conll2002Config(name="es", version=datasets.Version("1.0.0"), description="Conll2002 Spanish dataset"),
+        Conll2002Config(name="nl", version=datasets.Version("1.0.0"), description="Conll2002 Dutch dataset"),
     ]
 
     def _generate_document_kwargs(self, dataset):
@@ -45,7 +42,7 @@ class WNUT17(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
         text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
 
-        document = WNUT17Document(text=text, id=doc_id)
+        document = CoNLL2002Document(text=text, id=doc_id)
 
         for span in sorted(ner_spans, key=lambda span: span.start):
             document.entities.append(span)
