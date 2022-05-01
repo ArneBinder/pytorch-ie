@@ -274,3 +274,25 @@ def get_special_token_mask(token_ids_0: List[int], tokenizer: PreTrainedTokenize
     # exclude unknown token id since this indicate a real input token
     special_ids = set(tokenizer.all_special_ids) - {tokenizer.unk_token_id}
     return [1 if token_id in special_ids else 0 for token_id in token_ids_0]
+
+
+def tokens_and_tags_to_text_and_labeled_spans(
+    tokens: Sequence[str], tags: Sequence[str]
+) -> Tuple[str, Sequence[LabeledSpan]]:
+    start = 0
+    token_offsets: List[Tuple[int, int]] = []
+    for token in tokens:
+        end = start + len(token)
+        token_offsets.append((start, end))
+        # we add a space after each token
+        start = end + 1
+
+    text = " ".join(tokens)
+
+    spans: List[LabeledSpan] = []
+    for label, (start, end) in bio_tags_to_spans(tags):
+        spans.append(
+            LabeledSpan(start=token_offsets[start][0], end=token_offsets[end][1], label=label)
+        )
+
+    return text, spans
