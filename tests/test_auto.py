@@ -1,6 +1,7 @@
 import pytest
-from pytorch_ie.auto import AutoTaskModule
+from pytorch_ie.auto import AutoTaskModule, AutoModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+from pytorch_ie.models import TransformerSpanClassificationModel
 
 
 @pytest.mark.slow
@@ -12,7 +13,8 @@ def test_auto_taskmodule():
 
 @pytest.mark.slow
 def test_auto_model():
-    assert 1 == 0
+    model = AutoModel.from_pretrained("pie/example-ner-spanclf-conll03")
+    assert isinstance(model, TransformerSpanClassificationModel)
 
 
 @pytest.mark.slow
