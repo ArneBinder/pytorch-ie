@@ -26,7 +26,7 @@ class AutoTaskModule(PyTorchIETaskmoduleModelHubMixin):
         **module_kwargs,
     ) -> TaskModule:
         class_name = module_kwargs.pop("taskmodule_type")
-        clazz = TaskModule.by_name(class_name)
+        clazz = TaskModule.by_name(class_name)  # type: ignore
         return clazz(**module_kwargs)
 
 
