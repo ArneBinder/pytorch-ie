@@ -2,8 +2,8 @@ from typing import Any, Dict
 
 from pytorch_lightning import LightningModule
 
-from pytorch_ie.core.registerable import Registrable
 from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin
+from pytorch_ie.core.registerable import Registrable
 
 
 class PyTorchIEModel(LightningModule, Registrable, PyTorchIEModelHubMixin):

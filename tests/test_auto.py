@@ -1,7 +1,8 @@
+from dataclasses import dataclass
+
 import pytest
 
-from dataclasses import dataclass
-from pytorch_ie import TextDocument, AnnotationList, annotation_field, LabeledSpan
+from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
 from pytorch_ie.auto import AutoModel, AutoPipeline, AutoTaskModule
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
