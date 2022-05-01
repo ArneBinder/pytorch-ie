@@ -69,6 +69,7 @@ _TransformerTextClassificationTaskModule = TaskModule[
 ]
 
 
+@TaskModule.register()
 class TransformerTextClassificationTaskModule(_TransformerTextClassificationTaskModule):
     def __init__(
         self,

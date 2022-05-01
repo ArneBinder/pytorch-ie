@@ -1,11 +1,12 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from pytorch_lightning import LightningModule
 
 from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin
+from pytorch_ie.core import Registrable
 
 
-class PyTorchIEModel(LightningModule, PyTorchIEModelHubMixin):
+class PyTorchIEModel(LightningModule, Registrable, PyTorchIEModelHubMixin):
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
         config["model_type"] = self.__class__.__name__

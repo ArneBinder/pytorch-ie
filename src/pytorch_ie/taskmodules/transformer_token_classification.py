@@ -54,6 +54,7 @@ _TransformerTokenClassificationTaskModule = TaskModule[
 logger = logging.getLogger(__name__)
 
 
+@TaskModule.register()
 class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
     def __init__(
         self,

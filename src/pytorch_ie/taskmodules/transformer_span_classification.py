@@ -48,6 +48,7 @@ _TransformerSpanClassificationTaskModule = TaskModule[
 logger = logging.getLogger(__name__)
 
 
+@TaskModule.register()
 class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTaskModule):
     def __init__(
         self,

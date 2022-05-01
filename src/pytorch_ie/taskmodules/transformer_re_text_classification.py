@@ -111,6 +111,7 @@ def _enumerate_entity_pairs(
             yield head, tail
 
 
+@TaskModule.register()
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
     """
     Marker based relation extraction. This taskmodule prepares the input token ids in such a way

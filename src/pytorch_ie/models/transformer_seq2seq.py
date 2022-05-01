@@ -16,6 +16,7 @@ TransformerSeq2SeqModelStepBatchEncoding = Tuple[
 ]
 
 
+@PyTorchIEModel.register()
 class TransformerSeq2SeqModel(PyTorchIEModel):
     def __init__(
         self,

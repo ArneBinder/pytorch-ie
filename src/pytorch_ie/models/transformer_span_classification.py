@@ -23,6 +23,7 @@ TransformerSpanClassificationModelStepBatchEncoding = Tuple[
 ]
 
 
+@PyTorchIEModel.register()
 class TransformerSpanClassificationModel(PyTorchIEModel):
     def __init__(
         self,

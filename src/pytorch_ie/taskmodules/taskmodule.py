@@ -19,6 +19,7 @@ from pytorch_ie import Dataset, Document
 from pytorch_ie.annotations import Annotation
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.data import Metadata
+from pytorch_ie.core import Registrable
 
 """
 workflow:
@@ -108,6 +109,7 @@ class TaskEncodingSequence(
 class TaskModule(
     ABC,
     PyTorchIETaskmoduleModelHubMixin,
+    Registrable,
     Generic[
         DocumentType,
         InputEncoding,

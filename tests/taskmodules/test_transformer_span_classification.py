@@ -1,6 +1,7 @@
 import numpy
 import pytest
 import torch
+from pytorch_ie.taskmodules.taskmodule import TaskModule
 
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
@@ -157,3 +158,13 @@ def test_collate(prepared_taskmodule, documents, encode_target):
         assert len(targets) == 3
     else:
         assert targets is None
+
+
+def test_load_from_registry():
+    taskmodule_type = TaskModule.by_name("TransformerSpanClassificationTaskModule")
+    assert taskmodule_type is TransformerSpanClassificationTaskModule
+
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule_type(
+        tokenizer_name_or_path=tokenizer_name_or_path
+    )
