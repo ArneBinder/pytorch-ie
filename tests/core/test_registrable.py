@@ -1,7 +1,8 @@
-from numpy import isin
-from pytorch_ie.core.registerable import Registrable
-
 from collections import defaultdict
+
+from numpy import isin
+
+from pytorch_ie.core.registerable import Registrable
 
 
 def test_registrable():
@@ -10,7 +11,7 @@ def test_registrable():
 
     Registrable._registry = defaultdict(dict)
 
-    assert not Registrable._registry 
+    assert not Registrable._registry
 
     @A.register()
     class B(A):

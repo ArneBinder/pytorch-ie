@@ -1,10 +1,14 @@
-from pytorch_ie.taskmodules import TaskModule
-from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin, PyTorchIEModelHubMixin
 import os
+from typing import Any, Dict, Optional
+
 import torch
 from huggingface_hub.constants import PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
+
+from pytorch_ie import Pipeline
 from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin, PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.taskmodules import TaskModule
 
 
 class AutoTaskModule(PyTorchIETaskmoduleModelHubMixin):
@@ -20,7 +24,7 @@ class AutoTaskModule(PyTorchIETaskmoduleModelHubMixin):
         local_files_only,
         use_auth_token,
         **module_kwargs,
-    ):
+    ) -> TaskModule:
         class_name = module_kwargs.pop("taskmodule_type")
         clazz = TaskModule.by_name(class_name)
         return clazz(**module_kwargs)
@@ -41,7 +45,7 @@ class AutoModel(PyTorchIEModelHubMixin):
         map_location="cpu",
         strict=False,
         **model_kwargs,
-    ):
+    ) -> PyTorchIEModel:
         """
         Overwrite this method in case you wish to initialize your model in a different way.
         """
@@ -72,3 +76,53 @@ class AutoModel(PyTorchIEModelHubMixin):
         model.eval()
 
         return model
+
+
+class AutoPipeline:
+    @staticmethod
+    def from_pretrained(
+        pretrained_model_name_or_path: str,
+        force_download: bool = False,
+        resume_download: bool = False,
+        proxies: Dict = None,
+        use_auth_token: Optional[str] = None,
+        cache_dir: Optional[str] = None,
+        local_files_only: bool = False,
+        taskmodule_kwargs: Dict[str, Any] = None,
+        model_kwargs: Dict[str, Any] = None,
+        device: int = -1,
+        binary_output: bool = False,
+        **kwargs,
+    ) -> Pipeline:
+        taskmodule_kwargs = taskmodule_kwargs or {}
+        model_kwargs = model_kwargs or {}
+
+        taskmodule = AutoTaskModule.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            force_download=force_download,
+            resume_download=resume_download,
+            proxies=proxies,
+            use_auth_token=use_auth_token,
+            cache_dir=cache_dir,
+            local_files_only=local_files_only,
+            **taskmodule_kwargs,
+        )
+
+        model = AutoModel.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            force_download=force_download,
+            resume_download=resume_download,
+            proxies=proxies,
+            use_auth_token=use_auth_token,
+            cache_dir=cache_dir,
+            local_files_only=local_files_only,
+            **model_kwargs,
+        )
+
+        return Pipeline(
+            taskmodule=taskmodule,
+            model=model,
+            device=device,
+            binary_output=binary_output,
+            **kwargs,
+        )

@@ -1,7 +1,6 @@
-from typing import Type, Dict, Optional, TypeVar
-
 import inspect
 from collections import defaultdict
+from typing import Dict, Optional, Type, TypeVar
 
 
 class RegistrationError(Exception):
@@ -40,12 +39,10 @@ class Registrable:
             return subclass
 
         return add_subclass_to_registry
-    
+
     @classmethod
     def by_name(cls: Type[T], name: str) -> Type[T]:
         if name in Registrable._registry[cls]:
             return Registrable._registry[cls][name]
-        
-        raise RegistrationError(
-            f"{name} is not a registered name for {cls.__name__}."
-        )
+
+        raise RegistrationError(f"{name} is not a registered name for {cls.__name__}.")
