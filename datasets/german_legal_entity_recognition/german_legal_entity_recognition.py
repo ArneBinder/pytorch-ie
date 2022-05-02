@@ -5,7 +5,6 @@ import pytorch_ie.data.builder
 from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
-
 _VERSION = "1.0.0"
 _COURTS = ["bag", "bfh", "bgh", "bpatg", "bsg", "bverfg", "bverwg"]
 _COURTS_FILEPATHS = {court: f"{court}.conll" for court in _COURTS}
@@ -33,9 +32,15 @@ class GermanLegalEntityRecognition(pytorch_ie.data.builder.GeneratorBasedBuilder
     BASE_DATASET_PATH = "german_legal_entity_recognition"
 
     BUILDER_CONFIGS = [
-        GermanLegalEntityRecognitionConfig(name=court, courts=[court], description=f"Court. {court}.")
+        GermanLegalEntityRecognitionConfig(
+            name=court, courts=[court], description=f"Court. {court}."
+        )
         for court in _COURTS
-    ] + [GermanLegalEntityRecognitionConfig(name=_ALL, courts=_COURTS, description="All courts included.")]
+    ] + [
+        GermanLegalEntityRecognitionConfig(
+            name=_ALL, courts=_COURTS, description="All courts included."
+        )
+    ]
     BUILDER_CONFIG_CLASS = GermanLegalEntityRecognitionConfig
     DEFAULT_CONFIG_NAME = _ALL
 

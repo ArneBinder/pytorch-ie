@@ -28,7 +28,9 @@ class CoNLLpp(pytorch_ie.data.builder.GeneratorBasedBuilder):
     BASE_DATASET_PATH = "conllpp"
 
     BUILDER_CONFIGS = [
-        CoNLLppConfig(name="conllpp", version=datasets.Version("1.0.0"), description="CoNLLpp dataset"),
+        CoNLLppConfig(
+            name="conllpp", version=datasets.Version("1.0.0"), description="CoNLLpp dataset"
+        ),
     ]
 
     def _generate_document_kwargs(self, dataset):

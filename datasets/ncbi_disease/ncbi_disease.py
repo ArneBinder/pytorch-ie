@@ -28,7 +28,11 @@ class NCBIDisease(pytorch_ie.data.builder.GeneratorBasedBuilder):
     BASE_DATASET_PATH = "ncbi_disease"
 
     BUILDER_CONFIGS = [
-        NCBIDiseaseConfig(name="ncbi_disease", version=datasets.Version("1.0.0"), description="NCBIDisease dataset"),
+        NCBIDiseaseConfig(
+            name="ncbi_disease",
+            version=datasets.Version("1.0.0"),
+            description="NCBIDisease dataset",
+        ),
     ]
 
     def _generate_document_kwargs(self, dataset):
