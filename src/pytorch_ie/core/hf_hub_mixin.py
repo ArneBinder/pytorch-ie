@@ -399,11 +399,6 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         """
         super().__init__()
 
-    def _config(self) -> Dict[str, Any]:
-        config = dict(self.hparams)
-        config["taskmodule_type"] = self.__class__.__name__
-        return config
-
     def _save_pretrained(self, save_directory):
         return None
 

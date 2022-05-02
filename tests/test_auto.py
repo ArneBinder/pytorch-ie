@@ -32,6 +32,22 @@ def test_auto_taskmodule_full_cycle(tmp_path):
 
 
 @pytest.mark.slow
+def test_auto_taskmodule_full_cycle_with_name(tmp_path):
+    @TaskModule.register(name="mytaskmodule")
+    class MyTransformerSpanClassificationTaskModule(TransformerSpanClassificationTaskModule):
+        pass
+
+    taskmodule = MyTransformerSpanClassificationTaskModule(
+        tokenizer_name_or_path="bert-base-uncased"
+    )
+    taskmodule.prepare([])
+    taskmodule.save_pretrained(save_directory=str(tmp_path))
+
+    taskmodule_loaded = AutoTaskModule.from_pretrained(str(tmp_path))
+    assert isinstance(taskmodule_loaded, MyTransformerSpanClassificationTaskModule)
+
+
+@pytest.mark.slow
 def test_auto_model():
     model = AutoModel.from_pretrained("pie/example-ner-spanclf-conll03")
     assert isinstance(model, TransformerSpanClassificationModel)

@@ -3,6 +3,7 @@ import copy
 import logging
 from abc import ABC, abstractmethod
 from typing import (
+    Any,
     Dict,
     Generic,
     Iterator,
@@ -121,6 +122,11 @@ class TaskModule(
 ):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def _config(self) -> Dict[str, Any]:
+        config = dict(self.hparams)
+        config["taskmodule_type"] = self.register_name
+        return config
 
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         return None

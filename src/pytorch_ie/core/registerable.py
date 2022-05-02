@@ -12,6 +12,7 @@ T = TypeVar("T")
 
 class Registrable:
     _registry: Dict[Type, Dict[str, Type]] = defaultdict(dict)
+    _register_name: Optional[str] = None
 
     @classmethod
     def register(
@@ -21,7 +22,10 @@ class Registrable:
         registry = Registrable._registry[cls]
 
         def add_subclass_to_registry(subclass: Type[T]) -> Type[T]:
-            register_name = subclass.__name__ if name is None else name
+            # save the name if it is explicitly set
+            subclass._register_name = name
+
+            register_name = subclass.register_name
 
             if not inspect.isclass(subclass) or not issubclass(subclass, cls):
                 raise RegistrationError(
@@ -39,6 +43,11 @@ class Registrable:
             return subclass
 
         return add_subclass_to_registry
+
+    @classmethod
+    @property
+    def register_name(cls) -> str:
+        return cls.__name__ if cls._register_name is None else cls._register_name
 
     @classmethod
     def by_name(cls: Type[T], name: str) -> Type[T]:
