@@ -6,11 +6,11 @@ from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_fie
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
-class Conll2003Config(datasets.BuilderConfig):
-    """BuilderConfig for Conll2003"""
+class CoNLL2003Config(datasets.BuilderConfig):
+    """BuilderConfig for CoNLL2003"""
 
     def __init__(self, **kwargs):
-        """BuilderConfig forConll2003.
+        """BuilderConfig for CoNLL2003.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -28,8 +28,8 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
     BASE_DATASET_PATH = "conll2003"
 
     BUILDER_CONFIGS = [
-        Conll2003Config(
-            name="conll2003", version=datasets.Version("1.0.0"), description="Conll2003 dataset"
+        CoNLL2003Config(
+            name="conll2003", version=datasets.Version("1.0.0"), description="CoNLL2003 dataset"
         ),
     ]
 
