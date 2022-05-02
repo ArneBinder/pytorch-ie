@@ -28,8 +28,12 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
     BASE_DATASET_PATH = "conll2002"
 
     BUILDER_CONFIGS = [
-        Conll2002Config(name="es", version=datasets.Version("1.0.0"), description="Conll2002 Spanish dataset"),
-        Conll2002Config(name="nl", version=datasets.Version("1.0.0"), description="Conll2002 Dutch dataset"),
+        Conll2002Config(
+            name="es", version=datasets.Version("1.0.0"), description="Conll2002 Spanish dataset"
+        ),
+        Conll2002Config(
+            name="nl", version=datasets.Version("1.0.0"), description="Conll2002 Dutch dataset"
+        ),
     ]
 
     def _generate_document_kwargs(self, dataset):

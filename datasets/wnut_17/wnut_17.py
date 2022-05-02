@@ -31,7 +31,9 @@ class WNUT17(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
     BUILDER_CONFIGS = [
         WNUT_17Config(
-            name="wnut_17", version=datasets.Version("1.0.0"), description="The WNUT 17 Emerging Entities Dataset"
+            name="wnut_17",
+            version=datasets.Version("1.0.0"),
+            description="The WNUT 17 Emerging Entities Dataset",
         ),
     ]
 

@@ -5,7 +5,6 @@ import pytorch_ie.data.builder
 from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
-
 _VERSION = "1.1.0"
 _LANGS = [
     "ace",
@@ -203,7 +202,8 @@ class WikiANN(pytorch_ie.data.builder.GeneratorBasedBuilder):
     BASE_DATASET_PATH = "wikiann"
 
     BUILDER_CONFIGS = [
-        WikiANNConfig(name=lang, description=f"WikiANN NER examples in language {lang}") for lang in _LANGS
+        WikiANNConfig(name=lang, description=f"WikiANN NER examples in language {lang}")
+        for lang in _LANGS
     ]
 
     def _generate_document_kwargs(self, dataset):

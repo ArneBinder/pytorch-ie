@@ -29,7 +29,9 @@ class GermEval14(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
     BUILDER_CONFIGS = [
         GermEval14Config(
-            name="germeval_14", version=datasets.Version("2.0.0"), description="GermEval 2014 NER Shared Task dataset"
+            name="germeval_14",
+            version=datasets.Version("2.0.0"),
+            description="GermEval 2014 NER Shared Task dataset",
         ),
     ]
 
@@ -43,7 +45,9 @@ class GermEval14(pytorch_ie.data.builder.GeneratorBasedBuilder):
         nested_ner_tags = [int_to_str(tag) for tag in example["nested_ner_tags"]]
 
         text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
-        _, nested_ner_tags = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=nested_ner_tags)
+        _, nested_ner_tags = tokens_and_tags_to_text_and_labeled_spans(
+            tokens=tokens, tags=nested_ner_tags
+        )
 
         document = GermEval14Document(text=text, id=doc_id)
 
