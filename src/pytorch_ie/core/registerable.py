@@ -7,7 +7,7 @@ class RegistrationError(Exception):
     pass
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound="Registrable")
 
 
 class Registrable:
@@ -22,10 +22,13 @@ class Registrable:
         registry = Registrable._registry[cls]
 
         def add_subclass_to_registry(subclass: Type[T]) -> Type[T]:
-            # save the name if it is explicitly set
+
+            # save the name
             subclass._register_name = name
 
-            register_name = subclass.register_name
+            # ignore type because mypy has an issue with class properties,
+            # see https://github.com/python/mypy/issues/2563
+            register_name: str = subclass.register_name  # type: ignore
 
             if not inspect.isclass(subclass) or not issubclass(subclass, cls):
                 raise RegistrationError(
@@ -46,7 +49,8 @@ class Registrable:
 
     @classmethod
     @property
-    def register_name(cls) -> str:
+    def register_name(cls: Type[T]) -> str:
+        # default to class name
         return cls.__name__ if cls._register_name is None else cls._register_name
 
     @classmethod
