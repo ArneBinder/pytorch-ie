@@ -1,15 +1,7 @@
 from dataclasses import dataclass
 
-from pytorch_ie import (
-    AnnotationList,
-    BinaryRelation,
-    LabeledSpan,
-    Pipeline,
-    TextDocument,
-    annotation_field,
-)
-from pytorch_ie.models import TransformerTextClassificationModel
-from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
+from pytorch_ie import AnnotationList, BinaryRelation, LabeledSpan, TextDocument, annotation_field
+from pytorch_ie.auto import AutoPipeline
 
 
 @dataclass
@@ -19,11 +11,7 @@ class ExampleDocument(TextDocument):
 
 
 def main():
-    model_name_or_path = "pie/example-re-textclf-tacred"
-    re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
-    re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
-
-    re_pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
+    re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."

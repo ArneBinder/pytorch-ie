@@ -60,21 +60,16 @@ Span-classification-based Named Entity Recognition
 
     from dataclasses import dataclass
 
-    from pytorch_ie import AnnotationList, LabeledSpan, Pipeline, TextDocument, annotation_field
-    from pytorch_ie.models import TransformerSpanClassificationModel
-    from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+    from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
+    from pytorch_ie.auto import AutoPipeline
 
 
     @dataclass
     class ExampleDocument(TextDocument):
         entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
-
-    model_name_or_path = "pie/example-ner-spanclf-conll03"
-    ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
-    ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-
-    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+    # see below for the long version
+    ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
@@ -90,6 +85,32 @@ Span-classification-based Named Entity Recognition
     # Po Bronson -> PER
     # SOSV -> ORG
 
+To create the same pipeline as above without `AutoPipeline`:
+
+.. code:: python
+
+    from pytorch_ie import Pipeline
+    from pytorch_ie.auto import AutoTaskModule, AutoModel
+
+    model_name_or_path = "pie/example-ner-spanclf-conll03"
+    ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
+    ner_model = AutoModel.from_pretrained(model_name_or_path)
+    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+
+Or, even without `AutoTaskModule` and `AutoModel`:
+
+.. code:: python
+
+    from pytorch_ie import Pipeline
+    from pytorch_ie.models import TransformerSpanClassificationModel
+    from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+
+    model_name_or_path = "pie/example-ner-spanclf-conll03"
+    ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
+    ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
+    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+
+
 Text-classification-based Relation Extraction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -97,9 +118,8 @@ Text-classification-based Relation Extraction
 
     from dataclasses import dataclass
 
-    from pytorch_ie import AnnotationList, BinaryRelation, LabeledSpan, Pipeline, TextDocument, annotation_field
-    from pytorch_ie.models import TransformerTextClassificationModel
-    from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
+    from pytorch_ie import AnnotationList, BinaryRelation, LabeledSpan, TextDocument, annotation_field
+    from pytorch_ie.auto import AutoPipeline
 
 
     @dataclass
@@ -108,11 +128,7 @@ Text-classification-based Relation Extraction
         relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
 
 
-    model_name_or_path = "pie/example-re-textclf-tacred"
-    re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
-    re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
-
-    re_pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1, num_workers=0)
+    re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
