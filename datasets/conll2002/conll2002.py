@@ -7,10 +7,10 @@ from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
 class Conll2002Config(datasets.BuilderConfig):
-    """BuilderConfig for Conll2002"""
+    """BuilderConfig for CoNLL2002"""
 
     def __init__(self, **kwargs):
-        """BuilderConfig forConll2002.
+        """BuilderConfig for CoNLL2002.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -29,10 +29,10 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
     BUILDER_CONFIGS = [
         Conll2002Config(
-            name="es", version=datasets.Version("1.0.0"), description="Conll2002 Spanish dataset"
+            name="es", version=datasets.Version("1.0.0"), description="CoNLL2002 Spanish dataset"
         ),
         Conll2002Config(
-            name="nl", version=datasets.Version("1.0.0"), description="Conll2002 Dutch dataset"
+            name="nl", version=datasets.Version("1.0.0"), description="CoNLL2002 Dutch dataset"
         ),
     ]
 
