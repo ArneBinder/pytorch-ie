@@ -7,7 +7,7 @@ class RegistrationError(Exception):
     pass
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound="Registrable")
 
 
 class Registrable:
@@ -46,3 +46,8 @@ class Registrable:
             return Registrable._registry[cls][name]
 
         raise RegistrationError(f"{name} is not a registered name for {cls.__name__}.")
+
+    @classmethod
+    def registered_name_for_class(cls: Type[T], clazz: Type[T]) -> Optional[str]:
+        inverse_lookup = {v: k for k, v in Registrable._registry[cls].items()}
+        return inverse_lookup.get(clazz)
