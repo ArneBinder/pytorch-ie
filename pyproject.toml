@@ -81,7 +81,8 @@ known_first_party = ["pytorch_ie"]
 files = [
     "pytorch_ie",
     "examples",
-    "tests"
+    "tests",
+    "datasets"
 ]
 warn_unreachable = false
 # warn_unreachable = true

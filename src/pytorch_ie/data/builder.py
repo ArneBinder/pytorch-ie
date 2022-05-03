@@ -33,8 +33,8 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         return self.base_builder._split_generators(dl_manager)
 
-    def _generate_examples(self, filepath):
-        return self.base_builder._generate_examples(filepath)
+    def _generate_examples(self, *args, **kwargs):
+        return self.base_builder._generate_examples(*args, **kwargs)
 
     @abc.abstractmethod
     def _generate_document(self, example, dataset):
