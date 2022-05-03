@@ -3,6 +3,7 @@ import copy
 import logging
 from abc import ABC, abstractmethod
 from typing import (
+    Any,
     Dict,
     Generic,
     Iterator,
@@ -18,6 +19,7 @@ from typing import (
 from pytorch_ie import Dataset, Document
 from pytorch_ie.annotations import Annotation
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.core.registerable import Registrable
 from pytorch_ie.data import Metadata
 
 """
@@ -108,6 +110,7 @@ class TaskEncodingSequence(
 class TaskModule(
     ABC,
     PyTorchIETaskmoduleModelHubMixin,
+    Registrable,
     Generic[
         DocumentType,
         InputEncoding,
@@ -119,6 +122,15 @@ class TaskModule(
 ):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def _config(self) -> Dict[str, Any]:
+        config = dict(self.hparams)
+        this_class = self.__class__
+        registered_name = TaskModule.registered_name_for_class(this_class)
+        config["taskmodule_type"] = (
+            registered_name if registered_name is not None else this_class.__name__
+        )
+        return config
 
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         return None

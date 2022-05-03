@@ -44,6 +44,7 @@ _TransformerSeq2SeqTaskModule = TaskModule[
 logger = logging.getLogger(__name__)
 
 
+@TaskModule.register()
 class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
     def __init__(
         self,

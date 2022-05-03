@@ -418,7 +418,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         resume_download,
         local_files_only,
         use_auth_token,
-        **model_kwargs,
+        **module_kwargs,
     ):
-        model_kwargs.pop("taskmodule_type")
-        return cls(**model_kwargs)
+        module_kwargs.pop("taskmodule_type")
+        return cls(**module_kwargs)

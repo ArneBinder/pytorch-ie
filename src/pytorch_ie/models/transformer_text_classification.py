@@ -19,6 +19,7 @@ VALIDATION = "val"
 TEST = "test"
 
 
+@PyTorchIEModel.register()
 class TransformerTextClassificationModel(PyTorchIEModel):
     def __init__(
         self,
