@@ -17,12 +17,12 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie import Label, MultiLabel, TextDocument
+from pytorch_ie import Label, MultiLabel, TaskModule, TextDocument
+from pytorch_ie.core.taskmodule import TaskEncoding
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
 """
 workflow:

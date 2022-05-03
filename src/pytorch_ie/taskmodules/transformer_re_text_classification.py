@@ -7,12 +7,19 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie import BinaryRelation, LabeledSpan, MultiLabeledBinaryRelation, Span, TextDocument
+from pytorch_ie import (
+    BinaryRelation,
+    LabeledSpan,
+    MultiLabeledBinaryRelation,
+    Span,
+    TaskModule,
+    TextDocument,
+)
+from pytorch_ie.core.taskmodule import TaskEncoding
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
 from pytorch_ie.utils.window import get_window_around_slice
 

@@ -1,12 +1,10 @@
-from typing import Any, List, Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 import torch
 from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
-from pytorch_ie.core.pytorch_ie import PyTorchIEModel
-from pytorch_ie.data import Metadata
-from pytorch_ie.document import TextDocument
+from pytorch_ie import Metadata, PyTorchIEModel, TextDocument
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?

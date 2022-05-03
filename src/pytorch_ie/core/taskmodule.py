@@ -16,11 +16,10 @@ from typing import (
     overload,
 )
 
-from pytorch_ie import Dataset, Document
-from pytorch_ie.annotations import Annotation
+from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.core.registerable import Registrable
-from pytorch_ie.data import Metadata
+from pytorch_ie.data import Dataset, Metadata
 
 """
 workflow:

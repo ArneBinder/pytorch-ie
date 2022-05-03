@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from pytorch_ie import AnnotationList, TextDocument, annotation_field
 from pytorch_ie.annotations import (
     BinaryRelation,
     Label,
@@ -14,7 +15,6 @@ from pytorch_ie.annotations import (
     MultiLabeledSpan,
     Span,
 )
-from pytorch_ie.document import AnnotationList, TextDocument, annotation_field
 
 
 def test_label():

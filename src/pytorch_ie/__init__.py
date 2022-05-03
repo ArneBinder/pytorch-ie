@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from .annotations import (
+from pytorch_ie.annotations import (
     BinaryRelation,
     Label,
     LabeledMultiSpan,
@@ -11,6 +11,14 @@ from .annotations import (
     MultiLabeledSpan,
     Span,
 )
-from .data import *
-from .document import AnnotationList, Document, TextDocument, annotation_field
-from .pipeline import Pipeline
+from pytorch_ie.core.document import (
+    Annotation,
+    AnnotationList,
+    Document,
+    TextDocument,
+    annotation_field,
+)
+from pytorch_ie.core.model import PyTorchIEModel
+from pytorch_ie.core.taskmodule import TaskModule
+from pytorch_ie.data import *
+from pytorch_ie.pipeline import Pipeline

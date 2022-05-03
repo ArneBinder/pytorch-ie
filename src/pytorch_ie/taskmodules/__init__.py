@@ -1,4 +1,3 @@
-from .taskmodule import InplaceNotSupportedException, TaskModule
 from .transformer_re_text_classification import TransformerRETextClassificationTaskModule
 from .transformer_seq2seq import TransformerSeq2SeqTaskModule
 from .transformer_span_classification import TransformerSpanClassificationTaskModule

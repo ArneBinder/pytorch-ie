@@ -11,11 +11,16 @@ from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from pytorch_ie import Dataset, Document
-from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie.core.document import Document
+from pytorch_ie.core.model import PyTorchIEModel
+from pytorch_ie.core.taskmodule import (
+    InplaceNotSupportedException,
+    TaskEncoding,
+    TaskModule,
+    TaskOutput,
+)
+from pytorch_ie.data import Dataset
 from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
-from pytorch_ie.taskmodules import InplaceNotSupportedException
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule, TaskOutput
 
 logger = logging.getLogger(__name__)
 

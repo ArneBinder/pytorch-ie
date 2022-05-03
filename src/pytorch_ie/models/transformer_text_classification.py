@@ -1,10 +1,10 @@
-from typing import Any, Dict, List, MutableMapping, Optional, Tuple
+from typing import Any, Dict, MutableMapping, Optional, Tuple
 
 import torchmetrics
 from torch import Tensor, nn
 from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup
 
-from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie import PyTorchIEModel
 
 TransformerTextClassificationModelBatchEncoding = MutableMapping[str, Any]
 TransformerTextClassificationModelBatchOutput = Dict[str, Any]

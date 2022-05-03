@@ -1,7 +1,7 @@
-from dataclasses import asdict, dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Optional, Tuple
 
-from pytorch_ie.document import AnnotationList
+from pytorch_ie.core.document import Annotation
 
 
 def _validate_single_label(self):
@@ -27,36 +27,6 @@ def _validate_multi_label(self):
         raise ValueError(
             f"Number of labels ({len(self.label)}) and scores ({len(self.score)}) must be equal."
         )
-
-
-@dataclass(eq=True, frozen=True)
-class Annotation:
-    _target: Optional[Union[AnnotationList, str]] = field(
-        default=None, init=False, repr=False, hash=False
-    )
-
-    def set_target(self, value: Union[AnnotationList, str, None]):
-        object.__setattr__(self, "_target", value)
-
-    @property
-    def target(self) -> Optional[Union[AnnotationList, str]]:
-        return self._target
-
-    def asdict(self) -> Dict[str, Any]:
-        dct = asdict(self)
-        dct["_id"] = hash(self)
-        del dct["_target"]
-        return dct
-
-    @classmethod
-    def fromdict(
-        cls,
-        dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
-    ):
-        tmp_dct = dict(dct)
-        tmp_dct.pop("_id", None)
-        return cls(**tmp_dct)
 
 
 @dataclass(eq=True, frozen=True)

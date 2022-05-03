@@ -1,11 +1,10 @@
-from typing import Any, Dict, Generic, List, Optional, Sequence
+from typing import Any, Dict, Generic, Optional, Sequence
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 
-from pytorch_ie.data.datasets import PIEDatasetDict
-from pytorch_ie.taskmodules.taskmodule import (
+from pytorch_ie.core.taskmodule import (
     DocumentType,
     InputEncoding,
     TargetEncoding,

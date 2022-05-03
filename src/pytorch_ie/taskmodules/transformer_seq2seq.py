@@ -6,13 +6,12 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie import BinaryRelation, LabeledSpan, Span, TextDocument
-from pytorch_ie.annotations import Annotation
+from pytorch_ie import Annotation, BinaryRelation, LabeledSpan, Span, TaskModule, TextDocument
+from pytorch_ie.core.taskmodule import TaskEncoding
 from pytorch_ie.models import (
     TransformerSeq2SeqModelBatchOutput,
     TransformerSeq2SeqModelStepBatchEncoding,
 )
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
 """
 workflow:

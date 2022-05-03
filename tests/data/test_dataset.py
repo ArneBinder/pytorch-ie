@@ -5,10 +5,8 @@ import pytest
 import torch
 
 import datasets
+from pytorch_ie.core.taskmodule import TaskEncodingSequence
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
-from pytorch_ie.taskmodules.taskmodule import TaskEncodingSequence
-from tests import FIXTURES_ROOT
-from tests.data.dataset_tester import DatasetTester
 
 
 @pytest.fixture(scope="module")
