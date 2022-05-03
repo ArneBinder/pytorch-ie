@@ -97,7 +97,7 @@ To create the same pipeline as above without `AutoPipeline`:
     ner_model = AutoModel.from_pretrained(model_name_or_path)
     ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 
-Or, even without `AutoTaskModule` and `AutoModel`:
+Or, without `Auto` classes at all:
 
 .. code:: python
 
