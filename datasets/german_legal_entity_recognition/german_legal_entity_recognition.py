@@ -42,7 +42,7 @@ class GermanLegalEntityRecognition(pytorch_ie.data.builder.GeneratorBasedBuilder
         )
     ]
     BUILDER_CONFIG_CLASS = GermanLegalEntityRecognitionConfig
-    DEFAULT_CONFIG_NAME = _ALL
+    DEFAULT_CONFIG_NAME = _ALL # type: ignore
 
     def _generate_document_kwargs(self, dataset):
         return {"int_to_str": dataset.features["ner_tags"].feature.int2str}
