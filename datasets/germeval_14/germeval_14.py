@@ -2,7 +2,9 @@ from dataclasses import dataclass
 
 import datasets
 import pytorch_ie.data.builder
-from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
+from pytorch_ie import AnnotationList, annotation_field
+from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 

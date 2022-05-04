@@ -3,8 +3,9 @@ import dataclasses
 import pytest
 
 import datasets
-from pytorch_ie import AnnotationList, Dataset, TextDocument, annotation_field
+from pytorch_ie import AnnotationList, Dataset, annotation_field
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.documents import TextDocument
 from tests import FIXTURES_ROOT
 
 datasets.disable_caching()

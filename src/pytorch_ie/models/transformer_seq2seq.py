@@ -4,7 +4,8 @@ import torch
 from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
-from pytorch_ie import Metadata, PyTorchIEModel, TextDocument
+from pytorch_ie import Metadata, PyTorchIEModel
+from pytorch_ie.documents import TextDocument
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?

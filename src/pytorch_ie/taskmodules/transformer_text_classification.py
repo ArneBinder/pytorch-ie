@@ -17,7 +17,9 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie import Label, MultiLabel, TaskEncoding, TaskModule, TextDocument
+from pytorch_ie import TaskEncoding, TaskModule
+from pytorch_ie.annotations import Label, MultiLabel
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
