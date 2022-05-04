@@ -5,8 +5,9 @@ import torch
 from huggingface_hub.constants import PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
 
-from pytorch_ie import Pipeline, PyTorchIEModel, TaskModule
+from pytorch_ie.core import PyTorchIEModel, TaskModule
 from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin, PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.pipeline import Pipeline
 
 
 class AutoTaskModule(PyTorchIETaskmoduleModelHubMixin):
