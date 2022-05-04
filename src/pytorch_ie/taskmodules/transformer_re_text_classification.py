@@ -12,9 +12,9 @@ from pytorch_ie import (
     LabeledSpan,
     MultiLabeledBinaryRelation,
     Span,
+    TaskEncoding,
     TaskModule,
     TextDocument,
-    TaskEncoding,
 )
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
