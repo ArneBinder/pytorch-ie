@@ -69,7 +69,7 @@ Span-classification-based Named Entity Recognition
         entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
     # see below for the long version
-    ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1)
+    ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
@@ -128,7 +128,7 @@ Text-classification-based Relation Extraction
         relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
 
 
-    re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1)
+    re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
