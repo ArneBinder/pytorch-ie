@@ -14,8 +14,8 @@ from pytorch_ie import (
     Span,
     TaskModule,
     TextDocument,
+    TaskEncoding,
 )
-from pytorch_ie.core.taskmodule import TaskEncoding
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
