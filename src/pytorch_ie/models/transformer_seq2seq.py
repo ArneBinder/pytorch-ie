@@ -4,7 +4,8 @@ import torch
 from transformers import AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
-from pytorch_ie import Metadata, PyTorchIEModel
+from pytorch_ie import PyTorchIEModel
+from pytorch_ie.core.taskmodule import Metadata
 from pytorch_ie.documents import TextDocument
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
