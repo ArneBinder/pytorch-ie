@@ -1,5 +1,7 @@
 # flake8: noqa
 
+from auto import AutoModel, AutoPipeline, AutoTaskModule
+
 from pytorch_ie.annotations import (
     BinaryRelation,
     Label,
