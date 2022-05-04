@@ -18,7 +18,7 @@ from typing import (
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
-from pytorch_ie.core.registerable import Registrable
+from pytorch_ie.core.registrable import Registrable
 from pytorch_ie.data import Dataset, Metadata
 
 """
