@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
-from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
-from pytorch_ie.auto import AutoPipeline
+from pytorch_ie import AnnotationList, LabeledSpan, Pipeline, TextDocument, annotation_field
+from pytorch_ie.models import TransformerSpanClassificationModel
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
 @dataclass
@@ -10,8 +11,11 @@ class ExampleDocument(TextDocument):
 
 
 def main():
+    model_name_or_path = "pie/example-ner-spanclf-conll03"
+    ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
+    ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
 
-    ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1)
+    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
