@@ -166,7 +166,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         if self.multi_label:
             assert isinstance(label_annotation, MultiLabel)
             targets = [0] * len(self.label_to_id)
-            for label in label.label:
+            for label in label_annotation.label:
                 label_id = self.label_to_id[label]
                 targets[label_id] = 1
         else:
