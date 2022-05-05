@@ -8,8 +8,8 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
-from pytorch_ie import TaskEncoding, TaskModule
 from pytorch_ie.annotations import LabeledSpan, Span
+from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchOutput,

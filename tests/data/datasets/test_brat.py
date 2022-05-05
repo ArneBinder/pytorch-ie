@@ -1,5 +1,5 @@
 # type: ignore
-
+"""
 import os
 
 import pytest
@@ -29,6 +29,7 @@ ANNOTS_02_SPECIFIED_IDS = [
     "T2\tperson 25 37\tJenny Durkan\n",
     "R1\tmayor_of head:T2 tail:T1\n",
 ]
+"""
 
 
 # def get_doc1(with_ids: bool = False, **kwargs) -> TextDocument:

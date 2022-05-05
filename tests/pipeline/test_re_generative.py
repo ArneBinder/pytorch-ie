@@ -2,10 +2,11 @@ from dataclasses import dataclass
 
 import pytest
 
-from pytorch_ie import AnnotationList, Pipeline, annotation_field
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
+from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSeq2SeqModel
+from pytorch_ie.pipeline import Pipeline
 from pytorch_ie.taskmodules import TransformerSeq2SeqTaskModule
 
 
