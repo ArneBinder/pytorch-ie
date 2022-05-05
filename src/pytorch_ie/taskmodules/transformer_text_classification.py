@@ -17,12 +17,13 @@ from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
-from pytorch_ie import Label, MultiLabel, TextDocument
+from pytorch_ie import TaskEncoding, TaskModule
+from pytorch_ie.annotations import Label, MultiLabel
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
-from pytorch_ie.taskmodules.taskmodule import TaskEncoding, TaskModule
 
 """
 workflow:
@@ -167,7 +168,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         if self.multi_label:
             assert isinstance(label_annotation, MultiLabel)
             targets = [0] * len(self.label_to_id)
-            for label in label.label:
+            for label in label_annotation.label:
                 label_id = self.label_to_id[label]
                 targets[label_id] = 1
         else:

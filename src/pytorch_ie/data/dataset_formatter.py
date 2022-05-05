@@ -3,7 +3,7 @@ from typing import List
 import pyarrow as pa
 from datasets.formatting.formatting import Formatter
 
-from pytorch_ie.document import Document
+from pytorch_ie.core.document import Document
 
 
 class DocumentFormatter(Formatter[Document, list, List[Document]]):

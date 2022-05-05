@@ -1,8 +1,6 @@
 from collections import defaultdict
 
-from numpy import isin
-
-from pytorch_ie.core.registerable import Registrable
+from pytorch_ie.core.registrable import Registrable
 
 
 def test_registrable():

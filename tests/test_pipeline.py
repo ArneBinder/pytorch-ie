@@ -7,8 +7,8 @@ from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 import pytorch_ie.models.modules.mlp
 from pytorch_ie import Pipeline
+from pytorch_ie.core.taskmodule import InplaceNotSupportedException
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
-from pytorch_ie.taskmodules import InplaceNotSupportedException
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
 )

@@ -5,8 +5,9 @@ import os
 import pytest
 
 from datasets import DownloadMode, set_caching_enabled
-from pytorch_ie import BinaryRelation, Document, LabeledSpan
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.data.datasets.brat import load_brat, serialize_brat, split_span_annotation
+from pytorch_ie.documents import TextDocument
 
 # from pytorch_ie.data.document import construct_document
 from tests import FIXTURES_ROOT
@@ -30,7 +31,7 @@ ANNOTS_02_SPECIFIED_IDS = [
 ]
 
 
-# def get_doc1(with_ids: bool = False, **kwargs) -> Document:
+# def get_doc1(with_ids: bool = False, **kwargs) -> TextDocument:
 #     ent1 = LabeledSpan(start=0, end=4, label="person", metadata={"text": "Jane"})
 #     ent2 = LabeledSpan(start=14, end=20, label="city", metadata={"text": "Berlin"})
 #     doc = construct_document(
@@ -45,7 +46,7 @@ ANNOTS_02_SPECIFIED_IDS = [
 #     return doc
 
 
-# def get_doc2(with_ids: bool = False, **kwargs) -> Document:
+# def get_doc2(with_ids: bool = False, **kwargs) -> TextDocument:
 #     text = TEXT_02
 #     ent1 = LabeledSpan(start=0, end=7, label="city", metadata={"text": "Seattle"})
 #     ent2 = LabeledSpan(start=25, end=37, label="person", metadata={"text": "Jenny Durkan"})

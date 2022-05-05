@@ -1,12 +1,12 @@
 from functools import wraps
-from typing import TYPE_CHECKING, Callable, List, Optional, Type, Union
+from typing import Callable, List, Optional, Type, Union
 
 import pandas as pd
 from datasets.formatting import _register_formatter
 
 import datasets
+from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
-from pytorch_ie.document import Document
 
 _register_formatter(DocumentFormatter, "document")
 

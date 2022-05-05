@@ -4,8 +4,8 @@ from typing import Mapping, Optional, Type
 from datasets.load import load_dataset_builder
 
 import datasets
+from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import Dataset, decorate_convert_to_dict_of_lists
-from pytorch_ie.document import Document
 
 
 class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):

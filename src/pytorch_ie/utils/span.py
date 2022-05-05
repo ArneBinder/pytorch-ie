@@ -15,7 +15,7 @@ from typing import (
 
 from transformers import PreTrainedTokenizer
 
-from pytorch_ie import LabeledSpan, Span
+from pytorch_ie.annotations import LabeledSpan, Span
 
 TypedSpan = Tuple[int, Tuple[int, int]]
 TypedStringSpan = Tuple[str, Tuple[int, int]]

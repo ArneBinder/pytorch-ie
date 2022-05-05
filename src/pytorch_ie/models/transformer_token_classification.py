@@ -5,7 +5,7 @@ import torchmetrics
 from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 
-from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie import PyTorchIEModel
 
 TransformerTokenClassificationModelBatchEncoding = BatchEncoding
 TransformerTokenClassificationModelBatchOutput = Dict[str, Any]

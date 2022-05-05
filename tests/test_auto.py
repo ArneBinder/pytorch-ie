@@ -2,10 +2,18 @@ from dataclasses import dataclass
 
 import pytest
 
-from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
-from pytorch_ie.auto import AutoModel, AutoPipeline, AutoTaskModule
+from pytorch_ie import (
+    AnnotationList,
+    AutoModel,
+    AutoPipeline,
+    AutoTaskModule,
+    TaskModule,
+    annotation_field,
+)
+from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
-from pytorch_ie.taskmodules import TaskModule, TransformerSpanClassificationTaskModule
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
 @pytest.mark.slow

@@ -1,10 +1,7 @@
 import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, TypeVar, Union, overload
-
-if TYPE_CHECKING:
-    from pytorch_ie.annotations import Annotation
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union, overload
 
 
 def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, List[str]], node: str):
@@ -22,6 +19,36 @@ def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.F
 
 def annotation_field(target: Optional[str] = None):
     return dataclasses.field(metadata=dict(target=target), init=False, repr=False)
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
+class Annotation:
+    _target: Optional[Union["AnnotationList", str]] = dataclasses.field(
+        default=None, init=False, repr=False, hash=False
+    )
+
+    def set_target(self, value: Union["AnnotationList", str, None]):
+        object.__setattr__(self, "_target", value)
+
+    @property
+    def target(self) -> Optional[Union["AnnotationList", str]]:
+        return self._target
+
+    def asdict(self) -> Dict[str, Any]:
+        dct = dataclasses.asdict(self)
+        dct["_id"] = hash(self)
+        del dct["_target"]
+        return dct
+
+    @classmethod
+    def fromdict(
+        cls,
+        dct: Dict[str, Any],
+        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+    ):
+        tmp_dct = dict(dct)
+        tmp_dct.pop("_id", None)
+        return cls(**tmp_dct)
 
 
 T = TypeVar("T", covariant=False, bound="Annotation")
@@ -200,11 +227,3 @@ class Document(Mapping[str, Any]):
             getattr(doc, field_name).append(annotation)
 
         return doc
-
-
-@dataclasses.dataclass
-class TextDocument(Document):
-    text: str
-    id: Optional[str] = None
-    metadata: Dict[str, Any] = dataclasses.field(default_factory=dict)
-    _root_annotation: str = dataclasses.field(default="text", init=False, repr=False)

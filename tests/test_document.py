@@ -3,8 +3,9 @@ import re
 
 import pytest
 
+from pytorch_ie import AnnotationList, annotation_field
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
-from pytorch_ie.document import AnnotationList, TextDocument, annotation_field
+from pytorch_ie.documents import TextDocument
 
 
 def test_text_document():

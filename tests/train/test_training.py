@@ -4,11 +4,9 @@ import pytest
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 
-from pytorch_ie import Document
-from pytorch_ie.core.pytorch_ie import PyTorchIEModel
+from pytorch_ie import Document, PyTorchIEModel, TaskModule
 from pytorch_ie.models import TransformerTokenClassificationModel
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
-from pytorch_ie.taskmodules.taskmodule import TaskModule
 
 
 def _test_training(model: PyTorchIEModel, task_module: TaskModule, documents: List[Document]):
