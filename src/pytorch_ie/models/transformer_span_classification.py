@@ -23,6 +23,11 @@ TransformerSpanClassificationModelStepBatchEncoding = Tuple[
 ]
 
 
+TRAINING = "train"
+VALIDATION = "val"
+TEST = "test"
+
+
 @PyTorchIEModel.register()
 class TransformerSpanClassificationModel(PyTorchIEModel):
     def __init__(
@@ -70,8 +75,14 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         self.loss_fct = nn.CrossEntropyLoss()
 
-        self.train_f1 = torchmetrics.F1Score(num_classes=num_classes, ignore_index=ignore_index)
-        self.val_f1 = torchmetrics.F1Score(num_classes=num_classes, ignore_index=ignore_index)
+        self.f1 = nn.ModuleDict(
+            {
+                f"stage_{stage}": torchmetrics.F1Score(
+                    num_classes=num_classes, ignore_index=ignore_index
+                )
+                for stage in [TRAINING, VALIDATION, TEST]
+            }
+        )
 
     def _start_end_and_span_length_span_index(
         self, batch_size: int, max_seq_length: int, seq_lengths: Optional[Iterable[int]] = None
@@ -167,39 +178,9 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             "end_indices": end_indices,
         }
 
-    def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
+    def step(self, stage: str, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
         input_, target_tuples = batch
-        assert target_tuples is not None, "target has to be available for training"
-
-        output = self(input_)
-
-        logits = output["logits"]
-
-        batch_size, seq_length = input_["input_ids"].shape
-        seq_lengths = None
-        if "attention_mask" in input_:
-            seq_lengths = torch.sum(input_["attention_mask"], dim=-1)
-        # TODO: Why is this not happening in TransformerSpanClassificationTaskModule.collate?
-        target = self._expand_target_tuples(
-            target_tuples=target_tuples,
-            batch_size=batch_size,
-            max_seq_length=seq_length,
-            seq_lengths=seq_lengths,
-        )
-        target = target.to(logits.device)
-
-        loss = self.loss_fct(logits, target)
-
-        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=True)
-
-        self.train_f1(logits, target)
-        self.log("train/f1", self.train_f1, on_step=False, on_epoch=True, prog_bar=True)
-
-        return loss
-
-    def validation_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
-        input_, target_tuples = batch
-        assert target_tuples is not None, "target has to be available for validation"
+        assert target_tuples is not None, f"target has to be available for {stage}"
 
         output = self(input_)
 
@@ -221,12 +202,22 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         loss = self.loss_fct(logits, target)
 
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/loss", loss, on_step=stage == TRAINING, on_epoch=True, prog_bar=True)
 
-        self.val_f1(logits, target)
-        self.log("val/f1", self.val_f1, on_step=False, on_epoch=True, prog_bar=True)
+        f1 = self.f1[f"stage_{stage}"]
+        f1(logits, target)
+        self.log(f"{stage}/f1", f1, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
+
+    def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=TRAINING, batch=batch, batch_idx=batch_idx)
+
+    def validation_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=VALIDATION, batch=batch, batch_idx=batch_idx)
+
+    def test_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+        return self.step(stage=TEST, batch=batch, batch_idx=batch_idx)
 
     def configure_optimizers(self):
         param_optimizer = list(self.named_parameters())
