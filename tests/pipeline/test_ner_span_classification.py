@@ -2,10 +2,11 @@ from dataclasses import dataclass
 
 import pytest
 
-from pytorch_ie import AnnotationList, Pipeline, annotation_field
 from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
+from pytorch_ie.pipeline import Pipeline
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 

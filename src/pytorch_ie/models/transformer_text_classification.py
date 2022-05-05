@@ -4,7 +4,7 @@ import torchmetrics
 from torch import Tensor, nn
 from transformers import AdamW, AutoConfig, AutoModel, get_linear_schedule_with_warmup
 
-from pytorch_ie import PyTorchIEModel
+from pytorch_ie.core import PyTorchIEModel
 
 TransformerTextClassificationModelBatchEncoding = MutableMapping[str, Any]
 TransformerTextClassificationModelBatchOutput = Dict[str, Any]

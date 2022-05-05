@@ -60,20 +60,21 @@ Span-classification-based Named Entity Recognition
 
     from dataclasses import dataclass
 
-    from pytorch_ie import AnnotationList, LabeledSpan, TextDocument, annotation_field
+    from pytorch_ie.annotations import LabeledSpan
     from pytorch_ie.auto import AutoPipeline
-
+    from pytorch_ie.core import AnnotationList, annotation_field
+    from pytorch_ie.documents import TextDocument
 
     @dataclass
     class ExampleDocument(TextDocument):
         entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
-    # see below for the long version
-    ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
-
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
+
+    # see below for the long version
+    ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
 
     ner_pipeline(document, predict_field="entities")
 
@@ -89,8 +90,8 @@ To create the same pipeline as above without `AutoPipeline`:
 
 .. code:: python
 
-    from pytorch_ie import Pipeline
     from pytorch_ie.auto import AutoTaskModule, AutoModel
+    from pytorch_ie.pipeline import Pipeline
 
     model_name_or_path = "pie/example-ner-spanclf-conll03"
     ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
@@ -101,7 +102,7 @@ Or, without `Auto` classes at all:
 
 .. code:: python
 
-    from pytorch_ie import Pipeline
+    from pytorch_ie.pipeline import Pipeline
     from pytorch_ie.models import TransformerSpanClassificationModel
     from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
@@ -118,8 +119,10 @@ Text-classification-based Relation Extraction
 
     from dataclasses import dataclass
 
-    from pytorch_ie import AnnotationList, BinaryRelation, LabeledSpan, TextDocument, annotation_field
+    from pytorch_ie.annotations import BinaryRelation, LabeledSpan
     from pytorch_ie.auto import AutoPipeline
+    from pytorch_ie.core import AnnotationList, annotation_field
+    from pytorch_ie.documents import TextDocument
 
 
     @dataclass
@@ -127,12 +130,11 @@ Text-classification-based Relation Extraction
         entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
         relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
 
-
-    re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
-
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
+
+    re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
 
     for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
         document.entities.append(LabeledSpan(start=start, end=end, label=label))

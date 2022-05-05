@@ -11,7 +11,7 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 
-from pytorch_ie import PyTorchIEModel
+from pytorch_ie.core import PyTorchIEModel
 from pytorch_ie.models.modules.mlp import MLP
 
 TransformerSpanClassificationModelBatchEncoding = BatchEncoding

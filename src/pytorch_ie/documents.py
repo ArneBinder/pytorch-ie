@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Any, Dict, Optional
 
-from pytorch_ie import Document
+from pytorch_ie.core import Document
 
 
 @dataclasses.dataclass

@@ -5,7 +5,7 @@
 # import torch
 # from numpy.testing import assert_almost_equal
 
-# from pytorch_ie import LabeledSpan
+# from pytorch_ie.annotations import LabeledSpan
 # from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 # from tests.fixtures.document import (
 #     DOC1_ENTITY_BERLIN,
