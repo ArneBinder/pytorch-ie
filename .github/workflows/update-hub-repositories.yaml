@@ -31,4 +31,4 @@ jobs:
                   export DATASETS_LIB_PATH=$GITHUB_WORKSPACE
                   export HF_USE_PROD=1
                   export GIT_LFS_SKIP_SMUDGE=1
-                  python update_hub_repositories.py --auto
+                  python update_hub_repositories.py --all
