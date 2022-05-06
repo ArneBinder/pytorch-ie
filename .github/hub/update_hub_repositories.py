@@ -5,16 +5,15 @@ import distutils.dir_util
 import logging
 import os
 import re
-import requests
 import sys
 from itertools import islice
 from pathlib import Path
 from typing import Dict, Optional, Set, Tuple
 
+import requests
 from dotenv import load_dotenv
 from git import Repo
 from tqdm.contrib.concurrent import thread_map
-
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -33,7 +32,8 @@ HUB_CANONICAL_WHOAMI = HUB_ENDPOINT + "/api/whoami-v2"
 HUB_CANONICAL_CREATE_URL = HUB_ENDPOINT + "/api/repos/create"
 HUB_CANONICAL_INFO_URL = HUB_ENDPOINT + "/api/datasets/{organization}/{dataset_name}"
 HUB_CANONICAL_DATASET_GIT_URL = (
-    HUB_ENDPOINT.replace("https://", "https://user:{token}@") + "/datasets/{organization}/{dataset_name}.git"
+    HUB_ENDPOINT.replace("https://", "https://user:{token}@")
+    + "/datasets/{organization}/{dataset_name}.git"
 )
 HUB_API_GH_TO_HF = HUB_ENDPOINT + "/api/gh-to-hf/{github_username}"
 DATASETS_LIB_CATALOG_DIR_NAME = "datasets"
@@ -72,7 +72,9 @@ def canonical_dataset_path(dataset_name: str) -> Path:
 
 
 def canonical_dataset_git_url(dataset_name: str, token: str, organization: str) -> str:
-    return HUB_CANONICAL_DATASET_GIT_URL.format(dataset_name=dataset_name, token=token, organization=organization)
+    return HUB_CANONICAL_DATASET_GIT_URL.format(
+        dataset_name=dataset_name, token=token, organization=organization
+    )
 
 
 def canonical_dataset_info_url(dataset_name: str, organization: str) -> str:
@@ -133,14 +135,18 @@ class update_main:
         self.datasets_lib_path = datasets_lib_path
         self.commit_args = commit_args
         self.token = token
-        self.deleted_files = deleted_files  # dict dataset_name -> set of relative paths of the deleted files
+        self.deleted_files = (
+            deleted_files  # dict dataset_name -> set of relative paths of the deleted files
+        )
         self.tag_name = tag_name
 
     def __call__(self, dataset_name: str) -> bool:
         try:
             create_remote_repo(dataset_name, self.token, self.organization)
         except requests.exceptions.HTTPError as e:
-            if "409 Client Error: Conflict for url:" not in repr(e):  # don't log if repo already exists
+            if "409 Client Error: Conflict for url:" not in repr(
+                e
+            ):  # don't log if repo already exists
                 logger.warning(f"[{dataset_name}] " + repr(e))
         if not canonical_dataset_path(dataset_name).is_dir():
             repo = Repo.clone_from(
@@ -157,13 +163,16 @@ class update_main:
         logs.append(repo.remote().pull())
         # Copy the changes and commit
         distutils.dir_util.copy_tree(
-            str(src_canonical_dataset_path(datasets_lib_path, dataset_name)), str(canonical_dataset_path(dataset_name))
+            str(src_canonical_dataset_path(datasets_lib_path, dataset_name)),
+            str(canonical_dataset_path(dataset_name)),
         )
         for filepath_to_delete in self.deleted_files.get(dataset_name, []):
             try:
                 (canonical_dataset_path(dataset_name) / filepath_to_delete).unlink()
             except Exception as e:
-                logger.warning(f"[{dataset_name}] Couldn't delete file at {filepath_to_delete}: {repr(e)}")
+                logger.warning(
+                    f"[{dataset_name}] Couldn't delete file at {filepath_to_delete}: {repr(e)}"
+                )
         apply_hacks_for_moon_landing(canonical_dataset_path(dataset_name))
         logs.append(repo.git.add("."))
         if "Changes to be committed:" in repo.git.status():
@@ -174,7 +183,9 @@ class update_main:
                 # If the dataset repository hasn't been tagged for this release yet,
                 # it means that the new version of the datasets lib just got released.
                 # In this case we have to tag the new commit with this release name
-                logs.append(repo.git.tag(self.tag_name, f"-m Add tag from datasets {self.tag_name}"))
+                logs.append(
+                    repo.git.tag(self.tag_name, f"-m Add tag from datasets {self.tag_name}")
+                )
                 logs.append(repo.git.push("--tags"))
         except Exception as e:
             logs.append("push failed !")
@@ -206,7 +217,9 @@ if __name__ == "__main__":
     author_name, author_email = current_commit.author.name, current_commit.author.email
     author_name, author_email = hf_retrieve_author(author_name, author_email)
     commit_args = (f"-m {current_commit.message}",)
-    commit_args += (f"-m Commit from {DATASETS_LIB_COMMIT_URL.format(organization=organization, hexsha=current_commit.hexsha)}",)
+    commit_args += (
+        f"-m Commit from {DATASETS_LIB_COMMIT_URL.format(organization=organization, hexsha=current_commit.hexsha)}",
+    )
     commit_args += (f"--author={author_name} <{author_email}>",)
 
     for _tag in datasets_lib_repo.tags:
@@ -224,18 +237,30 @@ if __name__ == "__main__":
         if path.startswith(DATASETS_LIB_CATALOG_DIR_NAME) and path.count("/") >= 2
     ]
 
-    changed_datasets_names_since_last_commit = {path.split("/")[1] for path in changed_files_since_last_commit}
+    changed_datasets_names_since_last_commit = {
+        path.split("/")[1] for path in changed_files_since_last_commit
+    }
     # ignore json, csv etc.
     changed_datasets_names_since_last_commit = {
         dataset_name
         for dataset_name in changed_datasets_names_since_last_commit
-        if (datasets_lib_path / DATASETS_LIB_CATALOG_DIR_NAME / dataset_name / (dataset_name + ".py")).is_file()
+        if (
+            datasets_lib_path
+            / DATASETS_LIB_CATALOG_DIR_NAME
+            / dataset_name
+            / (dataset_name + ".py")
+        ).is_file()
     }
 
-    deleted_files = {dataset_name: set() for dataset_name in changed_datasets_names_since_last_commit}
+    deleted_files = {
+        dataset_name: set() for dataset_name in changed_datasets_names_since_last_commit
+    }
     for path in changed_files_since_last_commit:
         _, dataset_name, rel_path = path.split("/", 2)
-        if dataset_name in changed_datasets_names_since_last_commit and not (datasets_lib_path / path).is_file():
+        if (
+            dataset_name in changed_datasets_names_since_last_commit
+            and not (datasets_lib_path / path).is_file()
+        ):
             deleted_files[dataset_name].add(rel_path)
 
     dataset_names = sys.argv[1:]
@@ -252,7 +277,9 @@ if __name__ == "__main__":
                     "All the datasets will be updated since --auto was used and "
                     f"this is a new release {new_tag.name} of the `datasets` library."
                 )
-                dataset_names = sorted(d.name for d in (ROOT / HUB_DIR_NAME).glob("*") if d.is_dir())
+                dataset_names = sorted(
+                    d.name for d in (ROOT / HUB_DIR_NAME).glob("*") if d.is_dir()
+                )
                 dataset_names = sorted(
                     d.name
                     for d in (datasets_lib_path / DATASETS_LIB_CATALOG_DIR_NAME).glob("*")
@@ -280,7 +307,9 @@ if __name__ == "__main__":
                 dataset_names,
             )
             datasets_with_errors = [
-                dataset_name for success, dataset_name in zip(successes, dataset_names) if not success
+                dataset_name
+                for success, dataset_name in zip(successes, dataset_names)
+                if not success
             ]
             if datasets_with_errors:
                 raise UpdateFailed(
