@@ -96,6 +96,9 @@ def test_document_with_annotations():
 
     document1.sentences.predictions.append(span3)
     document1.sentences.predictions.append(span4)
+    # add a prediction that is also an annotation
+    document1.entities.predictions.append(labeled_span1)
+
     assert len(document1.sentences.predictions) == 2
     assert document1.sentences.predictions[1].target == document1.text
     assert len(document1["sentences"].predictions) == 2

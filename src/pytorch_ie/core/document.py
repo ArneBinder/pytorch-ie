@@ -200,7 +200,7 @@ class Document(Mapping[str, Any]):
         )
 
         annotations = {}
-        prediction_ids = set()
+        predictions = {}
         for field_name in dependency_ordered_fields:
             if field_name not in name_to_field:
                 continue
@@ -215,21 +215,31 @@ class Document(Mapping[str, Any]):
             # TODO: handle single annotations, e.g. a document-level label
             if typing.get_origin(field.type) is AnnotationList:
                 annotation_class = typing.get_args(field.type)[0]
-                prediction_ids.update(prediction["_id"] for prediction in value[1])
-                for annotation_data in value[0] + value[1]:
+                # build annotations
+                for annotation_data in value[0]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
                     annotations[annotation_id] = (
                         field.name,
+                        # annotations can only reference annotations
                         annotation_class.fromdict(annotation_dict, annotations),
+                    )
+                # build predictions
+                for annotation_data in value[1]:
+                    annotation_dict = dict(annotation_data)
+                    annotation_id = annotation_dict.pop("_id")
+                    predictions[annotation_id] = (
+                        field.name,
+                        # predictions can reference annotations and predictions
+                        annotation_class.fromdict(annotation_dict, {**annotations, **predictions}),
                     )
             else:
                 raise Exception("Error")
 
-        for annotation_id, (field_name, annotation) in annotations.items():
-            if annotation_id in prediction_ids:
-                getattr(doc, field_name).predictions.append(annotation)
-            else:
-                getattr(doc, field_name).append(annotation)
+        for field_name, annotation in annotations.values():
+            getattr(doc, field_name).append(annotation)
+
+        for field_name, annotation in predictions.values():
+            getattr(doc, field_name).predictions.append(annotation)
 
         return doc
