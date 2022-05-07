@@ -84,6 +84,10 @@ class BaseAnnotationList(Sequence[T]):
         annotation.set_target(getattr(self._document, self._target))
         self._annotations.append(annotation)
 
+    def extend(self, annotations: Iterable[T]) -> None:
+        for annotation in annotations:
+            self.append(annotation)
+
     def __repr__(self) -> str:
         return f"BaseAnnotationList({str(self._annotations)})"
 
