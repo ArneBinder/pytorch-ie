@@ -69,6 +69,7 @@ class Pipeline:
             self._dataloader_params,
             self._forward_params,
             self._postprocess_params,
+            self._dataset_map_params,
         ) = self._sanitize_parameters(**kwargs)
 
     def save_pretrained(self, save_directory: str):
@@ -165,7 +166,7 @@ class Pipeline:
 
     def _sanitize_parameters(
         self, **pipeline_parameters
-    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         _sanitize_parameters will be called with any excessive named arguments from either `__init__` or `__call__`
         methods. It should return 4 dictionaries of the resolved parameters used by the various `preprocess`,
@@ -179,6 +180,7 @@ class Pipeline:
         dataloader_params = {}
         forward_parameters = {}
         postprocess_parameters: Dict[str, Any] = {}
+        dataset_map_parameters = {}
 
         # set preprocess parameters
         for p_name in ["document_batch_size"]:
@@ -200,7 +202,17 @@ class Pipeline:
             if p_name in pipeline_parameters:
                 postprocess_parameters[p_name] = pipeline_parameters[p_name]
 
-        return preprocess_parameters, dataloader_params, forward_parameters, postprocess_parameters
+        for p_name in ["document_batch_size"]:
+            if p_name in pipeline_parameters:
+                dataset_map_parameters["batch_size"] = pipeline_parameters[p_name]
+
+        return (
+            preprocess_parameters,
+            dataloader_params,
+            forward_parameters,
+            postprocess_parameters,
+            dataset_map_parameters,
+        )
 
     def preprocess(
         self,
@@ -292,51 +304,14 @@ class Pipeline:
 
         return dataloader
 
-    def __call__(
+    def _process_documents(
         self,
-        documents: Union[Document, Sequence[Document], Dataset],
-        *args,
-        **kwargs,
-    ) -> Union[Document, Sequence[Document]]:
-        if args:
-            logger.warning(f"Ignoring args : {args}")
-        (
-            preprocess_params,
-            dataloader_params,
-            forward_params,
-            postprocess_params,
-        ) = self._sanitize_parameters(**kwargs)
-
-        in_place: bool = postprocess_params.get("inplace", True)
-        if in_place and isinstance(documents, Dataset):
-            raise InplaceNotSupportedException(
-                "Datasets can't be modified in place. Please set inplace=False."
-            )
-
-        if "TOKENIZERS_PARALLELISM" not in os.environ:
-            logger.info(
-                "Disabling tokenizer parallelism, we're using DataLoader multithreading already"
-            )
-            os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-        # Fuse __init__ params and __call__ params without modifying the __init__ ones.
-        preprocess_params = {**self._preprocess_params, **preprocess_params}
-        dataloader_params = {**self._dataloader_params, **dataloader_params}
-        forward_params = {**self._forward_params, **forward_params}
-        postprocess_params = {**self._postprocess_params, **postprocess_params}
-
-        self.call_count += 1
-        if self.call_count > 10 and self.device.type == "cuda":
-            warnings.warn(
-                "You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset",
-                UserWarning,
-            )
-
-        single_document = False
-        if not isinstance(documents, (Sequence, Dataset)):
-            single_document = True
-            documents = [documents]
-
+        documents: Sequence[Document],
+        preprocess_params: Dict[str, Any],
+        dataloader_params: Dict[str, Any],
+        forward_params: Dict[str, Any],
+        postprocess_params: Dict[str, Any],
+    ) -> Sequence[Document]:
         # This creates encodings from the documents. It modifies the documents and may produce multiple entries per
         # document.
         model_inputs = self.preprocess(documents, **preprocess_params)
@@ -365,7 +340,82 @@ class Pipeline:
             model_outputs=model_outputs,
             **postprocess_params,
         )
-        if single_document:
-            return documents[0]
+        return documents
+
+    def __call__(
+        self,
+        documents: Union[Document, Sequence[Document], Dataset],
+        *args,
+        **kwargs,
+    ) -> Union[Document, Sequence[Document], Dataset]:
+        if args:
+            logger.warning(f"Ignoring args : {args}")
+        (
+            preprocess_params,
+            dataloader_params,
+            forward_params,
+            postprocess_params,
+            dataset_map_params,
+        ) = self._sanitize_parameters(**kwargs)
+
+        if "TOKENIZERS_PARALLELISM" not in os.environ:
+            logger.info(
+                "Disabling tokenizer parallelism, we're using DataLoader multithreading already"
+            )
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+        # Fuse __init__ params and __call__ params without modifying the __init__ ones.
+        preprocess_params = {**self._preprocess_params, **preprocess_params}
+        dataloader_params = {**self._dataloader_params, **dataloader_params}
+        forward_params = {**self._forward_params, **forward_params}
+        postprocess_params = {**self._postprocess_params, **postprocess_params}
+        dataset_map_params = {**self._dataset_map_params, **dataset_map_params}
+
+        self.call_count += 1
+        if self.call_count > 10 and self.device.type == "cuda":
+            warnings.warn(
+                "You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset",
+                UserWarning,
+            )
+
+        single_document = False
+        if not isinstance(documents, (Sequence, Dataset)):
+            single_document = True
+            documents = [documents]
+
+        processed_documents: Union[Sequence[Document], Dataset]
+        if isinstance(documents, Dataset):
+            in_place: bool = postprocess_params.get("inplace", True)
+            if in_place:
+                raise InplaceNotSupportedException(
+                    "Datasets can't be modified in place. Please set inplace=False."
+                )
+            # do not show inner progress bar
+            forward_params["show_progress_bar"] = False
+
+            processed_documents = documents.map(
+                self._process_documents,
+                fn_kwargs=dict(
+                    preprocess_params=preprocess_params,
+                    dataloader_params=dataloader_params,
+                    forward_params=forward_params,
+                    postprocess_params=postprocess_params,
+                ),
+                batched=True,
+                **dataset_map_params,
+            )
         else:
-            return documents
+            processed_documents = self._process_documents(
+                documents=documents,
+                preprocess_params=preprocess_params,
+                dataloader_params=dataloader_params,
+                forward_params=forward_params,
+                postprocess_params=postprocess_params,
+            )
+
+        if single_document:
+            # TODO: fix "type: ignore" (if processed_documents is a Dataset, mypy assumes the result is Dict[Any, Any])
+            processed_document: Document = processed_documents[0]  # type: ignore
+            return processed_document
+        else:
+            return processed_documents
