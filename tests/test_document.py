@@ -103,3 +103,36 @@ def test_document_with_annotations():
 
     # TODO: revisit when we decided how to handle serialization of predictions
     # assert document1 == TestDocument.fromdict(document1.asdict())
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_integrate_annotations(overwrite):
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    document = TestDocument(text="Entity A works at B.")
+
+    entity1 = LabeledSpan(start=0, end=8, label="PER")
+    entity2 = LabeledSpan(start=18, end=19, label="ORG")
+
+    document.entities.append(entity1)
+    document.entities.predictions.append(entity2)
+
+    assert len(document.entities) == 1
+    assert document.entities[0] == entity1
+
+    assert len(document.entities.predictions) == 1
+    assert document.entities.predictions[0] == entity2
+
+    document.entities.integrate_predictions(overwrite=overwrite)
+
+    if overwrite:
+        assert len(document.entities) == 1
+        assert document.entities[0] == entity2
+    else:
+        assert len(document.entities) == 2
+        assert document.entities[0] == entity1
+        assert document.entities[1] == entity2
+
+    assert len(document.entities.predictions) == 0
