@@ -216,12 +216,12 @@ class Document(Mapping[str, Any]):
             if typing.get_origin(field.type) is AnnotationList:
                 annotation_class = typing.get_args(field.type)[0]
                 prediction_ids.update(prediction["_id"] for prediction in value[1])
-                for annotation in value[0] + value[1]:
-                    annotation = dict(annotation)
-                    annotation_id = annotation.pop("_id")
+                for annotation_data in value[0] + value[1]:
+                    annotation_dict = dict(annotation_data)
+                    annotation_id = annotation_dict.pop("_id")
                     annotations[annotation_id] = (
                         field.name,
-                        annotation_class.fromdict(annotation, annotations),
+                        annotation_class.fromdict(annotation_dict, annotations),
                     )
             else:
                 raise Exception("Error")
