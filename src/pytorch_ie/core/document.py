@@ -153,7 +153,6 @@ class Document(Mapping[str, Any]):
                 self._annotation_graph[dst] = []
             self._annotation_graph[dst].append(src)
 
-    # TODO: predictions are not serialized yet
     def asdict(self):
         dct = {}
         for field in dataclasses.fields(self):
@@ -163,7 +162,10 @@ class Document(Mapping[str, Any]):
             value = getattr(self, field.name)
 
             if isinstance(value, AnnotationList):
-                dct[field.name] = [v.asdict() for v in value]
+                dct[field.name] = [
+                    [v.asdict() for v in value],
+                    [v.asdict() for v in value.predictions],
+                ]
             elif isinstance(value, dict):
                 dct[field.name] = value or None
             else:
@@ -171,7 +173,6 @@ class Document(Mapping[str, Any]):
 
         return dct
 
-    # TODO: predictions are not deserialized yet
     @classmethod
     def fromdict(cls, dct):
         fields = dataclasses.fields(cls)
@@ -199,6 +200,7 @@ class Document(Mapping[str, Any]):
         )
 
         annotations = {}
+        prediction_ids = set()
         for field_name in dependency_ordered_fields:
             if field_name not in name_to_field:
                 continue
@@ -213,17 +215,21 @@ class Document(Mapping[str, Any]):
             # TODO: handle single annotations, e.g. a document-level label
             if typing.get_origin(field.type) is AnnotationList:
                 annotation_class = typing.get_args(field.type)[0]
-                for v in value:
-                    v = dict(v)
-                    annotation_id = v.pop("_id")
+                prediction_ids.update(prediction["_id"] for prediction in value[1])
+                for annotation in value[0] + value[1]:
+                    annotation = dict(annotation)
+                    annotation_id = annotation.pop("_id")
                     annotations[annotation_id] = (
                         field.name,
-                        annotation_class.fromdict(v, annotations),
+                        annotation_class.fromdict(annotation, annotations),
                     )
             else:
                 raise Exception("Error")
 
-        for field_name, annotation in annotations.values():
-            getattr(doc, field_name).append(annotation)
+        for annotation_id, (field_name, annotation) in annotations.items():
+            if annotation_id in prediction_ids:
+                getattr(doc, field_name).predictions.append(annotation)
+            else:
+                getattr(doc, field_name).append(annotation)
 
         return doc

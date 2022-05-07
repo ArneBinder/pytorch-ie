@@ -101,5 +101,4 @@ def test_document_with_annotations():
     assert len(document1["sentences"].predictions) == 2
     assert document1["sentences"].predictions[1].target == document1.text
 
-    # TODO: revisit when we decided how to handle serialization of predictions
-    # assert document1 == TestDocument.fromdict(document1.asdict())
+    assert document1 == TestDocument.fromdict(document1.asdict())
