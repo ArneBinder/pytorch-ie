@@ -12,6 +12,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
+from datasets import is_caching_enabled
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.model import PyTorchIEModel
 from pytorch_ie.core.taskmodule import (
@@ -404,6 +405,10 @@ class Pipeline:
                 batched=True,
                 **dataset_map_params,
             )
+            # For now, we do not allow caching of pipeline results since fingerprinting may be incorrect
+            # TODO: elaborate why it may be incorrect
+            if is_caching_enabled() and documents._fingerprint == processed_documents._fingerprint:
+                raise Exception("Caching is not allowed for pipeline calls")
         else:
             processed_documents = self._process_documents(
                 documents=documents,
