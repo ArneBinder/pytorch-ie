@@ -12,7 +12,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
-from datasets import is_caching_enabled, disable_caching, enable_caching
+from datasets import disable_caching, enable_caching, is_caching_enabled
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.model import PyTorchIEModel
 from pytorch_ie.core.taskmodule import (
