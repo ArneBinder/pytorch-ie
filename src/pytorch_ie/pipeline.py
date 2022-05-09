@@ -12,7 +12,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
-from datasets import is_caching_enabled
+from datasets import is_caching_enabled, disable_caching, enable_caching
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.model import PyTorchIEModel
 from pytorch_ie.core.taskmodule import (
@@ -394,21 +394,26 @@ class Pipeline:
             # do not show inner progress bar
             forward_params["show_progress_bar"] = False
 
-            processed_documents = documents.map(
-                self._process_documents,
-                fn_kwargs=dict(
-                    preprocess_params=preprocess_params,
-                    dataloader_params=dataloader_params,
-                    forward_params=forward_params,
-                    postprocess_params=postprocess_params,
-                ),
-                batched=True,
-                **dataset_map_params,
-            )
-            # For now, we do not allow caching of pipeline results since fingerprinting may be incorrect
-            # TODO: elaborate why it may be incorrect
-            if is_caching_enabled() and documents._fingerprint == processed_documents._fingerprint:
-                raise Exception("Caching is not allowed for pipeline calls")
+            # For now, we do not allow caching for pipeline results since fingerprinting may be incorrect
+            # TODO: elaborate why it may be incorrect, see https://huggingface.co/docs/datasets/about_cache
+            was_caching_enabled = is_caching_enabled()
+            disable_caching()
+            try:
+                processed_documents = documents.map(
+                    self._process_documents,
+                    fn_kwargs=dict(
+                        preprocess_params=preprocess_params,
+                        dataloader_params=dataloader_params,
+                        forward_params=forward_params,
+                        postprocess_params=postprocess_params,
+                    ),
+                    batched=True,
+                    **dataset_map_params,
+                )
+            finally:
+                if was_caching_enabled:
+                    enable_caching()
+
         else:
             processed_documents = self._process_documents(
                 documents=documents,
