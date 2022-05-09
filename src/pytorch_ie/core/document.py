@@ -162,10 +162,10 @@ class Document(Mapping[str, Any]):
             value = getattr(self, field.name)
 
             if isinstance(value, AnnotationList):
-                dct[field.name] = [
-                    [v.asdict() for v in value],
-                    [v.asdict() for v in value.predictions],
-                ]
+                dct[field.name] = {
+                    "annotations": [v.asdict() for v in value],
+                    "predictions": [v.asdict() for v in value.predictions],
+                }
             elif isinstance(value, dict):
                 dct[field.name] = value or None
             else:
@@ -216,7 +216,7 @@ class Document(Mapping[str, Any]):
             if typing.get_origin(field.type) is AnnotationList:
                 annotation_class = typing.get_args(field.type)[0]
                 # build annotations
-                for annotation_data in value[0]:
+                for annotation_data in value["annotations"]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
                     annotations[annotation_id] = (
@@ -225,7 +225,7 @@ class Document(Mapping[str, Any]):
                         annotation_class.fromdict(annotation_dict, annotations),
                     )
                 # build predictions
-                for annotation_data in value[1]:
+                for annotation_data in value["predictions"]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
                     predictions[annotation_id] = (
