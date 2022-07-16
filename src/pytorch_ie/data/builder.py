@@ -17,11 +17,13 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         builder_kwargs = dict(kwargs)
         builder_kwargs.pop("hash", None)
         builder_kwargs.pop("base_path", None)
+        name = builder_kwargs.pop("config_name", None)
 
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:
             self.base_builder = load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
+                name=name,
                 **builder_kwargs,
             )
 
