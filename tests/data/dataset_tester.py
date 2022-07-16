@@ -6,7 +6,7 @@ from unittest import TestCase
 from datasets.builder import BuilderConfig
 from datasets.download.mock_download_manager import MockDownloadManager
 from datasets.load import dataset_module_factory, import_main_class
-from datasets.utils.download_manager import DownloadMode
+from datasets.download.download_manager import DownloadMode
 from datasets.utils.file_utils import DownloadConfig, is_remote_url
 from datasets.utils.logging import get_logger
 

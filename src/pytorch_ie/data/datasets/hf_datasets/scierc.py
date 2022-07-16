@@ -47,7 +47,7 @@ _CLASS_LABELS = [
 class SCIERC(datasets.GeneratorBasedBuilder):
     """TODO: Short description of my dataset."""
 
-    VERSION = datasets.Version("1.0.0")
+    VERSION = datasets.Version("1.0.0")  # type: ignore
 
     def _info(self):
         return datasets.DatasetInfo(

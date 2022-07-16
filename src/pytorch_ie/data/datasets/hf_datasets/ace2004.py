@@ -61,7 +61,7 @@ _CLASS_LABELS = ["PHYS", "EMP-ORG", "ART", "OTHER-AFF", "GPE-AFF", "PER-SOC"]
 class ACE2004(datasets.GeneratorBasedBuilder):
     """TODO: Short description of my dataset."""
 
-    VERSION = datasets.Version("1.0.0")
+    VERSION = datasets.Version("1.0.0")  # type: ignore
 
     @property
     def manual_download_instructions(self):

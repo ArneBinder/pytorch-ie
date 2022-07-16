@@ -122,8 +122,6 @@ def convert_ptb_token(token: str) -> str:
 class TACRED(datasets.GeneratorBasedBuilder):
     """TODO: Short description of my dataset."""
 
-    VERSION = datasets.Version("1.0.0")
-
     # This is an example of a dataset with multiple configurations.
     # If you don't want/need to define several sub-sets in your dataset,
     # just remove the BUILDER_CONFIG_CLASS and the BUILDER_CONFIGS attributes.
@@ -137,11 +135,11 @@ class TACRED(datasets.GeneratorBasedBuilder):
     # data = datasets.load_dataset('my_dataset', 'second_domain')
     BUILDER_CONFIGS = [
         datasets.BuilderConfig(
-            name="original", version=VERSION, description="The original TACRED."
+            name="original", version=datasets.Version("1.0.0"), description="The original TACRED."
         ),
         datasets.BuilderConfig(
             name="revised",
-            version=VERSION,
+            version=datasets.Version("1.0.0"),
             description="The revised TACRED (corrected labels in dev and test split).",
         ),
     ]
