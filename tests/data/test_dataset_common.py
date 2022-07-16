@@ -5,8 +5,8 @@ import tempfile
 import pytest
 from absl.testing import parameterized
 from datasets.builder import BuilderConfig, DatasetBuilder
-from datasets.load import dataset_module_factory, import_main_class, load_dataset
 from datasets.download.download_manager import DownloadMode
+from datasets.load import dataset_module_factory, import_main_class, load_dataset
 from datasets.utils.file_utils import DownloadConfig
 
 from tests.data.dataset_tester import DatasetTester
