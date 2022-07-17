@@ -8,6 +8,18 @@ from pytorch_ie.documents import TextDocument
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
+class GermaNERConfig(datasets.BuilderConfig):
+    """BuilderConfig for GermaNER."""
+
+    def __init__(self, **kwargs):
+        """BuilderConfig for GermaNER.
+
+        Args:
+          **kwargs: keyword arguments forwarded to super.
+        """
+        super().__init__(**kwargs)
+
+
 @dataclass
 class GermaNERDocument(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
@@ -18,7 +30,13 @@ class GermaNER(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH = "germaner"
 
-    VERSION = datasets.Version("0.9.1")
+    BUILDER_CONFIGS = [
+        GermaNERConfig(
+            name="germaner",
+            version=datasets.Version("0.9.1"),
+            description="GermaNER dataset",
+        ),
+    ]
 
     def _generate_document_kwargs(self, dataset):
         return {"int_to_str": dataset.features["ner_tags"].feature.int2str}

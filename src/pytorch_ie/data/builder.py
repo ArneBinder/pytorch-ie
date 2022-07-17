@@ -17,6 +17,7 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         builder_kwargs = dict(kwargs)
         builder_kwargs.pop("hash", None)
         builder_kwargs.pop("base_path", None)
+        builder_kwargs.pop("config_name", None)
 
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:

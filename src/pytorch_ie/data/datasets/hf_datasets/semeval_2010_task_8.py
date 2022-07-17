@@ -64,7 +64,7 @@ class SemEval2010Task8(datasets.GeneratorBasedBuilder):
     The task was designed to compare different approaches to semantic relation classification
     and to provide a standard testbed for future research."""
 
-    VERSION = datasets.Version("1.0.0")
+    VERSION = datasets.Version("1.0.0")  # type: ignore
 
     def _info(self):
         return datasets.DatasetInfo(
