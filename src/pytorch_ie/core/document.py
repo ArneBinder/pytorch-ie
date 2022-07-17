@@ -1,7 +1,7 @@
 import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union, overload
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union, overload
 
 
 def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, List[str]], node: str):
@@ -84,6 +84,10 @@ class BaseAnnotationList(Sequence[T]):
         annotation.set_target(getattr(self._document, self._target))
         self._annotations.append(annotation)
 
+    def extend(self, annotations: Iterable[T]) -> None:
+        for annotation in annotations:
+            self.append(annotation)
+
     def __repr__(self) -> str:
         return f"BaseAnnotationList({str(self._annotations)})"
 
@@ -101,6 +105,12 @@ class AnnotationList(BaseAnnotationList[T]):
     @property
     def predictions(self) -> BaseAnnotationList[T]:
         return self._predictions
+
+    def integrate_predictions(self, overwrite: bool = False):
+        if overwrite:
+            self.clear()
+        self.extend(self.predictions)
+        self._predictions._annotations = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, AnnotationList):
