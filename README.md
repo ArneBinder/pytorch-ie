@@ -27,7 +27,7 @@ This is an experimental framework that aims to combine the lessons learned from 
 -   **Sharing is caring:** Being able to quickly and easily share models is key to promote your work and facilitate further research. All models developed in PyTorch-IE can be easily shared via the Huggingface model hub. This further allows to quickly build demos based on Huggingface spaces, gradio or streamlit.
 -   **Unified document format:** A unified document format allows for quick experimentation on any dataset or task.
 -   **Beyond sentence level:** Most information extraction frameworks assume text inputs at a sentence granularity. We do not make any assumption on the granularity but generally aim for document-level information extraction.
--   **Beyond text:** Unstructured text is only one possible area for information extraction. We developed the framework to also support information extraction from semi-structured text (e.g. HTML), two-dimensional text (e.g. OCR'd images), and images.
+-   **Beyond unstructured text:** Unstructured text is only one possible area for information extraction. We developed the framework to also support information extraction from semi-structured text (e.g. HTML), two-dimensional text (e.g. OCR'd images), and images.
 -   **Character-level annotation and evaluation:** Many information extraction frameworks annotate and evaluate on a token level. We believe that annotation and evaluation should be done on a character level as this also considers the suitability of the tokenizer for the task.
 -   **Make no assumptions on the structure of models:** The last years have seen many different and creative approaches to information extraction and a framework that imposes a structure on those will most certainly be to limiting. With PyTorch-iE you have full control over how a document is prepared for a model and how the model is structured. The logic is self-contained and thus can be easily shared and inspected by others. The only assumption we make is that the input is a document and the output are targets (training) or annotations (inference).
 
@@ -43,6 +43,27 @@ $ pip install pytorch-ie
 | ---------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Named Entity Recognition (Span-based)                      | [LINK](https://huggingface.co/spaces/pie/NER)                               |
 | Joint Named Entity Recognition and Relation Classification | [LINK](https://huggingface.co/spaces/pie/Joint-NER-and-Relation-Extraction) |
+
+## 📚 Datasets
+
+We parse all datasets into a common format that can be loaded directly from the model hub via Huggingface datasets. The documents are cached in an arrow table and serialized / deserialized on the fly. Any changes or preprocessing applied to the documents will be cached as well.
+
+```python
+import datasets
+
+dataset = datasets.load_dataset("pie/conll2003")
+
+print(dataset["train"][0])
+# >>> CoNLL2003Document(text='EU rejects German call to boycott British lamb .', id='0', metadata={})
+
+dataset["train"][0].entities
+# >>> AnnotationList([LabeledSpan(start=0, end=2, label='ORG', score=1.0), LabeledSpan(start=11, end=17, label='MISC', score=1.0), LabeledSpan(start=34, end=41, label='MISC', score=1.0)])
+
+entity = dataset["train"][0].entities[1]
+
+print(f"[{entity.start}, {entity.end}] {entity}")
+# >>> [11, 17] German
+```
 
 ## ⚡️ Example
 
