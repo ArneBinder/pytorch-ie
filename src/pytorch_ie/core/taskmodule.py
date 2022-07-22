@@ -155,8 +155,9 @@ class TaskModule(
         TaskOutput,
     ],
 ):
-    def __init__(self, encode_document_batch_size: Optional[int] = None, **kwargs):
+    def __init__(self, encode_document_batch_size: Optional[int] = None, is_prepared: bool = False, **kwargs):
         super().__init__(**kwargs)
+        self.is_prepared = is_prepared
         self.encode_document_batch_size = encode_document_batch_size
 
     def _config(self) -> Dict[str, Any]:
@@ -168,7 +169,14 @@ class TaskModule(
         )
         return config
 
+    def _prepare(self, documents: Sequence[DocumentType]) -> None:
+        return None
+
     def prepare(self, documents: Sequence[DocumentType]) -> None:
+        if self.is_prepared:
+            raise Exception("The taskmodule is already prepared, it can not be prepared again.")
+        self._prepare(documents=documents)
+        self.is_prepared = True
         return None
 
     def batch_encode(
