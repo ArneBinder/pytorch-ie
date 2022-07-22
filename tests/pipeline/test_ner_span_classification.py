@@ -22,7 +22,9 @@ def test_ner_span_classification(fast_dev_run):
     ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
     ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
 
-    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run)
+    ner_pipeline = Pipeline(
+        model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run
+    )
 
     document0 = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
