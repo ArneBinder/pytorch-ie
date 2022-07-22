@@ -92,7 +92,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: Sequence[TextDocument]) -> None:
+    def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels: Set[str] = set()
         for document in documents:
             entities: Union[Sequence[LabeledSpan], Sequence[MultiLabeledSpan]] = document[

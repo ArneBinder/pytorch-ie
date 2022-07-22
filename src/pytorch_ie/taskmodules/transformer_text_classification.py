@@ -110,7 +110,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: Sequence[TextDocument]) -> None:
+    def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
             annotations: Sequence[Label] = document[self.annotation]

@@ -97,7 +97,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: Sequence[TextDocument]) -> None:
+    def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
             entities: Sequence[LabeledSpan] = document[self.entity_annotation]
