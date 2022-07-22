@@ -167,6 +167,7 @@ class TaskModule(
         config["taskmodule_type"] = (
             registered_name if registered_name is not None else this_class.__name__
         )
+        config["is_prepared"] = self.is_prepared
         return config
 
     def _prepare(self, documents: Sequence[DocumentType]) -> None:
