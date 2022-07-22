@@ -1,3 +1,4 @@
+import os
 import re
 
 import numpy
@@ -354,12 +355,12 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
 #         ) == ["[CLS]", "[H]", "Jane", "[/H]", "lives", "in", "[T]", "Berlin", "[/T]", "[SEP]"]
 
 
-# def test_save_load(tmp_path, prepared_taskmodule):
-#     path = os.path.join(tmp_path, "taskmodule")
-#     prepared_taskmodule.save_pretrained(path)
-#     loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
-#     assert loaded_taskmodule.is_prepared()
-#     assert loaded_taskmodule.argument_markers == prepared_taskmodule.argument_markers
+def test_save_load(tmp_path, prepared_taskmodule):
+    path = os.path.join(tmp_path, "taskmodule")
+    prepared_taskmodule.save_pretrained(path)
+    loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
+    assert loaded_taskmodule.is_prepared
+    assert loaded_taskmodule.argument_markers == prepared_taskmodule.argument_markers
 
 
 # def test_enumerate_entity_pairs(prepared_taskmodule, documents):
