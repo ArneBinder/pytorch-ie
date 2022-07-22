@@ -23,9 +23,9 @@ def taskmodule():
     return taskmodule
 
 
-@pytest.fixture
-def prepared_taskmodule(taskmodule, documents):
-    taskmodule.prepare(documents)
+@pytest.fixture(scope="module")
+def prepared_taskmodule(taskmodule, documents_to_prepare):
+    taskmodule.prepare(documents_to_prepare)
     return taskmodule
 
 

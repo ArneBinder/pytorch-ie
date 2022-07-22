@@ -106,6 +106,50 @@ def documents(dataset):
     return list(dataset["train"])
 
 
+@pytest.fixture(scope="module")
+def json_dataset_to_prepare():
+    dataset_dir = FIXTURES_ROOT / "datasets" / "json"
+
+    dataset = datasets.load_dataset(
+        path="json",
+        field="data",
+        data_files={
+            "train": str(dataset_dir / "train.json"),
+            "validation": str(dataset_dir / "val.json"),
+            "test": str(dataset_dir / "test.json"),
+        },
+    )
+
+    return dataset
+
+
+@pytest.fixture(scope="module")
+def dataset_to_prepare(json_dataset_to_prepare):
+
+    mapped_dataset = json_dataset_to_prepare.map(example_to_doc_dict)
+
+    dataset = datasets.DatasetDict(
+        {
+            k: Dataset.from_hf_dataset(dataset, document_type=TestDocument)
+            for k, dataset in mapped_dataset.items()
+        }
+    )
+
+    assert len(dataset) == 3
+    assert set(dataset.keys()) == {"train", "validation", "test"}
+
+    assert len(dataset["train"]) == 8
+    assert len(dataset["validation"]) == 2
+    assert len(dataset["test"]) == 2
+
+    return dataset
+
+
+@pytest.fixture(scope="module")
+def documents_to_prepare(dataset_to_prepare):
+    return list(dataset_to_prepare["train"])
+
+
 @pytest.fixture
 def iterable_dataset(iterable_json_dataset):
     dataset = datasets.IterableDatasetDict(

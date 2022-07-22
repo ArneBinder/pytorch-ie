@@ -5,7 +5,6 @@ import pytest
 import torch
 
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
-from pytorch_ie.taskmodules.transformer_re_text_classification import _enumerate_entity_pairs
 
 
 @pytest.fixture(scope="module")
@@ -28,16 +27,26 @@ def taskmodule_optional_marker(request):
     return taskmodule
 
 
-@pytest.fixture
-def prepared_taskmodule(taskmodule, documents):
-    taskmodule.prepare(documents)
+@pytest.fixture(scope="module")
+def prepared_taskmodule(documents_to_prepare):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path
+    )
+
+    taskmodule.prepare(documents_to_prepare)
     return taskmodule
 
 
-@pytest.fixture
-def prepared_taskmodule_optional_marker(taskmodule_optional_marker, documents):
-    taskmodule_optional_marker.prepare(documents)
-    return taskmodule_optional_marker
+@pytest.fixture(scope="module", params=[False, True])
+def prepared_taskmodule_optional_marker(documents_to_prepare, request):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
+    )
+
+    taskmodule.prepare(documents_to_prepare)
+    return taskmodule
 
 
 @pytest.fixture
@@ -63,9 +72,9 @@ def model_output():
 
 def test_prepare(taskmodule_optional_marker, documents):
     taskmodule = taskmodule_optional_marker
-    assert not taskmodule.is_prepared()
+    assert not taskmodule.is_prepared
     taskmodule.prepare(documents)
-    assert taskmodule.is_prepared()
+    assert taskmodule.is_prepared
 
     if taskmodule.add_type_to_marker:
         assert taskmodule.entity_labels == ["ORG", "PER"]

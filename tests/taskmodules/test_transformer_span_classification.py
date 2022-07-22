@@ -19,9 +19,14 @@ def taskmodule():
     return taskmodule
 
 
-@pytest.fixture
-def prepared_taskmodule(taskmodule, documents):
-    taskmodule.prepare(documents)
+@pytest.fixture(scope="module")
+def prepared_taskmodule(documents_to_prepare):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerSpanClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path
+    )
+
+    taskmodule.prepare(documents_to_prepare)
     return taskmodule
 
 

@@ -28,6 +28,16 @@ def taskmodule():
     return taskmodule
 
 
+@pytest.fixture(scope="module")
+def taskmodule_prepared(dataset_to_prepare, taskmodule):
+    train_dataset = dataset_to_prepare["train"]
+    taskmodule.prepare(train_dataset)
+    assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
+    assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
+    assert taskmodule.label_to_id["O"] == 0
+    return taskmodule
+
+
 @pytest.fixture
 def model_output():
     return {
@@ -173,14 +183,10 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
 @pytest.mark.parametrize("inplace", [False, True])
 @pytest.mark.parametrize("as_dataset", [False, True])
 def test_dataset_with_taskmodule(
-    maybe_iterable_dataset, taskmodule, model_output, encode_target, inplace, as_dataset
+    maybe_iterable_dataset, taskmodule_prepared, model_output, encode_target, inplace
+, as_dataset
 ):
     train_dataset = maybe_iterable_dataset["train"]
-
-    taskmodule.prepare(train_dataset)
-    assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
-    assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
-    assert taskmodule.label_to_id["O"] == 0
 
     as_task_encoding_sequence = not encode_target
     as_iterator = isinstance(train_dataset, (IterableDataset, Iterator))
@@ -189,7 +195,7 @@ def test_dataset_with_taskmodule(
             with pytest.raises(
                 ValueError, match="can not return a TaskEncodingSequence as Iterator"
             ):
-                taskmodule.encode(
+                taskmodule_prepared.encode(
                     train_dataset, encode_target=encode_target, as_dataset=as_dataset
                 )
             return
@@ -197,12 +203,12 @@ def test_dataset_with_taskmodule(
             with pytest.raises(
                 ValueError, match="can not return a TaskEncodingSequence as a dataset"
             ):
-                taskmodule.encode(
+                taskmodule_prepared.encode(
                     train_dataset, encode_target=encode_target, as_dataset=as_dataset
                 )
             return
 
-    task_encodings = taskmodule.encode(
+    task_encodings = taskmodule_prepared.encode(
         train_dataset, encode_target=encode_target, as_dataset=as_dataset
     )
 
@@ -232,22 +238,24 @@ def test_dataset_with_taskmodule(
     assert task_encoding.document == document
     assert "input_ids" in task_encoding.inputs
     assert (
-        taskmodule.tokenizer.decode(task_encoding.inputs["input_ids"], skip_special_tokens=True)
+        taskmodule_prepared.tokenizer.decode(
+            task_encoding.inputs["input_ids"], skip_special_tokens=True
+        )
         == document.text
     )
 
     if encode_target:
         assert task_encoding.targets == [
-            (1, 4, taskmodule.label_to_id["PER"]),
-            (6, 6, taskmodule.label_to_id["ORG"]),
-            (9, 9, taskmodule.label_to_id["ORG"]),
+            (1, 4, taskmodule_prepared.label_to_id["PER"]),
+            (6, 6, taskmodule_prepared.label_to_id["ORG"]),
+            (9, 9, taskmodule_prepared.label_to_id["ORG"]),
         ]
     else:
         assert not task_encoding.has_targets
 
-    unbatched_outputs = taskmodule.unbatch_output(model_output)
+    unbatched_outputs = taskmodule_prepared.unbatch_output(model_output)
 
-    decoded_documents = taskmodule.decode(
+    decoded_documents = taskmodule_prepared.decode(
         task_encodings=task_encodings,
         task_outputs=unbatched_outputs,
         inplace=inplace,
