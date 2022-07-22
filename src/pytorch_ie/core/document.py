@@ -1,7 +1,7 @@
 import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union, overload
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union, overload
 
 
 def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, List[str]], node: str):
@@ -83,6 +83,10 @@ class BaseAnnotationList(Sequence[T]):
     def append(self, annotation: T) -> None:
         annotation.set_target(getattr(self._document, self._target))
         self._annotations.append(annotation)
+
+    def extend(self, annotations: Iterable[T]) -> None:
+        for annotation in annotations:
+            self.append(annotation)
 
     def __repr__(self) -> str:
         return f"BaseAnnotationList({str(self._annotations)})"
