@@ -16,24 +16,25 @@ class ExampleDocument(TextDocument):
 
 
 @pytest.mark.slow
-def test_ner_span_classification():
+@pytest.mark.parametrize("fast_dev_run", [False, True])
+def test_ner_span_classification(fast_dev_run):
     model_name_or_path = "pie/example-ner-spanclf-conll03"
     ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
     ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
 
-    ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1)
+    ner_pipeline = Pipeline(
+        model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run
+    )
 
-    document0 = ExampleDocument(
-        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
-    )
-    document1 = ExampleDocument(
-        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
-    )
-    documents = [document0, document1]
+    text = "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+    documents = [ExampleDocument(text), ExampleDocument(text), ExampleDocument(text)]
     ner_pipeline(documents, predict_field="entities", batch_size=2)
 
-    for document in documents:
+    for i, document in enumerate(documents):
         entities = document.entities.predictions
+        if i > 1 and fast_dev_run:
+            assert len(entities) == 0
+            continue
         assert len(entities) == 3
         entities_sorted = sorted(entities, key=lambda entity: (entity.start + entity.end) / 2)
 

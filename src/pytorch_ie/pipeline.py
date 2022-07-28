@@ -182,7 +182,7 @@ class Pipeline:
             preprocess_parameters["predict_field"] = field
 
         # set forward parameters
-        for p_name in ["show_progress_bar"]:
+        for p_name in ["show_progress_bar", "fast_dev_run"]:
             if p_name in pipeline_parameters:
                 forward_parameters[p_name] = pipeline_parameters[p_name]
 
@@ -331,6 +331,11 @@ class Pipeline:
         # This creates encodings from the documents. It modifies the documents and may produce multiple entries per
         # document.
         model_inputs = self.preprocess(documents, **preprocess_params)
+        if forward_params.pop("fast_dev_run", False):
+            warnings.warn(
+                "Execute a fast dev run, only the first two model inputs will be processed."
+            )
+            model_inputs = model_inputs[:2]
         # Create a dataloader from the model inputs. This uses taskmodule.collate().
         dataloader = self.get_dataloader(model_inputs=model_inputs, **dataloader_params)
 
