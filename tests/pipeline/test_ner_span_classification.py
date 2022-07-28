@@ -26,18 +26,13 @@ def test_ner_span_classification(fast_dev_run):
         model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run
     )
 
-    document0 = ExampleDocument(
-        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
-    )
-    document1 = ExampleDocument(
-        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
-    )
-    documents = [document0, document1]
+    text = "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+    documents = [ExampleDocument(text), ExampleDocument(text), ExampleDocument(text)]
     ner_pipeline(documents, predict_field="entities", batch_size=2)
 
     for i, document in enumerate(documents):
         entities = document.entities.predictions
-        if i > 0 and fast_dev_run:
+        if i > 1 and fast_dev_run:
             assert len(entities) == 0
             continue
         assert len(entities) == 3

@@ -332,8 +332,10 @@ class Pipeline:
         # document.
         model_inputs = self.preprocess(documents, **preprocess_params)
         if forward_params.pop("fast_dev_run", False):
-            warnings.warn("Execute a fast dev run, only the first model input will be processed.")
-            model_inputs = model_inputs[:1]
+            warnings.warn(
+                "Execute a fast dev run, only the first two model inputs will be processed."
+            )
+            model_inputs = model_inputs[:2]
         # Create a dataloader from the model inputs. This uses taskmodule.collate().
         dataloader = self.get_dataloader(model_inputs=model_inputs, **dataloader_params)
 
