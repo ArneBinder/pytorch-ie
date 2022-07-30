@@ -39,8 +39,8 @@ $ pip install pytorch-ie
 
 ## 🔭 Demos
 
-| Task                                                       | Link                                                 |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Task                                                       | Link                                                                                                                                                                  |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Named Entity Recognition (Span-based)                      | [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/pie/NER)                               |
 | Joint Named Entity Recognition and Relation Classification | [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/pie/Joint-NER-and-Relation-Extraction) |
 
