@@ -108,6 +108,5 @@ def test_document_with_annotations():
 
     # number of annotation fields
     assert len(document1) == 3
-
-    annotation_fields = {name: field for name, field in document1}
-    assert set(annotation_fields) == {"sentences", "entities", "relations"}
+    # actual annotation fields (tests __iter__)
+    assert set(document1) == {"sentences", "entities", "relations"}

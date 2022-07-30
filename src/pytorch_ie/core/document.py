@@ -130,7 +130,7 @@ class Document(Mapping[str, Any]):
         return getattr(self, key)
 
     def __iter__(self):
-        return iter((field, getattr(self, field)) for field in self._annotation_fields)
+        return iter(self._annotation_fields)
 
     def __len__(self):
         return len(self._annotation_fields)
