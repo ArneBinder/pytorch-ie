@@ -213,7 +213,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             # TODO: this is a bit of a hack -- fix
             padded_encoding["labels"] = padded_labels["input_ids"]
 
-        return padded_encoding
+        return padded_encoding,
 
     # TODO: improve this method as soon as we have unittests for this taskmodule
     def _extract_triplets(self, text) -> TransformerSeq2SeqTaskOutput:
