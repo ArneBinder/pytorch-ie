@@ -65,6 +65,91 @@ print(f"[{entity.start}, {entity.end}] {entity}")
 # >>> [11, 17] German
 ```
 
+<details>
+<summary><b>How to create your own Pytorch-IE dataset</b></summary>
+
+PyTorch-IE datasets are built on top of Huggingface datasets. For instance, consider the
+[conll2003 from the Huggingface Hub](https://huggingface.co/datasets/conll2003) and especially their respective
+[dataset loading script](https://huggingface.co/datasets/conll2003/blob/main/conll2003.py). To create a PyTorch-IE
+dataset from that, you have to implement:
+
+1. A Document class. This will be the type of individual dataset examples.
+
+```python
+@dataclass
+class CoNLL2003Document(TextDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+```
+
+Here we derive from `TextDocument` that has a simple `text` string as base annotation target. The `CoNLL2003Document`
+adds one single annotation list called `entities` that consists of `LabeledSpan`s which reference the `text` field of
+the document. You can add further annotation types by adding `AnnotationList` fields that may also reference (i.e.
+`target`) other annotations as you like. See ['pytorch_ie.annotations`](src/pytorch_ie/annotations.py) for predefined
+annotation types.
+
+2. A dataset config. This is similar to
+   [creating a Huggingface dataset config](https://huggingface.co/docs/datasets/dataset_script#multiple-configurations).
+
+```python
+class CoNLL2003Config(datasets.BuilderConfig):
+    """BuilderConfig for CoNLL2003"""
+
+    def __init__(self, **kwargs):
+        """BuilderConfig for CoNLL2003.
+        Args:
+          **kwargs: keyword arguments forwarded to super.
+        """
+        super().__init__(**kwargs)
+```
+
+3. A dataset builder class. This should inherit from
+   [`pytorch_ie.data.builder.GeneratorBasedBuilder`](src/pytorch_ie/data/builder.py) which is a wrapper around the
+   [Huggingface dataset builder class](https://huggingface.co/docs/datasets/v2.4.0/en/package_reference/builder_classes#datasets.GeneratorBasedBuilder)
+   with some utility functionality to work with PyTorch-IE `Documents`. The key elements to implement are: `DOCUMENT_TYPE`,
+   `BASE_DATASET_PATH`, and `_generate_document`.
+
+```python
+class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
+    # Specify the document type. This will be the class of individual dataset examples.
+    DOCUMENT_TYPE = CoNLL2003Document
+
+    # The Huggingface identifier that points to the base dataset. This may be any string that works
+    # as path with Huggingface `datasets.load_dataset`.
+    BASE_DATASET_PATH = "conll2003"
+
+    # The builder configs, see https://huggingface.co/docs/datasets/dataset_script for further information.
+    BUILDER_CONFIGS = [
+        CoNLL2003Config(
+            name="conll2003", version=datasets.Version("1.0.0"), description="CoNLL2003 dataset"
+        ),
+    ]
+
+    # [Optional] Define additional keyword arguments which will be passed to `_generate_document` below.
+    def _generate_document_kwargs(self, dataset):
+        return {"int_to_str": dataset.features["ner_tags"].feature.int2str}
+
+    # Define how a Pytorch-IE Document will be created from a Huggingface dataset example.
+    def _generate_document(self, example, int_to_str):
+        doc_id = example["id"]
+        tokens = example["tokens"]
+        ner_tags = [int_to_str(tag) for tag in example["ner_tags"]]
+
+        text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
+
+        document = CoNLL2003Document(text=text, id=doc_id)
+
+        for span in sorted(ner_spans, key=lambda span: span.start):
+            document.entities.append(span)
+
+        return document
+```
+
+The full script can be found here: [datasets/conll2003/conll2003.py](datasets/conll2003/conll2003.py). Note, that to
+load the dataset with `datasets.load_dataset`, the script has to be located in a directory with the same name (as it
+is the case for standard Huggingface dataset loading scripts).
+
+</details>
+
 ## ⚡️ Example
 
 **Note:** Setting `num_workers=0` in the pipeline is only necessary when running an example in an
