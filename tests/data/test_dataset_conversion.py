@@ -75,7 +75,7 @@ def test_as_document_type(conll2003_test_split):
 
 
 def test_cast_document_type_remove_field(conll2003_test_split):
-    casted = conll2003_test_split.cast_document_type(DocumentWithParts, allow_field_removal=True)
+    casted = conll2003_test_split.cast_document_type(DocumentWithParts, remove_columns=True)
     with_partitions = casted.map(lambda doc: _add_full_part(doc))
     assert "entities" not in with_partitions.column_names
     assert "parts" in with_partitions.column_names
@@ -86,6 +86,50 @@ def test_cast_document_type_remove_field(conll2003_test_split):
     assert isinstance(part0, Span)
     assert part0.start == 0
     assert part0.end == len(doc0.text)
+
+    casted_back = with_partitions.cast_document_type(CoNLL2002Document)
+    assert "entities" in casted_back.column_names
+    # original entities are not available anymore after casting back
+    assert len(conll2003_test_split[0].entities) > 0
+    assert len(casted_back[0].entities) == 0
+
+
+def test_cast_document_type_recover_field(conll2003_test_split):
+    doc_orig = conll2003_test_split[0]
+    casted = conll2003_test_split.cast_document_type(DocumentWithParts)
+    # "entities" stay in the arrow table because remove_columns=False per default
+    assert "entities" in casted.column_names
+    assert "parts" in casted.column_names
+
+    doc_casted = casted[0]
+    assert set(doc_casted) == {"parts"}
+
+    casted_back = casted.cast_document_type(CoNLL2002Document)
+    assert "entities" in casted_back.column_names
+    # original entities are recovered after casting back
+    doc_back = casted_back[0]
+    assert len(doc_back.entities) > 0
+    assert doc_back.entities == doc_orig.entities
+
+
+def test_cast_document_type_recover_field_wrong(conll2003_test_split):
+    doc_orig = conll2003_test_split[0]
+    casted = conll2003_test_split.cast_document_type(DocumentWithEntsAndParts)
+    # "entities" stay in the arrow table because remove_columns=False per default
+    assert "entities" in casted.column_names
+    assert "parts" in casted.column_names
+    assert "ents" in casted.column_names
+
+    doc_casted = casted[0]
+    assert set(doc_casted) == {"parts", "ents"}
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "rename targets are already in column names: {'entities'}. Did you miss to set remove_columns=True in a previous call of cast_document_type?"
+        ),
+    ):
+        casted.cast_document_type(CoNLL2002Document, field_mapping={"ents": "entities"})
 
 
 def test_cast_document_type_rename_field(conll2003_test_split):
@@ -124,17 +168,6 @@ def test_cast_document_type_swap_fields(conll2003_test_split):
     assert isinstance(part0, Span)
     assert part0.start == 0
     assert part0.end == len(doc0.text)
-
-
-def test_cast_document_type_remove_field_not_allowed(conll2003_test_split):
-
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "some fields are not in the new document_type: {'entities'}. Use allow_field_removal=True if they should be removed from the documents"
-        ),
-    ):
-        conll2003_test_split.cast_document_type(DocumentWithParts)
 
 
 def test_cast_document_type_rename_source_not_available(conll2003_test_split):

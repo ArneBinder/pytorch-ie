@@ -118,7 +118,7 @@ class Dataset(datasets.Dataset):
     def cast_document_type(
         self,
         new_document_type: D,
-        allow_field_removal: bool = False,
+        remove_columns: bool = False,
         field_mapping: Optional[Dict[str, str]] = None,
     ) -> "Dataset":
 
@@ -146,11 +146,6 @@ class Dataset(datasets.Dataset):
         added_field_names = set(new_fields) - set(original_fields_mapped)
         removed_field_names = set(original_fields) - set(new_fields) - set(field_mapping)
 
-        if len(removed_field_names) > 0 and not allow_field_removal:
-            raise ValueError(
-                f"some fields are not in the new document_type: {removed_field_names}. Use allow_field_removal=True if "
-                f"they should be removed from the documents"
-            )
         # Sanity checks
         kept_field_names = set(original_fields_mapped) & set(new_fields)
         for f_name_mapped in kept_field_names:
@@ -171,12 +166,24 @@ class Dataset(datasets.Dataset):
             indices_table=self._indices,
             fingerprint=self._fingerprint,
         )
-        new_hf_dataset = new_hf_dataset.remove_columns(list(removed_field_names))
+        if remove_columns:
+            new_hf_dataset = new_hf_dataset.remove_columns(list(removed_field_names))
+
+        rename_targets_already_in_columns = (
+            set(field_mapping.values()) - set(field_mapping)
+        ) & set(new_hf_dataset.column_names)
+        if len(rename_targets_already_in_columns) > 0:
+            raise ValueError(
+                f"rename targets are already in column names: {rename_targets_already_in_columns}. Did you miss to set remove_columns=True in a previous call of cast_document_type?"
+            )
+
         new_hf_dataset = new_hf_dataset.rename_columns(field_mapping)
         for f_name in added_field_names:
-            new_hf_dataset = new_hf_dataset.add_column(
-                name=f_name, column=len(new_hf_dataset) * [{}]
-            )
+            if f_name not in new_hf_dataset.column_names:
+                # add empty columns
+                new_hf_dataset = new_hf_dataset.add_column(
+                    name=f_name, column=len(new_hf_dataset) * [{}]
+                )
         new_dataset = Dataset.from_hf_dataset(new_hf_dataset, document_type=new_document_type)
 
         return new_dataset
