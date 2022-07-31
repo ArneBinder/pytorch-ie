@@ -110,3 +110,44 @@ def test_document_with_annotations():
     assert len(document1) == 3
     # actual annotation fields (tests __iter__)
     assert set(document1) == {"sentences", "entities", "relations"}
+
+
+def test_as_type():
+    @dataclasses.dataclass
+    class TestDocument1(TextDocument):
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    @dataclasses.dataclass
+    class TestDocument2(TextDocument):
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+        ents: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    @dataclasses.dataclass
+    class TestDocument3(TextDocument):
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+    # create input document with "sentences" and "relations"
+    document1 = TestDocument1(text="test1")
+    span1 = Span(start=1, end=2)
+    span2 = Span(start=3, end=4)
+    document1.sentences.append(span1)
+    document1.sentences.append(span2)
+    labeled_span1 = LabeledSpan(start=1, end=2, label="label1")
+    labeled_span2 = LabeledSpan(start=3, end=4, label="label2")
+    document1.entities.append(labeled_span1)
+    document1.entities.append(labeled_span2)
+
+    # convert rename "entities" to "ents"
+    document2 = document1.as_type(new_type=TestDocument2, field_mapping={"entities": "ents"})
+    assert set(document2) == {"sentences", "ents"}
+    assert document2.sentences == document1.sentences
+    assert document2.ents == document1.entities
+
+    # remove "sentences", but add "relations"
+    document3 = document1.as_type(new_type=TestDocument3)
+    assert set(document3) == {"entities", "relations"}
+    rel = BinaryRelation(head=span1, tail=span2, label="rel")
+    document3.relations.append(rel)
+    assert len(document3.relations) == 1
