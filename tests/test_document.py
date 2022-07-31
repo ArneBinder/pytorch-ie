@@ -105,3 +105,8 @@ def test_document_with_annotations():
     assert document1["sentences"].predictions[1].target == document1.text
 
     assert document1 == TestDocument.fromdict(document1.asdict())
+
+    # number of annotation fields
+    assert len(document1) == 3
+    # actual annotation fields (tests __iter__)
+    assert set(document1) == {"sentences", "entities", "relations"}
