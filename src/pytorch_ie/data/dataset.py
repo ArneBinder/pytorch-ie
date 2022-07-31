@@ -1,5 +1,6 @@
+from dataclasses import fields
 from functools import wraps
-from typing import Callable, List, Optional, Type, Union
+from typing import Callable, Dict, List, Optional, Type, TypeVar, Union
 
 import pandas as pd
 from datasets.formatting import _register_formatter
@@ -28,6 +29,9 @@ def decorate_convert_to_dict_of_lists(f):
             return f(item, *args, **kwargs).asdict()
 
     return decorated
+
+
+D = TypeVar("D", bound=Document)
 
 
 class Dataset(datasets.Dataset):
@@ -110,3 +114,52 @@ class Dataset(datasets.Dataset):
         )
 
         return Dataset.from_hf_dataset(dataset, document_type=self.document_type)
+
+    def cast_document_type(
+        self,
+        new_document_type: D,
+        allow_field_removal: bool = False,
+        field_mapping: Optional[Dict[str, str]] = None,
+    ) -> "Dataset":
+
+        field_mapping = field_mapping or {}
+
+        # check for consistency (and collect remove_fields)
+        original_fields = {field.name: field for field in fields(self.document_type)}
+        new_fields = {field.name: field for field in fields(new_document_type)}
+        remove_fields = []
+        for f_name, f in original_fields.items():
+            f_name_mapped = field_mapping.get(f_name, f_name)
+            if f_name_mapped not in new_fields:
+                if allow_field_removal:
+                    remove_fields.append(f_name)
+                    continue
+                raise ValueError(
+                    f'field "{f_name}" of original document_type [{str(self.document_type)}] is missing from new '
+                    f"document type [{str(new_document_type)}]"
+                )
+
+            new_f = new_fields[f_name_mapped]
+            if not (
+                f.type == new_f.type
+                and f.metadata == new_f.metadata
+                and f.default == new_f.default
+                and f.default_factory == new_f.default_factory
+            ):
+                raise ValueError(f"new field is not the same as old field:\n{new_f}\nvs\n{f}")
+
+        # def document_as_type(doc: Document, new_type: Type[D], field_mapping: Dict[str, str]) -> D:
+        #    new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in doc.asdict().items()})
+        #    return new_doc
+
+        mapped_dataset = self.map(
+            Document.as_type,
+            fn_kwargs=dict(new_type=new_document_type, field_mapping=field_mapping),
+            # remove entries from "remove_fields" and also mapped fields that are not in the mapping result
+            remove_columns=remove_fields
+            + list(set(field_mapping.keys()) - set(field_mapping.values())),
+        )
+        new_dataset = Dataset.from_hf_dataset(
+            dataset=mapped_dataset, document_type=new_document_type
+        )
+        return new_dataset
