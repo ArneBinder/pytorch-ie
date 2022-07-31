@@ -184,9 +184,6 @@ def test_load_with_hf_datasets_from_hub():
 
     assert set(dataset.keys()) == {"train", "validation", "test"}
 
-    # TODO: the updated CoNLL03 data files have two newlines at the end
-    # this results in one additional example in train, validation, and test
-    # --> file a bug report in HF datasets
-    assert len(dataset["train"]) == 14042  # 14041
-    assert len(dataset["validation"]) == 3251
-    assert len(dataset["test"]) == 3454
+    assert len(dataset["train"]) == 14041
+    assert len(dataset["validation"]) == 3250
+    assert len(dataset["test"]) == 3453
