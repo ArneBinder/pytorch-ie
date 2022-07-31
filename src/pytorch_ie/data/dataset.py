@@ -125,10 +125,10 @@ class Dataset(datasets.Dataset):
         field_mapping = field_mapping or {}
 
         original_fields = {
-            field.name: field for field in _get_annotation_fields(fields(self.document_type))
+            field.name: field for field in _get_annotation_fields(list(fields(self.document_type)))
         }
         new_fields = {
-            field.name: field for field in _get_annotation_fields(fields(new_document_type))
+            field.name: field for field in _get_annotation_fields(list(fields(new_document_type)))
         }
         fields_to_map_not_in_original_fields = set(field_mapping) - set(original_fields)
         if len(fields_to_map_not_in_original_fields) > 0:
