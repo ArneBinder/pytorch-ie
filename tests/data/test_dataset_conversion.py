@@ -60,7 +60,7 @@ def _add_full_part(doc: DocumentWithParts) -> DocumentWithParts:
 
 
 def test_as_document_type(conll2003_test_split):
-    casted = conll2003_test_split.as_document_type(CoNLL2002WithPartsDocument)
+    casted = conll2003_test_split.cast_document_type(CoNLL2002WithPartsDocument)
     with_parts = casted.map(lambda doc: _add_full_part(doc))
     assert "entities" in with_parts.column_names
     assert "parts" in with_parts.column_names
@@ -74,8 +74,8 @@ def test_as_document_type(conll2003_test_split):
     assert part0.end == len(doc0.text)
 
 
-def test_as_document_type_remove_field(conll2003_test_split):
-    casted = conll2003_test_split.as_document_type(DocumentWithParts, allow_field_removal=True)
+def test_cast_document_type_remove_field(conll2003_test_split):
+    casted = conll2003_test_split.cast_document_type(DocumentWithParts, allow_field_removal=True)
     with_partitions = casted.map(lambda doc: _add_full_part(doc))
     assert "entities" not in with_partitions.column_names
     assert "parts" in with_partitions.column_names
@@ -88,8 +88,8 @@ def test_as_document_type_remove_field(conll2003_test_split):
     assert part0.end == len(doc0.text)
 
 
-def test_as_document_type_rename_field(conll2003_test_split):
-    casted = conll2003_test_split.as_document_type(
+def test_cast_document_type_rename_field(conll2003_test_split):
+    casted = conll2003_test_split.cast_document_type(
         DocumentWithEntsAndParts, field_mapping={"entities": "ents"}
     )
     with_parts = casted.map(lambda doc: _add_full_part(doc))
@@ -105,9 +105,9 @@ def test_as_document_type_rename_field(conll2003_test_split):
     assert part0.end == len(doc0.text)
 
 
-def test_as_document_type_swap_fields(conll2003_test_split):
+def test_cast_document_type_swap_fields(conll2003_test_split):
     # just add "parts" to have another field to swap "entities" with
-    casted = conll2003_test_split.as_document_type(CoNLL2002WithPartsDocument)
+    casted = conll2003_test_split.cast_document_type(CoNLL2002WithPartsDocument)
     with_parts = casted.map(lambda doc: _add_full_part(doc))
 
     swapped = with_parts.cast_document_type(
@@ -126,15 +126,15 @@ def test_as_document_type_swap_fields(conll2003_test_split):
     assert part0.end == len(doc0.text)
 
 
-def test_as_document_type_remove_field_not_allowed(conll2003_test_split):
+def test_cast_document_type_remove_field_not_allowed(conll2003_test_split):
 
     with pytest.raises(ValueError, match=re.escape('field "entities" of original document_type')):
-        conll2003_test_split.as_document_type(DocumentWithParts)
+        conll2003_test_split.cast_document_type(DocumentWithParts)
 
 
-def test_as_document_type_rename_wrong_type(conll2003_test_split):
+def test_cast_document_type_rename_wrong_type(conll2003_test_split):
 
     with pytest.raises(ValueError, match=re.escape("new field is not the same as old field:")):
-        conll2003_test_split.as_document_type(
+        conll2003_test_split.cast_document_type(
             DocumentWithEntsWrongType, field_mapping={"entities": "ents"}
         )
