@@ -59,7 +59,7 @@ def _add_full_part(doc: DocumentWithParts) -> DocumentWithParts:
     return doc
 
 
-def test_as_document_type(conll2003_test_split):
+def test_cast_document_type(conll2003_test_split):
     casted = conll2003_test_split.cast_document_type(CoNLL2002WithPartsDocument)
     with_parts = casted.map(lambda doc: _add_full_part(doc))
     assert "entities" in with_parts.column_names
@@ -153,6 +153,7 @@ def test_cast_document_type_swap_fields(conll2003_test_split):
     # just add "parts" to have another field to swap "entities" with
     casted = conll2003_test_split.cast_document_type(CoNLL2002WithPartsDocument)
     with_parts = casted.map(lambda doc: _add_full_part(doc))
+    doc_with_parts = with_parts[0]
 
     swapped = with_parts.cast_document_type(
         DocumentWithPartsAndEntitiesSwapped,
@@ -160,14 +161,10 @@ def test_cast_document_type_swap_fields(conll2003_test_split):
     )
     assert "entities" in swapped.column_names
     assert "parts" in swapped.column_names
-    doc0 = swapped[0]
-    assert set(doc0) == {"entities", "parts"}
-    assert doc0.parts == conll2003_test_split[0].entities
-
-    part0 = doc0.entities[0]
-    assert isinstance(part0, Span)
-    assert part0.start == 0
-    assert part0.end == len(doc0.text)
+    doc_swapped = swapped[0]
+    assert set(doc_swapped) == {"entities", "parts"}
+    assert doc_swapped.parts == doc_with_parts.entities
+    assert doc_swapped.entities == doc_with_parts.parts
 
 
 def test_cast_document_type_rename_source_not_available(conll2003_test_split):
