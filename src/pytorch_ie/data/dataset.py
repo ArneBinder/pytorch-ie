@@ -6,7 +6,7 @@ import pandas as pd
 from datasets.formatting import _register_formatter
 
 import datasets
-from pytorch_ie.core.document import Document
+from pytorch_ie.core.document import Document, _get_annotation_fields
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
 
 _register_formatter(DocumentFormatter, "document")
@@ -124,21 +124,37 @@ class Dataset(datasets.Dataset):
 
         field_mapping = field_mapping or {}
 
-        # check for consistency (and collect remove_fields)
-        original_fields = {field.name: field for field in fields(self.document_type)}
-        new_fields = {field.name: field for field in fields(new_document_type)}
-        remove_fields = []
-        for f_name, f in original_fields.items():
-            f_name_mapped = field_mapping.get(f_name, f_name)
-            if f_name_mapped not in new_fields:
-                if allow_field_removal:
-                    remove_fields.append(f_name)
-                    continue
-                raise ValueError(
-                    f'field "{f_name}" of original document_type [{str(self.document_type)}] is missing from new '
-                    f"document type [{str(new_document_type)}]"
-                )
+        original_fields = {
+            field.name: field for field in _get_annotation_fields(fields(self.document_type))
+        }
+        new_fields = {
+            field.name: field for field in _get_annotation_fields(fields(new_document_type))
+        }
+        fields_to_map_not_in_original_fields = set(field_mapping) - set(original_fields)
+        if len(fields_to_map_not_in_original_fields) > 0:
+            raise ValueError(
+                f"some fields to rename are not in the original document_type: {fields_to_map_not_in_original_fields}"
+            )
+        mapped_but_not_in_new_fields = set(field_mapping.values()) - set(new_fields)
+        if len(mapped_but_not_in_new_fields) > 0:
+            raise ValueError(
+                f"some renamed fields are not in the new document_type: {mapped_but_not_in_new_fields}"
+            )
+        original_fields_mapped = {
+            field_mapping.get(f_name, f_name): f for f_name, f in original_fields.items()
+        }
+        added_field_names = set(new_fields) - set(original_fields_mapped)
+        removed_field_names = set(original_fields) - set(new_fields) - set(field_mapping)
 
+        if len(removed_field_names) > 0 and not allow_field_removal:
+            raise ValueError(
+                f"some fields are not in the new document_type: {removed_field_names}. Use allow_field_removal=True if "
+                f"they should be removed from the documents"
+            )
+        # Sanity checks
+        kept_field_names = set(original_fields_mapped) & set(new_fields)
+        for f_name_mapped in kept_field_names:
+            f = original_fields_mapped[f_name_mapped]
             new_f = new_fields[f_name_mapped]
             if not (
                 f.type == new_f.type
@@ -148,18 +164,19 @@ class Dataset(datasets.Dataset):
             ):
                 raise ValueError(f"new field is not the same as old field:\n{new_f}\nvs\n{f}")
 
-        # def document_as_type(doc: Document, new_type: Type[D], field_mapping: Dict[str, str]) -> D:
-        #    new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in doc.asdict().items()})
-        #    return new_doc
+        new_hf_dataset = datasets.Dataset(
+            arrow_table=self._data,
+            info=self.info,
+            split=self.split,
+            indices_table=self._indices,
+            fingerprint=self._fingerprint,
+        )
+        new_hf_dataset = new_hf_dataset.remove_columns(list(removed_field_names))
+        new_hf_dataset = new_hf_dataset.rename_columns(field_mapping)
+        for f_name in added_field_names:
+            new_hf_dataset = new_hf_dataset.add_column(
+                name=f_name, column=len(new_hf_dataset) * [{}]
+            )
+        new_dataset = Dataset.from_hf_dataset(new_hf_dataset, document_type=new_document_type)
 
-        mapped_dataset = self.map(
-            Document.as_type,
-            fn_kwargs=dict(new_type=new_document_type, field_mapping=field_mapping),
-            # remove entries from "remove_fields" and also mapped fields that are not in the mapping result
-            remove_columns=remove_fields
-            + list(set(field_mapping.keys()) - set(field_mapping.values())),
-        )
-        new_dataset = Dataset.from_hf_dataset(
-            dataset=mapped_dataset, document_type=new_document_type
-        )
         return new_dataset

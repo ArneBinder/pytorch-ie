@@ -128,8 +128,39 @@ def test_cast_document_type_swap_fields(conll2003_test_split):
 
 def test_cast_document_type_remove_field_not_allowed(conll2003_test_split):
 
-    with pytest.raises(ValueError, match=re.escape('field "entities" of original document_type')):
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "some fields are not in the new document_type: {'entities'}. Use allow_field_removal=True if they should be removed from the documents"
+        ),
+    ):
         conll2003_test_split.cast_document_type(DocumentWithParts)
+
+
+def test_cast_document_type_rename_source_not_available(conll2003_test_split):
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "some fields to rename are not in the original document_type: {'not_in_original_document'}"
+        ),
+    ):
+        conll2003_test_split.cast_document_type(
+            DocumentWithEntsWrongType, field_mapping={"not_in_original_document": "ents"}
+        )
+
+
+def test_cast_document_type_rename_target_not_available(conll2003_test_split):
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "some renamed fields are not in the new document_type: {'not_in_new_document'}"
+        ),
+    ):
+        conll2003_test_split.cast_document_type(
+            DocumentWithEntsWrongType, field_mapping={"entities": "not_in_new_document"}
+        )
 
 
 def test_cast_document_type_rename_wrong_type(conll2003_test_split):
