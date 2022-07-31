@@ -117,7 +117,7 @@ class Dataset(datasets.Dataset):
 
     def cast_document_type(
         self,
-        new_document_type: D,
+        new_document_type: Type[D],
         remove_columns: bool = False,
         field_mapping: Optional[Dict[str, str]] = None,
     ) -> "Dataset":
