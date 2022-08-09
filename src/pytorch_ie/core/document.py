@@ -116,6 +116,9 @@ class AnnotationList(BaseAnnotationList[T]):
         return f"AnnotationList({str(self._annotations)})"
 
 
+D = TypeVar("D", bound="Document")
+
+
 @dataclasses.dataclass
 class Document(Mapping[str, Any]):
     _annotation_graph: Dict[str, List[str]] = dataclasses.field(
@@ -247,3 +250,8 @@ class Document(Mapping[str, Any]):
             getattr(doc, field_name).predictions.append(annotation)
 
         return doc
+
+    def as_type(self, new_type: typing.Type[D], field_mapping: Optional[Dict[str, str]] = None):
+        field_mapping = field_mapping or {}
+        new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in self.asdict().items()})
+        return new_doc
