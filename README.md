@@ -159,7 +159,13 @@ for relation in document.relations.predictions:
 
 ## ⚡️ Examples: Training
 
+<details>
+
+<summary>
+
 ### Span-classification-based Named Entity Recognition
+
+</summary>
 
 ```python
 import pytorch_lightning as pl
@@ -244,6 +250,8 @@ trainer.fit(model, train_dataloader, val_dataloader)
 # or
 # model.save_pretrained(model_output_path)
 ```
+
+</details>
 
 ## 🔭 Demos
 
