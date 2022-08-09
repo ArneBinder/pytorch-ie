@@ -159,7 +159,6 @@ for relation in document.relations.predictions:
 
 TODO
 
-
 ## 🔭 Demos
 
 | Task                                                       | Link                                                                                                                                                                  |
