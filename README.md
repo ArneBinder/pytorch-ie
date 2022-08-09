@@ -37,7 +37,7 @@ This is an experimental framework that aims to combine the lessons learned from 
 $ pip install pytorch-ie
 ```
 
-## ⚡️ Examples: Inference
+## ⚡️ Examples: Prediction
 
 **Note:** Setting `num_workers=0` in the pipeline is only necessary when running an example in an
 interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
