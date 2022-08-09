@@ -76,7 +76,10 @@ for entity in document.entities.predictions:
 # SOSV -> ORG
 ```
 
-To create the same pipeline as above without `AutoPipeline`:
+<details>
+<summary>
+To create the same pipeline as above without `AutoPipeline`
+</summary>
 
 ```python
 from pytorch_ie.auto import AutoTaskModule, AutoModel
@@ -87,8 +90,12 @@ ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
 ner_model = AutoModel.from_pretrained(model_name_or_path)
 ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
+</details>
 
-Or, without `Auto` classes at all:
+<details>
+<summary>
+Or, without `Auto` classes at all
+</summary>
 
 ```python
 from pytorch_ie.pipeline import Pipeline
@@ -100,6 +107,7 @@ ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_n
 ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
 ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
+</details>
 
 ## ⚡️️️️ More Examples
 
