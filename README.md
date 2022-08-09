@@ -37,7 +37,7 @@ This is an experimental framework that aims to combine the lessons learned from 
 $ pip install pytorch-ie
 ```
 
-## ⚡️ Example
+## ⚡️ Examples
 
 **Note:** Setting `num_workers=0` in the pipeline is only necessary when running an example in an
 interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
@@ -109,9 +109,14 @@ ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, n
 ```
 </details>
 
-## ⚡️️️️ More Examples
+<br>
+
+<details>
+<summary>
 
 ### Text-classification-based Relation Extraction
+
+</summary>
 
 ```python
 from dataclasses import dataclass
@@ -147,7 +152,7 @@ for relation in document.relations.predictions:
 # (SOSV -> Po Bronson) -> org:top_members/employees
 # (IndieBio -> Po Bronson) -> org:top_members/employees
 ```
-
+</details>
 
 ## 🔭 Demos
 
