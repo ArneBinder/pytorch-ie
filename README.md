@@ -39,7 +39,7 @@ $ pip install pytorch-ie
 
 ## ⚡️ Examples: Prediction
 
-The following examples work out of the box. No further setup like manually downloading a model is needed!
+**The following examples work out of the box. No further setup like manually downloading a model is needed!**
 
 **Note:** Setting `num_workers=0` in the pipeline is only necessary when running an example in an
 interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
