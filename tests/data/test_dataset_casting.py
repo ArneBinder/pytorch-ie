@@ -112,6 +112,26 @@ def test_cast_document_type_recover_field(conll2003_test_split):
     assert doc_back.entities == doc_orig.entities
 
 
+def test_cast_document_type_recover_field_with_mapping(conll2003_test_split):
+    doc_orig = conll2003_test_split[0]
+    casted = conll2003_test_split.cast_document_type(DocumentWithParts)
+    # "entities" stay in the arrow table because remove_columns=False per default
+    assert "entities" in casted.column_names
+    assert "parts" in casted.column_names
+
+    doc_casted = casted[0]
+    assert set(doc_casted) == {"parts"}
+
+    casted_back = casted.cast_document_type(
+        DocumentWithEntsAndParts, field_mapping={"entities": "ents"}
+    )
+    assert "ents" in casted_back.column_names
+    # original entities are recovered after casting back
+    doc_back = casted_back[0]
+    assert len(doc_back.ents) > 0
+    assert doc_back.ents == doc_orig.entities
+
+
 def test_cast_document_type_recover_field_wrong(conll2003_test_split):
     doc_orig = conll2003_test_split[0]
     casted = conll2003_test_split.cast_document_type(DocumentWithEntsAndParts)
@@ -172,7 +192,7 @@ def test_cast_document_type_rename_source_not_available(conll2003_test_split):
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "some fields to rename are not in the original document_type: {'not_in_original_document'}"
+            "some fields to rename are not in the original document_type or hidden fields: {'not_in_original_document'}"
         ),
     ):
         conll2003_test_split.cast_document_type(

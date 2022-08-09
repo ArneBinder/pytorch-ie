@@ -130,10 +130,13 @@ class Dataset(datasets.Dataset):
         new_fields = {
             field.name: field for field in _get_annotation_fields(list(fields(new_document_type)))
         }
-        fields_to_map_not_in_original_fields = set(field_mapping) - set(original_fields)
+        hidden_fields = set(self.column_names) - set(original_fields)
+        fields_to_map_not_in_original_fields = (
+            set(field_mapping) - set(original_fields) - set(hidden_fields)
+        )
         if len(fields_to_map_not_in_original_fields) > 0:
             raise ValueError(
-                f"some fields to rename are not in the original document_type: {fields_to_map_not_in_original_fields}"
+                f"some fields to rename are not in the original document_type or hidden fields: {fields_to_map_not_in_original_fields}"
             )
         mapped_but_not_in_new_fields = set(field_mapping.values()) - set(new_fields)
         if len(mapped_but_not_in_new_fields) > 0:
