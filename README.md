@@ -90,6 +90,7 @@ ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
 ner_model = AutoModel.from_pretrained(model_name_or_path)
 ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
+
 </details>
 
 <details>
@@ -107,9 +108,8 @@ ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_n
 ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
 ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
-</details>
 
-<br>
+</details>
 
 <details>
 <summary>
@@ -152,6 +152,7 @@ for relation in document.relations.predictions:
 # (SOSV -> Po Bronson) -> org:top_members/employees
 # (IndieBio -> Po Bronson) -> org:top_members/employees
 ```
+
 </details>
 
 ## 🔭 Demos
