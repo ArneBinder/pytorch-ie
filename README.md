@@ -185,6 +185,7 @@ model_name = "bert-base-cased"
 num_epochs = 10
 batch_size = 32
 
+# Get the PIE dataset consisting of PIE Documents that will be used for training (and evaluation).
 dataset = datasets.load_dataset(
     path="pie/conll2003",
 )
@@ -193,16 +194,28 @@ train_docs, val_docs = dataset["train"], dataset["validation"]
 print("train docs: ", len(train_docs))
 print("val docs: ", len(val_docs))
 
+# Create a PIE taskmodule.
 task_module = TransformerSpanClassificationTaskModule(
     tokenizer_name_or_path=model_name,
     max_length=128,
 )
 
+# Prepare the taskmodule with the training data. This may collect available labels etc.
+# The result of this should affect the state of the taskmodule config which will be
+# persisted (and can be loaded) later on.
 task_module.prepare(train_docs)
 
+# Persist the taskmodule. This writes the taskmodule config as a json file into the
+# model_output_path directory. The config contains all constructor parameters to
+# re-create the taskmodule at this state (via AutoTaskmodule.from_pretrained(model_output_path)).
+task_module.save_pretrained(model_output_path)
+
+# Use the taskmodule to encode the train and dev sets. This may use the text and
+# available annotations of the documents.
 train_dataset = task_module.encode(train_docs, encode_target=True)
 val_dataset = task_module.encode(val_docs, encode_target=True)
 
+# Create the dataloaders. Note that the taskmodule provides the collate function!
 train_dataloader = DataLoader(
     train_dataset,
     batch_size=batch_size,
@@ -217,6 +230,8 @@ val_dataloader = DataLoader(
     collate_fn=task_module.collate,
 )
 
+# Create the PIE model. Note that we use the number of entries in the previously
+# collected label_to_id mapping to set the number of classes to predict.
 model = TransformerSpanClassificationModel(
     model_name_or_path=model_name,
     num_classes=len(task_module.label_to_id),
@@ -224,6 +239,8 @@ model = TransformerSpanClassificationModel(
     learning_rate=1e-4,
 )
 
+# Optionally, set up a model checkpoint callback. See here for further information:
+# https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.callbacks.ModelCheckpoint.html
 # checkpoint_callback = ModelCheckpoint(
 #     monitor="val/f1",
 #     dirpath=model_output_path,
@@ -234,6 +251,8 @@ model = TransformerSpanClassificationModel(
 #     save_weights_only=True,
 # )
 
+# Create the pytorch-lightning trainer. See here for further information:
+# https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.Trainer.html
 trainer = pl.Trainer(
     fast_dev_run=False,
     max_epochs=num_epochs,
@@ -242,12 +261,11 @@ trainer = pl.Trainer(
     # callbacks=[checkpoint_callback],
     precision=32,
 )
+# Start the training.
 trainer.fit(model, train_dataloader, val_dataloader)
 
-# task_module.save_pretrained(model_output_path)
-
-# trainer.save_checkpoint(model_output_path + "model.ckpt")
-# or
+# Persist the trained model. This will save the model weights and the model config that allows
+# to re-create the model at this state (via AutoModel.from_pretrained(model_output_path)).
 # model.save_pretrained(model_output_path)
 ```
 
