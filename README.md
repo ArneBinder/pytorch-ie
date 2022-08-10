@@ -31,18 +31,252 @@ This is an experimental framework that aims to combine the lessons learned from 
 -   **Character-level annotation and evaluation:** Many information extraction frameworks annotate and evaluate on a token level. We believe that annotation and evaluation should be done on a character level as this also considers the suitability of the tokenizer for the task.
 -   **Make no assumptions on the structure of models:** The last years have seen many different and creative approaches to information extraction and a framework that imposes a structure on those will most certainly be to limiting. With PyTorch-iE you have full control over how a document is prepared for a model and how the model is structured. The logic is self-contained and thus can be easily shared and inspected by others. The only assumption we make is that the input is a document and the output are targets (training) or annotations (inference).
 
-## 🚀️ Quickstart
-
-```console
-$ pip install pytorch-ie
-```
-
 ## 🔭 Demos
 
 | Task                                                       | Link                                                                                                                                                                  |
 | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Named Entity Recognition (Span-based)                      | [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/pie/NER)                               |
 | Joint Named Entity Recognition and Relation Classification | [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/pie/Joint-NER-and-Relation-Extraction) |
+
+## 🚀️ Quickstart
+
+```console
+$ pip install pytorch-ie
+```
+
+## ⚡️ Examples: Prediction
+
+**The following examples work out of the box. No further setup like manually downloading a model is needed!**
+
+**Note:** Setting `num_workers=0` in the pipeline is only necessary when running an example in an
+interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
+interpreter, see [here](https://docs.python.org/3/library/multiprocessing.html#using-a-pool-of-workers)
+for details.
+
+### Span-classification-based Named Entity Recognition
+
+```python
+from dataclasses import dataclass
+
+from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.auto import AutoPipeline
+from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.documents import TextDocument
+
+@dataclass
+class ExampleDocument(TextDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+document = ExampleDocument(
+    "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+)
+
+# see below for the long version
+ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
+
+ner_pipeline(document, predict_field="entities")
+
+for entity in document.entities.predictions:
+    print(f"{entity} -> {entity.label}")
+
+# Result:
+# IndieBio -> ORG
+# Po Bronson -> PER
+# SOSV -> ORG
+```
+
+<details>
+<summary>
+To create the same pipeline as above without `AutoPipeline`
+</summary>
+
+```python
+from pytorch_ie.auto import AutoTaskModule, AutoModel
+from pytorch_ie.pipeline import Pipeline
+
+model_name_or_path = "pie/example-ner-spanclf-conll03"
+ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
+ner_model = AutoModel.from_pretrained(model_name_or_path)
+ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+```
+
+</details>
+
+<details>
+<summary>
+Or, without `Auto` classes at all
+</summary>
+
+```python
+from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.models import TransformerSpanClassificationModel
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+
+model_name_or_path = "pie/example-ner-spanclf-conll03"
+ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
+ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
+ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+```
+
+</details>
+
+<details>
+<summary>
+
+### Text-classification-based Relation Extraction
+
+</summary>
+
+```python
+from dataclasses import dataclass
+
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan
+from pytorch_ie.auto import AutoPipeline
+from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.documents import TextDocument
+
+
+@dataclass
+class ExampleDocument(TextDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+document = ExampleDocument(
+    "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+)
+
+re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
+
+for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
+    document.entities.append(LabeledSpan(start=start, end=end, label=label))
+
+re_pipeline(document, predict_field="relations", batch_size=2)
+
+for relation in document.relations.predictions:
+    print(f"({relation.head} -> {relation.tail}) -> {relation.label}")
+
+# Result:
+# (Po Bronson -> SOSV) -> per:employee_of
+# (Po Bronson -> IndieBio) -> per:employee_of
+# (SOSV -> Po Bronson) -> org:top_members/employees
+# (IndieBio -> Po Bronson) -> org:top_members/employees
+```
+
+</details>
+
+## ⚡️ Examples: Training
+
+<details>
+
+<summary>
+
+### Span-classification-based Named Entity Recognition
+
+</summary>
+
+```python
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
+from torch.utils.data import DataLoader
+
+import datasets
+from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
+from pytorch_ie.taskmodules.transformer_span_classification import (
+    TransformerSpanClassificationTaskModule,
+)
+
+pl.seed_everything(42)
+
+model_output_path = "./model_output/"
+model_name = "bert-base-cased"
+num_epochs = 10
+batch_size = 32
+
+# Get the PIE dataset consisting of PIE Documents that will be used for training (and evaluation).
+dataset = datasets.load_dataset(
+    path="pie/conll2003",
+)
+train_docs, val_docs = dataset["train"], dataset["validation"]
+
+print("train docs: ", len(train_docs))
+print("val docs: ", len(val_docs))
+
+# Create a PIE taskmodule.
+task_module = TransformerSpanClassificationTaskModule(
+    tokenizer_name_or_path=model_name,
+    max_length=128,
+)
+
+# Prepare the taskmodule with the training data. This may collect available labels etc.
+# The result of this should affect the state of the taskmodule config which will be
+# persisted (and can be loaded) later on.
+task_module.prepare(train_docs)
+
+# Persist the taskmodule. This writes the taskmodule config as a json file into the
+# model_output_path directory. The config contains all constructor parameters to
+# re-create the taskmodule at this state (via AutoTaskmodule.from_pretrained(model_output_path)).
+task_module.save_pretrained(model_output_path)
+
+# Use the taskmodule to encode the train and dev sets. This may use the text and
+# available annotations of the documents.
+train_dataset = task_module.encode(train_docs, encode_target=True)
+val_dataset = task_module.encode(val_docs, encode_target=True)
+
+# Create the dataloaders. Note that the taskmodule provides the collate function!
+train_dataloader = DataLoader(
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    collate_fn=task_module.collate,
+)
+
+val_dataloader = DataLoader(
+    val_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    collate_fn=task_module.collate,
+)
+
+# Create the PIE model. Note that we use the number of entries in the previously
+# collected label_to_id mapping to set the number of classes to predict.
+model = TransformerSpanClassificationModel(
+    model_name_or_path=model_name,
+    num_classes=len(task_module.label_to_id),
+    t_total=len(train_dataloader) * num_epochs,
+    learning_rate=1e-4,
+)
+
+# Optionally, set up a model checkpoint callback. See here for further information:
+# https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.callbacks.ModelCheckpoint.html
+# checkpoint_callback = ModelCheckpoint(
+#     monitor="val/f1",
+#     dirpath=model_output_path,
+#     filename="zs-ner-{epoch:02d}-val_f1-{val/f1:.2f}",
+#     save_top_k=1,
+#     mode="max",
+#     auto_insert_metric_name=False,
+#     save_weights_only=True,
+# )
+
+# Create the pytorch-lightning trainer. See here for further information:
+# https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.Trainer.html
+trainer = pl.Trainer(
+    fast_dev_run=False,
+    max_epochs=num_epochs,
+    gpus=0,
+    checkpoint_callback=False,
+    # callbacks=[checkpoint_callback],
+    precision=32,
+)
+# Start the training.
+trainer.fit(model, train_dataloader, val_dataloader)
+
+# Persist the trained model. This will save the model weights and the model config that allows
+# to re-create the model at this state (via AutoModel.from_pretrained(model_output_path)).
+# model.save_pretrained(model_output_path)
+```
+
+</details>
 
 ## 📚 Datasets
 
@@ -149,109 +383,6 @@ load the dataset with `datasets.load_dataset`, the script has to be located in a
 is the case for standard Huggingface dataset loading scripts).
 
 </details>
-
-## ⚡️ Example
-
-**Note:** Setting `num_workers=0` in the pipeline is only necessary when running an example in an
-interactive python session. The reason is that multiprocessing doesn't play well with the interactive python
-interpreter, see [here](https://docs.python.org/3/library/multiprocessing.html#using-a-pool-of-workers)
-for details.
-
-### Span-classification-based Named Entity Recognition
-
-```python
-from dataclasses import dataclass
-
-from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.auto import AutoPipeline
-from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.documents import TextDocument
-
-@dataclass
-class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-
-document = ExampleDocument(
-    "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
-)
-
-# see below for the long version
-ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
-
-ner_pipeline(document, predict_field="entities")
-
-for entity in document.entities.predictions:
-    print(f"{entity} -> {entity.label}")
-
-# Result:
-# IndieBio -> ORG
-# Po Bronson -> PER
-# SOSV -> ORG
-```
-
-To create the same pipeline as above without `AutoPipeline`:
-
-```python
-from pytorch_ie.auto import AutoTaskModule, AutoModel
-from pytorch_ie.pipeline import Pipeline
-
-model_name_or_path = "pie/example-ner-spanclf-conll03"
-ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
-ner_model = AutoModel.from_pretrained(model_name_or_path)
-ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
-```
-
-Or, without `Auto` classes at all:
-
-```python
-from pytorch_ie.pipeline import Pipeline
-from pytorch_ie.models import TransformerSpanClassificationModel
-from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
-
-model_name_or_path = "pie/example-ner-spanclf-conll03"
-ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
-ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
-```
-
-## ⚡️️️️ More Examples
-
-### Text-classification-based Relation Extraction
-
-```python
-from dataclasses import dataclass
-
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan
-from pytorch_ie.auto import AutoPipeline
-from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.documents import TextDocument
-
-
-@dataclass
-class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
-
-document = ExampleDocument(
-    "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
-)
-
-re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
-
-for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
-    document.entities.append(LabeledSpan(start=start, end=end, label=label))
-
-re_pipeline(document, predict_field="relations", batch_size=2)
-
-for relation in document.relations.predictions:
-    print(f"({relation.head} -> {relation.tail}) -> {relation.label}")
-
-# Result:
-# (Po Bronson -> SOSV) -> per:employee_of
-# (Po Bronson -> IndieBio) -> per:employee_of
-# (SOSV -> Po Bronson) -> org:top_members/employees
-# (IndieBio -> Po Bronson) -> org:top_members/employees
-```
 
 <!-- github-only -->
 
