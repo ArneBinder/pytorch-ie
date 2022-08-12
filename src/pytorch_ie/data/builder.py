@@ -1,5 +1,5 @@
 import abc
-from typing import Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Type
 
 from datasets.load import load_dataset_builder
 
@@ -13,7 +13,8 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH: Optional[str] = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
+        base_dataset_kwargs = base_dataset_kwargs or {}
         builder_kwargs = dict(kwargs)
         builder_kwargs.pop("hash", None)
         builder_kwargs.pop("base_path", None)
@@ -23,7 +24,7 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         if self.BASE_DATASET_PATH is not None:
             self.base_builder = load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
-                **builder_kwargs,
+                **base_dataset_kwargs,
             )
 
         super().__init__(**kwargs)
