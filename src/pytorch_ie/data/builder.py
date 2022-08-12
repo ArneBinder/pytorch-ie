@@ -13,21 +13,25 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH: Optional[str] = None
 
-    def __init__(self, additional_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
-        additional_kwargs = additional_kwargs or {}
-        builder_kwargs = dict(kwargs)
-        builder_kwargs.pop("hash", None)
-        builder_kwargs.pop("base_path", None)
-        builder_kwargs.pop("config_name", None)
+    # Define further arguments for the base dataset like a config name or revision.
+    # See datasets.load.load_dataset_builder for all possible parameters.
+    BASE_DATASET_KWARGS: Optional[Dict[str, Any]] = None
+
+    def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
 
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:
+            # use values from BASE_DATASET_KWARGS as defaults, but allow to overwrite them
+            base_builder_kwargs = {
+                **(self.BASE_DATASET_KWARGS or {}),
+                **(base_dataset_kwargs or {}),
+            }
             self.base_builder = load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
-                **builder_kwargs,
+                **base_builder_kwargs,
             )
 
-        super().__init__(**{**kwargs, **additional_kwargs})
+        super().__init__(**kwargs)
 
     def _info(self):
         return self.base_builder._info()
