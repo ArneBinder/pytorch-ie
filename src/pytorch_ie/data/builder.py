@@ -32,7 +32,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
                 base_builder_kwargs.update(self.BASE_DATASET_KWARGS)
             if self.CONFIG_NAME_MAPPING is not None:
                 config_name = kwargs.get("config_name", None)
-                base_builder_kwargs["name"] = self.CONFIG_NAME_MAPPING.get(config_name, config_name)
+                base_builder_kwargs["name"] = self.CONFIG_NAME_MAPPING.get(
+                    config_name, config_name
+                )
             if base_dataset_kwargs is not None:
                 base_builder_kwargs.update(base_dataset_kwargs)
             self.base_builder = load_dataset_builder(
