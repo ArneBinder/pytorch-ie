@@ -13,8 +13,8 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH: Optional[str] = None
 
-    def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
-        base_dataset_kwargs = base_dataset_kwargs or {}
+    def __init__(self, additional_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
+        additional_kwargs = additional_kwargs or {}
         builder_kwargs = dict(kwargs)
         builder_kwargs.pop("hash", None)
         builder_kwargs.pop("base_path", None)
@@ -24,10 +24,10 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         if self.BASE_DATASET_PATH is not None:
             self.base_builder = load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
-                **base_dataset_kwargs,
+                **builder_kwargs,
             )
 
-        super().__init__(**kwargs)
+        super().__init__(**{**kwargs, **additional_kwargs})
 
     def _info(self):
         return self.base_builder._info()
