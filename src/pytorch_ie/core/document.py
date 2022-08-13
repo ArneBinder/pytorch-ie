@@ -81,7 +81,8 @@ class BaseAnnotationList(Sequence[T]):
         return len(self._annotations)
 
     def append(self, annotation: T) -> None:
-        annotation.set_target(getattr(self._document, self._target))
+        target = getattr(self._document, self._target) if self._target is not None else None
+        annotation.set_target(target)
         self._annotations.append(annotation)
 
     def extend(self, annotations: Iterable[T]) -> None:
@@ -150,7 +151,9 @@ class Document(Mapping[str, Any]):
                 self._annotation_fields.add(field.name)
 
                 annotation_target = field.metadata.get("target")
-                edges.add((field.name, annotation_target))
+                if annotation_target is not None:
+                    edges.add((field.name, annotation_target))
+
                 field_value = field.type(document=self, target=annotation_target)
                 setattr(self, field.name, field_value)
 
@@ -206,9 +209,13 @@ class Document(Mapping[str, Any]):
             node=doc._root_annotation,
         )
 
+        # get the remaining fields without dependencies
+        all_fields = {field.name for field in annotation_fields}
+        fields_wo_dependency = list(all_fields - set(dependency_ordered_fields))
+
         annotations = {}
         predictions = {}
-        for field_name in dependency_ordered_fields:
+        for field_name in dependency_ordered_fields + fields_wo_dependency:
             if field_name not in name_to_field:
                 continue
 
