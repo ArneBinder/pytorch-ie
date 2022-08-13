@@ -206,6 +206,10 @@ class Document(Mapping[str, Any]):
         dependency_ordered_fields: List[dataclasses.Field] = []
 
         rooted_annotation_graph = dict(doc._annotation_graph)
+        if "_dummy_root" in rooted_annotation_graph:
+            raise ValueError(
+                "the annotation graph already contains a node _dummy_root, this is not allowed"
+            )
         rooted_annotation_graph["_dummy_root"] = root_target_fields
 
         _depth_first_search(
