@@ -20,6 +20,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
     # Define further arguments for the base dataset like a revision or overwrite the name.
     # See datasets.load.load_dataset_builder for all possible parameters.
+    # Note, that this can also be used to create the base dataset *config* from scratch. This
+    # can be handy because dataset configs are not allowed to be modified or to be extended
+    # (e.g. for changing some preprocessing parameters).
     BASE_DATASET_KWARGS: Optional[Dict[str, Any]] = None
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
