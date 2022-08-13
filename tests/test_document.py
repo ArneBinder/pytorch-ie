@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TextDocument
 
@@ -43,6 +43,7 @@ def test_document_with_annotations():
         sentences: AnnotationList[Span] = annotation_field(target="text")
         entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
         relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+        label: AnnotationList[Label] = annotation_field()
 
     document1 = TestDocument(text="test1")
     assert isinstance(document1.sentences, AnnotationList)
@@ -82,7 +83,7 @@ def test_document_with_annotations():
 
     assert document1 == TestDocument.fromdict(document1.asdict())
 
-    assert len(document1) == 3
+    assert len(document1) == 4
     assert len(document1["sentences"]) == 2
     assert document1["sentences"][0].target == document1.text
 
@@ -104,12 +105,14 @@ def test_document_with_annotations():
     assert len(document1["sentences"].predictions) == 2
     assert document1["sentences"].predictions[1].target == document1.text
 
+    document1.label.append(Label(label="test_label", score=1.0))
+
     assert document1 == TestDocument.fromdict(document1.asdict())
 
     # number of annotation fields
-    assert len(document1) == 3
+    assert len(document1) == 4
     # actual annotation fields (tests __iter__)
-    assert set(document1) == {"sentences", "entities", "relations"}
+    assert set(document1) == {"sentences", "entities", "relations", "label"}
 
 
 def test_as_type():
