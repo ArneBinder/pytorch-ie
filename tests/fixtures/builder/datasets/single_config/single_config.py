@@ -25,7 +25,7 @@ class ExampleDocument(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
-class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
+class Example(pytorch_ie.data.builder.GeneratorBasedBuilder):
     DOCUMENT_TYPE = ExampleDocument
 
     BASE_DATASET_PATH = str(FIXTURES_ROOT / "builder" / "datasets" / "base_single_config")
