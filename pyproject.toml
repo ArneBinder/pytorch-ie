@@ -32,7 +32,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.9"
 pytorch-lightning = "^1.6.1"
-datasets = "^2.3.2"
+datasets = "^2.4.0"
 transformers = "^4.18.0"
 huggingface-hub = "^0.5.1"
 torchmetrics = "^0.8.0"

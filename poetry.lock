@@ -226,7 +226,7 @@ development = ["black", "flake8", "mypy", "pytest", "types-colorama"]
 
 [[package]]
 name = "coverage"
-version = "6.4.2"
+version = "6.4.3"
 description = "Code coverage measurement for Python"
 category = "dev"
 optional = false
@@ -248,7 +248,7 @@ python-versions = ">=3.6,<4.0"
 
 [[package]]
 name = "datasets"
-version = "2.3.2"
+version = "2.4.0"
 description = "HuggingFace community-driven open-source library of datasets"
 category = "main"
 optional = false
@@ -257,7 +257,7 @@ python-versions = "*"
 [package.dependencies]
 aiohttp = "*"
 dill = "<0.3.6"
-fsspec = {version = ">=2021.05.0", extras = ["http"]}
+fsspec = {version = ">=2021.11.1", extras = ["http"]}
 huggingface-hub = ">=0.1.0,<1.0.0"
 multiprocess = "*"
 numpy = ">=1.17"
@@ -270,18 +270,18 @@ tqdm = ">=4.62.1"
 xxhash = "*"
 
 [package.extras]
-apache-beam = ["apache-beam (>=2.26.0)"]
-audio = ["librosa"]
-benchmarks = ["numpy (==1.18.5)", "tensorflow (==2.3.0)", "torch (==1.6.0)", "transformers (==3.0.2)"]
-dev = ["absl-py", "pytest", "pytest-datadir", "pytest-xdist", "apache-beam (>=2.26.0)", "elasticsearch (<8.0.0)", "aiobotocore (==1.4.2)", "boto3 (==1.17.106)", "botocore (==1.20.106)", "faiss-cpu (>=1.6.4)", "fsspec", "moto[s3,server] (==2.0.4)", "rarfile (>=4.0)", "s3fs (==2021.08.1)", "tensorflow (>=2.3,!=2.6.0,!=2.6.1)", "torch", "torchaudio", "soundfile", "transformers", "bs4", "conllu", "h5py", "langdetect", "lxml", "lz4", "mwparserfromhell", "nltk", "openpyxl", "py7zr", "tldextract", "zstandard", "sentencepiece", "sacremoses", "bert-score (>=0.3.6)", "jiwer", "mauve-text", "rouge-score", "sacrebleu", "scikit-learn", "scipy", "seqeval", "toml (>=0.10.1)", "requests-file (>=1.5.1)", "tldextract (>=3.1.0)", "texttable (>=1.6.3)", "Werkzeug (>=1.0.1)", "six (>=1.15.0,<1.16.0)", "Pillow (>=6.2.1)", "librosa", "black (>=22.0,<23.0)", "flake8 (>=3.8.3)", "isort (>=5.0.0)", "pyyaml (>=5.3.1)", "importlib-resources"]
-docs = ["s3fs"]
-quality = ["black (>=22.0,<23.0)", "flake8 (>=3.8.3)", "isort (>=5.0.0)", "pyyaml (>=5.3.1)"]
-s3 = ["fsspec", "boto3", "botocore", "s3fs"]
-tensorflow = ["tensorflow (>=2.2.0,!=2.6.0,!=2.6.1)"]
-tensorflow_gpu = ["tensorflow-gpu (>=2.2.0,!=2.6.0,!=2.6.1)"]
-tests = ["absl-py", "pytest", "pytest-datadir", "pytest-xdist", "apache-beam (>=2.26.0)", "elasticsearch (<8.0.0)", "aiobotocore (==1.4.2)", "boto3 (==1.17.106)", "botocore (==1.20.106)", "faiss-cpu (>=1.6.4)", "fsspec", "moto[s3,server] (==2.0.4)", "rarfile (>=4.0)", "s3fs (==2021.08.1)", "tensorflow (>=2.3,!=2.6.0,!=2.6.1)", "torch", "torchaudio", "soundfile", "transformers", "bs4", "conllu", "h5py", "langdetect", "lxml", "lz4", "mwparserfromhell", "nltk", "openpyxl", "py7zr", "tldextract", "zstandard", "sentencepiece", "sacremoses", "bert-score (>=0.3.6)", "jiwer", "mauve-text", "rouge-score", "sacrebleu", "scikit-learn", "scipy", "seqeval", "toml (>=0.10.1)", "requests-file (>=1.5.1)", "tldextract (>=3.1.0)", "texttable (>=1.6.3)", "Werkzeug (>=1.0.1)", "six (>=1.15.0,<1.16.0)", "Pillow (>=6.2.1)", "librosa", "importlib-resources"]
-torch = ["torch"]
 vision = ["Pillow (>=6.2.1)"]
+torch = ["torch"]
+tests = ["importlib-resources", "librosa", "Pillow (>=6.2.1)", "six (>=1.15.0,<1.16.0)", "Werkzeug (>=1.0.1)", "texttable (>=1.6.3)", "tldextract (>=3.1.0)", "requests-file (>=1.5.1)", "toml (>=0.10.1)", "seqeval", "scipy", "scikit-learn", "sacrebleu", "rouge-score (<0.0.7)", "mauve-text", "jiwer", "bert-score (>=0.3.6)", "sacremoses", "sentencepiece", "zstandard", "tldextract", "py7zr", "openpyxl", "nltk", "mwparserfromhell", "lz4", "lxml", "langdetect", "h5py", "conllu", "bs4", "transformers", "soundfile", "torchaudio", "torch", "tensorflow (>=2.3,!=2.6.0,!=2.6.1)", "s3fs (>=2021.11.1)", "rarfile (>=4.0)", "moto[server,s3] (==2.0.4)", "fsspec", "faiss-cpu (>=1.6.4)", "botocore (>=1.22.8)", "boto3 (>=1.19.8)", "aiobotocore (>=2.0.1)", "elasticsearch (<8.0.0)", "apache-beam (>=2.26.0)", "pytest-xdist", "pytest-datadir", "pytest", "absl-py"]
+tensorflow_gpu = ["tensorflow-gpu (>=2.2.0,!=2.6.0,!=2.6.1)"]
+tensorflow = ["tensorflow (>=2.2.0,!=2.6.0,!=2.6.1)"]
+s3 = ["s3fs", "botocore", "boto3", "fsspec"]
+quality = ["pyyaml (>=5.3.1)", "isort (>=5.0.0)", "flake8 (>=3.8.3)", "black (>=22.0,<23.0)"]
+docs = ["s3fs"]
+dev = ["importlib-resources", "pyyaml (>=5.3.1)", "isort (>=5.0.0)", "flake8 (>=3.8.3)", "black (>=22.0,<23.0)", "librosa", "Pillow (>=6.2.1)", "six (>=1.15.0,<1.16.0)", "Werkzeug (>=1.0.1)", "texttable (>=1.6.3)", "tldextract (>=3.1.0)", "requests-file (>=1.5.1)", "toml (>=0.10.1)", "seqeval", "scipy", "scikit-learn", "sacrebleu", "rouge-score (<0.0.7)", "mauve-text", "jiwer", "bert-score (>=0.3.6)", "sacremoses", "sentencepiece", "zstandard", "tldextract", "py7zr", "openpyxl", "nltk", "mwparserfromhell", "lz4", "lxml", "langdetect", "h5py", "conllu", "bs4", "transformers", "soundfile", "torchaudio", "torch", "tensorflow (>=2.3,!=2.6.0,!=2.6.1)", "s3fs (>=2021.11.1)", "rarfile (>=4.0)", "moto[server,s3] (==2.0.4)", "fsspec", "faiss-cpu (>=1.6.4)", "botocore (>=1.22.8)", "boto3 (>=1.19.8)", "aiobotocore (>=2.0.1)", "elasticsearch (<8.0.0)", "apache-beam (>=2.26.0)", "pytest-xdist", "pytest-datadir", "pytest", "absl-py"]
+benchmarks = ["transformers (==3.0.2)", "torch (==1.6.0)", "tensorflow (==2.3.0)", "numpy (==1.18.5)"]
+audio = ["librosa"]
+apache-beam = ["apache-beam (>=2.26.0)"]
 
 [[package]]
 name = "dill"
@@ -426,7 +426,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "fsspec"
-version = "2022.5.0"
+version = "2022.7.1"
 description = "File-system specification"
 category = "main"
 optional = false
@@ -437,27 +437,27 @@ aiohttp = {version = "*", optional = true, markers = "extra == \"http\""}
 requests = {version = "*", optional = true, markers = "extra == \"http\""}
 
 [package.extras]
-abfs = ["adlfs"]
-adl = ["adlfs"]
-arrow = ["pyarrow (>=1)"]
-dask = ["dask", "distributed"]
-dropbox = ["dropboxdrivefs", "requests", "dropbox"]
-entrypoints = ["importlib-metadata"]
-fuse = ["fusepy"]
-gcs = ["gcsfs"]
-git = ["pygit2"]
-github = ["requests"]
-gs = ["gcsfs"]
-gui = ["panel"]
-hdfs = ["pyarrow (>=1)"]
-http = ["requests", "aiohttp"]
-libarchive = ["libarchive-c"]
-oci = ["ocifs"]
-s3 = ["s3fs"]
-sftp = ["paramiko"]
-smb = ["smbprotocol"]
-ssh = ["paramiko"]
 tqdm = ["tqdm"]
+ssh = ["paramiko"]
+smb = ["smbprotocol"]
+sftp = ["paramiko"]
+s3 = ["s3fs"]
+oci = ["ocifs"]
+libarchive = ["libarchive-c"]
+http = ["aiohttp", "requests"]
+hdfs = ["pyarrow (>=1)"]
+gui = ["panel"]
+gs = ["gcsfs"]
+github = ["requests"]
+git = ["pygit2"]
+gcs = ["gcsfs"]
+fuse = ["fusepy"]
+entrypoints = ["importlib-metadata"]
+dropbox = ["dropbox", "requests", "dropboxdrivefs"]
+dask = ["distributed", "dask"]
+arrow = ["pyarrow (>=1)"]
+adl = ["adlfs"]
+abfs = ["adlfs"]
 
 [[package]]
 name = "furo"
@@ -1837,7 +1837,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "bb72df48a8b1bcd9baf9b54aafdae5b29bd13f6f8a6f43d41f494b4534f9369c"
+content-hash = "d2022584ca0d3a09478040cddd7621df0e6eb5e768ff561de1d0d51457b4f49d"
 
 [metadata.files]
 absl-py = [
