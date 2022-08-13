@@ -1,6 +1,7 @@
 import abc
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Type, Union
 
+from datasets import Features, DownloadConfig, DownloadMode
 from datasets.load import load_dataset_builder
 
 import datasets
@@ -26,7 +27,7 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:
-            base_builder_kwargs = {}
+            base_builder_kwargs: Dict[str, Any] = {}
             if self.CONFIG_NAME_MAPPING is not None:
                 config_name = kwargs.get("config_name", None)
                 base_builder_kwargs["name"] = self.CONFIG_NAME_MAPPING.get(
