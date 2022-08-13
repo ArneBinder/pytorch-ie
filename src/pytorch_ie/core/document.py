@@ -126,7 +126,6 @@ class Document(Mapping[str, Any]):
         default_factory=dict, init=False, repr=False
     )
     _annotation_fields: Set[str] = dataclasses.field(default_factory=set, init=False, repr=False)
-    _root_annotation: Optional[str] = dataclasses.field(default=None, init=False, repr=False)
 
     def __getitem__(self, key: str) -> AnnotationList:
         if key not in self._annotation_fields:
@@ -166,7 +165,7 @@ class Document(Mapping[str, Any]):
     def asdict(self):
         dct = {}
         for field in dataclasses.fields(self):
-            if field.name in {"_annotation_graph", "_annotation_fields", "_root_annotation"}:
+            if field.name in {"_annotation_graph", "_annotation_fields"}:
                 continue
 
             value = getattr(self, field.name)
@@ -187,7 +186,9 @@ class Document(Mapping[str, Any]):
     def fromdict(cls, dct):
         fields = dataclasses.fields(cls)
         annotation_fields = _get_annotation_fields(fields)
+        name_to_field = {f.name: f for f in annotation_fields}
 
+        root_target_fields = []
         cls_kwargs = {}
         for field in fields:
             if field not in annotation_fields:
@@ -195,29 +196,28 @@ class Document(Mapping[str, Any]):
 
                 if value is not None:
                     cls_kwargs[field.name] = value
+            else:
+                target = field.metadata["target"]
+                if target not in name_to_field:
+                    root_target_fields.append(field.name)
 
         doc = cls(**cls_kwargs)
 
-        name_to_field = {f.name: f for f in annotation_fields}
-
         dependency_ordered_fields: List[dataclasses.Field] = []
+
+        rooted_annotation_graph = dict(doc._annotation_graph)
+        rooted_annotation_graph["_dummy_root"] = root_target_fields
 
         _depth_first_search(
             lst=dependency_ordered_fields,
             visited=set(),
-            graph=doc._annotation_graph,
-            node=doc._root_annotation,
+            graph=rooted_annotation_graph,
+            node="_dummy_root",
         )
-
-        # get the remaining fields without dependencies
-        all_fields = {field.name for field in annotation_fields}
-        fields_wo_dependency = list(all_fields - set(dependency_ordered_fields))
 
         annotations = {}
         predictions = {}
-        for field_name in dependency_ordered_fields + fields_wo_dependency:
-            if field_name not in name_to_field:
-                continue
+        for field_name in dependency_ordered_fields[1:]:
 
             field = name_to_field[field_name]
 
