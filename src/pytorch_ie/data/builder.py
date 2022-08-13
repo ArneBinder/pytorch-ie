@@ -17,9 +17,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     # See datasets.load.load_dataset_builder for all possible parameters.
     BASE_DATASET_KWARGS: Optional[Dict[str, Any]] = None
 
-    # Define a mapping from config names to base config names. If there is no key defined for the
-    # selected config, that will be reused as base config name. Can also be set to None to disable
-    # any passing of config names to the base dataset builder.
+    # Define a mapping from config names to base config names. If there is no key defined
+    # for the selected config, that will be reused as base config name. Can also be set to None
+    # to disable any passing of config names to the base dataset builder.
     CONFIG_NAME_MAPPING: Optional[Dict[str, str]] = {}
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
