@@ -158,7 +158,6 @@ def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_targe
         assert not document["entities"].predictions
 
 
-@pytest.mark.slow
 def test_load_with_hf_datasets():
     dataset_path = "./datasets/conll2003"
 
