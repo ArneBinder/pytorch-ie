@@ -1,7 +1,6 @@
 import abc
-from typing import Any, Dict, Mapping, Optional, Type, Union
+from typing import Any, Dict, Mapping, Optional, Type
 
-from datasets import Features, DownloadConfig, DownloadMode
 from datasets.load import load_dataset_builder
 
 import datasets
