@@ -13,9 +13,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH: Optional[str] = None
 
-    # Define a mapping from config names to base config names. If there is no key defined
-    # for the selected config, that will be reused as base config name. Can also be set to None
-    # to disable any passing of config names to the base dataset builder.
+    # Define a mapping from config names to base config names. If the selected config name
+    # is not in the mapping, that name will be reused as base config name. The whole mapping
+    # can also be set to None to disable any passing of config names to the base dataset builder.
     CONFIG_NAME_MAPPING: Optional[Dict[str, str]] = {}
 
     # Define further arguments for the base dataset like a revision or overwrite the name.
