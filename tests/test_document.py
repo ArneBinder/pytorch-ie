@@ -5,6 +5,7 @@ import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core.document import _enumerate_dependencies
 from pytorch_ie.documents import TextDocument
 
 
@@ -55,9 +56,20 @@ def test_document_with_annotations():
     assert len(document1.sentences.predictions) == 0
     assert len(document1.entities.predictions) == 0
     assert len(document1.relations.predictions) == 0
-    assert set(document1._annotation_graph.keys()) == {"text", "entities"}
-    assert set(document1._annotation_graph["text"]) == {"sentences", "entities"}
-    assert set(document1._annotation_graph["entities"]) == {"relations"}
+    assert set(document1._annotation_graph.keys()) == {
+        "sentences",
+        "relations",
+        "entities",
+        "_artificial_root",
+    }
+    assert set(document1._annotation_graph["sentences"]) == {"text"}
+    assert set(document1._annotation_graph["relations"]) == {"entities"}
+    assert set(document1._annotation_graph["entities"]) == {"text"}
+    assert set(document1._annotation_graph["_artificial_root"]) == {
+        "sentences",
+        "relations",
+        "label",
+    }
 
     span1 = Span(start=1, end=2)
     span2 = Span(start=3, end=4)
@@ -154,3 +166,17 @@ def test_as_type():
     rel = BinaryRelation(head=span1, tail=span2, label="rel")
     document3.relations.append(rel)
     assert len(document3.relations) == 1
+
+
+def test_enumerate_dependencies():
+    # annotation field -> targets
+    graph = {"a": ["b"], "b": ["c"], "d": ["c", "a"], "e": ["f"], "g": ["e"], "h": ["e"]}
+    root_nodes = ["d", "g", "h"]
+    resolved = []
+    _enumerate_dependencies(resolved=resolved, dependency_graph=graph, nodes=root_nodes)
+
+    for i, node in enumerate(resolved):
+        already_resolved = resolved[:i]
+        targets = graph.get(node, [])
+        for t in targets:
+            assert t in already_resolved

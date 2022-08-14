@@ -4,13 +4,19 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union, overload
 
 
-def _depth_first_search(lst: List[str], visited: Set[str], graph: Dict[str, List[str]], node: str):
-    if node not in visited:
-        lst.append(node)
-        visited.add(node)
-        neighbours: List[str] = graph.get(node) or []
-        for neighbour in neighbours:
-            _depth_first_search(lst, visited, graph, neighbour)
+def _enumerate_dependencies(
+    resolved: List[str], dependency_graph: Dict[str, List[str]], nodes: List[str]
+):
+    for node in nodes:
+        if node not in resolved:
+            # terminal nodes
+            if node not in dependency_graph:
+                resolved.append(node)
+            # nodes with dependencies
+            else:
+                # enumerate all dependencies first, then append itself
+                _enumerate_dependencies(resolved, dependency_graph, nodes=dependency_graph[node])
+                resolved.append(node)
 
 
 def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.Field]:
@@ -139,7 +145,7 @@ class Document(Mapping[str, Any]):
         return len(self._annotation_fields)
 
     def __post_init__(self):
-        edges = set()
+        targeted = set()
         for field in dataclasses.fields(self):
             if field.name == "_annotation_graph":
                 continue
@@ -151,16 +157,19 @@ class Document(Mapping[str, Any]):
 
                 annotation_target = field.metadata.get("target")
                 if annotation_target is not None:
-                    edges.add((field.name, annotation_target))
+                    targeted.add(annotation_target)
+                    if field.name not in self._annotation_graph:
+                        self._annotation_graph[field.name] = []
+                    self._annotation_graph[field.name].append(annotation_target)
 
                 field_value = field.type(document=self, target=annotation_target)
                 setattr(self, field.name, field_value)
 
-        for edge in edges:
-            src, dst = edge
-            if dst not in self._annotation_graph:
-                self._annotation_graph[dst] = []
-            self._annotation_graph[dst].append(src)
+        if "_artificial_root" in self._annotation_graph:
+            raise ValueError(
+                "the annotation graph already contains a node _artificial_root, this is not allowed"
+            )
+        self._annotation_graph["_artificial_root"] = list(self._annotation_fields - targeted)
 
     def asdict(self):
         dct = {}
@@ -186,9 +195,7 @@ class Document(Mapping[str, Any]):
     def fromdict(cls, dct):
         fields = dataclasses.fields(cls)
         annotation_fields = _get_annotation_fields(fields)
-        name_to_field = {f.name: f for f in annotation_fields}
 
-        root_target_fields = []
         cls_kwargs = {}
         for field in fields:
             if field not in annotation_fields:
@@ -196,32 +203,24 @@ class Document(Mapping[str, Any]):
 
                 if value is not None:
                     cls_kwargs[field.name] = value
-            else:
-                target = field.metadata["target"]
-                if target not in name_to_field:
-                    root_target_fields.append(field.name)
 
         doc = cls(**cls_kwargs)
 
-        dependency_ordered_fields: List[dataclasses.Field] = []
+        name_to_field = {f.name: f for f in annotation_fields}
 
-        rooted_annotation_graph = dict(doc._annotation_graph)
-        if "_dummy_root" in rooted_annotation_graph:
-            raise ValueError(
-                "the annotation graph already contains a node _dummy_root, this is not allowed"
-            )
-        rooted_annotation_graph["_dummy_root"] = root_target_fields
-
-        _depth_first_search(
-            lst=dependency_ordered_fields,
-            visited=set(),
-            graph=rooted_annotation_graph,
-            node="_dummy_root",
+        dependency_ordered_fields: List[str] = []
+        _enumerate_dependencies(
+            dependency_ordered_fields,
+            dependency_graph=doc._annotation_graph,
+            nodes=doc._annotation_graph["_artificial_root"],
         )
 
         annotations = {}
         predictions = {}
-        for field_name in dependency_ordered_fields[1:]:
+        for field_name in dependency_ordered_fields:
+            # terminal nodes do not have to be an annotation field (e.g. the text field)
+            if field_name not in name_to_field:
+                continue
 
             field = name_to_field[field_name]
 
