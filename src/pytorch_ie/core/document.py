@@ -34,27 +34,47 @@ def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.F
     return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
 
-def annotation_field(target: Optional[str] = None):
-    return dataclasses.field(metadata=dict(target=target), init=False, repr=False)
+def annotation_field(target: Optional[str] = None, targets: Optional[List[str]] = None):
+    if target is not None:
+        targets = [target]
+    if targets is None:
+        targets = []
+    return dataclasses.field(metadata=dict(targets=targets), init=False, repr=False)
+
+
+# for now, we only have annotation lists and texts
+TARGET_TYPE = Union["AnnotationList", str]
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
 class Annotation:
-    _target: Optional[Union["AnnotationList", str]] = dataclasses.field(
+    _targets: Optional[Tuple[TARGET_TYPE, ...]] = dataclasses.field(
         default=None, init=False, repr=False, hash=False
     )
 
-    def set_target(self, value: Union["AnnotationList", str, None]):
-        object.__setattr__(self, "_target", value)
+    def set_targets(self, value: Optional[Tuple[TARGET_TYPE, ...]]):
+        object.__setattr__(self, "_targets", value)
 
     @property
-    def target(self) -> Optional[Union["AnnotationList", str]]:
-        return self._target
+    def target(self) -> Optional[TARGET_TYPE]:
+        if self._targets is None:
+            return None
+        if len(self._targets) == 0:
+            raise ValueError(f"annotation has no target")
+        if len(self._targets) > 1:
+            raise ValueError(
+                f"annotation has multiple targets, target is not defined in this case"
+            )
+        return self._targets[0]
+
+    @property
+    def targets(self) -> Optional[Tuple[TARGET_TYPE, ...]]:
+        return self._targets
 
     def asdict(self) -> Dict[str, Any]:
         dct = dataclasses.asdict(self)
         dct["_id"] = hash(self)
-        del dct["_target"]
+        del dct["_targets"]
         return dct
 
     @classmethod
@@ -72,16 +92,18 @@ T = TypeVar("T", covariant=False, bound="Annotation")
 
 
 class BaseAnnotationList(Sequence[T]):
-    def __init__(self, document: "Document", target: "str"):
+    def __init__(self, document: "Document", target_names: List[str]):
         self._document = document
-        self._target = target
+        self._target_names = target_names
         self._annotations: List[T] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseAnnotationList):
             return NotImplemented
 
-        return self._target == other._target and self._annotations == other._annotations
+        return (
+            self._target_names == other._target_names and self._annotations == other._annotations
+        )
 
     @overload
     def __getitem__(self, index: int) -> T:
@@ -98,8 +120,8 @@ class BaseAnnotationList(Sequence[T]):
         return len(self._annotations)
 
     def append(self, annotation: T) -> None:
-        target = getattr(self._document, self._target) if self._target is not None else None
-        annotation.set_target(target)
+        targets = tuple(getattr(self._document, target_name) for target_name in self._target_names)
+        annotation.set_targets(targets)
         self._annotations.append(annotation)
 
     def extend(self, annotations: Iterable[T]) -> None:
@@ -111,14 +133,16 @@ class BaseAnnotationList(Sequence[T]):
 
     def clear(self):
         for annotation in self._annotations:
-            annotation.set_target(None)
+            annotation.set_targets(None)
         self._annotations = []
 
 
 class AnnotationList(BaseAnnotationList[T]):
-    def __init__(self, document: "Document", target: "str"):
-        super().__init__(document=document, target=target)
-        self._predictions: BaseAnnotationList[T] = BaseAnnotationList(document, target)
+    def __init__(self, document: "Document", targets: List["str"]):
+        super().__init__(document=document, target_names=targets)
+        self._predictions: BaseAnnotationList[T] = BaseAnnotationList(
+            document, target_names=targets
+        )
 
     @property
     def predictions(self) -> BaseAnnotationList[T]:
@@ -166,14 +190,14 @@ class Document(Mapping[str, Any]):
             if field_origin is AnnotationList:
                 self._annotation_fields.add(field.name)
 
-                annotation_target = field.metadata.get("target")
-                if annotation_target is not None:
-                    targeted.add(annotation_target)
+                target_names = field.metadata.get("targets")
+                for target_name in target_names:
+                    targeted.add(target_name)
                     if field.name not in self._annotation_graph:
                         self._annotation_graph[field.name] = []
-                    self._annotation_graph[field.name].append(annotation_target)
+                    self._annotation_graph[field.name].append(target_name)
 
-                field_value = field.type(document=self, target=annotation_target)
+                field_value = field.type(document=self, targets=target_names)
                 setattr(self, field.name, field_value)
 
         if "_artificial_root" in self._annotation_graph:

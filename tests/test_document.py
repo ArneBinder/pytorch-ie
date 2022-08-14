@@ -188,3 +188,61 @@ def test_enumerate_dependencies_with_circle():
     resolved = []
     with pytest.raises(ValueError, match=re.escape("circular dependency detected at node: b")):
         _enumerate_dependencies(resolved=resolved, dependency_graph=graph, nodes=root_nodes)
+
+
+def test_annotation_list_with_multiple_targets():
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationList[BinaryRelation] = annotation_field(
+            targets=["entities1", "entities2"]
+        )
+        label: AnnotationList[Label] = annotation_field()
+
+    doc = TestDocument(text="test1")
+
+    assert set(doc._annotation_graph.keys()) == {
+        "entities1",
+        "entities2",
+        "relations",
+        "_artificial_root",
+    }
+    assert set(doc._annotation_graph["entities1"]) == {"text"}
+    assert set(doc._annotation_graph["entities2"]) == {"text"}
+    assert set(doc._annotation_graph["relations"]) == {"entities1", "entities2"}
+    assert set(doc._annotation_graph["_artificial_root"]) == {
+        "relations",
+        "label",
+    }
+
+    span1 = LabeledSpan(0, 2, label="a")
+    assert span1.targets is None
+    doc.entities1.append(span1)
+    assert doc.entities1[0] == span1
+    assert span1.target == doc.text
+
+    span2 = LabeledSpan(2, 4, label="b")
+    assert span2.targets is None
+    doc.entities2.append(span2)
+    assert doc.entities2[0] == span2
+    assert span2.target == doc.text
+
+    relation = BinaryRelation(head=span1, tail=span2, label="relation")
+    assert relation.targets is None
+    doc.relations.append(relation)
+    assert doc.relations[0] == relation
+    with pytest.raises(
+        ValueError,
+        match=re.escape("annotation has multiple targets, target is not defined in this case"),
+    ):
+        relation.target
+    assert relation.targets == (doc.entities1, doc.entities2)
+
+    label = Label("label")
+    assert label.target is None
+    doc.label.append(label)
+    assert doc.label[0] == label
+    with pytest.raises(ValueError, match=re.escape("annotation has no target")):
+        label.target
+    assert label.targets == ()
