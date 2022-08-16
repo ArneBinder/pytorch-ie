@@ -150,47 +150,39 @@ class TaskModule(
         if not isinstance(documents, (Sequence, Dataset)):
             documents = [documents]
 
-        # TODO: revisit the assumption that encode_target=True always implies that
-        # is_training=True
-        task_encodings = self.encode_inputs(documents, is_training=encode_target)
-
-        if encode_target:
-            self.encode_targets(task_encodings)
-
-        return task_encodings
-
-    def encode_inputs(
-        self,
-        documents: Union[Sequence[DocumentType], Dataset],
-        is_training: bool = False,
-    ) -> Union[
-        Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-        TaskEncodingSequence[
-            TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-        ],
-    ]:
         documents_in_order: List[DocumentType] = []
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
         for document in documents:
-            # a document might be generated on the fly (e.g. with a Dataset), so we add it here
-            documents_in_order.append(document)
+            if not encode_target:
+                # a document might be generated on the fly (e.g. with a Dataset), so we add it here
+                documents_in_order.append(document)
 
-            possible_task_encodings = self.encode_input(document, is_training)
+            # TODO: revisit the assumption that encode_target=True always implies that
+            # is_training=True (we should get rid of the is_training parameter!)
+            possible_task_encodings = self.encode_input(document, is_training=encode_target)
 
             # encode_input returns None or an empty list
             if possible_task_encodings is None or not possible_task_encodings:
                 continue
 
             elif isinstance(possible_task_encodings, TaskEncoding):
-                task_encodings.append(possible_task_encodings)
+                possible_task_encodings = [possible_task_encodings]
 
+            if encode_target:
+                for task_encoding in possible_task_encodings:
+                    # TODO: allow that encode_target can return None
+                    targets = self.encode_target(task_encoding)
+                    if targets is not None:
+                        task_encoding.targets = targets
+                        task_encodings.append(task_encoding)
+                        #yield task_encoding
             else:
                 task_encodings.extend(possible_task_encodings)
 
         # during training we return only the sequence of task_encodings, because
         # we don't need the ordering of input documents and also don't re-assign
         # task encodings to input documents
-        if is_training:
+        if encode_target:
             return task_encodings
         else:
             return TaskEncodingSequence(
@@ -209,14 +201,6 @@ class TaskModule(
         ]
     ]:
         pass
-
-    def encode_targets(
-        self,
-        task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    ) -> None:
-        for task_encoding in task_encodings:
-            target_encoding = self.encode_target(task_encoding)
-            task_encoding.targets = target_encoding
 
     @abstractmethod
     def encode_target(
