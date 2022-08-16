@@ -270,6 +270,7 @@ def test_multilabeled_binary_relation():
         )
 
 
+# TODO: This test should be moved to test_document (it tests functionality from document module)
 def test_annotation_list():
     @dataclass
     class TestDocument(TextDocument):
