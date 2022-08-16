@@ -175,7 +175,7 @@ class TaskModule(
                     if targets is not None:
                         task_encoding.targets = targets
                         task_encodings.append(task_encoding)
-                        #yield task_encoding
+                        # yield task_encoding
             else:
                 task_encodings.extend(possible_task_encodings)
 
