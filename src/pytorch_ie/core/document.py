@@ -8,11 +8,11 @@ def _enumerate_dependencies(
     resolved: List[str],
     dependency_graph: Dict[str, List[str]],
     nodes: List[str],
-    current_branch: Optional[Set[str]] = None,
+    current_path: Optional[Set[str]] = None,
 ):
-    current_branch = current_branch or set()
+    current_path = current_path or set()
     for node in nodes:
-        if node in current_branch:
+        if node in current_path:
             raise ValueError(f"circular dependency detected at node: {node}")
         if node not in resolved:
             # terminal nodes
@@ -25,7 +25,7 @@ def _enumerate_dependencies(
                     resolved,
                     dependency_graph,
                     nodes=dependency_graph[node],
-                    current_branch=current_branch | {node},
+                    current_path=current_path | {node},
                 )
                 resolved.append(node)
 
