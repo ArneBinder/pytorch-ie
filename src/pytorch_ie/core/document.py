@@ -5,9 +5,15 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Uni
 
 
 def _enumerate_dependencies(
-    resolved: List[str], dependency_graph: Dict[str, List[str]], nodes: List[str]
+    resolved: List[str],
+    dependency_graph: Dict[str, List[str]],
+    nodes: List[str],
+    current_branch: Optional[Set[str]] = None,
 ):
+    current_branch = current_branch or set()
     for node in nodes:
+        if node in current_branch:
+            raise ValueError(f"circular dependency detected at node: {node}")
         if node not in resolved:
             # terminal nodes
             if node not in dependency_graph:
@@ -15,7 +21,12 @@ def _enumerate_dependencies(
             # nodes with dependencies
             else:
                 # enumerate all dependencies first, then append itself
-                _enumerate_dependencies(resolved, dependency_graph, nodes=dependency_graph[node])
+                _enumerate_dependencies(
+                    resolved,
+                    dependency_graph,
+                    nodes=dependency_graph[node],
+                    current_branch=current_branch | {node},
+                )
                 resolved.append(node)
 
 
