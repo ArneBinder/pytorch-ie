@@ -186,7 +186,5 @@ def test_enumerate_dependencies_with_circle():
     graph = {"a": ["b"], "b": ["c"], "c": ["b"], "d": ["e"]}
     root_nodes = ["a", "d"]
     resolved = []
-    with pytest.raises(
-        ValueError, match=re.escape("circular dependency detected at node: b")
-    ):
+    with pytest.raises(ValueError, match=re.escape("circular dependency detected at node: b")):
         _enumerate_dependencies(resolved=resolved, dependency_graph=graph, nodes=root_nodes)
