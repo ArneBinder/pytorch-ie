@@ -256,18 +256,11 @@ class TaskModule(
                 for task_encoding in task_encodings
             ]
 
-        self.combine_outputs(task_encodings, task_outputs)
+        for task_encoding, task_output in zip(task_encodings, task_outputs):
+            self.combine_output(task_encoding, task_output)
 
         unique_documents = list(documents.values())
         return unique_documents
-
-    def combine_outputs(
-        self,
-        task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-        task_outputs: Sequence[TaskOutput],
-    ):
-        for task_encoding, task_output in zip(task_encodings, task_outputs):
-            self.combine_output(task_encoding, task_output)
 
     def combine_output(
         self,
