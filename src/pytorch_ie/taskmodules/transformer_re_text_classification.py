@@ -255,7 +255,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     def encode_input(
         self,
         document: TextDocument,
-        is_training: bool = False,
     ) -> Optional[
         Union[
             TransformerReTextClassificationTaskEncoding,
@@ -271,13 +270,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         }
 
         entities: Sequence[Span] = document[self.entity_annotation]
-
-        relations: Optional[Sequence[BinaryRelation]]
-        if is_training:
-            relations = document[self.relation_annotation]
-        else:
-            relations = None
-        # relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
 
         partitions: Sequence[Optional[Span]]
         if self.partition_annotation is not None:
@@ -297,7 +289,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             for head, tail, in _enumerate_entity_pairs(
                 entities=entities,
                 partition=partition,
-                relations=relations,
             ):
                 head_token_slice = get_token_slice(
                     character_slice=(head.start, head.end),
@@ -412,7 +403,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     def encode_target(
         self,
         task_encoding: TransformerReTextClassificationTaskEncoding,
-    ) -> TransformerReTextClassificationTargetEncoding:
+    ) -> Optional[TransformerReTextClassificationTargetEncoding]:
         metadata = task_encoding.metadata
         document = task_encoding.document
 
@@ -421,8 +412,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         head_tail_to_labels = {
             (relation.head, relation.tail): [relation.label] for relation in relations
         }
-
-        labels = head_tail_to_labels.get((metadata[HEAD], metadata[TAIL]), [self.none_label])
+        if (metadata[HEAD], metadata[TAIL]) not in head_tail_to_labels:
+            return None
+        labels = head_tail_to_labels[(metadata[HEAD], metadata[TAIL])]
         target = [self.label_to_id[label] for label in labels]
 
         return target

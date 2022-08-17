@@ -121,7 +121,6 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
     def encode_input(
         self,
         document: TextDocument,
-        is_training: bool = False,
     ) -> Optional[
         Union[
             TransformerSpanClassificationTaskEncoding,

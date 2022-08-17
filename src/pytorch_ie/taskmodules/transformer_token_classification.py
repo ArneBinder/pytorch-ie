@@ -135,7 +135,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
     def encode_input(
         self,
         document: TextDocument,
-        is_training: bool = False,
     ) -> Optional[
         Union[
             TransformerTokenClassificationTaskEncoding,

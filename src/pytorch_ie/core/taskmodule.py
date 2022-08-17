@@ -157,9 +157,7 @@ class TaskModule(
                 # a document might be generated on the fly (e.g. with a Dataset), so we add it here
                 documents_in_order.append(document)
 
-            # TODO: revisit the assumption that encode_target=True always implies that
-            # is_training=True (we should get rid of the is_training parameter!)
-            possible_task_encodings = self.encode_input(document, is_training=encode_target)
+            possible_task_encodings = self.encode_input(document)
 
             # encode_input returns None or an empty list
             if possible_task_encodings is None or not possible_task_encodings:
@@ -170,7 +168,6 @@ class TaskModule(
 
             if encode_target:
                 for task_encoding in possible_task_encodings:
-                    # TODO: allow that encode_target can return None
                     targets = self.encode_target(task_encoding)
                     if targets is not None:
                         task_encoding.targets = targets
@@ -193,7 +190,6 @@ class TaskModule(
     def encode_input(
         self,
         document: DocumentType,
-        is_training: bool = False,
     ) -> Optional[
         Union[
             TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
@@ -206,7 +202,7 @@ class TaskModule(
     def encode_target(
         self,
         task_encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
-    ) -> TargetEncoding:
+    ) -> Optional[TargetEncoding]:
         pass
 
     @abstractmethod
