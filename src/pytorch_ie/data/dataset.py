@@ -190,3 +190,18 @@ class Dataset(datasets.Dataset):
         new_dataset = Dataset.from_hf_dataset(new_hf_dataset, document_type=new_document_type)
 
         return new_dataset
+
+
+class IterableDataset(datasets.IterableDataset):
+
+    def __init__(self, document_type: Type[Document], **kwargs):
+        super().__init__(**kwargs)
+
+        self.document_type = document_type
+        # TODO: this does not exist for IterableDataset
+        self.set_format("document", document_type=document_type)
+
+    @classmethod
+    def from_hf_dataset(cls, dataset: datasets.IterableDataset, document_type) -> "IterableDataset":
+        # TODO
+        pass
