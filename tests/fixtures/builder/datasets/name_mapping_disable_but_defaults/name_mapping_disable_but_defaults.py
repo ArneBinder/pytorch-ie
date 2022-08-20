@@ -33,7 +33,7 @@ class Example(pytorch_ie.data.builder.GeneratorBasedBuilder):
     # map everything to "nl"
     CONFIG_NAME_MAPPING = None
 
-    BASE_DATASET_KWARGS = {"name": "nl"}
+    BASE_DATASET_KWARGS_DICT = {None: {"name": "nl"}}
 
     BUILDER_CONFIGS = [
         ExampleConfig(

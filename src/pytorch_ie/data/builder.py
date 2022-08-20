@@ -18,15 +18,19 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     # can also be set to None to disable any passing of config names to the base dataset builder.
     CONFIG_NAME_MAPPING: Optional[Dict[str, str]] = {}
 
-    # Define further arguments for the base dataset like a revision or overwrite the name.
-    # See datasets.load.load_dataset_builder for all possible parameters.
-    # Note, that this can also be used to create the base dataset *config* from scratch. This
-    # can be handy because dataset configs are not allowed to be modified or to be extended
-    # (e.g. for changing some preprocessing parameters).
-    BASE_DATASET_KWARGS: Optional[Dict[str, Any]] = None
+    # Define kwargs to create base configs from scratch. This should contain config names as keys
+    # (they will come from the result of CONFIG_NAME_MAPPING or from base_dataset_kwargs["config_name"])
+    # and the respective config kwargs dicts as values. Per default, the config name will be removed
+    # from the base builder kwargs, if it is used here because Huggingface datasets allows to either
+    # get configs by name or newly construct them. However, just add the name here if you want to keep
+    # it, i.e. BASE_DATASET_KWARGS_DICT["your_base_name"]["name"] = "your_base_name". This is useful
+    # if you just want to add some builder kwargs (e.g. setting data_dir or revision), but without the
+    # intention to create the base config from scratch.
+    BASE_DATASET_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = None
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
 
+        base_dataset_kwargs = base_dataset_kwargs or {}
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:
             base_builder_kwargs: Dict[str, Any] = {}
@@ -35,11 +39,24 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
                 base_builder_kwargs["name"] = self.CONFIG_NAME_MAPPING.get(
                     config_name, config_name
                 )
-            # use values from BASE_DATASET_KWARGS as defaults, but allow to overwrite them
-            if self.BASE_DATASET_KWARGS is not None:
-                base_builder_kwargs.update(self.BASE_DATASET_KWARGS)
-            if base_dataset_kwargs is not None:
-                base_builder_kwargs.update(base_dataset_kwargs)
+            # move config name over from base_dataset_kwargs already here to allow access via logic for
+            # BASE_DATASET_KWARGS_DICT
+            if base_dataset_kwargs.get("name", None) is not None:
+                base_builder_kwargs["name"] = base_dataset_kwargs.pop("name")
+            # use values from BASE_DATASET_KWARGS_DICT as defaults, but allow to overwrite them later on via
+            # base_dataset_kwargs (except for config name).
+            if self.BASE_DATASET_KWARGS_DICT is not None:
+                # get the default base builder kwargs (can contain base config kwargs) from BASE_DATASET_KWARGS_DICT
+                default_base_builder_kwargs = {}
+                # Note that we remove the config name from the kwargs since either a name or config_kwargs,
+                # but not both, should be present when creating the dataset builder. However, you can add
+                # the name manually by setting the respective entry, i.e.
+                # BASE_DATASET_KWARGS_DICT["selected_base_config"]["name"] = "selected_base_config".
+                config_name = base_builder_kwargs.pop("name", None)
+                if config_name in self.BASE_DATASET_KWARGS_DICT:
+                    default_base_builder_kwargs = self.BASE_DATASET_KWARGS_DICT[config_name]
+                base_builder_kwargs.update(default_base_builder_kwargs)
+            base_builder_kwargs.update(base_dataset_kwargs)
             self.base_builder = load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
                 **base_builder_kwargs,
