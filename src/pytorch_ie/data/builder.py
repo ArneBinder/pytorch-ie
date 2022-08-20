@@ -39,9 +39,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
                 base_builder_kwargs["name"] = self.CONFIG_NAME_MAPPING.get(
                     config_name, config_name
                 )
-            # move config name over from base_dataset_kwargs already here to allow access via logic for
-            # BASE_DATASET_KWARGS_DICT
-            if base_dataset_kwargs.get("name", None) is not None:
+            # move the config name (this may be None) over from base_dataset_kwargs already here to allow access via
+            # logic for BASE_DATASET_KWARGS_DICT
+            if "name" in base_dataset_kwargs:
                 base_builder_kwargs["name"] = base_dataset_kwargs.pop("name")
             # use values from BASE_DATASET_KWARGS_DICT as defaults, but allow to overwrite them later on via
             # base_dataset_kwargs (except for config name).
