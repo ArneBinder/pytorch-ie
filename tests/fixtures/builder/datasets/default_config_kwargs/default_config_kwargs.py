@@ -30,8 +30,7 @@ class Example(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH = str(FIXTURES_ROOT / "builder" / "datasets" / "base_multi_config")
 
-    BASE_DATASET_KWARGS_DICT = {
-        "es": {"name": "es"},
+    BASE_CONFIG_KWARGS_DICT = {
         "nl": {"version": datasets.Version("0.0.0"), "description": "new description"},
     }
 

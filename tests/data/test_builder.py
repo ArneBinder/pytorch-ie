@@ -107,29 +107,16 @@ def test_builder_class_name_mapping_disabled():
         assert builder.base_builder.info.config_name == "nl"
 
 
-def test_builder_class_name_mapping_disable_but_defaults():
-    dataset_module = dataset_module_factory(
-        str(DATASETS_ROOT / "name_mapping_disable_but_defaults")
-    )
-    builder_cls = import_main_class(dataset_module.module_path)
-    with tempfile.TemporaryDirectory() as tmp_cache_dir:
-        builder = builder_cls(config_name="es", cache_dir=tmp_cache_dir)
-        assert builder.info.config_name == "es"
-        assert builder.base_builder.info.config_name == "nl"
-
-        builder = builder_cls(config_name="nl", cache_dir=tmp_cache_dir)
-        assert builder.info.config_name == "nl"
-        assert builder.base_builder.info.config_name == "nl"
-
-
 def test_builder_class_name_mapping_and_defaults():
-    dataset_module = dataset_module_factory(str(DATASETS_ROOT / "name_mapping_and_default_kwargs"))
+    dataset_module = dataset_module_factory(str(DATASETS_ROOT / "default_config_kwargs"))
     builder_cls = import_main_class(dataset_module.module_path)
     with tempfile.TemporaryDirectory() as tmp_cache_dir:
+        # this comes from passing the config as base config name
         builder = builder_cls(config_name="es", cache_dir=tmp_cache_dir)
         assert builder.info.config_name == "es"
         assert builder.base_builder.info.config_name == "es"
 
+        # this gets created by the default setting from BASE_CONFIG_KWARGS_DICT
         builder = builder_cls(config_name="nl", cache_dir=tmp_cache_dir)
         assert builder.info.config_name == "nl"
         assert builder.base_builder.info.config_name == "default"

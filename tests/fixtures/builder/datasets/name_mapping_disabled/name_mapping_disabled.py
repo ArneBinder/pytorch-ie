@@ -30,8 +30,8 @@ class Example(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH = str(FIXTURES_ROOT / "builder" / "datasets" / "base_multi_config")
 
-    # map everything to "nl"
-    CONFIG_NAME_MAPPING = None
+    # disable any mapping
+    BASE_CONFIG_KWARGS_DICT = None
 
     BUILDER_CONFIGS = [
         ExampleConfig(
