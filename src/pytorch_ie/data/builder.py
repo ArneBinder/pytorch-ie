@@ -1,5 +1,5 @@
 import abc
-from typing import Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Type
 
 from datasets.load import load_dataset_builder
 
@@ -13,17 +13,42 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
     BASE_DATASET_PATH: Optional[str] = None
 
-    def __init__(self, **kwargs):
-        builder_kwargs = dict(kwargs)
-        builder_kwargs.pop("hash", None)
-        builder_kwargs.pop("base_path", None)
-        builder_kwargs.pop("config_name", None)
+    # Define kwargs to create base configs. This should contain config names as keys
+    # and the respective config kwargs dicts as values. If the config name is not contained, a new entry
+    # {"name": config_name} will be created for it, i.e. the config name is passed as base config name.
+    # This default behaviour can be disabled by setting BASE_CONFIG_KWARGS_DICT to None.
+    BASE_CONFIG_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = {}
+    # Define base builder kwargs. This should contain config names as keys and the respective
+    # builder kwargs dicts as values.
+    BASE_BUILDER_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = None
+
+    def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
 
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:
+            base_dataset_kwargs = base_dataset_kwargs or {}
+            base_builder_kwargs: Dict[str, Any] = {}
+
+            config_name = kwargs.get("config_name", None)
+
+            # get base config kwargs from mapping
+            if self.BASE_CONFIG_KWARGS_DICT is not None:
+                if config_name in self.BASE_CONFIG_KWARGS_DICT:
+                    config_kwargs = self.BASE_CONFIG_KWARGS_DICT[config_name]
+                else:
+                    # if the config name is not in BASE_CONFIG_KWARGS_DICT,
+                    # we pass it as base config name
+                    config_kwargs = {"name": config_name}
+                base_builder_kwargs.update(config_kwargs)
+
+            # get base builder kwargs from mapping
+            if self.BASE_BUILDER_KWARGS_DICT is not None:
+                base_builder_kwargs.update(self.BASE_BUILDER_KWARGS_DICT[config_name])
+
+            base_builder_kwargs.update(base_dataset_kwargs)
             self.base_builder = load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
-                **builder_kwargs,
+                **base_builder_kwargs,
             )
 
         super().__init__(**kwargs)
