@@ -190,6 +190,61 @@ def test_enumerate_dependencies_with_circle():
         _enumerate_dependencies(resolved=resolved, dependency_graph=graph, nodes=root_nodes)
 
 
+def test_annotation_list():
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    document = TestDocument(text="Entity A works at B.")
+
+    entity1 = LabeledSpan(start=0, end=8, label="PER")
+    entity2 = LabeledSpan(start=18, end=19, label="ORG")
+    assert entity1.target is None
+    assert entity2.target is None
+
+    document.entities.append(entity1)
+    document.entities.append(entity2)
+
+    entity3 = LabeledSpan(start=18, end=19, label="PRED-ORG")
+    entity4 = LabeledSpan(start=0, end=8, label="PRED-PER")
+    assert entity3.target is None
+    assert entity4.target is None
+
+    document.entities.predictions.append(entity3)
+    document.entities.predictions.append(entity4)
+
+    assert isinstance(document.entities, AnnotationList)
+    assert len(document.entities) == 2
+    assert document.entities[0] == entity1
+    assert document.entities[1] == entity2
+    assert document.entities[0].target == document.text
+    assert document.entities[1].target == document.text
+    assert entity1.target == document.text
+    assert entity2.target == document.text
+    assert str(document.entities[0]) == "Entity A"
+    assert str(document.entities[1]) == "B"
+
+    assert len(document.entities.predictions) == 2
+    assert document.entities.predictions[0] == entity3
+    assert document.entities.predictions[1] == entity4
+    assert document.entities.predictions[0].target == document.text
+    assert document.entities.predictions[1].target == document.text
+    assert entity3.target == document.text
+    assert entity4.target == document.text
+    assert str(document.entities.predictions[0]) == "B"
+    assert str(document.entities.predictions[1]) == "Entity A"
+
+    document.entities.clear()
+    assert len(document.entities) == 0
+    assert entity1.target is None
+    assert entity2.target is None
+
+    document.entities.predictions.clear()
+    assert len(document.entities.predictions) == 0
+    assert entity3.target is None
+    assert entity4.target is None
+
+
 def test_annotation_list_with_multiple_targets():
     @dataclasses.dataclass
     class TestDocument(TextDocument):
