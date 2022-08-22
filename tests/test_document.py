@@ -396,6 +396,25 @@ def test_annotation_list_with_named_targets_mismatch_error():
         doc = TestDocument(text="text1")
 
 
+def test_annotation_list_with_missing_target_names():
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        texta: str
+        textb: str
+        # note that the entries in targets do not follow the order of DoubleTextSpan._target_names
+        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(targets=["textb", "texta"])
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "A target name mapping is required for AnnotationLists containing Annotations with TARGET_NAMES, but "
+            'AnnotationList "crossrefs" has no target_names. You should pass a dict as targets containing the '
+            "following keys (see Annotation \"DoubleTextSpan\"): ('text1', 'text2')"
+        ),
+    ):
+        doc = TestDocument(texta="text1", textb="text2")
+
+
 def test_annotation_list_number_of_targets_mismatch_error():
     @dataclasses.dataclass
     class TestDocument(Document):
@@ -407,7 +426,8 @@ def test_annotation_list_number_of_targets_mismatch_error():
     with pytest.raises(
         TypeError,
         match=re.escape(
-            "number of targets ['texta'] does not match number of entries in DoubleTextSpan._target_names: ['text1', 'text2']"
+            "number of targets ['texta'] does not match number of entries in DoubleTextSpan._target_names: "
+            "['text1', 'text2']"
         ),
     ):
         doc = TestDocument(texta="text1", textb="text2")
@@ -422,7 +442,8 @@ def test_annotation_list_artificial_root_error():
     with pytest.raises(
         ValueError,
         match=re.escape(
-            'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note that AnnotationList entries with that name are not allowed.'
+            'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note '
+            "that AnnotationList entries with that name are not allowed."
         ),
     ):
         doc = TestDocument(text="text1")

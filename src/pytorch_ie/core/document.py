@@ -242,7 +242,8 @@ class Document(Mapping[str, Any]):
                     if target_names is not None:
                         if set(target_names) != set(annotation_target_names):
                             raise TypeError(
-                                f"keys of targets {sorted(target_names)} do not match {annotation_type.__name__}._target_names {sorted(annotation_target_names)}"
+                                f"keys of targets {sorted(target_names)} do not match "
+                                f"{annotation_type.__name__}._target_names {sorted(annotation_target_names)}"
                             )
                         # reorder targets according to annotation_target_names
                         target_name_mapping = dict(zip(target_names, targets))
@@ -254,7 +255,16 @@ class Document(Mapping[str, Any]):
                     else:
                         if len(annotation_target_names) != len(targets):
                             raise TypeError(
-                                f"number of targets {sorted(targets)} does not match number of entries in {annotation_type.__name__}._target_names: {sorted(annotation_target_names)}"
+                                f"number of targets {sorted(targets)} does not match number of entries in "
+                                f"{annotation_type.__name__}._target_names: {sorted(annotation_target_names)}"
+                            )
+                        # disallow multiple targets when target names are specified in the definition of the Annotation
+                        if len(annotation_target_names) > 1:
+                            raise TypeError(
+                                f"A target name mapping is required for AnnotationLists containing Annotations with "
+                                f'TARGET_NAMES, but AnnotationList "{field.name}" has no target_names. You should '
+                                f"pass a dict as targets containing the following keys (see Annotation "
+                                f'"{annotation_type.__name__}"): {annotation_target_names}'
                             )
 
                 field_value = field.type(document=self, targets=targets)
@@ -262,7 +272,8 @@ class Document(Mapping[str, Any]):
 
         if "_artificial_root" in self._annotation_graph:
             raise ValueError(
-                'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note that AnnotationList entries with that name are not allowed.'
+                'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note '
+                "that AnnotationList entries with that name are not allowed."
             )
         self._annotation_graph["_artificial_root"] = list(self._annotation_fields - targeted)
 
