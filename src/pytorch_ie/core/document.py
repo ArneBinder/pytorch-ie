@@ -47,26 +47,35 @@ def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.F
 
 
 def annotation_field(
-    target: Optional[str] = None, targets: Optional[Union[List[str], Dict[str, str]]] = None
+    target: Optional[str] = None,
+    targets: Optional[List[str]] = None,
+    named_targets: Optional[Dict[str, str]] = None,
 ):
+    """
+    We allow 3 variants to pass targets:
+    1) as single value `target: str`: this works if only one target is required,
+    2) as list of target names `targets: List[str]`: this works if multiple targets are required, but the
+        respective Annotation class does _not_ define `TARGET_NAMES` (this disallows the usage of named_targets
+        in the Annotation class), and
+    3) as a mapping `named_targets: Dict[str, str]` from entries in Annotation.TARGET_NAMES to field names of the
+        Document: This should be used if the respective Annotation class defines `TARGET_NAMES`, and thus,
+        makes use of the `named_targets` property.
+    """
     target_names = None
     new_targets = []
     if target is not None:
-        if targets is not None:
-            raise ValueError(f"either target or targets can be set, not both")
+        if targets is not None or named_targets is not None:
+            raise ValueError(f"only one of target, targets or named_targets can be set")
         new_targets = [target]
     if targets is not None:
-        if target is not None:
-            raise ValueError(f"either target or targets can be set, not both")
-        if isinstance(targets, list):
-            new_targets = targets
-        elif isinstance(targets, dict):
-            new_targets = list(targets.values())
-            target_names = list(targets.keys())
-        else:
-            raise TypeError(
-                f"targets has unknown type: {type(targets)}. It should be eitehr list or dict (for named targets)."
-            )
+        if target is not None or named_targets is not None:
+            raise ValueError(f"only one of target, targets or named_targets can be set")
+        new_targets = targets
+    if named_targets is not None:
+        if target is not None or targets is not None:
+            raise ValueError(f"only one of target, targets or named_targets can be set")
+        new_targets = list(named_targets.values())
+        target_names = list(named_targets.keys())
     return dataclasses.field(
         metadata=dict(targets=new_targets, target_names=target_names), init=False, repr=False
     )
@@ -239,7 +248,8 @@ class Document(Mapping[str, Any]):
                             f'annotation target "{target}" is not in field names of the document: {field_names}'
                         )
 
-                # check annotation target names and use them to reorder targets, if available
+                # check annotation target names and use them together with target names from the AnnotationList
+                # to reorder targets, if available
                 target_names = field.metadata.get("target_names")
                 annotation_type = typing.get_args(field.type)[0]
                 annotation_target_names = annotation_type.TARGET_NAMES
@@ -248,7 +258,7 @@ class Document(Mapping[str, Any]):
                         if set(target_names) != set(annotation_target_names):
                             raise TypeError(
                                 f"keys of targets {sorted(target_names)} do not match "
-                                f"{annotation_type.__name__}._target_names {sorted(annotation_target_names)}"
+                                f"{annotation_type.__name__}.TARGET_NAMES {sorted(annotation_target_names)}"
                             )
                         # reorder targets according to annotation_target_names
                         target_name_mapping = dict(zip(target_names, targets))
@@ -261,7 +271,7 @@ class Document(Mapping[str, Any]):
                         if len(annotation_target_names) != len(targets):
                             raise TypeError(
                                 f"number of targets {sorted(targets)} does not match number of entries in "
-                                f"{annotation_type.__name__}._target_names: {sorted(annotation_target_names)}"
+                                f"{annotation_type.__name__}.TARGET_NAMES: {sorted(annotation_target_names)}"
                             )
                         # disallow multiple targets when target names are specified in the definition of the Annotation
                         if len(annotation_target_names) > 1:

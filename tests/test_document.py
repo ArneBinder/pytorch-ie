@@ -341,11 +341,11 @@ def test_annotation_list_with_named_targets():
     class TestDocument(Document):
         texta: str
         textb: str
-        entities1: AnnotationList[LabeledSpan] = annotation_field(targets={"text": "texta"})
-        entities2: AnnotationList[LabeledSpan] = annotation_field(targets={"text": "textb"})
-        # note that the entries in targets do not follow the order of DoubleTextSpan._target_names
+        entities1: AnnotationList[LabeledSpan] = annotation_field(target="texta")
+        entities2: AnnotationList[LabeledSpan] = annotation_field(target="textb")
+        # note that the entries in targets do not follow the order of DoubleTextSpan.TARGET_NAMES
         crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(
-            targets={"text2": "textb", "text1": "texta"}
+            named_targets={"text2": "textb", "text1": "texta"}
         )
 
     doc = TestDocument(texta="text1", textb="text2")
@@ -401,11 +401,11 @@ def test_annotation_list_with_named_targets_mismatch_error():
     @dataclasses.dataclass
     class TestDocument(Document):
         text: str
-        entities1: AnnotationList[TextSpan] = annotation_field(targets={"textx": "text"})
+        entities1: AnnotationList[TextSpan] = annotation_field(named_targets={"textx": "text"})
 
     with pytest.raises(
         TypeError,
-        match=re.escape("keys of targets ['textx'] do not match TextSpan._target_names ['text']"),
+        match=re.escape("keys of targets ['textx'] do not match TextSpan.TARGET_NAMES ['text']"),
     ):
         doc = TestDocument(text="text1")
 
@@ -415,7 +415,7 @@ def test_annotation_list_with_missing_target_names():
     class TestDocument(Document):
         texta: str
         textb: str
-        # note that the entries in targets do not follow the order of DoubleTextSpan._target_names
+        # note that the entries in targets do not follow the order of DoubleTextSpan.TARGET_NAMES
         crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(targets=["textb", "texta"])
 
     with pytest.raises(
@@ -434,13 +434,12 @@ def test_annotation_list_number_of_targets_mismatch_error():
     class TestDocument(Document):
         texta: str
         textb: str
-        # note that the entries in targets do not follow the order of DoubleTextSpan._target_names
-        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(targets=["texta"])
+        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(target="texta")
 
     with pytest.raises(
         TypeError,
         match=re.escape(
-            "number of targets ['texta'] does not match number of entries in DoubleTextSpan._target_names: "
+            "number of targets ['texta'] does not match number of entries in DoubleTextSpan.TARGET_NAMES: "
             "['text1', 'text2']"
         ),
     ):
