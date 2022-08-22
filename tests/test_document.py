@@ -190,6 +190,20 @@ def test_enumerate_dependencies_with_circle():
         _enumerate_dependencies(resolved=resolved, dependency_graph=graph, nodes=root_nodes)
 
 
+def test_annotation_list_wrong_target():
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="does_not_exist")
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            'annotation target "does_not_exist" is not in field names of the document: '
+        ),
+    ):
+        document = TestDocument(text="text")
+
+
 def test_annotation_list():
     @dataclasses.dataclass
     class TestDocument(TextDocument):

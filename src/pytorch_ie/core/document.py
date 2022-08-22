@@ -218,6 +218,7 @@ class Document(Mapping[str, Any]):
 
     def __post_init__(self):
         targeted = set()
+        field_names = {field.name for field in dataclasses.fields(self)}
         for field in dataclasses.fields(self):
             if field.name == "_annotation_graph":
                 continue
@@ -233,6 +234,10 @@ class Document(Mapping[str, Any]):
                     if field.name not in self._annotation_graph:
                         self._annotation_graph[field.name] = []
                     self._annotation_graph[field.name].append(target)
+                    if target not in field_names:
+                        raise TypeError(
+                            f'annotation target "{target}" is not in field names of the document: {field_names}'
+                        )
 
                 # check annotation target names and use them to reorder targets, if available
                 target_names = field.metadata.get("target_names")
