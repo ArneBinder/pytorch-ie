@@ -278,8 +278,8 @@ class Document(Mapping[str, Any]):
                             raise TypeError(
                                 f"A target name mapping is required for AnnotationLists containing Annotations with "
                                 f'TARGET_NAMES, but AnnotationList "{field.name}" has no target_names. You should '
-                                f"pass a dict as targets containing the following keys (see Annotation "
-                                f'"{annotation_type.__name__}"): {annotation_target_names}'
+                                f"pass the named_targets dict containing the following keys (see Annotation "
+                                f'"{annotation_type.__name__}") to annotation_field: {annotation_target_names}'
                             )
 
                 field_value = field.type(document=self, targets=targets)

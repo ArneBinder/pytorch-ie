@@ -422,8 +422,8 @@ def test_annotation_list_with_missing_target_names():
         TypeError,
         match=re.escape(
             "A target name mapping is required for AnnotationLists containing Annotations with TARGET_NAMES, but "
-            'AnnotationList "crossrefs" has no target_names. You should pass a dict as targets containing the '
-            "following keys (see Annotation \"DoubleTextSpan\"): ('text1', 'text2')"
+            'AnnotationList "crossrefs" has no target_names. You should pass the named_targets dict containing the '
+            "following keys (see Annotation \"DoubleTextSpan\") to annotation_field: ('text1', 'text2')"
         ),
     ):
         doc = TestDocument(texta="text1", textb="text2")
