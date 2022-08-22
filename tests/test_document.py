@@ -382,7 +382,7 @@ def test_annotation_list_with_named_targets_mismatch_error():
             if self.targets is None:
                 return ""
             text: str = self.named_targets["text"]  # type: ignore
-            return str(text[self.start: self.end])
+            return str(text[self.start : self.end])
 
     @dataclasses.dataclass
     class TestDocument(Document):
@@ -391,9 +391,7 @@ def test_annotation_list_with_named_targets_mismatch_error():
 
     with pytest.raises(
         TypeError,
-        match=re.escape(
-            "keys of targets ['textx'] do not match TextSpan._target_names ['text']"
-        ),
+        match=re.escape("keys of targets ['textx'] do not match TextSpan._target_names ['text']"),
     ):
         doc = TestDocument(text="text1")
 
