@@ -5,7 +5,7 @@ import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.core.document import _enumerate_dependencies
+from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
 from pytorch_ie.documents import TextDocument
 
 
@@ -301,3 +301,130 @@ def test_annotation_list_with_multiple_targets():
     with pytest.raises(ValueError, match=re.escape("annotation has no target")):
         label.target
     assert label.targets == ()
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
+class DoubleTextSpan(Annotation):
+    TARGET_NAMES = (
+        "text1",
+        "text2",
+    )
+    start1: int
+    end1: int
+    start2: int
+    end2: int
+
+    def __str__(self) -> str:
+        if self.targets is None:
+            return ""
+        text1: str = self.named_targets["text1"]  # type: ignore
+        text2: str = self.named_targets["text2"]  # type: ignore
+        return str(text1[self.start1 : self.end1]) + "|" + str(text2[self.start2 : self.end2])
+
+
+def test_annotation_list_with_named_targets():
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        texta: str
+        textb: str
+        entities1: AnnotationList[LabeledSpan] = annotation_field(targets={"text": "texta"})
+        entities2: AnnotationList[LabeledSpan] = annotation_field(targets={"text": "textb"})
+        # note that the entries in targets do not follow the order of DoubleTextSpan._target_names
+        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(
+            targets={"text2": "textb", "text1": "texta"}
+        )
+
+    doc = TestDocument(texta="text1", textb="text2")
+
+    assert set(doc._annotation_graph.keys()) == {
+        "entities1",
+        "entities2",
+        "crossrefs",
+        "_artificial_root",
+    }
+    assert set(doc._annotation_graph["entities1"]) == {"texta"}
+    assert set(doc._annotation_graph["entities2"]) == {"textb"}
+    assert set(doc._annotation_graph["crossrefs"]) == {"texta", "textb"}
+    assert set(doc._annotation_graph["_artificial_root"]) == {
+        "entities1",
+        "entities2",
+        "crossrefs",
+    }
+
+    span1 = LabeledSpan(0, 2, label="a")
+    assert span1.targets is None
+    doc.entities1.append(span1)
+    assert doc.entities1[0] == span1
+    assert span1.target == doc.texta
+
+    span2 = LabeledSpan(2, 4, label="b")
+    assert span2.targets is None
+    doc.entities2.append(span2)
+    assert doc.entities2[0] == span2
+    assert span2.target == doc.textb
+
+    doublespan = DoubleTextSpan(0, 2, 1, 5)
+    assert doublespan.targets is None
+    doc.crossrefs.append(doublespan)
+    assert doc.crossrefs[0] == doublespan
+    assert doublespan.named_targets == {"text1": doc.texta, "text2": doc.textb}
+    assert str(doublespan) == "te|ext2"
+
+
+def test_annotation_list_with_named_targets_mismatch_error():
+    @dataclasses.dataclass(eq=True, frozen=True)
+    class TextSpan(Annotation):
+        TARGET_NAMES = ("text",)
+        start: int
+        end: int
+
+        def __str__(self) -> str:
+            if self.targets is None:
+                return ""
+            text: str = self.named_targets["text"]  # type: ignore
+            return str(text[self.start: self.end])
+
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        text: str
+        entities1: AnnotationList[TextSpan] = annotation_field(targets={"textx": "text"})
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "keys of targets ['textx'] do not match TextSpan._target_names ['text']"
+        ),
+    ):
+        doc = TestDocument(text="text1")
+
+
+def test_annotation_list_number_of_targets_mismatch_error():
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        texta: str
+        textb: str
+        # note that the entries in targets do not follow the order of DoubleTextSpan._target_names
+        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(targets=["texta"])
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "number of targets ['texta'] does not match number of entries in DoubleTextSpan._target_names: ['text1', 'text2']"
+        ),
+    ):
+        doc = TestDocument(texta="text1", textb="text2")
+
+
+def test_annotation_list_artificial_root_error():
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        text: str
+        _artificial_root: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note that AnnotationList entries with that name are not allowed.'
+        ),
+    ):
+        doc = TestDocument(text="text1")
