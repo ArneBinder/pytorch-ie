@@ -230,7 +230,7 @@ class IterableDataset(datasets.IterableDataset):
         for example in iter(super().__iter__()):
             yield self.document_type.fromdict(example)
 
-    def map(self, function: Optional[Callable] = None, **kwargs):
+    def map(self, function: Optional[Callable] = None, **kwargs):  # type: ignore
         dataset_mapped = super().map(
             function=decorate_convert_to_document_and_back(
                 function, document_type=self.document_type
