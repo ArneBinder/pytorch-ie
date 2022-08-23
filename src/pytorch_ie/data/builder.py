@@ -1,11 +1,12 @@
 import abc
+from functools import partial
 from typing import Any, Dict, Mapping, Optional, Type
 
 from datasets.load import load_dataset_builder
 
 import datasets
 from pytorch_ie.core.document import Document
-from pytorch_ie.data.dataset import Dataset, decorate_convert_to_dict_of_lists
+from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
 
 
 class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
@@ -87,3 +88,18 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         )
 
         return document_dataset
+
+    def _as_streaming_dataset_single(
+        self,
+        splits_generator,
+    ) -> IterableDataset:
+        dataset = super()._as_streaming_dataset_single(splits_generator)
+
+        fn = decorate_convert_to_dict_of_lists(self._generate_document)
+        fn_kwargs = self._generate_document_kwargs(dataset)
+        if fn_kwargs is not None:
+            fn = partial(fn, **fn_kwargs)
+        mapped_dataset = dataset.map(fn)
+        return IterableDataset.from_hf_dataset(
+            dataset=mapped_dataset, document_type=self.DOCUMENT_TYPE
+        )

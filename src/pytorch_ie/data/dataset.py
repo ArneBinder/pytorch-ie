@@ -31,6 +31,20 @@ def decorate_convert_to_dict_of_lists(f):
     return decorated
 
 
+def decorate_convert_to_document_and_back(f, document_type: Type[Document]):
+    @wraps(f)
+    def decorated(item, *args, **kwargs):
+        if isinstance(item, list):
+            # Convert a list of dicts into a dict of lists.
+            return pd.DataFrame(
+                [e.asdict() for e in f(document_type.fromdict(item), *args, **kwargs)]
+            ).to_dict(orient="list")
+        else:
+            return f(document_type.fromdict(item), *args, **kwargs).asdict()
+
+    return decorated
+
+
 D = TypeVar("D", bound=Document)
 
 
@@ -193,15 +207,34 @@ class Dataset(datasets.Dataset):
 
 
 class IterableDataset(datasets.IterableDataset):
-
     def __init__(self, document_type: Type[Document], **kwargs):
         super().__init__(**kwargs)
-
         self.document_type = document_type
-        # TODO: this does not exist for IterableDataset
-        self.set_format("document", document_type=document_type)
 
     @classmethod
-    def from_hf_dataset(cls, dataset: datasets.IterableDataset, document_type) -> "IterableDataset":
-        # TODO
-        pass
+    def from_hf_dataset(
+        cls, dataset: datasets.IterableDataset, document_type
+    ) -> "IterableDataset":
+        dataset = cls(
+            ex_iterable=dataset._ex_iterable,
+            info=dataset.info,
+            split=dataset.split,
+            format_type=dataset._format_type,
+            shuffling=dataset._shuffling,
+            token_per_repo_id=dataset._token_per_repo_id,
+            document_type=document_type,
+        )
+        return dataset
+
+    def __iter__(self):
+        for example in iter(super().__iter__()):
+            yield self.document_type.fromdict(example)
+
+    def map(self, function: Optional[Callable] = None, **kwargs):
+        dataset_mapped = super().map(
+            function=decorate_convert_to_document_and_back(
+                function, document_type=self.document_type
+            ),
+            **kwargs,
+        )
+        return IterableDataset.from_hf_dataset(dataset_mapped, document_type=self.document_type)
