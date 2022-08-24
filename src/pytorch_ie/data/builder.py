@@ -83,6 +83,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
             decorate_convert_to_dict_of_lists(self._generate_document), fn_kwargs=fn_kwargs
         )
 
+        if self.DOCUMENT_TYPE is None:
+            raise TypeError("the builder has no DOCUMENT_TYPE defined")
+
         document_dataset = Dataset.from_hf_dataset(
             mapped_dataset, document_type=self.DOCUMENT_TYPE
         )
@@ -100,6 +103,10 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         if fn_kwargs is not None:
             fn = partial(fn, **fn_kwargs)
         mapped_dataset = dataset.map(fn)
+
+        if self.DOCUMENT_TYPE is None:
+            raise TypeError("the builder has no DOCUMENT_TYPE defined")
+
         return IterableDataset.from_hf_dataset(
             dataset=mapped_dataset, document_type=self.DOCUMENT_TYPE
         )
