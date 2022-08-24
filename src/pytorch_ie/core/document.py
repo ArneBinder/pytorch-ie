@@ -144,6 +144,18 @@ class Document(Mapping[str, Any]):
     )
     _annotation_fields: Set[str] = dataclasses.field(default_factory=set, init=False, repr=False)
 
+    @classmethod
+    def fields(cls):
+        return [
+            f
+            for f in dataclasses.fields(cls)
+            if f.name not in {"_annotation_graph", "_annotation_fields"}
+        ]
+
+    @classmethod
+    def annotation_fields(cls):
+        return _get_annotation_fields(list(dataclasses.fields(cls)))
+
     def __getitem__(self, key: str) -> AnnotationList:
         if key not in self._annotation_fields:
             raise KeyError(f"Document has no attribute '{key}'.")
@@ -184,9 +196,7 @@ class Document(Mapping[str, Any]):
 
     def asdict(self):
         dct = {}
-        for field in dataclasses.fields(self):
-            if field.name in {"_annotation_graph", "_annotation_fields"}:
-                continue
+        for field in self.fields():
 
             value = getattr(self, field.name)
 
