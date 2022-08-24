@@ -1,4 +1,3 @@
-from dataclasses import fields
 from functools import wraps
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
@@ -6,7 +5,7 @@ import pandas as pd
 from datasets.formatting import _register_formatter
 
 import datasets
-from pytorch_ie.core.document import Document, _get_annotation_fields
+from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
 
 _register_formatter(DocumentFormatter, "document")
@@ -76,16 +75,8 @@ def _check_fields_for_casting(
     new_document_type: Type[Document],
     column_names: list[str],
 ) -> Tuple[Set[str], Set[str]]:
-    original_fields = {
-        # TODO: iterate over current_document_type.fields() instead to handling processing of non-annotation fields
-        field.name: field
-        for field in _get_annotation_fields(list(fields(current_document_type)))
-    }
-    new_fields = {
-        # TODO: iterate over new_document_type.fields() instead to handling processing of non-annotation fields
-        field.name: field
-        for field in _get_annotation_fields(list(fields(new_document_type)))
-    }
+    original_fields = {field.name: field for field in current_document_type.fields()}
+    new_fields = {field.name: field for field in new_document_type.fields()}
     hidden_fields = set(column_names) - set(original_fields)
     fields_to_map_not_in_original_fields = (
         set(field_mapping) - set(original_fields) - set(hidden_fields)
