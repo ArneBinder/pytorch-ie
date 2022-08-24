@@ -1,6 +1,6 @@
 from dataclasses import fields
 from functools import wraps
-from typing import Callable, Dict, List, Optional, Type, TypeVar, Union
+from typing import Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union
 
 import pandas as pd
 from datasets.formatting import _register_formatter
@@ -31,14 +31,39 @@ def decorate_convert_to_dict_of_lists(f):
     return decorated
 
 
-def decorate_convert_to_document_and_back(f, document_type: Type[Document]):
+E = TypeVar("E")
+
+
+def dl_to_ld(dict_list: Dict[str, List[E]]) -> List[Dict[str, E]]:
+    # Convert a dict of lists to a list of dicts
+    return [dict(zip(dict_list, t)) for t in zip(*dict_list.values())]
+
+
+def ld_to_dl(
+    list_dict: List[Dict[str, E]], keys: Optional[Iterable[str]] = None
+) -> Dict[str, List[E]]:
+    # Convert a list of dicts to a dict of lists.
+    # Provide keys to create the expected format when lists are empty.
+    if keys is None:
+        keys = list_dict[0]
+    return {k: [dic[k] for dic in list_dict] for k in keys}
+
+
+def decorate_convert_to_document_and_back(f, document_type: Type[Document], batched: bool):
     @wraps(f)
     def decorated(item, *args, **kwargs):
-        if isinstance(item, list):
+        if batched:
             # Convert a list of dicts into a dict of lists.
-            return pd.DataFrame(
-                [e.asdict() for e in f(document_type.fromdict(item), *args, **kwargs)]
-            ).to_dict(orient="list")
+            return ld_to_dl(
+                [
+                    e.asdict()
+                    for e in f(
+                        [document_type.fromdict(x) for x in dl_to_ld(item)], *args, **kwargs
+                    )
+                ],
+                # passing the keys allows to work correctly with empty lists
+                keys=item.keys(),
+            )
         else:
             return f(document_type.fromdict(item), *args, **kwargs).asdict()
 
@@ -230,11 +255,12 @@ class IterableDataset(datasets.IterableDataset):
         for example in iter(super().__iter__()):
             yield self.document_type.fromdict(example)
 
-    def map(self, function: Optional[Callable] = None, **kwargs):  # type: ignore
+    def map(self, function: Optional[Callable] = None, batched: bool = False, **kwargs):  # type: ignore
         dataset_mapped = super().map(
             function=decorate_convert_to_document_and_back(
-                function, document_type=self.document_type
+                function, document_type=self.document_type, batched=batched
             ),
+            batched=batched,
             **kwargs,
         )
         return IterableDataset.from_hf_dataset(dataset_mapped, document_type=self.document_type)
