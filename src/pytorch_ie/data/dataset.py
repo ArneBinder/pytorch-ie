@@ -78,11 +78,13 @@ def _check_fields_for_casting(
 ) -> Tuple[Set[str], Set[str]]:
     original_fields = {
         # TODO: iterate over current_document_type.fields() instead to handling processing of non-annotation fields
-        field.name: field for field in _get_annotation_fields(list(fields(current_document_type)))
+        field.name: field
+        for field in _get_annotation_fields(list(fields(current_document_type)))
     }
     new_fields = {
-        # TODO: iterate over current_document_type.fields() instead to handling processing of non-annotation fields
-        field.name: field for field in _get_annotation_fields(list(fields(new_document_type)))
+        # TODO: iterate over new_document_type.fields() instead to handling processing of non-annotation fields
+        field.name: field
+        for field in _get_annotation_fields(list(fields(new_document_type)))
     }
     hidden_fields = set(column_names) - set(original_fields)
     fields_to_map_not_in_original_fields = (
@@ -155,7 +157,9 @@ class Dataset(datasets.Dataset):
         )
 
     @classmethod
-    def from_hf_dataset(cls, dataset: datasets.Dataset, document_type: Type[Document]) -> "Dataset":
+    def from_hf_dataset(
+        cls, dataset: datasets.Dataset, document_type: Type[Document]
+    ) -> "Dataset":
         document_dataset = cls(document_type=document_type, **cls.get_base_kwargs(dataset))
         return document_dataset
 
