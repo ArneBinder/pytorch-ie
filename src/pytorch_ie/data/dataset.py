@@ -264,3 +264,11 @@ class IterableDataset(datasets.IterableDataset):
             **kwargs,
         )
         return IterableDataset.from_hf_dataset(dataset_mapped, document_type=self.document_type)
+
+    def cast_document_type(
+        self,
+        new_document_type: Type[D],
+        remove_columns: bool = False,
+        field_mapping: Optional[Dict[str, str]] = None,
+    ) -> "IterableDataset":
+        raise NotImplementedError("IterableDataset.cast_document_type() is not yet implemented")
