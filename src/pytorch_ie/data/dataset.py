@@ -1,6 +1,6 @@
 from dataclasses import fields
 from functools import wraps
-from typing import Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import pandas as pd
 from datasets.formatting import _register_formatter
@@ -70,6 +70,56 @@ def decorate_convert_to_document_and_back(f, document_type: Type[Document], batc
     return decorated
 
 
+def _check_fields_for_casting(
+    field_mapping: Dict[str, str],
+    current_document_type: Type[Document],
+    new_document_type: Type[Document],
+    column_names: list[str],
+) -> Tuple[Set[str], Set[str]]:
+    original_fields = {
+        # TODO: iterate over current_document_type.fields() instead to handling processing of non-annotation fields
+        field.name: field for field in _get_annotation_fields(list(fields(current_document_type)))
+    }
+    new_fields = {
+        # TODO: iterate over current_document_type.fields() instead to handling processing of non-annotation fields
+        field.name: field for field in _get_annotation_fields(list(fields(new_document_type)))
+    }
+    hidden_fields = set(column_names) - set(original_fields)
+    fields_to_map_not_in_original_fields = (
+        set(field_mapping) - set(original_fields) - set(hidden_fields)
+    )
+    if len(fields_to_map_not_in_original_fields) > 0:
+        raise ValueError(
+            f"some fields to rename are not in the original document_type or hidden fields: "
+            f"{fields_to_map_not_in_original_fields}"
+        )
+    mapped_but_not_in_new_fields = set(field_mapping.values()) - set(new_fields)
+    if len(mapped_but_not_in_new_fields) > 0:
+        raise ValueError(
+            f"some renamed fields are not in the new document_type: {mapped_but_not_in_new_fields}"
+        )
+    original_fields_mapped = {
+        field_mapping.get(f_name, f_name): f for f_name, f in original_fields.items()
+    }
+    added_field_names = set(new_fields) - set(original_fields_mapped)
+    removed_field_names = set(original_fields) - set(new_fields) - set(field_mapping)
+
+    # Sanity checks
+    kept_field_names = set(original_fields_mapped) & set(new_fields)
+    for f_name_mapped in kept_field_names:
+        f = original_fields_mapped[f_name_mapped]
+        new_f = new_fields[f_name_mapped]
+        if not (
+            f.type == new_f.type
+            and f.metadata == new_f.metadata
+            and f.default == new_f.default
+            and f.default_factory == new_f.default_factory
+        ):
+            raise ValueError(f"new field is not the same as old field:\n{new_f}\nvs\n{f}")
+
+    return removed_field_names, added_field_names
+
+
 D = TypeVar("D", bound=Document)
 
 
@@ -95,16 +145,25 @@ class Dataset(datasets.Dataset):
         self.set_format("document", document_type=document_type)
 
     @classmethod
-    def from_hf_dataset(cls, dataset: datasets.Dataset, document_type):
-        document_dataset = cls(
-            document_type=document_type,
+    def get_base_kwargs(cls, dataset: datasets.Dataset):
+        return dict(
             arrow_table=dataset._data,
             info=dataset.info,
             split=dataset.split,
             indices_table=dataset._indices,
             fingerprint=dataset._fingerprint,
         )
+
+    @classmethod
+    def from_hf_dataset(cls, dataset: datasets.Dataset, document_type: Type[Document]) -> "Dataset":
+        document_dataset = cls(document_type=document_type, **cls.get_base_kwargs(dataset))
         return document_dataset
+
+    def apply_hf_func(self, func, **kwargs) -> "Dataset":
+        return Dataset.from_hf_dataset(
+            func(self, **kwargs),
+            document_type=self.document_type,
+        )
 
     def map(
         self,
@@ -163,51 +222,15 @@ class Dataset(datasets.Dataset):
 
         field_mapping = field_mapping or {}
 
-        original_fields = {
-            field.name: field for field in _get_annotation_fields(list(fields(self.document_type)))
-        }
-        new_fields = {
-            field.name: field for field in _get_annotation_fields(list(fields(new_document_type)))
-        }
-        hidden_fields = set(self.column_names) - set(original_fields)
-        fields_to_map_not_in_original_fields = (
-            set(field_mapping) - set(original_fields) - set(hidden_fields)
+        removed_field_names, added_field_names = _check_fields_for_casting(
+            field_mapping=field_mapping,
+            current_document_type=self.document_type,
+            new_document_type=new_document_type,
+            column_names=self.column_names,
         )
-        if len(fields_to_map_not_in_original_fields) > 0:
-            raise ValueError(
-                f"some fields to rename are not in the original document_type or hidden fields: {fields_to_map_not_in_original_fields}"
-            )
-        mapped_but_not_in_new_fields = set(field_mapping.values()) - set(new_fields)
-        if len(mapped_but_not_in_new_fields) > 0:
-            raise ValueError(
-                f"some renamed fields are not in the new document_type: {mapped_but_not_in_new_fields}"
-            )
-        original_fields_mapped = {
-            field_mapping.get(f_name, f_name): f for f_name, f in original_fields.items()
-        }
-        added_field_names = set(new_fields) - set(original_fields_mapped)
-        removed_field_names = set(original_fields) - set(new_fields) - set(field_mapping)
 
-        # Sanity checks
-        kept_field_names = set(original_fields_mapped) & set(new_fields)
-        for f_name_mapped in kept_field_names:
-            f = original_fields_mapped[f_name_mapped]
-            new_f = new_fields[f_name_mapped]
-            if not (
-                f.type == new_f.type
-                and f.metadata == new_f.metadata
-                and f.default == new_f.default
-                and f.default_factory == new_f.default_factory
-            ):
-                raise ValueError(f"new field is not the same as old field:\n{new_f}\nvs\n{f}")
+        new_hf_dataset = datasets.Dataset(**self.get_base_kwargs(self))
 
-        new_hf_dataset = datasets.Dataset(
-            arrow_table=self._data,
-            info=self.info,
-            split=self.split,
-            indices_table=self._indices,
-            fingerprint=self._fingerprint,
-        )
         if remove_columns:
             new_hf_dataset = new_hf_dataset.remove_columns(list(removed_field_names))
 
@@ -216,7 +239,8 @@ class Dataset(datasets.Dataset):
         ) & set(new_hf_dataset.column_names)
         if len(rename_targets_already_in_columns) > 0:
             raise ValueError(
-                f"rename targets are already in column names: {rename_targets_already_in_columns}. Did you miss to set remove_columns=True in a previous call of cast_document_type?"
+                f"rename targets are already in column names: {rename_targets_already_in_columns}. Did you miss "
+                f"to set remove_columns=True in a previous call of cast_document_type?"
             )
 
         new_hf_dataset = new_hf_dataset.rename_columns(field_mapping)
@@ -232,22 +256,42 @@ class Dataset(datasets.Dataset):
 
 
 class IterableDataset(datasets.IterableDataset):
-    def __init__(self, document_type: Type[Document], **kwargs):
+    def __init__(
+        self, document_type: Type[Document], hidden_columns: Optional[Set[str]] = None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.document_type = document_type
+        self._document_field_names = [field.name for field in document_type.fields()]
+        self.hidden_columns = set()
+        if hidden_columns is not None:
+            self.hidden_columns.update(hidden_columns)
+
+    @property
+    def column_names(self) -> List[str]:
+        return self._document_field_names + list(self.hidden_columns)
 
     @classmethod
-    def from_hf_dataset(
-        cls, dataset: datasets.IterableDataset, document_type
-    ) -> "IterableDataset":
-        dataset = cls(
+    def get_base_kwargs(cls, dataset: datasets.IterableDataset):
+        return dict(
             ex_iterable=dataset._ex_iterable,
             info=dataset.info,
             split=dataset.split,
             format_type=dataset._format_type,
             shuffling=dataset._shuffling,
             token_per_repo_id=dataset._token_per_repo_id,
+        )
+
+    @classmethod
+    def from_hf_dataset(
+        cls,
+        dataset: datasets.IterableDataset,
+        document_type: Type[Document],
+        hidden_columns: Optional[Set[str]] = None,
+    ) -> "IterableDataset":
+        dataset = cls(
             document_type=document_type,
+            hidden_columns=hidden_columns,
+            **cls.get_base_kwargs(dataset),
         )
         return dataset
 
@@ -265,10 +309,83 @@ class IterableDataset(datasets.IterableDataset):
         )
         return IterableDataset.from_hf_dataset(dataset_mapped, document_type=self.document_type)
 
+    def apply_hf_func(self, func, **kwargs) -> "IterableDataset":
+        return IterableDataset.from_hf_dataset(
+            func(self, **kwargs),
+            document_type=self.document_type,
+            hidden_columns=self.hidden_columns,
+        )
+
+    def rename_columns(self, column_mapping: Dict[str, str]) -> "IterableDataset":
+        """
+        Rename several columns in the dataset, and move the features associated to the original columns under
+        the new column names.
+
+        Args:
+            column_mapping (:obj:`Dict[str, str]`): A mapping of columns to rename to their new names
+
+        Returns:
+            :class:`IterableDataset`: A copy of the dataset with renamed columns
+        """
+
+        def rename_columns_fn(example):
+            example = example.asdict()
+            if any(col not in example for col in column_mapping):
+                raise ValueError(
+                    f"Error when renaming {list(column_mapping)} to {list(column_mapping.values())}: "
+                    f"columns {set(column_mapping) - set(example)} are not in the dataset."
+                )
+            if any(col in example for col in column_mapping.values()):
+                raise ValueError(
+                    f"Error when renaming {list(column_mapping)} to {list(column_mapping.values())}: "
+                    f"columns {set(example) - set(column_mapping.values())} are already in the dataset."
+                )
+            renamed_example = {
+                new_column_name: example[original_column_name]
+                for original_column_name, new_column_name in column_mapping.items()
+            }
+            return self.document_type.fromdict(renamed_example)
+
+        return self.map(rename_columns_fn, remove_columns=list(column_mapping))
+
     def cast_document_type(
         self,
         new_document_type: Type[D],
         remove_columns: bool = False,
         field_mapping: Optional[Dict[str, str]] = None,
     ) -> "IterableDataset":
-        raise NotImplementedError("IterableDataset.cast_document_type() is not yet implemented")
+        field_mapping = field_mapping or {}
+
+        removed_field_names, added_field_names = _check_fields_for_casting(
+            field_mapping=field_mapping,
+            current_document_type=self.document_type,
+            new_document_type=new_document_type,
+            column_names=self.column_names,
+        )
+        hidden_columns = set(self.hidden_columns)
+        new_hf_dataset = datasets.IterableDataset(**self.get_base_kwargs(self))
+
+        if remove_columns:
+            new_hf_dataset = new_hf_dataset.remove_columns(column_names=list(removed_field_names))
+        else:
+            hidden_columns.update(removed_field_names)
+
+        rename_targets_already_in_columns = (
+            set(field_mapping.values()) - set(field_mapping)
+        ) & hidden_columns
+        if len(rename_targets_already_in_columns) > 0:
+            raise ValueError(
+                f"rename targets are already in column names: {rename_targets_already_in_columns}. Did you "
+                f"miss to set remove_columns=True in a previous call of cast_document_type?"
+            )
+
+        new_hf_dataset = new_hf_dataset.rename_columns(column_mapping=field_mapping)
+
+        new_dataset = IterableDataset.from_hf_dataset(
+            new_hf_dataset, hidden_columns=hidden_columns, document_type=new_document_type
+        )
+
+        return new_dataset
+
+    def take(self, n) -> "IterableDataset":
+        return self.apply_hf_func(datasets.IterableDataset.take, n=n)
