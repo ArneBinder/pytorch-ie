@@ -184,8 +184,8 @@ def test_cast_document_type_rename_field(dataset_train):
 
 def test_cast_document_type_swap_fields(dataset_train):
     if isinstance(dataset_train, IterableDataset):
-        # TODO: for now, this would fail because IterableDataset.rename_columns() (copied from Huggingface)
-        #  is too restrictive
+        # TODO: for now, this would fail because datasets.IterableDataset.rename_columns() is too restrictive
+        #  (does not allow swapping)
         return
 
     # just add "parts" to have another field to swap "entities" with

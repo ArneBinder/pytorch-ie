@@ -311,38 +311,6 @@ class IterableDataset(datasets.IterableDataset):
             hidden_columns=self.hidden_columns,
         )
 
-    def rename_columns(self, column_mapping: Dict[str, str]) -> "IterableDataset":
-        """
-        Rename several columns in the dataset, and move the features associated to the original columns under
-        the new column names.
-
-        Args:
-            column_mapping (:obj:`Dict[str, str]`): A mapping of columns to rename to their new names
-
-        Returns:
-            :class:`IterableDataset`: A copy of the dataset with renamed columns
-        """
-
-        def rename_columns_fn(example):
-            example = example.asdict()
-            if any(col not in example for col in column_mapping):
-                raise ValueError(
-                    f"Error when renaming {list(column_mapping)} to {list(column_mapping.values())}: "
-                    f"columns {set(column_mapping) - set(example)} are not in the dataset."
-                )
-            if any(col in example for col in column_mapping.values()):
-                raise ValueError(
-                    f"Error when renaming {list(column_mapping)} to {list(column_mapping.values())}: "
-                    f"columns {set(example) - set(column_mapping.values())} are already in the dataset."
-                )
-            renamed_example = {
-                new_column_name: example[original_column_name]
-                for original_column_name, new_column_name in column_mapping.items()
-            }
-            return self.document_type.fromdict(renamed_example)
-
-        return self.map(rename_columns_fn, remove_columns=list(column_mapping))
-
     def cast_document_type(
         self,
         new_document_type: Type[D],
