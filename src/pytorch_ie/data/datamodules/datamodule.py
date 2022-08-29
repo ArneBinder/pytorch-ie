@@ -1,8 +1,8 @@
-from typing import Any, Dict, Generic, Optional, Sequence
+from typing import Any, Dict, Generic, Iterator, Optional, Sequence
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataset import Dataset, IterableDataset, T_co
 
 from pytorch_ie.core.taskmodule import (
     DocumentType,
@@ -27,6 +27,19 @@ class TaskEncodingDataset(
 
     def __len__(self):
         return len(self._encodings)
+
+
+class IterableTaskEncodingDataset(
+    IterableDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+    Generic[DocumentType, InputEncoding, TargetEncoding],
+):
+    def __iter__(self) -> Iterator[T_co]:
+        yield from self._encodings
+
+    def __init__(
+        self, encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
+    ):
+        self._encodings = encodings
 
 
 class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, TargetEncoding]):
