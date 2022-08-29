@@ -1,45 +1,14 @@
-from typing import Any, Dict, Generic, Iterator, Optional, Sequence, Union
+from typing import Any, Dict, Generic, Optional, Sequence, Union
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset, T_co
 
-from pytorch_ie.core.taskmodule import (
-    DocumentType,
-    InputEncoding,
-    TargetEncoding,
-    TaskEncoding,
-    TaskModule,
+from pytorch_ie.core.taskmodule import DocumentType, InputEncoding, TargetEncoding, TaskModule
+from pytorch_ie.data.task_encoding import (
+    IterableTaskEncodingDataset,
+    TaskEncodingDataset,
+    as_dataset,
 )
-
-
-class TaskEncodingDataset(
-    Dataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    Generic[DocumentType, InputEncoding, TargetEncoding],
-):
-    def __init__(
-        self, encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
-    ):
-        self._encodings = encodings
-
-    def __getitem__(self, index) -> TaskEncoding[DocumentType, InputEncoding, TargetEncoding]:
-        return self._encodings[index]
-
-    def __len__(self):
-        return len(self._encodings)
-
-
-class IterableTaskEncodingDataset(
-    IterableDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    Generic[DocumentType, InputEncoding, TargetEncoding],
-):
-    def __iter__(self) -> Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
-        yield from self._encodings
-
-    def __init__(
-        self, encodings: Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
-    ):
-        self._encodings = encodings
 
 
 class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, TargetEncoding]):
@@ -113,10 +82,7 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
             if split is None or split not in self.dataset:
                 continue
             encodings = self.taskmodule.encode(self.dataset[split], encode_target=True)
-            if isinstance(encodings, Iterator):
-                self._data[split] = IterableTaskEncodingDataset(encodings)
-            else:
-                self._data[split] = TaskEncodingDataset(encodings)
+            self._data[split] = as_dataset(encodings)
 
     def data_split(
         self, split: Optional[str] = None

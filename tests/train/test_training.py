@@ -1,11 +1,8 @@
-from typing import Iterator, List
-
 import pytest
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
-from pytorch_ie.core import Document, PyTorchIEModel, TaskModule
-from pytorch_ie.data.datamodules.datamodule import IterableTaskEncodingDataset
+from pytorch_ie.data.task_encoding import as_dataset
 from pytorch_ie.models import TransformerTokenClassificationModel
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 
@@ -32,28 +29,22 @@ def model(prepared_taskmodule):
     return model
 
 
-@pytest.mark.parametrize("encode_batch_size", [None, 2])
-def test_transformer_token_classification(
-    model, prepared_taskmodule, documents, encode_batch_size
-):
+@pytest.mark.parametrize("as_iterator", [False, True])
+def test_transformer_token_classification(model, prepared_taskmodule, documents, as_iterator):
     pl.seed_everything(42)
 
     num_epochs = 1
     batch_size = 32
 
-    train_dataset = prepared_taskmodule.encode(
-        documents, encode_target=True, batch_size=encode_batch_size
+    encodings = prepared_taskmodule.encode(
+        documents, encode_target=True, batch_size=2, as_iterator=as_iterator
     )
+    train_dataset = as_dataset(encodings)
 
-    if isinstance(train_dataset, Iterator):
-        train_dataset = IterableTaskEncodingDataset(train_dataset)
-        shuffle = False
-    else:
-        shuffle = True
     train_dataloader = DataLoader(
-        train_dataset,  # type: ignore
+        train_dataset,
         batch_size=batch_size,
-        shuffle=shuffle,
+        shuffle=not isinstance(train_dataset, IterableDataset),
         collate_fn=prepared_taskmodule.collate,
     )
 
