@@ -176,7 +176,7 @@ class TaskModule(
         self,
         documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
         encode_target: bool = False,
-        batch_size: Optional[int] = None,
+        document_batch_size: Optional[int] = None,
         as_task_encoding_sequence: Optional[bool] = None,
         as_iterator: Optional[bool] = None,
     ) -> Union[
@@ -201,13 +201,13 @@ class TaskModule(
             if as_task_encoding_sequence:
                 raise ValueError(f"can not return a TaskEncodingSequence as Iterator")
             return self._encoding_iterator(
-                documents=documents, encode_target=encode_target, batch_size=batch_size
+                documents=documents, encode_target=encode_target, batch_size=document_batch_size
             )
         else:
             task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
             documents_in_order: List[DocumentType] = []
             docs_as_list = list(documents)
-            bs = batch_size or len(docs_as_list)
+            bs = document_batch_size or len(docs_as_list)
             for i in range(0, len(docs_as_list), bs):
                 cur_task_encodings, cur_documents_in_order = self.batch_encode(
                     documents=docs_as_list[i : i + bs], encode_target=encode_target

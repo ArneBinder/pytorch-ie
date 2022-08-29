@@ -37,7 +37,7 @@ def test_transformer_token_classification(model, prepared_taskmodule, documents,
     batch_size = 32
 
     encodings = prepared_taskmodule.encode(
-        documents, encode_target=True, batch_size=2, as_iterator=as_iterator
+        documents, encode_target=True, document_batch_size=2, as_iterator=as_iterator
     )
     train_dataset = as_dataset(encodings)
 
