@@ -137,37 +137,79 @@ class TaskModule(
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         return None
 
+    def _encode_batch(self, documents: Sequence[DocumentType], encode_target: bool):
+        ## TODO: revisit the assumption that encode_target=True always implies that
+        ## is_training=True
+        task_encodings, documents_in_order = self.encode_inputs(
+            documents, is_training=encode_target
+        )
+
+        if encode_target:
+            task_encodings = self.encode_targets(task_encodings)
+        return task_encodings, documents_in_order
+
     def encode(
         self,
         documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
         encode_target: bool = False,
+        batch_size: Optional[int] = None,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         TaskEncodingSequence[
             TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
         ],
+        Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
+        # TODO: pass return_task_encoding_sequence directly
+        return_task_encoding_sequence = encode_target
+
         if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
             documents = [documents]
 
-        # TODO: revisit the assumption that encode_target=True always implies that
-        # is_training=True
-        task_encodings = self.encode_inputs(documents, is_training=encode_target)
+        # TODO: should not depend on the batch_size but on isinstance(documents, IterableDataset)
+        if batch_size is not None:
+            if return_task_encoding_sequence:
+                raise ValueError(
+                    f"can not return a TaskEncodingSequence for iterable input documents"
+                )
+            document_batch = []
+            for i, doc in enumerate(documents):
+                document_batch.append(doc)
 
-        if encode_target:
-            self.encode_targets(task_encodings)
+                if len(document_batch) >= batch_size:
+                    yield from self._encode_batch(
+                        documents=document_batch[:batch_size], encode_target=encode_target
+                    )[0]
+                    document_batch = document_batch[batch_size:]
 
-        return task_encodings
+            if len(document_batch) > 0:
+                yield from self._encode_batch(
+                    documents=document_batch, encode_target=encode_target
+                )[0]
+
+        else:
+            task_encodings, documents_in_order = self._encode_batch(
+                documents=documents, encode_target=encode_target
+            )
+
+            # during training we return only the sequence of task_encodings, because
+            # we don't need the ordering of input documents and also don't re-assign
+            # task encodings to input documents
+            if return_task_encoding_sequence:
+                task_encodings = TaskEncodingSequence(
+                    task_encodings=task_encodings,
+                    documents_in_order=documents_in_order,  # list(documents),  # documents_in_order
+                )
+
+            return task_encodings
 
     def encode_inputs(
         self,
         documents: Union[Sequence[DocumentType], Dataset, IterableDataset],
         is_training: bool = False,
-    ) -> Union[
+    ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-        TaskEncodingSequence[
-            TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-        ],
+        Sequence[DocumentType],
     ]:
         documents_in_order: List[DocumentType] = []
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
@@ -187,15 +229,7 @@ class TaskModule(
             else:
                 task_encodings.extend(possible_task_encodings)
 
-        # during training we return only the sequence of task_encodings, because
-        # we don't need the ordering of input documents and also don't re-assign
-        # task encodings to input documents
-        if is_training:
-            return task_encodings
-        else:
-            return TaskEncodingSequence(
-                task_encodings=task_encodings, documents_in_order=documents_in_order
-            )
+        return task_encodings, documents_in_order
 
     @abstractmethod
     def encode_input(
@@ -213,10 +247,15 @@ class TaskModule(
     def encode_targets(
         self,
         task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    ) -> None:
+    ) -> Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
+        res = []
         for task_encoding in task_encodings:
-            target_encoding = self.encode_target(task_encoding)
-            task_encoding.targets = target_encoding
+            possible_target_encoding = self.encode_target(task_encoding)
+            if possible_target_encoding is None:
+                continue
+            task_encoding.targets = possible_target_encoding
+            res.append(task_encoding)
+        return res
 
     @abstractmethod
     def encode_target(
