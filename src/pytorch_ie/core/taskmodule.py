@@ -137,7 +137,11 @@ class TaskModule(
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         return None
 
-    def _encode_batch(self, documents: Sequence[DocumentType], encode_target: bool):
+    def batch_encode(
+        self, documents: Sequence[DocumentType], encode_target: bool
+    ) -> Tuple[
+        Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]], Sequence[DocumentType]
+    ]:
         ## TODO: revisit the assumption that encode_target=True always implies that
         ## is_training=True
         task_encodings, documents_in_order = self.encode_inputs(
@@ -177,18 +181,18 @@ class TaskModule(
                 document_batch.append(doc)
 
                 if len(document_batch) >= batch_size:
-                    yield from self._encode_batch(
+                    yield from self.batch_encode(
                         documents=document_batch[:batch_size], encode_target=encode_target
                     )[0]
                     document_batch = document_batch[batch_size:]
 
             if len(document_batch) > 0:
-                yield from self._encode_batch(
+                yield from self.batch_encode(
                     documents=document_batch, encode_target=encode_target
                 )[0]
 
         else:
-            task_encodings, documents_in_order = self._encode_batch(
+            task_encodings, documents_in_order = self.batch_encode(
                 documents=documents, encode_target=encode_target
             )
 
