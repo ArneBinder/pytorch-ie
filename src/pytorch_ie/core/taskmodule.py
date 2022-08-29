@@ -177,7 +177,8 @@ class TaskModule(
         documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
         encode_target: bool = False,
         batch_size: Optional[int] = None,
-        return_task_encoding_sequence: Optional[bool] = None,
+        as_task_encoding_sequence: Optional[bool] = None,
+        as_iterator: Optional[bool] = None,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         TaskEncodingSequence[
@@ -185,19 +186,20 @@ class TaskModule(
         ],
         Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
-        # TODO: backwards compatibility
-        if return_task_encoding_sequence is None:
-            return_task_encoding_sequence = not encode_target
+        # backwards compatibility
+        if as_task_encoding_sequence is None:
+            as_task_encoding_sequence = not encode_target
 
         if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
             documents = [documents]
 
-        # TODO: should not depend on the batch_size but on isinstance(documents, IterableDataset)
-        if batch_size is not None:
-            if return_task_encoding_sequence:
-                raise ValueError(
-                    f"can not return a TaskEncodingSequence for iterable input documents"
-                )
+        if as_iterator is None:
+            # TODO: should check isinstance(documents, (IterableDataset, Iterator))
+            as_iterator = isinstance(documents, Iterator)
+
+        if as_iterator:
+            if as_task_encoding_sequence:
+                raise ValueError(f"can not return a TaskEncodingSequence as Iterator")
             return self._encoding_iterator(
                 documents=documents, encode_target=encode_target, batch_size=batch_size
             )
