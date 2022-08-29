@@ -204,9 +204,16 @@ class TaskModule(
                 documents=documents, encode_target=encode_target, batch_size=batch_size
             )
         else:
-            task_encodings, documents_in_order = self.batch_encode(
-                documents=documents, encode_target=encode_target
-            )
+            task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
+            documents_in_order: List[DocumentType] = []
+            docs_as_list = list(documents)
+            bs = batch_size or len(docs_as_list)
+            for i in range(0, len(docs_as_list), bs):
+                cur_task_encodings, cur_documents_in_order = self.batch_encode(
+                    documents=docs_as_list[i : i + bs], encode_target=encode_target
+                )
+                task_encodings.extend(cur_task_encodings)
+                documents_in_order.extend(cur_documents_in_order)
 
             # during training we return only the sequence of task_encodings, because
             # we don't need the ordering of input documents and also don't re-assign
