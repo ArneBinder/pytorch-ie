@@ -161,7 +161,7 @@ class TaskModule(
         Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
         # TODO: pass return_task_encoding_sequence directly
-        return_task_encoding_sequence = encode_target
+        return_task_encoding_sequence = not encode_target
 
         if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
             documents = [documents]
