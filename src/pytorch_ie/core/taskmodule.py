@@ -215,15 +215,15 @@ class TaskModule(
                 task_encodings.extend(cur_task_encodings)
                 documents_in_order.extend(cur_documents_in_order)
 
-            # during training we return only the sequence of task_encodings, because
-            # we don't need the ordering of input documents and also don't re-assign
-            # task encodings to input documents
             if as_task_encoding_sequence:
                 return TaskEncodingSequence(
                     task_encodings=task_encodings,
                     documents_in_order=documents_in_order,
                 )
             else:
+                # during training we return only the sequence of task_encodings, because
+                # we don't need the ordering of input documents and also don't re-assign
+                # task encodings to input documents
                 return task_encodings
 
     def encode_inputs(
