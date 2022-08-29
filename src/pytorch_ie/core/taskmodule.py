@@ -150,7 +150,7 @@ class TaskModule(
         )
 
         if encode_target:
-            task_encodings = self.encode_targets(task_encodings)
+            self.encode_targets(task_encodings)
         return task_encodings, documents_in_order
 
     def _encoding_iterator(
@@ -261,15 +261,10 @@ class TaskModule(
     def encode_targets(
         self,
         task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    ) -> Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
-        res = []
+    ):
         for task_encoding in task_encodings:
             possible_target_encoding = self.encode_target(task_encoding)
-            if possible_target_encoding is None:
-                continue
             task_encoding.targets = possible_target_encoding
-            res.append(task_encoding)
-        return res
 
     @abstractmethod
     def encode_target(
