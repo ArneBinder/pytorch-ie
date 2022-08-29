@@ -185,7 +185,7 @@ class TaskModule(
         ],
         Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
-        # TODO: pass return_task_encoding_sequence directly
+        # TODO: backwards compatibility
         if return_task_encoding_sequence is None:
             return_task_encoding_sequence = not encode_target
 
