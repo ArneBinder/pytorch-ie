@@ -212,7 +212,10 @@ class Pipeline:
         for document in documents:
             document[predict_field].predictions.clear()
 
-        return self.taskmodule.encode(documents, encode_target=False)
+        encodings = self.taskmodule.encode(documents, encode_target=False, **preprocess_parameters)
+        if not isinstance(encodings, Sequence):
+            raise TypeError("preprocess has to return a sequence")
+        return encodings
 
     def _forward(
         self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
