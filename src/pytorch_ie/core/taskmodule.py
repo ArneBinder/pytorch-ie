@@ -6,6 +6,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -138,7 +139,7 @@ class TaskModule(
         return None
 
     def batch_encode(
-        self, documents: Sequence[DocumentType], encode_target: bool
+        self, documents: Union[Sequence[DocumentType], Dataset], encode_target: bool
     ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]], Sequence[DocumentType]
     ]:
@@ -152,11 +153,31 @@ class TaskModule(
             task_encodings = self.encode_targets(task_encodings)
         return task_encodings, documents_in_order
 
+    def _encoding_iterator(
+        self,
+        documents: Iterable[DocumentType],
+        encode_target: bool,
+        batch_size: Optional[int] = None,
+    ) -> Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
+        document_batch = []
+        for i, doc in enumerate(documents):
+            document_batch.append(doc)
+
+            if batch_size is not None and len(document_batch) >= batch_size:
+                yield from self.batch_encode(
+                    documents=document_batch[:batch_size], encode_target=encode_target
+                )[0]
+                document_batch = document_batch[batch_size:]
+
+        if len(document_batch) > 0:
+            yield from self.batch_encode(documents=document_batch, encode_target=encode_target)[0]
+
     def encode(
         self,
         documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
         encode_target: bool = False,
         batch_size: Optional[int] = None,
+        return_task_encoding_sequence: Optional[bool] = None,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         TaskEncodingSequence[
@@ -165,7 +186,8 @@ class TaskModule(
         Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
         # TODO: pass return_task_encoding_sequence directly
-        return_task_encoding_sequence = not encode_target
+        if return_task_encoding_sequence is None:
+            return_task_encoding_sequence = not encode_target
 
         if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
             documents = [documents]
@@ -176,21 +198,9 @@ class TaskModule(
                 raise ValueError(
                     f"can not return a TaskEncodingSequence for iterable input documents"
                 )
-            document_batch = []
-            for i, doc in enumerate(documents):
-                document_batch.append(doc)
-
-                if len(document_batch) >= batch_size:
-                    yield from self.batch_encode(
-                        documents=document_batch[:batch_size], encode_target=encode_target
-                    )[0]
-                    document_batch = document_batch[batch_size:]
-
-            if len(document_batch) > 0:
-                yield from self.batch_encode(
-                    documents=document_batch, encode_target=encode_target
-                )[0]
-
+            return self._encoding_iterator(
+                documents=documents, encode_target=encode_target, batch_size=batch_size
+            )
         else:
             task_encodings, documents_in_order = self.batch_encode(
                 documents=documents, encode_target=encode_target
