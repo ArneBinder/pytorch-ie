@@ -270,10 +270,10 @@ class TaskModule(
     def encode_targets(
         self,
         task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    ):
+    ) -> None:
         for task_encoding in task_encodings:
-            possible_target_encoding = self.encode_target(task_encoding)
-            task_encoding.targets = possible_target_encoding
+            target_encoding = self.encode_target(task_encoding)
+            task_encoding.targets = target_encoding
 
     @abstractmethod
     def encode_target(
