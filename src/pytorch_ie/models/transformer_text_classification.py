@@ -33,8 +33,9 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         warmup_proportion: float = 0.1,
         freeze_model: bool = False,
         multi_label: bool = False,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.t_total = t_total

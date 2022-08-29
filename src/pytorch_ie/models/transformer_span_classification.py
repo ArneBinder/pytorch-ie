@@ -41,8 +41,9 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         ignore_index: int = 0,
         max_span_length: int = 8,
         span_length_embedding_dim: int = 150,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.t_total = t_total

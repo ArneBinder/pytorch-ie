@@ -14,6 +14,8 @@ def taskmodule():
     taskmodule = TransformerRETextClassificationTaskModule(
         tokenizer_name_or_path=tokenizer_name_or_path
     )
+    assert not taskmodule.is_from_pretrained
+
     return taskmodule
 
 

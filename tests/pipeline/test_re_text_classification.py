@@ -21,7 +21,9 @@ class ExampleDocument(TextDocument):
 def test_re_text_classification():
     model_name_or_path = "pie/example-re-textclf-tacred"
     re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
+    assert re_taskmodule.is_from_pretrained
     re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
+    assert re_model.is_from_pretrained
 
     pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
 

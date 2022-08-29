@@ -56,8 +56,9 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         max_input_length: Optional[int] = None,
         max_target_length: Optional[int] = None,
         pad_to_multiple_of: Optional[int] = None,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.relation_annotation = relation_annotation
