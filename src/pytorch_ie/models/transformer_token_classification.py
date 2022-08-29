@@ -40,9 +40,13 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.num_classes = num_classes
 
         config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_classes)
-        self.model = AutoModelForTokenClassification.from_pretrained(
-            model_name_or_path, config=config
-        )
+        if self.is_from_pretrained:
+            config = AutoConfig.from_pretrained(model_name_or_path)
+            self.model = AutoModelForTokenClassification.from_config(config=config)
+        else:
+            self.model = AutoModelForTokenClassification.from_pretrained(
+                model_name_or_path, config=config
+            )
 
         self.f1 = nn.ModuleDict(
             {

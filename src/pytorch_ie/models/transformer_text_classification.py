@@ -44,7 +44,11 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         self.warmup_proportion = warmup_proportion
 
         config = AutoConfig.from_pretrained(model_name_or_path)
-        self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
+        if self.is_from_pretrained:
+            config = AutoConfig.from_pretrained(model_name_or_path)
+            self.model = AutoModel.from_config(config=config)
+        else:
+            self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
         self.model.resize_token_embeddings(tokenizer_vocab_size)
 
         # if freeze_model:

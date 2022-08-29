@@ -53,7 +53,10 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         self.max_span_length = max_span_length
 
         config = AutoConfig.from_pretrained(model_name_or_path)
-        self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
+        if self.is_from_pretrained:
+            self.model = AutoModel.from_config(config=config)
+        else:
+            self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
 
         classifier_dropout = (
             config.classifier_dropout
