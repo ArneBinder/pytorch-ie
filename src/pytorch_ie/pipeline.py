@@ -212,7 +212,9 @@ class Pipeline:
         for document in documents:
             document[predict_field].predictions.clear()
 
-        encodings = self.taskmodule.encode(documents, encode_target=False, **preprocess_parameters)
+        encodings = self.taskmodule.encode(
+            documents, encode_target=False, return_task_encoding_sequence=True
+        )
         if not isinstance(encodings, Sequence):
             raise TypeError("preprocess has to return a sequence")
         return encodings
