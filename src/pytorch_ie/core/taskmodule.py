@@ -218,13 +218,13 @@ class TaskModule(
             # during training we return only the sequence of task_encodings, because
             # we don't need the ordering of input documents and also don't re-assign
             # task encodings to input documents
-            if return_task_encoding_sequence:
-                task_encodings = TaskEncodingSequence(
+            if as_task_encoding_sequence:
+                return TaskEncodingSequence(
                     task_encodings=task_encodings,
-                    documents_in_order=documents_in_order,  # list(documents),  # documents_in_order
+                    documents_in_order=documents_in_order,
                 )
-
-            return task_encodings
+            else:
+                return task_encodings
 
     def encode_inputs(
         self,
