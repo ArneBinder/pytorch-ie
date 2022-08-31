@@ -7,12 +7,22 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.annotations import Label
-from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.core import AnnotationList, TaskEncoding, TaskModule, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
+
+
+class TextDocumentWithLabel(TextDocument):
+    label: AnnotationList[Label] = annotation_field()
+
+
+class TaskOutput(TypedDict, total=False):
+    label: str
+    probability: float
+
 
 """
 workflow:
@@ -24,13 +34,8 @@ workflow:
 """
 
 
-class TaskOutput(TypedDict, total=False):
-    label: str
-    probability: float
-
-
 # Define input and output types
-DocumentType = TextDocument
+DocumentType = TextDocumentWithLabel
 InputEncodingType = MutableMapping[str, Any]
 TargetEncodingType = int
 ModelEncodingType = TransformerTextClassificationModelStepBatchEncoding
@@ -54,7 +59,6 @@ class TransformerSimpleTextClassificationTaskModule(
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        annotation: str = "labels",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_length: Optional[int] = None,
@@ -67,13 +71,10 @@ class TransformerSimpleTextClassificationTaskModule(
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
-        # this is the name of the annotation of the document that wil be classified
-        self.annotation = annotation
-
-        # some tokenization parameters
-        self.padding = padding
+        # some tokenization and padding parameters
         self.truncation = truncation
         self.max_length = max_length
+        self.padding = padding
         self.pad_to_multiple_of = pad_to_multiple_of
 
         # this will be prepared from the data or loaded from the config
@@ -101,8 +102,8 @@ class TransformerSimpleTextClassificationTaskModule(
         for document in documents:
             # all annotations of a document are hold in list like containers,
             # so we have to take its first element
-            label = document[self.annotation][0]
-            labels.add(label)
+            label_annotation = document.label[0]
+            labels.add(label_annotation.label)
 
         # create the mapping, but spare the first index for the "O" (outside) class
         self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
@@ -142,7 +143,7 @@ class TransformerSimpleTextClassificationTaskModule(
         """
 
         # as above, all annotations are hold in lists, so we have to take its first element
-        label_annotation: Label = task_encoding.document[self.annotation][0]
+        label_annotation = task_encoding.document.label[0]
         # translate the textual label to the target id
         return self.label_to_id[label_annotation.label]
 
@@ -188,9 +189,7 @@ class TransformerSimpleTextClassificationTaskModule(
         """
 
         # just yield a single annotation (other tasks may need multiple annotations per task output)
-        yield self.annotation, Label(
-            label=task_outputs["label"], score=task_outputs["probability"]
-        )
+        yield "label", Label(label=task_outputs["label"], score=task_outputs["probability"])
 
     def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelEncodingType:
         """
