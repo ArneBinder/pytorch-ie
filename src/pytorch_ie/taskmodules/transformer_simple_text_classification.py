@@ -16,41 +16,41 @@ from pytorch_ie.models.transformer_text_classification import (
 
 """
 workflow:
-    Document
-        -> TaskEncoding(InputEncoding, TargetEncoding) -> TaskBatchEncoding
-            -> ModelBatchEncoding -> ModelBatchOutput
-        -> TaskOutput
-    -> Document
+    document
+        -> (input_encoding, target_encoding) -> task_encoding
+            -> model_encoding -> model_output
+        -> task_output
+    -> document
 """
 
-TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
-TransformerTextClassificationTargetEncoding = int
 
-TransformerTextClassificationTaskEncoding = TaskEncoding[
-    TextDocument,
-    TransformerTextClassificationInputEncoding,
-    TransformerTextClassificationTargetEncoding,
-]
-
-
-class TransformerTextClassificationTaskOutput(TypedDict, total=False):
+class TaskOutput(TypedDict, total=False):
     label: str
     probability: float
 
 
-_TransformerSimpleTextClassificationTaskModule = TaskModule[
-    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
-    TextDocument,
-    TransformerTextClassificationInputEncoding,
-    TransformerTextClassificationTargetEncoding,
-    TransformerTextClassificationModelStepBatchEncoding,
-    TransformerTextClassificationModelBatchOutput,
-    TransformerTextClassificationTaskOutput,
-]
+# Define input and output types
+DocumentType = TextDocument
+InputEncodingType = MutableMapping[str, Any]
+TargetEncodingType = int
+ModelEncodingType = TransformerTextClassificationModelStepBatchEncoding
+ModelOutputType = TransformerTextClassificationModelBatchOutput
+TaskOutputType = TaskOutput
+
+TaskEncodingType = TaskEncoding[DocumentType, InputEncodingType, TargetEncodingType]
 
 
 @TaskModule.register()
-class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassificationTaskModule):
+class TransformerSimpleTextClassificationTaskModule(
+    TaskModule[
+        DocumentType,
+        InputEncodingType,
+        TargetEncodingType,
+        ModelEncodingType,
+        ModelOutputType,
+        TaskOutputType,
+    ]
+):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -91,7 +91,7 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: Sequence[TextDocument]) -> None:
+    def prepare(self, documents: Sequence[DocumentType]) -> None:
         """
         Prepare the task module with training documents, e.g. collect all possible labels.
         """
@@ -111,9 +111,9 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
 
     def encode_input(
         self,
-        document: TextDocument,
+        document: DocumentType,
         is_training: bool = False,
-    ) -> TransformerTextClassificationTaskEncoding:
+    ) -> TaskEncodingType:
         """
         Create one or multiple task encodings for the given document.
         """
@@ -135,8 +135,8 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
 
     def encode_target(
         self,
-        task_encoding: TransformerTextClassificationTaskEncoding,
-    ) -> TransformerTextClassificationTargetEncoding:
+        task_encoding: TaskEncodingType,
+    ) -> TargetEncodingType:
         """
         Create a target for a task encoding. This may use any annotations of the underlying document.
         """
@@ -148,7 +148,7 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
 
     def unbatch_output(
         self, model_output: TransformerTextClassificationModelBatchOutput
-    ) -> Sequence[TransformerTextClassificationTaskOutput]:
+    ) -> Sequence[TaskOutputType]:
         """
         Convert one model output batch to a sequence of taskmodule outputs.
         """
@@ -170,7 +170,7 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
             prob = float(probabilities[idx, label_id])
             # we create TransformerTextClassificationTaskOutput primarily for typing purposes,
             # a simple dict would also work
-            result: TransformerTextClassificationTaskOutput = {
+            result: TaskOutput = {
                 "label": label,
                 "probability": prob,
             }
@@ -180,8 +180,8 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
 
     def create_annotations_from_output(
         self,
-        task_encodings: TransformerTextClassificationTaskEncoding,
-        task_outputs: TransformerTextClassificationTaskOutput,
+        task_encodings: TaskEncodingType,
+        task_outputs: TaskOutputType,
     ) -> Iterator[Tuple[str, Label]]:
         """
         Convert a task output to annotations. The method has to yield tuples (annotation_name, annotation).
@@ -192,9 +192,7 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
             label=task_outputs["label"], score=task_outputs["probability"]
         )
 
-    def collate(
-        self, task_encodings: Sequence[TransformerTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationModelStepBatchEncoding:
+    def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelEncodingType:
         """
         Convert a list of task encodings to a batch that will be passed to the model.
         """
