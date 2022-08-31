@@ -46,7 +46,7 @@ TaskEncodingType = TaskEncoding[DocumentType, InputEncodingType, TargetEncodingT
 
 
 @TaskModule.register()
-class TransformerSimpleTextClassificationTaskModule(
+class SimpleTransformerTextClassificationTaskModule(
     TaskModule[
         DocumentType,
         InputEncodingType,
