@@ -219,8 +219,8 @@ task_module.save_pretrained(model_output_path)
 
 # Use the taskmodule to encode the train and dev sets. This may use the text and
 # available annotations of the documents.
-train_dataset = task_module.encode(train_docs, encode_target=True)
-val_dataset = task_module.encode(val_docs, encode_target=True)
+train_dataset = task_module.encode(train_docs, encode_target=True, as_dataset=True)
+val_dataset = task_module.encode(val_docs, encode_target=True, as_dataset=True)
 
 # Create the dataloaders. Note that the taskmodule provides the collate function!
 train_dataloader = DataLoader(
