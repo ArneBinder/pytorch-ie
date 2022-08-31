@@ -156,13 +156,13 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
         # get the logits from the model output
         logits = model_output["logits"]
 
-        # normalize the logits to get "probabilities"
+        # convert the logits to "probabilities"
         probabilities = logits.softmax(dim=-1).detach().cpu().numpy()
 
         # get the max class index per example
         max_label_ids = np.argmax(probabilities, axis=-1)
 
-        unbatched_output = []
+        outputs = []
         for idx, label_id in enumerate(max_label_ids):
             # translate the label id back to the label text
             label = self.id_to_label[label_id]
@@ -174,9 +174,9 @@ class TransformerSimpleTextClassificationTaskModule(_TransformerSimpleTextClassi
                 "label": label,
                 "probability": prob,
             }
-            unbatched_output.append(result)
+            outputs.append(result)
 
-            return unbatched_output
+        return outputs
 
     def create_annotations_from_output(
         self,
