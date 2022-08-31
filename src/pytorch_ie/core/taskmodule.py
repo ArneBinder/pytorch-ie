@@ -17,6 +17,8 @@ from typing import (
     overload,
 )
 
+import torch.utils.data.dataset as torch_dataset
+
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.core.registrable import Registrable
@@ -80,6 +82,35 @@ class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
 
 
 TaskEncodingType = TypeVar("TaskEncodingType", bound=TaskEncoding)
+
+
+class TaskEncodingDataset(torch_dataset.Dataset[TaskEncodingType]):
+    def __init__(self, encodings: Sequence[TaskEncodingType]):
+        self._encodings = encodings
+
+    @overload
+    def __getitem__(self, index: int) -> TaskEncodingType:
+        ...
+
+    @overload
+    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]:
+        ...
+
+    def __getitem__(
+        self, index: Union[int, slice]
+    ) -> Union[TaskEncodingType, Sequence[TaskEncodingType]]:
+        return self._encodings[index]
+
+    def __len__(self):
+        return len(self._encodings)
+
+
+class IterableTaskEncodingDataset(torch_dataset.IterableDataset[TaskEncodingType]):
+    def __iter__(self) -> Iterator[TaskEncodingType]:
+        yield from self._encodings
+
+    def __init__(self, encodings: Iterator[TaskEncodingType]):
+        self._encodings = encodings
 
 
 class TaskEncodingSequence(
@@ -179,12 +210,15 @@ class TaskModule(
         document_batch_size: Optional[int] = None,
         as_task_encoding_sequence: Optional[bool] = None,
         as_iterator: Optional[bool] = None,
+        as_dataset: bool = False,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         TaskEncodingSequence[
             TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
         ],
         Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        IterableTaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
         # backwards compatibility
         if as_task_encoding_sequence is None:
@@ -200,11 +234,15 @@ class TaskModule(
         if as_iterator:
             if as_task_encoding_sequence:
                 raise ValueError(f"can not return a TaskEncodingSequence as Iterator")
-            return self._encoding_iterator(
+            encodings_iterator = self._encoding_iterator(
                 documents=documents, encode_target=encode_target, batch_size=document_batch_size
             )
+            if as_dataset:
+                return IterableTaskEncodingDataset(encodings=encodings_iterator)
+            else:
+                return encodings_iterator
         else:
-            task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
+            encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
             documents_in_order: List[DocumentType] = []
             docs_as_list = list(documents)
             bs = document_batch_size or len(docs_as_list)
@@ -212,19 +250,24 @@ class TaskModule(
                 cur_task_encodings, cur_documents_in_order = self.batch_encode(
                     documents=docs_as_list[i : i + bs], encode_target=encode_target
                 )
-                task_encodings.extend(cur_task_encodings)
+                encodings.extend(cur_task_encodings)
                 documents_in_order.extend(cur_documents_in_order)
 
             if as_task_encoding_sequence:
+                if as_dataset:
+                    raise ValueError(f"can not return a TaskEncodingSequence as a dataset")
                 return TaskEncodingSequence(
-                    task_encodings=task_encodings,
+                    task_encodings=encodings,
                     documents_in_order=documents_in_order,
                 )
             else:
-                # during training we return only the sequence of task_encodings, because
+                # during training, we return only the sequence of task_encodings, because
                 # we don't need the ordering of input documents and also don't re-assign
                 # task encodings to input documents
-                return task_encodings
+                if as_dataset:
+                    return TaskEncodingDataset(encodings=encodings)
+                else:
+                    return encodings
 
     def encode_inputs(
         self,

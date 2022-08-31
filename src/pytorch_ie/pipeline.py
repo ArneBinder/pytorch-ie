@@ -16,11 +16,11 @@ from pytorch_ie.core.model import PyTorchIEModel
 from pytorch_ie.core.taskmodule import (
     InplaceNotSupportedException,
     TaskEncoding,
+    TaskEncodingDataset,
     TaskModule,
     TaskOutput,
 )
 from pytorch_ie.data import Dataset
-from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
 
 logger = logging.getLogger(__name__)
 

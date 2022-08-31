@@ -3,11 +3,14 @@ from typing import Any, Dict, Generic, Optional, Sequence, Union
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 
-from pytorch_ie.core.taskmodule import DocumentType, InputEncoding, TargetEncoding, TaskModule
-from pytorch_ie.data.task_encoding import (
+from pytorch_ie.core.taskmodule import (
+    DocumentType,
+    InputEncoding,
     IterableTaskEncodingDataset,
+    TargetEncoding,
+    TaskEncoding,
     TaskEncodingDataset,
-    as_dataset,
+    TaskModule,
 )
 
 
@@ -55,8 +58,10 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         self._data: Dict[
             str,
             Union[
-                TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding],
-                IterableTaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding],
+                TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+                IterableTaskEncodingDataset[
+                    TaskEncoding[DocumentType, InputEncoding, TargetEncoding]
+                ],
             ],
         ] = {}
 
@@ -81,14 +86,22 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         for split in [self.train_split, self.val_split, self.test_split]:
             if split is None or split not in self.dataset:
                 continue
-            encodings = self.taskmodule.encode(self.dataset[split], encode_target=True)
-            self._data[split] = as_dataset(encodings)
+            task_encoding_dataset = self.taskmodule.encode(
+                self.dataset[split], encode_target=True, as_dataset=True
+            )
+            if not isinstance(
+                task_encoding_dataset, (TaskEncodingDataset, IterableTaskEncodingDataset)
+            ):
+                raise TypeError(
+                    f"taskmodule.encode did not return a (Iterable)TaskEncodingDataset, but: {type(task_encoding_dataset)}"
+                )
+            self._data[split] = task_encoding_dataset
 
     def data_split(
         self, split: Optional[str] = None
     ) -> Union[
-        TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding],
-        IterableTaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding],
+        TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        IterableTaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
         if split is None or split not in self._data:
             raise ValueError(f"data for split={split} not available")
