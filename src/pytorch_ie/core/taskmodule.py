@@ -19,7 +19,7 @@ from typing import (
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
 from pytorch_ie.core.registrable import Registrable
-from pytorch_ie.data import Dataset
+from pytorch_ie.data import Dataset, IterableDataset
 
 """
 workflow:
@@ -139,7 +139,7 @@ class TaskModule(
 
     def encode(
         self,
-        documents: Union[DocumentType, Sequence[DocumentType], Dataset],
+        documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
         encode_target: bool = False,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
@@ -147,7 +147,7 @@ class TaskModule(
             TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
         ],
     ]:
-        if not isinstance(documents, (Sequence, Dataset)):
+        if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
             documents = [documents]
 
         # TODO: revisit the assumption that encode_target=True always implies that
@@ -161,7 +161,7 @@ class TaskModule(
 
     def encode_inputs(
         self,
-        documents: Union[Sequence[DocumentType], Dataset],
+        documents: Union[Sequence[DocumentType], Dataset, IterableDataset],
         is_training: bool = False,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],

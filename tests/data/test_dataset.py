@@ -5,6 +5,7 @@ import pytest
 import torch
 
 import datasets
+from pytorch_ie import Dataset, IterableDataset
 from pytorch_ie.core.taskmodule import TaskEncodingSequence
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
@@ -39,7 +40,11 @@ def model_output():
     }
 
 
-def test_dataset(dataset):
+def test_dataset(maybe_iterable_dataset):
+    dataset = {
+        k: list(v) if isinstance(v, IterableDataset) else v
+        for k, v in maybe_iterable_dataset.items()
+    }
     assert set(dataset.keys()) == {"train", "validation", "test"}
 
     assert len(dataset["train"]) == 8
@@ -62,8 +67,8 @@ def test_dataset_index(dataset):
     assert [doc.id for doc in train_dataset[2:5]] == ["train_doc3", "train_doc4", "train_doc5"]
 
 
-def test_dataset_map(dataset):
-    train_dataset = dataset["train"]
+def test_dataset_map(maybe_iterable_dataset):
+    train_dataset = maybe_iterable_dataset["train"]
 
     def clear_relations(document):
         document.relations.clear()
@@ -77,8 +82,8 @@ def test_dataset_map(dataset):
     assert sum(len(doc.relations) for doc in train_dataset) == 7
 
 
-def test_dataset_map_batched(dataset):
-    train_dataset = dataset["train"]
+def test_dataset_map_batched(maybe_iterable_dataset):
+    train_dataset = maybe_iterable_dataset["train"]
 
     def clear_relations_batched(documents):
         assert len(documents) == 2
@@ -96,8 +101,10 @@ def test_dataset_map_batched(dataset):
 
 @pytest.mark.parametrize("encode_target", [False, True])
 @pytest.mark.parametrize("inplace", [False, True])
-def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_target, inplace):
-    train_dataset = dataset["train"]
+def test_dataset_with_taskmodule(
+    maybe_iterable_dataset, taskmodule, model_output, encode_target, inplace
+):
+    train_dataset = maybe_iterable_dataset["train"]
 
     taskmodule.prepare(train_dataset)
     assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
@@ -113,7 +120,7 @@ def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_targe
         assert isinstance(task_encodings, TaskEncodingSequence)
 
     task_encoding = task_encodings[5]
-    document = train_dataset[5]
+    document = list(train_dataset)[5]
     assert task_encoding.document == document
     assert "input_ids" in task_encoding.inputs
     assert (
@@ -138,7 +145,8 @@ def test_dataset_with_taskmodule(dataset, taskmodule, model_output, encode_targe
         inplace=inplace,
     )
 
-    assert len(decoded_documents) == len(train_dataset)
+    if isinstance(train_dataset, Dataset):
+        assert len(decoded_documents) == len(train_dataset)
 
     assert {id(doc) for doc in decoded_documents}.isdisjoint({id(doc) for doc in train_dataset})
 

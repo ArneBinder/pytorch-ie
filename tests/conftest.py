@@ -5,7 +5,7 @@ import pytest
 import datasets
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.data import Dataset
+from pytorch_ie.data import Dataset, IterableDataset
 from pytorch_ie.documents import TextDocument
 from tests import FIXTURES_ROOT
 
@@ -37,34 +37,51 @@ def json_dataset():
 
 
 @pytest.fixture
+def iterable_json_dataset():
+    dataset_dir = FIXTURES_ROOT / "datasets" / "json"
+
+    dataset = datasets.load_dataset(
+        path="json",
+        field="data",
+        data_files={
+            "train": str(dataset_dir / "train.json"),
+            "validation": str(dataset_dir / "val.json"),
+            "test": str(dataset_dir / "test.json"),
+        },
+        streaming=True,
+    )
+
+    return dataset
+
+
+def example_to_doc_dict(example):
+    doc = TestDocument(text=example["text"], id=example["id"])
+
+    doc.metadata = dict(example["metadata"])
+
+    sentences = [Span.fromdict(dct) for dct in example["sentences"]]
+
+    entities = [LabeledSpan.fromdict(dct) for dct in example["entities"]]
+
+    relations = [
+        BinaryRelation(head=entities[rel["head"]], tail=entities[rel["tail"]], label=rel["label"])
+        for rel in example["relations"]
+    ]
+
+    for sentence in sentences:
+        doc.sentences.append(sentence)
+
+    for entity in entities:
+        doc.entities.append(entity)
+
+    for relation in relations:
+        doc.relations.append(relation)
+
+    return doc.asdict()
+
+
+@pytest.fixture
 def dataset(json_dataset):
-    def example_to_doc_dict(example):
-        doc = TestDocument(text=example["text"], id=example["id"])
-
-        doc.metadata = dict(example["metadata"])
-
-        sentences = [Span.fromdict(dct) for dct in example["sentences"]]
-
-        entities = [LabeledSpan.fromdict(dct) for dct in example["entities"]]
-
-        relations = [
-            BinaryRelation(
-                head=entities[rel["head"]], tail=entities[rel["tail"]], label=rel["label"]
-            )
-            for rel in example["relations"]
-        ]
-
-        for sentence in sentences:
-            doc.sentences.append(sentence)
-
-        for entity in entities:
-            doc.entities.append(entity)
-
-        for relation in relations:
-            doc.relations.append(relation)
-
-        return doc.asdict()
-
     mapped_dataset = json_dataset.map(example_to_doc_dict)
 
     dataset = datasets.DatasetDict(
@@ -87,3 +104,26 @@ def dataset(json_dataset):
 @pytest.fixture
 def documents(dataset):
     return list(dataset["train"])
+
+
+@pytest.fixture
+def iterable_dataset(iterable_json_dataset):
+
+    dataset = datasets.IterableDatasetDict(
+        {
+            k: IterableDataset.from_hf_dataset(
+                dataset.map(example_to_doc_dict), document_type=TestDocument
+            )
+            for k, dataset in iterable_json_dataset.items()
+        }
+    )
+
+    assert len(dataset) == 3
+    assert set(dataset.keys()) == {"train", "validation", "test"}
+
+    return dataset
+
+
+@pytest.fixture(params=["dataset", "iterable_dataset"])
+def maybe_iterable_dataset(request):
+    return request.getfixturevalue(request.param)
