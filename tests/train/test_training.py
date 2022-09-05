@@ -1,27 +1,53 @@
-from typing import List
-
 import pytest
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
-from pytorch_ie.core import Document, PyTorchIEModel, TaskModule
 from pytorch_ie.models import TransformerTokenClassificationModel
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 
+MODEL_NAME = "bert-base-cased"
 
-def _test_training(model: PyTorchIEModel, task_module: TaskModule, documents: List[Document]):
+
+@pytest.fixture
+def prepared_taskmodule(documents):
+    taskmodule = TransformerTokenClassificationTaskModule(
+        tokenizer_name_or_path=MODEL_NAME,
+        max_length=128,
+    )
+    taskmodule.prepare(documents)
+    return taskmodule
+
+
+@pytest.fixture
+def model(prepared_taskmodule):
+    model = TransformerTokenClassificationModel(
+        model_name_or_path=MODEL_NAME,
+        num_classes=len(prepared_taskmodule.label_to_id),
+        learning_rate=1e-4,
+    )
+    return model
+
+
+@pytest.mark.parametrize("as_iterator", [False, True])
+def test_transformer_token_classification(model, prepared_taskmodule, documents, as_iterator):
     pl.seed_everything(42)
 
     num_epochs = 1
     batch_size = 32
 
-    train_dataset = task_module.encode(documents, encode_target=True)
+    train_dataset = prepared_taskmodule.encode(
+        documents,
+        encode_target=True,
+        document_batch_size=2,
+        as_iterator=as_iterator,
+        as_dataset=True,
+    )
 
     train_dataloader = DataLoader(
-        train_dataset,  # type: ignore
+        train_dataset,
         batch_size=batch_size,
-        shuffle=True,
-        collate_fn=task_module.collate,
+        shuffle=not isinstance(train_dataset, IterableDataset),
+        collate_fn=prepared_taskmodule.collate,
     )
 
     trainer = pl.Trainer(
@@ -32,22 +58,3 @@ def _test_training(model: PyTorchIEModel, task_module: TaskModule, documents: Li
         precision=32,
     )
     trainer.fit(model, train_dataloader)
-
-
-@pytest.mark.slow
-def test_transformer_token_classification(documents):
-    model_name = "bert-base-cased"
-
-    task_module = TransformerTokenClassificationTaskModule(
-        tokenizer_name_or_path=model_name,
-        max_length=128,
-    )
-
-    task_module.prepare(documents)
-    model = TransformerTokenClassificationModel(
-        model_name_or_path=model_name,
-        num_classes=len(task_module.label_to_id),
-        learning_rate=1e-4,
-    )
-
-    _test_training(model=model, task_module=task_module, documents=documents)

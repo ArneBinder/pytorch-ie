@@ -32,8 +32,8 @@ def main():
 
     task_module.prepare(train_docs)
 
-    train_dataset = task_module.encode(train_docs, encode_target=True)
-    val_dataset = task_module.encode(val_docs, encode_target=True)
+    train_dataset = task_module.encode(train_docs, encode_target=True, as_dataset=True)
+    val_dataset = task_module.encode(val_docs, encode_target=True, as_dataset=True)
 
     train_dataloader = DataLoader(
         train_dataset,

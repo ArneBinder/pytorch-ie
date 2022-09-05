@@ -1,32 +1,17 @@
-from typing import Any, Dict, Generic, Optional, Sequence
+from typing import Any, Dict, Generic, Optional, Sequence, Union
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
 
 from pytorch_ie.core.taskmodule import (
     DocumentType,
     InputEncoding,
+    IterableTaskEncodingDataset,
     TargetEncoding,
     TaskEncoding,
+    TaskEncodingDataset,
     TaskModule,
 )
-
-
-class TaskEncodingDataset(
-    Dataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    Generic[DocumentType, InputEncoding, TargetEncoding],
-):
-    def __init__(
-        self, encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
-    ):
-        self._encodings = encodings
-
-    def __getitem__(self, index) -> TaskEncoding[DocumentType, InputEncoding, TargetEncoding]:
-        return self._encodings[index]
-
-    def __len__(self):
-        return len(self._encodings)
 
 
 class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, TargetEncoding]):
@@ -71,7 +56,13 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         self.dataloader_kwargs = dataloader_kwargs
 
         self._data: Dict[
-            str, TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]
+            str,
+            Union[
+                TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+                IterableTaskEncodingDataset[
+                    TaskEncoding[DocumentType, InputEncoding, TargetEncoding]
+                ],
+            ],
         ] = {}
 
     @property
@@ -81,6 +72,8 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         data_train = self._data.get(self.train_split, None)
         if data_train is None:
             raise ValueError("can not get train size if setup() was not yet called")
+        if isinstance(data_train, IterableTaskEncodingDataset):
+            raise TypeError("IterableTaskEncodingDataset has no length")
         return len(data_train)
 
     def setup(self, stage: Optional[str] = None, **kwargs):
@@ -93,13 +86,23 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         for split in [self.train_split, self.val_split, self.test_split]:
             if split is None or split not in self.dataset:
                 continue
-            self._data[split] = TaskEncodingDataset(
-                self.taskmodule.encode(self.dataset[split], encode_target=True)
+            task_encoding_dataset = self.taskmodule.encode(
+                self.dataset[split], encode_target=True, as_dataset=True
             )
+            if not isinstance(
+                task_encoding_dataset, (TaskEncodingDataset, IterableTaskEncodingDataset)
+            ):
+                raise TypeError(
+                    f"taskmodule.encode did not return a (Iterable)TaskEncodingDataset, but: {type(task_encoding_dataset)}"
+                )
+            self._data[split] = task_encoding_dataset
 
     def data_split(
         self, split: Optional[str] = None
-    ) -> TaskEncodingDataset[DocumentType, InputEncoding, TargetEncoding]:
+    ) -> Union[
+        TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        IterableTaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+    ]:
         if split is None or split not in self._data:
             raise ValueError(f"data for split={split} not available")
         return self._data[split]

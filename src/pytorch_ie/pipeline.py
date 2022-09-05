@@ -16,11 +16,11 @@ from pytorch_ie.core.model import PyTorchIEModel
 from pytorch_ie.core.taskmodule import (
     InplaceNotSupportedException,
     TaskEncoding,
+    TaskEncodingDataset,
     TaskModule,
     TaskOutput,
 )
 from pytorch_ie.data import Dataset
-from pytorch_ie.data.datamodules.datamodule import TaskEncodingDataset
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +212,12 @@ class Pipeline:
         for document in documents:
             document[predict_field].predictions.clear()
 
-        return self.taskmodule.encode(documents, encode_target=False)
+        encodings = self.taskmodule.encode(
+            documents, encode_target=False, as_task_encoding_sequence=True
+        )
+        if not isinstance(encodings, Sequence):
+            raise TypeError("preprocess has to return a sequence")
+        return encodings
 
     def _forward(
         self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict

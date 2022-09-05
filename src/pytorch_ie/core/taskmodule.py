@@ -6,6 +6,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -15,6 +16,8 @@ from typing import (
     Union,
     overload,
 )
+
+import torch.utils.data.dataset as torch_dataset
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
@@ -81,6 +84,35 @@ class TaskEncoding(Generic[DocumentType, InputEncoding, TargetEncoding]):
 TaskEncodingType = TypeVar("TaskEncodingType", bound=TaskEncoding)
 
 
+class TaskEncodingDataset(torch_dataset.Dataset[TaskEncodingType]):
+    def __init__(self, encodings: Sequence[TaskEncodingType]):
+        self._encodings = encodings
+
+    @overload
+    def __getitem__(self, index: int) -> TaskEncodingType:
+        ...
+
+    @overload
+    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]:
+        ...
+
+    def __getitem__(
+        self, index: Union[int, slice]
+    ) -> Union[TaskEncodingType, Sequence[TaskEncodingType]]:
+        return self._encodings[index]
+
+    def __len__(self):
+        return len(self._encodings)
+
+
+class IterableTaskEncodingDataset(torch_dataset.IterableDataset[TaskEncodingType]):
+    def __iter__(self) -> Iterator[TaskEncodingType]:
+        yield from self._encodings
+
+    def __init__(self, encodings: Iterator[TaskEncodingType]):
+        self._encodings = encodings
+
+
 class TaskEncodingSequence(
     collections.abc.Sequence[TaskEncodingType], Generic[TaskEncodingType, DocumentType]
 ):
@@ -122,8 +154,9 @@ class TaskModule(
         TaskOutput,
     ],
 ):
-    def __init__(self, **kwargs):
+    def __init__(self, encode_document_batch_size: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
+        self.encode_document_batch_size = encode_document_batch_size
 
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
@@ -137,37 +170,115 @@ class TaskModule(
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         return None
 
+    def batch_encode(
+        self, documents: Union[Sequence[DocumentType], Dataset], encode_target: bool
+    ) -> Tuple[
+        Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]], Sequence[DocumentType]
+    ]:
+        ## TODO: revisit the assumption that encode_target=True always implies that
+        ## is_training=True
+        task_encodings, documents_in_order = self.encode_inputs(
+            documents, is_training=encode_target
+        )
+
+        if encode_target:
+            self.encode_targets(task_encodings)
+        return task_encodings, documents_in_order
+
+    def _encoding_iterator(
+        self,
+        documents: Iterable[DocumentType],
+        encode_target: bool,
+        batch_size: Optional[int] = None,
+    ) -> Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
+        document_batch = []
+        for i, doc in enumerate(documents):
+            document_batch.append(doc)
+
+            if batch_size is not None and len(document_batch) >= batch_size:
+                yield from self.batch_encode(
+                    documents=document_batch[:batch_size], encode_target=encode_target
+                )[0]
+                document_batch = document_batch[batch_size:]
+
+        if len(document_batch) > 0:
+            yield from self.batch_encode(documents=document_batch, encode_target=encode_target)[0]
+
     def encode(
         self,
         documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
         encode_target: bool = False,
+        document_batch_size: Optional[int] = None,
+        as_task_encoding_sequence: Optional[bool] = None,
+        as_iterator: Optional[bool] = None,
+        as_dataset: bool = False,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         TaskEncodingSequence[
             TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
         ],
+        Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        IterableTaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
+        # backwards compatibility
+        if as_task_encoding_sequence is None:
+            as_task_encoding_sequence = not encode_target
+
         if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
             documents = [documents]
 
-        # TODO: revisit the assumption that encode_target=True always implies that
-        # is_training=True
-        task_encodings = self.encode_inputs(documents, is_training=encode_target)
+        if as_iterator is None:
+            as_iterator = isinstance(documents, (IterableDataset, Iterator))
 
-        if encode_target:
-            self.encode_targets(task_encodings)
+        if document_batch_size is None:
+            document_batch_size = self.encode_document_batch_size
 
-        return task_encodings
+        if as_iterator:
+            if as_task_encoding_sequence:
+                raise ValueError(f"can not return a TaskEncodingSequence as Iterator")
+            encodings_iterator = self._encoding_iterator(
+                documents=documents, encode_target=encode_target, batch_size=document_batch_size
+            )
+            if as_dataset:
+                return IterableTaskEncodingDataset(encodings=encodings_iterator)
+            else:
+                return encodings_iterator
+        else:
+            encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
+            documents_in_order: List[DocumentType] = []
+            docs_as_list = list(documents)
+            bs = document_batch_size or len(docs_as_list)
+            for i in range(0, len(docs_as_list), bs):
+                cur_task_encodings, cur_documents_in_order = self.batch_encode(
+                    documents=docs_as_list[i : i + bs], encode_target=encode_target
+                )
+                encodings.extend(cur_task_encodings)
+                documents_in_order.extend(cur_documents_in_order)
+
+            if as_task_encoding_sequence:
+                if as_dataset:
+                    raise ValueError(f"can not return a TaskEncodingSequence as a dataset")
+                return TaskEncodingSequence(
+                    task_encodings=encodings,
+                    documents_in_order=documents_in_order,
+                )
+            else:
+                # during training, we return only the sequence of task_encodings, because
+                # we don't need the ordering of input documents and also don't re-assign
+                # task encodings to input documents
+                if as_dataset:
+                    return TaskEncodingDataset(encodings=encodings)
+                else:
+                    return encodings
 
     def encode_inputs(
         self,
         documents: Union[Sequence[DocumentType], Dataset, IterableDataset],
         is_training: bool = False,
-    ) -> Union[
+    ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-        TaskEncodingSequence[
-            TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-        ],
+        Sequence[DocumentType],
     ]:
         documents_in_order: List[DocumentType] = []
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
@@ -187,15 +298,7 @@ class TaskModule(
             else:
                 task_encodings.extend(possible_task_encodings)
 
-        # during training we return only the sequence of task_encodings, because
-        # we don't need the ordering of input documents and also don't re-assign
-        # task encodings to input documents
-        if is_training:
-            return task_encodings
-        else:
-            return TaskEncodingSequence(
-                task_encodings=task_encodings, documents_in_order=documents_in_order
-            )
+        return task_encodings, documents_in_order
 
     @abstractmethod
     def encode_input(
