@@ -47,7 +47,9 @@ $ pip install pytorch-ie
 ## 🥧 Concepts & Architecture
 
 ### 📃 Document
+
 ### 🔤 ⇔ 🔢 Taskmodule
+
 ### 🧮 Model
 
 ## ⚡️ Examples: Prediction
