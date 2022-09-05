@@ -44,6 +44,12 @@ This is an experimental framework that aims to combine the lessons learned from 
 $ pip install pytorch-ie
 ```
 
+## 🥧 Concepts & Architecture
+
+### 📃 Document
+### 🔤 ⇔ 🔢 Taskmodule
+### 🧮 Model
+
 ## ⚡️ Examples: Prediction
 
 **The following examples work out of the box. No further setup like manually downloading a model is needed!**
