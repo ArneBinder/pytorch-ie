@@ -154,8 +154,9 @@ class TaskModule(
         TaskOutput,
     ],
 ):
-    def __init__(self, **kwargs):
+    def __init__(self, encode_document_batch_size: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
+        self.encode_document_batch_size = encode_document_batch_size
 
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
@@ -229,6 +230,9 @@ class TaskModule(
 
         if as_iterator is None:
             as_iterator = isinstance(documents, (IterableDataset, Iterator))
+
+        if document_batch_size is None:
+            document_batch_size = self.encode_document_batch_size
 
         if as_iterator:
             if as_task_encoding_sequence:
