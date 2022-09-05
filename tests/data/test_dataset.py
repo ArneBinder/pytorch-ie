@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Sequence
 
 import numpy
@@ -6,7 +7,11 @@ import torch
 
 import datasets
 from pytorch_ie import Dataset, IterableDataset
-from pytorch_ie.core.taskmodule import TaskEncodingSequence
+from pytorch_ie.core.taskmodule import (
+    IterableTaskEncodingDataset,
+    TaskEncodingDataset,
+    TaskEncodingSequence,
+)
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
@@ -101,8 +106,9 @@ def test_dataset_map_batched(maybe_iterable_dataset):
 
 @pytest.mark.parametrize("encode_target", [False, True])
 @pytest.mark.parametrize("inplace", [False, True])
+@pytest.mark.parametrize("as_dataset", [False, True])
 def test_dataset_with_taskmodule(
-    maybe_iterable_dataset, taskmodule, model_output, encode_target, inplace
+    maybe_iterable_dataset, taskmodule, model_output, encode_target, inplace, as_dataset
 ):
     train_dataset = maybe_iterable_dataset["train"]
 
@@ -111,15 +117,52 @@ def test_dataset_with_taskmodule(
     assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
     assert taskmodule.label_to_id["O"] == 0
 
-    task_encodings = taskmodule.encode(train_dataset, encode_target=encode_target)
-    assert len(task_encodings) == 8
+    as_task_encoding_sequence = not encode_target
+    as_iterator = isinstance(train_dataset, (IterableDataset, Iterator))
+    if as_task_encoding_sequence:
+        if as_iterator:
+            with pytest.raises(
+                ValueError, match="can not return a TaskEncodingSequence as Iterator"
+            ):
+                taskmodule.encode(
+                    train_dataset, encode_target=encode_target, as_dataset=as_dataset
+                )
+            return
+        if as_dataset:
+            with pytest.raises(
+                ValueError, match="can not return a TaskEncodingSequence as a dataset"
+            ):
+                taskmodule.encode(
+                    train_dataset, encode_target=encode_target, as_dataset=as_dataset
+                )
+            return
 
-    if encode_target:
-        assert isinstance(task_encodings, Sequence)
+    task_encodings = taskmodule.encode(
+        train_dataset, encode_target=encode_target, as_dataset=as_dataset
+    )
+
+    if as_iterator:
+        if as_task_encoding_sequence:
+            raise NotImplementedError("this is not yet implemented")
+        if as_dataset:
+            assert isinstance(task_encodings, IterableTaskEncodingDataset)
+        else:
+            assert isinstance(task_encodings, Iterator)
     else:
-        assert isinstance(task_encodings, TaskEncodingSequence)
+        if as_dataset:
+            if as_task_encoding_sequence:
+                raise NotImplementedError("this is not yet implemented")
+            else:
+                assert isinstance(task_encodings, TaskEncodingDataset)
+        else:
+            if as_task_encoding_sequence:
+                assert isinstance(task_encodings, TaskEncodingSequence)
+            else:
+                assert isinstance(task_encodings, Sequence)
 
-    task_encoding = task_encodings[5]
+    task_encoding_list = list(task_encodings)
+    assert len(task_encoding_list) == 8
+    task_encoding = task_encoding_list[5]
     document = list(train_dataset)[5]
     assert task_encoding.document == document
     assert "input_ids" in task_encoding.inputs
