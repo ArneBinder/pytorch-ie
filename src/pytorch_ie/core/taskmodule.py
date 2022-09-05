@@ -228,8 +228,7 @@ class TaskModule(
             documents = [documents]
 
         if as_iterator is None:
-            # TODO: should check isinstance(documents, (IterableDataset, Iterator))
-            as_iterator = isinstance(documents, Iterator)
+            as_iterator = isinstance(documents, (IterableDataset, Iterator))
 
         if as_iterator:
             if as_task_encoding_sequence:
