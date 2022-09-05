@@ -64,8 +64,9 @@ class SimpleTransformerTextClassificationTaskModule(
         max_length: Optional[int] = None,
         pad_to_multiple_of: Optional[int] = None,
         label_to_id: Optional[Dict[str, int]] = None,
+        **kwargs
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         # Save all passed arguments. They will be available via self._config().
         self.save_hyperparameters()
 
