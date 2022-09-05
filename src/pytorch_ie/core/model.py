@@ -6,7 +6,7 @@ from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin
 from pytorch_ie.core.registrable import Registrable
 
 
-class PyTorchIEModel(LightningModule, Registrable, PyTorchIEModelHubMixin):
+class PyTorchIEModel(PyTorchIEModelHubMixin, LightningModule, Registrable):
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
         this_class = self.__class__

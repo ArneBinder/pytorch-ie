@@ -41,8 +41,9 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         ignore_index: int = 0,
         max_span_length: int = 8,
         span_length_embedding_dim: int = 150,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.t_total = t_total
@@ -52,7 +53,10 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
         self.max_span_length = max_span_length
 
         config = AutoConfig.from_pretrained(model_name_or_path)
-        self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
+        if self.is_from_pretrained:
+            self.model = AutoModel.from_config(config=config)
+        else:
+            self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
 
         classifier_dropout = (
             config.classifier_dropout

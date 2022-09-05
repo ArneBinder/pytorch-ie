@@ -1,7 +1,7 @@
 from typing import Any, Sequence, Tuple
 
 import torch
-from transformers import AutoModelForSeq2SeqLM, BatchEncoding
+from transformers import AutoConfig, AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
 from pytorch_ie.core import PyTorchIEModel
@@ -18,18 +18,18 @@ TransformerSeq2SeqModelStepBatchEncoding = Tuple[
 
 @PyTorchIEModel.register()
 class TransformerSeq2SeqModel(PyTorchIEModel):
-    def __init__(
-        self,
-        model_name_or_path: str,
-        learning_rate: float = 1e-5,
-    ) -> None:
-        super().__init__()
+    def __init__(self, model_name_or_path: str, learning_rate: float = 1e-5, **kwargs) -> None:
+        super().__init__(**kwargs)
 
         self.save_hyperparameters()
 
         self.learning_rate = learning_rate
 
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
+        if self.is_from_pretrained:
+            config = AutoConfig.from_pretrained(model_name_or_path)
+            self.model = AutoModelForSeq2SeqLM.from_config(config=config)
+        else:
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
 
     def forward(self, inputs: TransformerSeq2SeqModelBatchEncoding) -> TransformerSeq2SeqModelBatchOutput:  # type: ignore
         return self.model(**inputs)

@@ -64,8 +64,9 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         label_pad_token_id: int = -100,
         label_to_id: Optional[Dict[str, int]] = None,
         multi_label: bool = False,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         if multi_label:

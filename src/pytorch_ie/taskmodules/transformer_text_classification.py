@@ -83,8 +83,9 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         pad_to_multiple_of: Optional[int] = None,
         multi_label: bool = False,
         label_to_id: Optional[Dict[str, int]] = None,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         if multi_label:

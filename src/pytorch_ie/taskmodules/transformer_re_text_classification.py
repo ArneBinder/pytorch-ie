@@ -150,8 +150,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
         max_window: Optional[int] = None,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.entity_annotation = entity_annotation

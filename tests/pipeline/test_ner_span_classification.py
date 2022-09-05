@@ -20,7 +20,9 @@ class ExampleDocument(TextDocument):
 def test_ner_span_classification(fast_dev_run):
     model_name_or_path = "pie/example-ner-spanclf-conll03"
     ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
+    assert ner_taskmodule.is_from_pretrained
     ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
+    assert ner_model.is_from_pretrained
 
     ner_pipeline = Pipeline(
         model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run

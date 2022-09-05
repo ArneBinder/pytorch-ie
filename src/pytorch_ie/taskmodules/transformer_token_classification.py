@@ -72,8 +72,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         window_overlap: int = 0,
         show_statistics: bool = False,
         include_ill_formed_predictions: bool = True,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)

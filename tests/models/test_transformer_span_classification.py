@@ -66,13 +66,16 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
         ),
     )
 
-    return TransformerSpanClassificationModel(
+    model = TransformerSpanClassificationModel(
         model_name_or_path="some-model-name",
         num_classes=num_classes,
         t_total=1,
         span_length_embedding_dim=15,
         max_span_length=2,
     )
+    assert not model.is_from_pretrained
+
+    return model
 
 
 @pytest.mark.parametrize("no_attention_mask", [False, True])

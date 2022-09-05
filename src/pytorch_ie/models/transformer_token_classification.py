@@ -30,8 +30,9 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         learning_rate: float = 1e-5,
         label_pad_token_id: int = -100,
         ignore_index: int = 0,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.learning_rate = learning_rate
@@ -39,9 +40,13 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         self.num_classes = num_classes
 
         config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_classes)
-        self.model = AutoModelForTokenClassification.from_pretrained(
-            model_name_or_path, config=config
-        )
+        if self.is_from_pretrained:
+            config = AutoConfig.from_pretrained(model_name_or_path)
+            self.model = AutoModelForTokenClassification.from_config(config=config)
+        else:
+            self.model = AutoModelForTokenClassification.from_pretrained(
+                model_name_or_path, config=config
+            )
 
         self.f1 = nn.ModuleDict(
             {

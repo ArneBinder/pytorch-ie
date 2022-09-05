@@ -27,6 +27,14 @@ class PyTorchIEBaseModelHubMixin:
 
     config_name = CONFIG_NAME
 
+    def __init__(self, *args, is_from_pretrained: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._is_from_pretrained = is_from_pretrained
+
+    @property
+    def is_from_pretrained(self):
+        return self._is_from_pretrained
+
     def save_pretrained(
         self,
         save_directory: str,
@@ -174,6 +182,7 @@ class PyTorchIEBaseModelHubMixin:
             resume_download,
             local_files_only,
             use_auth_token,
+            is_from_pretrained=True,
             **config,
         )
 
@@ -317,6 +326,7 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
             >>> # Downloading weights from hf-hub & model will be initialized from those weights
             >>> model = MyModel.from_pretrained("username/mymodel@main")
         """
+        super().__init__(*args, **kwargs)
 
     def _save_pretrained(self, save_directory):
         """
@@ -397,7 +407,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
             >>> # Downloading weights from hf-hub & model will be initialized from those weights
             >>> model = MyModel.from_pretrained("username/mymodel@main")
         """
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
