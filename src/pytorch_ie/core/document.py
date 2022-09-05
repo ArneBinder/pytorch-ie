@@ -1,7 +1,19 @@
 import dataclasses
 import typing
 from collections.abc import Mapping, Sequence
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 
 def _enumerate_dependencies(
@@ -34,27 +46,85 @@ def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.F
     return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
 
-def annotation_field(target: Optional[str] = None):
-    return dataclasses.field(metadata=dict(target=target), init=False, repr=False)
+def annotation_field(
+    target: Optional[str] = None,
+    targets: Optional[List[str]] = None,
+    named_targets: Optional[Dict[str, str]] = None,
+):
+    """
+    We allow 3 variants to pass targets:
+    1) as single value `target: str`: this works if only one target is required,
+    2) as list of target names `targets: List[str]`: this works if multiple targets are required, but the
+        respective Annotation class does _not_ define `TARGET_NAMES` (this disallows the usage of named_targets
+        in the Annotation class), and
+    3) as a mapping `named_targets: Dict[str, str]` from entries in Annotation.TARGET_NAMES to field names of the
+        Document: This should be used if the respective Annotation class defines `TARGET_NAMES`, and thus,
+        makes use of the `named_targets` property.
+    """
+    target_names = None
+    new_targets = []
+    if target is not None:
+        if targets is not None or named_targets is not None:
+            raise ValueError(f"only one of target, targets or named_targets can be set")
+        new_targets = [target]
+    if targets is not None:
+        if target is not None or named_targets is not None:
+            raise ValueError(f"only one of target, targets or named_targets can be set")
+        new_targets = targets
+    if named_targets is not None:
+        if target is not None or targets is not None:
+            raise ValueError(f"only one of target, targets or named_targets can be set")
+        new_targets = list(named_targets.values())
+        target_names = list(named_targets.keys())
+    return dataclasses.field(
+        metadata=dict(targets=new_targets, target_names=target_names), init=False, repr=False
+    )
+
+
+# for now, we only have annotation lists and texts
+TARGET_TYPE = Union["AnnotationList", str]
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
 class Annotation:
-    _target: Optional[Union["AnnotationList", str]] = dataclasses.field(
+    _targets: Optional[Tuple[TARGET_TYPE, ...]] = dataclasses.field(
         default=None, init=False, repr=False, hash=False
     )
+    TARGET_NAMES: ClassVar[Optional[Tuple[str, ...]]] = None
 
-    def set_target(self, value: Union["AnnotationList", str, None]):
-        object.__setattr__(self, "_target", value)
+    def set_targets(self, value: Optional[Tuple[TARGET_TYPE, ...]]):
+        object.__setattr__(self, "_targets", value)
 
     @property
-    def target(self) -> Optional[Union["AnnotationList", str]]:
-        return self._target
+    def target(self) -> Optional[TARGET_TYPE]:
+        if self._targets is None:
+            return None
+        if len(self._targets) == 0:
+            raise ValueError(f"annotation has no target")
+        if len(self._targets) > 1:
+            raise ValueError(
+                f"annotation has multiple targets, target is not defined in this case"
+            )
+        return self._targets[0]
+
+    @property
+    def targets(self) -> Optional[Tuple[TARGET_TYPE, ...]]:
+        return self._targets
+
+    @property
+    def named_targets(self) -> Dict[str, TARGET_TYPE]:
+        if self._targets is None:
+            raise ValueError(
+                f"targets is not set (this annotation may be not yet attached to a document)"
+            )
+        if self.TARGET_NAMES is None:
+            raise TypeError(f"no TARGET_NAMES defined")
+        return {name: self._targets[i] for i, name in enumerate(self.TARGET_NAMES)}
 
     def asdict(self) -> Dict[str, Any]:
         dct = dataclasses.asdict(self)
         dct["_id"] = hash(self)
-        del dct["_target"]
+        del dct["_targets"]
         return dct
 
     @classmethod
@@ -72,16 +142,16 @@ T = TypeVar("T", covariant=False, bound="Annotation")
 
 
 class BaseAnnotationList(Sequence[T]):
-    def __init__(self, document: "Document", target: "str"):
+    def __init__(self, document: "Document", targets: List[str]):
         self._document = document
-        self._target = target
+        self._targets = targets
         self._annotations: List[T] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseAnnotationList):
             return NotImplemented
 
-        return self._target == other._target and self._annotations == other._annotations
+        return self._targets == other._targets and self._annotations == other._annotations
 
     @overload
     def __getitem__(self, index: int) -> T:
@@ -98,8 +168,8 @@ class BaseAnnotationList(Sequence[T]):
         return len(self._annotations)
 
     def append(self, annotation: T) -> None:
-        target = getattr(self._document, self._target) if self._target is not None else None
-        annotation.set_target(target)
+        targets = tuple(getattr(self._document, target_name) for target_name in self._targets)
+        annotation.set_targets(targets)
         self._annotations.append(annotation)
 
     def extend(self, annotations: Iterable[T]) -> None:
@@ -111,14 +181,14 @@ class BaseAnnotationList(Sequence[T]):
 
     def clear(self):
         for annotation in self._annotations:
-            annotation.set_target(None)
+            annotation.set_targets(None)
         self._annotations = []
 
 
 class AnnotationList(BaseAnnotationList[T]):
-    def __init__(self, document: "Document", target: "str"):
-        super().__init__(document=document, target=target)
-        self._predictions: BaseAnnotationList[T] = BaseAnnotationList(document, target)
+    def __init__(self, document: "Document", targets: List["str"]):
+        super().__init__(document=document, targets=targets)
+        self._predictions: BaseAnnotationList[T] = BaseAnnotationList(document, targets=targets)
 
     @property
     def predictions(self) -> BaseAnnotationList[T]:
@@ -157,6 +227,7 @@ class Document(Mapping[str, Any]):
 
     def __post_init__(self):
         targeted = set()
+        field_names = {field.name for field in dataclasses.fields(self)}
         for field in dataclasses.fields(self):
             if field.name == "_annotation_graph":
                 continue
@@ -166,19 +237,58 @@ class Document(Mapping[str, Any]):
             if field_origin is AnnotationList:
                 self._annotation_fields.add(field.name)
 
-                annotation_target = field.metadata.get("target")
-                if annotation_target is not None:
-                    targeted.add(annotation_target)
+                targets = field.metadata.get("targets")
+                for target in targets:
+                    targeted.add(target)
                     if field.name not in self._annotation_graph:
                         self._annotation_graph[field.name] = []
-                    self._annotation_graph[field.name].append(annotation_target)
+                    self._annotation_graph[field.name].append(target)
+                    if target not in field_names:
+                        raise TypeError(
+                            f'annotation target "{target}" is not in field names of the document: {field_names}'
+                        )
 
-                field_value = field.type(document=self, target=annotation_target)
+                # check annotation target names and use them together with target names from the AnnotationList
+                # to reorder targets, if available
+                target_names = field.metadata.get("target_names")
+                annotation_type = typing.get_args(field.type)[0]
+                annotation_target_names = annotation_type.TARGET_NAMES
+                if annotation_target_names is not None:
+                    if target_names is not None:
+                        if set(target_names) != set(annotation_target_names):
+                            raise TypeError(
+                                f"keys of targets {sorted(target_names)} do not match "
+                                f"{annotation_type.__name__}.TARGET_NAMES {sorted(annotation_target_names)}"
+                            )
+                        # reorder targets according to annotation_target_names
+                        target_name_mapping = dict(zip(target_names, targets))
+                        target_position_mapping = {
+                            i: target_name_mapping[name]
+                            for i, name in enumerate(annotation_target_names)
+                        }
+                        targets = [target_position_mapping[i] for i in range(len(targets))]
+                    else:
+                        if len(annotation_target_names) != len(targets):
+                            raise TypeError(
+                                f"number of targets {sorted(targets)} does not match number of entries in "
+                                f"{annotation_type.__name__}.TARGET_NAMES: {sorted(annotation_target_names)}"
+                            )
+                        # disallow multiple targets when target names are specified in the definition of the Annotation
+                        if len(annotation_target_names) > 1:
+                            raise TypeError(
+                                f"A target name mapping is required for AnnotationLists containing Annotations with "
+                                f'TARGET_NAMES, but AnnotationList "{field.name}" has no target_names. You should '
+                                f"pass the named_targets dict containing the following keys (see Annotation "
+                                f'"{annotation_type.__name__}") to annotation_field: {annotation_target_names}'
+                            )
+
+                field_value = field.type(document=self, targets=targets)
                 setattr(self, field.name, field_value)
 
         if "_artificial_root" in self._annotation_graph:
             raise ValueError(
-                "the annotation graph already contains a node _artificial_root, this is not allowed"
+                'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note '
+                "that AnnotationList entries with that name are not allowed."
             )
         self._annotation_graph["_artificial_root"] = list(self._annotation_fields - targeted)
 
