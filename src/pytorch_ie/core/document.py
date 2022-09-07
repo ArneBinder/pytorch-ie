@@ -15,6 +15,8 @@ from typing import (
     overload,
 )
 
+from typing_extensions import TypeAlias
+
 
 def _enumerate_dependencies(
     resolved: List[str],
@@ -83,6 +85,7 @@ def annotation_field(
 
 # for now, we only have annotation lists and texts
 TARGET_TYPE = Union["AnnotationList", str]
+T_annotation_store_key: TypeAlias = int
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -94,6 +97,13 @@ class Annotation:
 
     def set_targets(self, value: Optional[Tuple[TARGET_TYPE, ...]]):
         object.__setattr__(self, "_targets", value)
+
+    @property
+    def id(self) -> int:
+        if self.targets is not None:
+            return hash((self,) + self.targets)
+        else:
+            return hash(self)
 
     @property
     def target(self) -> Optional[TARGET_TYPE]:
@@ -123,7 +133,7 @@ class Annotation:
 
     def asdict(self) -> Dict[str, Any]:
         dct = dataclasses.asdict(self)
-        dct["_id"] = hash(self)
+        dct["_id"] = self.id
         del dct["_targets"]
         return dct
 
@@ -131,7 +141,7 @@ class Annotation:
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[T_annotation_store_key, Tuple[str, "Annotation"]]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)
@@ -152,6 +162,9 @@ class BaseAnnotationList(Sequence[T]):
             return NotImplemented
 
         return self._targets == other._targets and self._annotations == other._annotations
+
+    def __hash__(self):
+        return hash(ann.id for ann in self._annotations)
 
     @overload
     def __getitem__(self, index: int) -> T:
@@ -199,6 +212,9 @@ class AnnotationList(BaseAnnotationList[T]):
             return NotImplemented
 
         return super().__eq__(other) and self.predictions == other.predictions
+
+    def __hash__(self):
+        return hash((super().__hash__(), hash(self._predictions)))
 
     def __repr__(self) -> str:
         return f"AnnotationList({str(self._annotations)})"
@@ -396,3 +412,17 @@ class Document(Mapping[str, Any]):
         field_mapping = field_mapping or {}
         new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in self.asdict().items()})
         return new_doc
+
+
+def resolve_annotation(
+    id_or_annotation: Union[T_annotation_store_key, Annotation],
+    store: Optional[Dict[T_annotation_store_key, Tuple[str, Annotation]]],
+) -> Annotation:
+    if isinstance(id_or_annotation, Annotation):
+        return id_or_annotation
+    else:
+        if store is None:
+            raise ValueError("Unable to resolve the annotation id without annotation_store.")
+        if isinstance(id_or_annotation, list):
+            id_or_annotation = tuple(id_or_annotation)
+        return store[id_or_annotation][1]

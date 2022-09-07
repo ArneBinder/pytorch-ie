@@ -28,7 +28,7 @@ def test_label():
     assert label2.score == pytest.approx(0.5)
 
     assert label2.asdict() == {
-        "_id": hash(label2),
+        "_id": label2.id,
         "label": "label2",
         "score": 0.5,
     }
@@ -46,7 +46,7 @@ def test_multilabel():
     assert multilabel2.score == pytest.approx((0.4, 0.5))
 
     multilabel2.asdict() == {
-        "_id": hash(multilabel2),
+        "_id": multilabel2.id,
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
@@ -65,7 +65,7 @@ def test_span():
     assert span.end == 2
 
     span.asdict() == {
-        "_id": hash(span),
+        "_id": span.id,
         "start": 1,
         "end": 2,
     }
@@ -87,7 +87,7 @@ def test_labeled_span():
     assert labeled_span2.score == pytest.approx(0.5)
 
     labeled_span2.asdict() == {
-        "_id": hash(labeled_span2),
+        "_id": labeled_span2.id,
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
@@ -111,7 +111,7 @@ def test_multilabeled_span():
     assert multilabeled_span2.score == pytest.approx((0.4, 0.5))
 
     multilabeled_span2.asdict() == {
-        "_id": hash(multilabeled_span2),
+        "_id": multilabeled_span2.id,
         "start": 3,
         "end": 4,
         "label": ("label3", "label4"),
@@ -142,7 +142,7 @@ def test_labeled_multi_span():
     assert labeled_multi_span2.score == pytest.approx(0.5)
 
     labeled_multi_span2.asdict() == {
-        "_id": hash(labeled_multi_span2),
+        "_id": labeled_multi_span2.id,
         "slices": ((5, 6), (7, 8)),
         "label": "label2",
         "score": 0.5,
@@ -167,7 +167,7 @@ def test_multilabeled_multi_span():
     assert multilabeled_multi_span2.score == pytest.approx((0.4, 0.5))
 
     multilabeled_multi_span2.asdict() == {
-        "_id": hash(multilabeled_multi_span2),
+        "_id": multilabeled_multi_span2.id,
         "slices": ((5, 6), (7, 8)),
         "label": ("label2", "label3"),
         "score": (0.4, 0.5),
@@ -202,23 +202,24 @@ def test_binary_relation():
     assert binary_relation2.score == pytest.approx(0.5)
 
     binary_relation2.asdict() == {
-        "_id": hash(binary_relation2),
-        "head": hash(head),
-        "tail": hash(tail),
+        "_id": binary_relation2.id,
+        "head": head.id,
+        "tail": head.id,
         "label": "label2",
         "score": 0.5,
     }
 
     annotation_store = {
-        hash(head): ("head", head),
-        hash(tail): ("tail", tail),
+        head.id: ("head", head),
+        tail.id: ("tail", tail),
     }
     binary_relation2 == BinaryRelation.fromdict(
         binary_relation2.asdict(), annotation_store=annotation_store
     )
 
     with pytest.raises(
-        ValueError, match=re.escape("Unable to resolve head reference without annotation_store.")
+        ValueError,
+        match=re.escape("Unable to resolve the annotation id without annotation_store."),
     ):
         binary_relation2 == BinaryRelation.fromdict(binary_relation2.asdict())
 
@@ -242,23 +243,24 @@ def test_multilabeled_binary_relation():
     assert binary_relation2.score == pytest.approx((0.4, 0.5))
 
     binary_relation2.asdict() == {
-        "_id": hash(binary_relation2),
-        "head": hash(head),
-        "tail": hash(tail),
+        "_id": binary_relation2.id,
+        "head": head.id,
+        "tail": tail.id,
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
 
     annotation_store = {
-        hash(head): ("head", head),
-        hash(tail): ("tail", tail),
+        head.id: ("head", head),
+        tail.id: ("tail", tail),
     }
     binary_relation2 == MultiLabeledBinaryRelation.fromdict(
         binary_relation2.asdict(), annotation_store=annotation_store
     )
 
     with pytest.raises(
-        ValueError, match=re.escape("Unable to resolve head reference without annotation_store.")
+        ValueError,
+        match=re.escape("Unable to resolve the annotation id without annotation_store."),
     ):
         binary_relation2 == MultiLabeledBinaryRelation.fromdict(binary_relation2.asdict())
 
