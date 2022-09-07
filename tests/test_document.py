@@ -127,6 +127,24 @@ def test_document_with_annotations():
     assert set(document1) == {"sentences", "entities", "relations", "label"}
 
 
+def test_document_with_same_annotations():
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        tokens: AnnotationList[Span] = annotation_field(target="text")
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+
+    doc = TestDocument(text="test1")
+    token = Span(start=0, end=len(doc.text))
+    sentence = Span(start=0, end=len(doc.text))
+    doc.tokens.append(token)
+    doc.sentences.append(sentence)
+
+    doc_dict = doc.asdict()
+
+    doc_reconstructed = TestDocument.fromdict(doc_dict)
+    assert doc == doc_reconstructed
+
+
 def test_as_type():
     @dataclasses.dataclass
     class TestDocument1(TextDocument):
