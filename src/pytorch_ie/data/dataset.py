@@ -1,4 +1,5 @@
 from functools import wraps
+from inspect import Signature, isclass, signature
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import pandas as pd
@@ -116,6 +117,18 @@ def _check_fields_for_casting(
 D = TypeVar("D", bound=Document)
 
 
+def _infer_document_type_from_function_return(function: Callable, default: Type[D]) -> Type[D]:
+    # try to infer the document type from the return type annotation of function
+    return_signature = signature(function).return_annotation
+    if not return_signature == Signature.empty:
+        if not isclass(return_signature) or not issubclass(return_signature, Document):
+            raise TypeError(
+                f"the return type annotation of the function used with map is not a subclass of Document"
+            )
+        return return_signature
+    return default
+
+
 class Dataset(datasets.Dataset):
     def __init__(
         self,
@@ -208,7 +221,9 @@ class Dataset(datasets.Dataset):
         )
 
         if result_document_type is None:
-            result_document_type = self.document_type
+            result_document_type = _infer_document_type_from_function_return(
+                function=function, default=self.document_type
+            )
 
         return Dataset.from_hf_dataset(dataset, document_type=result_document_type)
 
@@ -314,7 +329,9 @@ class IterableDataset(datasets.IterableDataset):
         )
 
         if result_document_type is None:
-            result_document_type = self.document_type
+            result_document_type = _infer_document_type_from_function_return(
+                function=function, default=self.document_type
+            )
 
         return IterableDataset.from_hf_dataset(dataset_mapped, document_type=result_document_type)
 
