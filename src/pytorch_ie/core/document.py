@@ -1,5 +1,6 @@
 import dataclasses
 import typing
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import (
     Any,
@@ -14,6 +15,8 @@ from typing import (
     Union,
     overload,
 )
+
+from typing_extensions import SupportsIndex, TypeAlias
 
 
 def _enumerate_dependencies(
@@ -93,7 +96,26 @@ class Annotation:
     TARGET_NAMES: ClassVar[Optional[Tuple[str, ...]]] = None
 
     def set_targets(self, value: Optional[Tuple[TARGET_TYPE, ...]]):
+        if value is not None and self._targets is not None:
+            raise ValueError(
+                f"Annotation already has assigned targets. Clear the "
+                f"annotation list container or remove the annotation with pop() "
+                f"to assign it to a new annotation list with other targets."
+            )
         object.__setattr__(self, "_targets", value)
+
+    @property
+    def id(self) -> int:
+        if self.targets is not None:
+            # Take the hash from itself and all targets that are no annotation lists since
+            # the relevant entries of annotation lists are already referenced, and thus hashed,
+            # in the annotation itself.
+            non_annotationlist_targets = tuple(
+                target for target in self.targets if not isinstance(target, AnnotationList)
+            )
+            return hash((self,) + non_annotationlist_targets)
+        else:
+            return hash(self)
 
     @property
     def target(self) -> Optional[TARGET_TYPE]:
@@ -123,7 +145,7 @@ class Annotation:
 
     def asdict(self) -> Dict[str, Any]:
         dct = dataclasses.asdict(self)
-        dct["_id"] = hash(self)
+        dct["_id"] = self.id
         del dct["_targets"]
         return dct
 
@@ -131,7 +153,7 @@ class Annotation:
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)
@@ -183,6 +205,11 @@ class BaseAnnotationList(Sequence[T]):
         for annotation in self._annotations:
             annotation.set_targets(None)
         self._annotations = []
+
+    def pop(self, index=None):
+        ann = self._annotations.pop(index)
+        ann.set_targets(None)
+        return ann
 
 
 class AnnotationList(BaseAnnotationList[T]):
@@ -348,6 +375,8 @@ class Document(Mapping[str, Any]):
 
         annotations = {}
         predictions = {}
+        annotations_per_field = defaultdict(list)
+        predictions_per_field = defaultdict(list)
         for field_name in dependency_ordered_fields:
             # terminal nodes do not have to be an annotation field (e.g. the text field)
             if field_name not in name_to_field:
@@ -367,28 +396,28 @@ class Document(Mapping[str, Any]):
                 for annotation_data in value["annotations"]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
-                    annotations[annotation_id] = (
-                        field.name,
-                        # annotations can only reference annotations
-                        annotation_class.fromdict(annotation_dict, annotations),
-                    )
+                    # annotations can only reference annotations
+                    annotation = annotation_class.fromdict(annotation_dict, annotations)
+                    annotations[annotation_id] = annotation
+                    annotations_per_field[field.name].append(annotation)
                 # build predictions
                 for annotation_data in value["predictions"]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
-                    predictions[annotation_id] = (
-                        field.name,
-                        # predictions can reference annotations and predictions
-                        annotation_class.fromdict(annotation_dict, {**annotations, **predictions}),
+                    # predictions can reference annotations and predictions
+                    annotation = annotation_class.fromdict(
+                        annotation_dict, {**annotations, **predictions}
                     )
+                    predictions[annotation_id] = annotation
+                    predictions_per_field[field.name].append(annotation)
             else:
                 raise Exception("Error")
 
-        for field_name, annotation in annotations.values():
-            getattr(doc, field_name).append(annotation)
+        for field_name, field_annotations in annotations_per_field.items():
+            getattr(doc, field_name).extend(field_annotations)
 
-        for field_name, annotation in predictions.values():
-            getattr(doc, field_name).predictions.append(annotation)
+        for field_name, field_annotations in predictions_per_field.items():
+            getattr(doc, field_name).predictions.extend(field_annotations)
 
         return doc
 
@@ -396,3 +425,15 @@ class Document(Mapping[str, Any]):
         field_mapping = field_mapping or {}
         new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in self.asdict().items()})
         return new_doc
+
+
+def resolve_annotation(
+    id_or_annotation: Union[int, Annotation],
+    store: Optional[Dict[int, Annotation]],
+) -> Annotation:
+    if isinstance(id_or_annotation, Annotation):
+        return id_or_annotation
+    else:
+        if store is None:
+            raise ValueError("Unable to resolve the annotation id without annotation_store.")
+        return store[id_or_annotation]

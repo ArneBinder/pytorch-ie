@@ -88,6 +88,10 @@ def test_document_with_annotations():
     assert document1.sentences[0].target == document1.text
 
     relation1 = BinaryRelation(head=labeled_span1, tail=labeled_span2, label="label1")
+    relation2 = BinaryRelation(head=labeled_span1, tail=labeled_span2, label="label1")
+    relation3 = BinaryRelation(head=labeled_span2, tail=labeled_span1, label="label1")
+    assert relation1.id == relation2.id
+    assert relation1.id != relation3.id
 
     document1.relations.append(relation1)
     assert len(document1.relations) == 1
@@ -110,7 +114,10 @@ def test_document_with_annotations():
     document1.sentences.predictions.append(span3)
     document1.sentences.predictions.append(span4)
     # add a prediction that is also an annotation
-    document1.entities.predictions.append(labeled_span1)
+    # remove the annotation to allow reassigning it
+    relation1_popped = document1.relations.pop(0)
+    assert relation1_popped == relation1
+    document1.relations.predictions.append(relation1)
 
     assert len(document1.sentences.predictions) == 2
     assert document1.sentences.predictions[1].target == document1.text
@@ -125,6 +132,59 @@ def test_document_with_annotations():
     assert len(document1) == 4
     # actual annotation fields (tests __iter__)
     assert set(document1) == {"sentences", "entities", "relations", "label"}
+
+
+def test_document_with_same_annotations():
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        text: str
+        text2: str
+        text3: str
+        tokens0: AnnotationList[Span] = annotation_field(target="text")
+        tokens1: AnnotationList[Span] = annotation_field(target="text")
+        tokens2: AnnotationList[Span] = annotation_field(target="text2")
+        tokens3: AnnotationList[Span] = annotation_field(target="text3")
+
+    doc = TestDocument(text="test1", text2="test1", text3="test2")
+    start = 0
+    end = len(doc.text)
+    token0 = Span(start=start, end=end)
+    token1 = Span(start=start, end=end)
+    token2 = Span(start=start, end=end)
+    token3 = Span(start=start, end=end)
+    token0_id = token0.id
+    token1_id = token1.id
+    token2_id = token2.id
+    token3_id = token3.id
+    # all spans are identical, so are there ids
+    assert token1_id == token0_id
+    assert token2_id == token0_id
+    assert token3_id == token0_id
+    doc.tokens0.append(token0)
+    doc.tokens1.append(token1)
+    doc.tokens2.append(token2)
+    doc.tokens3.append(token3)
+    token0_id_added = token0.id
+    token1_id_added = token1.id
+    token2_id_added = token2.id
+    token3_id_added = token3.id
+    # after adding them to a document, the targets are taken into account, so their id changed
+    assert token0_id_added != token0_id
+    assert token1_id_added != token1_id
+    assert token2_id_added != token2_id
+    assert token3_id_added != token3_id
+
+    # token0 and token1 spans are still identical because they have the same target
+    assert token0_id_added == token1_id_added
+    # they are also still identical with token2 because they have the same target content (!)
+    assert token2_id_added == token0_id_added
+    # teh differ from token3 because their target content (!) is different
+    assert token3_id_added != token0_id_added
+
+    # test reconstruction
+    doc_dict = doc.asdict()
+    doc_reconstructed = TestDocument.fromdict(doc_dict)
+    assert doc == doc_reconstructed
 
 
 def test_as_type():

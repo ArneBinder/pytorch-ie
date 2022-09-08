@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
-from pytorch_ie.core.document import Annotation
+from pytorch_ie.core.document import Annotation, resolve_annotation
 
 
 def _validate_single_label(self):
@@ -114,33 +114,21 @@ class BinaryRelation(Annotation):
 
     def asdict(self) -> Dict[str, Any]:
         dct = super().asdict()
-        dct["head"] = hash(self.head)
-        dct["tail"] = hash(self.tail)
+        dct["head"] = self.head.id
+        dct["tail"] = self.tail.id
         return dct
 
     @classmethod
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)
 
-        head = tmp_dct["head"]
-        tail = tmp_dct["tail"]
-
-        if isinstance(head, int):
-            if annotation_store is None:
-                raise ValueError("Unable to resolve head reference without annotation_store.")
-
-            tmp_dct["head"] = annotation_store[head][1]
-
-        if isinstance(tail, int):
-            if annotation_store is None:
-                raise ValueError("Unable to resolve tail reference without annotation_store.")
-
-            tmp_dct["tail"] = annotation_store[tail][1]
+        tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
+        tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
 
         return cls(**tmp_dct)
 
@@ -159,32 +147,20 @@ class MultiLabeledBinaryRelation(Annotation):
         dct = super().asdict()
 
         # replace object references with object hashes
-        dct["head"] = hash(self.head)
-        dct["tail"] = hash(self.tail)
+        dct["head"] = self.head.id
+        dct["tail"] = self.tail.id
         return dct
 
     @classmethod
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)
 
-        head = tmp_dct["head"]
-        tail = tmp_dct["tail"]
-
-        if isinstance(head, int):
-            if annotation_store is None:
-                raise ValueError("Unable to resolve head reference without annotation_store.")
-
-            tmp_dct["head"] = annotation_store[head][1]
-
-        if isinstance(tail, int):
-            if annotation_store is None:
-                raise ValueError("Unable to resolve tail reference without annotation_store.")
-
-            tmp_dct["tail"] = annotation_store[tail][1]
+        tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
+        tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
 
         return cls(**tmp_dct)
