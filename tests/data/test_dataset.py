@@ -1,5 +1,6 @@
 from collections.abc import Iterator
-from typing import Sequence
+from dataclasses import dataclass
+from typing import Dict, Sequence
 
 import numpy
 import pytest
@@ -7,11 +8,14 @@ import torch
 
 import datasets
 from pytorch_ie import Dataset, IterableDataset
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.core.taskmodule import (
     IterableTaskEncodingDataset,
     TaskEncodingDataset,
     TaskEncodingSequence,
 )
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
@@ -102,6 +106,67 @@ def test_dataset_map_batched(maybe_iterable_dataset):
 
     assert sum(len(doc.relations) for doc in mapped_dataset1) == 0
     assert sum(len(doc.relations) for doc in train_dataset) == 7
+
+
+@pytest.mark.parametrize("infer_type", [False, True])
+def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_type):
+    @dataclass
+    class TestDocument(TextDocument):
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+    @dataclass
+    class TestDocumentWithTokensButNoRelations(TextDocument):
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+        tokens: AnnotationList[Span] = annotation_field(target="text")
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    def clear_relations_and_add_one_token(
+        document: TestDocument,
+    ) -> TestDocumentWithTokensButNoRelations:
+        document.relations.clear()
+        # the conversion here is not really necessary, but to have correct typing
+        result = document.as_type(TestDocumentWithTokensButNoRelations)
+        # subtract 1 to create a Span different from the sentence to account for
+        # https://github.com/ChristophAlt/pytorch-ie/pull/222
+        result.tokens.append(Span(0, len(document.text) - 1))
+        return result
+
+    train_dataset = maybe_iterable_dataset["train"]
+
+    assert sum(len(doc.relations) for doc in train_dataset) == 7
+
+    mapped_dataset1 = train_dataset.map(
+        clear_relations_and_add_one_token,
+        result_document_type=TestDocumentWithTokensButNoRelations if not infer_type else None,
+    )
+
+    assert sum(len(doc.relations) for doc in train_dataset) == 7
+
+    doc0 = list(train_dataset)[0]
+    doc0_mapped = list(mapped_dataset1)[0]
+    assert len(doc0_mapped.tokens) == 1
+    token = doc0_mapped.tokens[0]
+    assert token.start == 0
+    assert token.end == len(doc0.text) - 1
+    # check field names because isinstance does not work (the code of the document types
+    # is the same, but lives at different locations)
+    assert {f.name for f in doc0.fields()} == {f.name for f in TestDocument.fields()}
+    assert {f.name for f in doc0_mapped.fields()} == {
+        f.name for f in TestDocumentWithTokensButNoRelations.fields()
+    }
+
+    if infer_type:
+
+        def func_wrong_return_type(document: TestDocument) -> Dict:
+            return document  # type: ignore
+
+        with pytest.raises(
+            TypeError,
+            match="the return type annotation of the function used with map is not a subclass of Document",
+        ):
+            train_dataset.map(func_wrong_return_type)
 
 
 @pytest.mark.parametrize("encode_target", [False, True])

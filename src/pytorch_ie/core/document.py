@@ -421,7 +421,9 @@ class Document(Mapping[str, Any]):
 
         return doc
 
-    def as_type(self, new_type: typing.Type[D], field_mapping: Optional[Dict[str, str]] = None):
+    def as_type(
+        self, new_type: typing.Type[D], field_mapping: Optional[Dict[str, str]] = None
+    ) -> D:
         field_mapping = field_mapping or {}
         new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in self.asdict().items()})
         return new_doc

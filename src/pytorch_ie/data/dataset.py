@@ -1,4 +1,5 @@
 from functools import wraps
+from inspect import Signature, isclass, signature
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import pandas as pd
@@ -116,6 +117,18 @@ def _check_fields_for_casting(
 D = TypeVar("D", bound=Document)
 
 
+def _infer_document_type_from_function_return(function: Callable) -> Optional[Type[Document]]:
+    # try to infer the document type from the return type annotation of function
+    return_signature = signature(function).return_annotation
+    if not return_signature == Signature.empty:
+        if not isclass(return_signature) or not issubclass(return_signature, Document):
+            raise TypeError(
+                f"the return type annotation of the function used with map is not a subclass of Document"
+            )
+        return return_signature
+    return None
+
+
 class Dataset(datasets.Dataset):
     def __init__(
         self,
@@ -182,6 +195,7 @@ class Dataset(datasets.Dataset):
         new_fingerprint: Optional[str] = None,
         desc: Optional[str] = None,
         as_documents: bool = True,
+        result_document_type: Optional[Type[Document]] = None,
     ) -> "Dataset":
 
         dataset = super().map(
@@ -206,7 +220,13 @@ class Dataset(datasets.Dataset):
             desc=desc,
         )
 
-        return Dataset.from_hf_dataset(dataset, document_type=self.document_type)
+        if result_document_type is None:
+            if function is not None and as_documents:
+                result_document_type = _infer_document_type_from_function_return(function=function)
+            if result_document_type is None:
+                result_document_type = self.document_type
+
+        return Dataset.from_hf_dataset(dataset, document_type=result_document_type)
 
     def cast_document_type(
         self,
@@ -294,15 +314,31 @@ class IterableDataset(datasets.IterableDataset):
         for example in iter(super().__iter__()):
             yield self.document_type.fromdict(example)
 
-    def map(self, function: Optional[Callable] = None, batched: bool = False, **kwargs) -> "IterableDataset":  # type: ignore
+    def map(  # type: ignore
+        self,
+        function: Optional[Callable] = None,
+        batched: bool = False,
+        as_documents: bool = True,
+        result_document_type: Optional[Type[Document]] = None,
+        **kwargs,
+    ) -> "IterableDataset":
         dataset_mapped = super().map(
             function=decorate_convert_to_document_and_back(
                 function, document_type=self.document_type, batched=batched
-            ),
+            )
+            if as_documents
+            else function,
             batched=batched,
             **kwargs,
         )
-        return IterableDataset.from_hf_dataset(dataset_mapped, document_type=self.document_type)
+
+        if result_document_type is None:
+            if function is not None and as_documents:
+                result_document_type = _infer_document_type_from_function_return(function=function)
+            if result_document_type is None:
+                result_document_type = self.document_type
+
+        return IterableDataset.from_hf_dataset(dataset_mapped, document_type=result_document_type)
 
     def apply_hf_func(self, func, **kwargs) -> "IterableDataset":
         return IterableDataset.from_hf_dataset(
