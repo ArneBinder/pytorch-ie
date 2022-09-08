@@ -29,6 +29,11 @@ def _validate_multi_label(self):
         )
 
 
+def _post_init_multi_span(self):
+    if isinstance(self.slices, list):
+        object.__setattr__(self, "slices", tuple(tuple(s) for s in self.slices))
+
+
 @dataclass(eq=True, frozen=True)
 class Label(Annotation):
     label: str
@@ -40,8 +45,8 @@ class Label(Annotation):
 
 @dataclass(eq=True, frozen=True)
 class MultiLabel(Annotation):
-    label: Tuple[str]
-    score: Optional[Tuple[float]] = None
+    label: Tuple[str, ...]
+    score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
         _validate_multi_label(self)
@@ -78,27 +83,23 @@ class MultiLabeledSpan(Span):
 
 @dataclass(eq=True, frozen=True)
 class LabeledMultiSpan(Annotation):
-    slices: Tuple[Tuple[int, int]]
+    slices: Tuple[Tuple[int, int], ...]
     label: str
     score: float = 1.0
 
     def __post_init__(self) -> None:
-        if isinstance(self.label, list):
-            object.__setattr__(self, "slices", tuple(self.slices))
-
+        _post_init_multi_span(self)
         _validate_single_label(self)
 
 
 @dataclass(eq=True, frozen=True)
 class MultiLabeledMultiSpan(Annotation):
-    slices: Tuple[Tuple[int, int]]
-    label: Tuple[str]
-    score: Optional[Tuple[float]] = None
+    slices: Tuple[Tuple[int, int], ...]
+    label: Tuple[str, ...]
+    score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
-        if isinstance(self.label, list):
-            object.__setattr__(self, "slices", tuple(self.slices))
-
+        _post_init_multi_span(self)
         _validate_multi_label(self)
 
 
@@ -137,8 +138,8 @@ class BinaryRelation(Annotation):
 class MultiLabeledBinaryRelation(Annotation):
     head: Span
     tail: Span
-    label: Tuple[str]
-    score: Optional[Tuple[float]] = None
+    label: Tuple[str, ...]
+    score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
         _validate_multi_label(self)
