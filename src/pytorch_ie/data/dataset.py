@@ -182,6 +182,7 @@ class Dataset(datasets.Dataset):
         new_fingerprint: Optional[str] = None,
         desc: Optional[str] = None,
         as_documents: bool = True,
+        result_document_type: Optional[Type[Document]] = None,
     ) -> "Dataset":
 
         dataset = super().map(
@@ -206,7 +207,10 @@ class Dataset(datasets.Dataset):
             desc=desc,
         )
 
-        return Dataset.from_hf_dataset(dataset, document_type=self.document_type)
+        if result_document_type is None:
+            result_document_type = self.document_type
+
+        return Dataset.from_hf_dataset(dataset, document_type=result_document_type)
 
     def cast_document_type(
         self,
@@ -294,7 +298,13 @@ class IterableDataset(datasets.IterableDataset):
         for example in iter(super().__iter__()):
             yield self.document_type.fromdict(example)
 
-    def map(self, function: Optional[Callable] = None, batched: bool = False, **kwargs) -> "IterableDataset":  # type: ignore
+    def map(  # type: ignore
+        self,
+        function: Optional[Callable] = None,
+        batched: bool = False,
+        result_document_type: Optional[Type[Document]] = None,
+        **kwargs,
+    ) -> "IterableDataset":
         dataset_mapped = super().map(
             function=decorate_convert_to_document_and_back(
                 function, document_type=self.document_type, batched=batched
@@ -302,7 +312,11 @@ class IterableDataset(datasets.IterableDataset):
             batched=batched,
             **kwargs,
         )
-        return IterableDataset.from_hf_dataset(dataset_mapped, document_type=self.document_type)
+
+        if result_document_type is None:
+            result_document_type = self.document_type
+
+        return IterableDataset.from_hf_dataset(dataset_mapped, document_type=result_document_type)
 
     def apply_hf_func(self, func, **kwargs) -> "IterableDataset":
         return IterableDataset.from_hf_dataset(
