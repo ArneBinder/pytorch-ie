@@ -1,17 +1,22 @@
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Sequence
 
 import numpy
 import pytest
 import torch
+from conftest import TestDocument
 
 import datasets
 from pytorch_ie import Dataset, IterableDataset
+from pytorch_ie.annotations import LabeledSpan, Span
+from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.core.taskmodule import (
     IterableTaskEncodingDataset,
     TaskEncodingDataset,
     TaskEncodingSequence,
 )
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
@@ -102,6 +107,36 @@ def test_dataset_map_batched(maybe_iterable_dataset):
 
     assert sum(len(doc.relations) for doc in mapped_dataset1) == 0
     assert sum(len(doc.relations) for doc in train_dataset) == 7
+
+
+def test_dataset_map_with_result_document_type(maybe_iterable_dataset):
+    @dataclass
+    class TestDocumentWithoutRelations(TextDocument):
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    def clear_relations(document: TestDocument) -> TestDocumentWithoutRelations:
+        document.relations.clear()
+        # teh conversion here is not really necessary, but to have correct typing
+        return document.as_type(TestDocumentWithoutRelations)
+
+    train_dataset = maybe_iterable_dataset["train"]
+
+    assert sum(len(doc.relations) for doc in train_dataset) == 7
+
+    mapped_dataset1 = train_dataset.map(
+        clear_relations, result_document_type=TestDocumentWithoutRelations
+    )
+
+    assert sum(len(doc.relations) for doc in train_dataset) == 7
+
+    doc0 = list(train_dataset)[0]
+    doc0_mapped = list(mapped_dataset1)[0]
+    # check field names because isinstance does not work (the code of the document types may be copied somewhere)
+    assert {f.name for f in doc0.fields()} == {f.name for f in TestDocument.fields()}
+    assert {f.name for f in doc0_mapped.fields()} == {
+        f.name for f in TestDocumentWithoutRelations.fields()
+    }
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
