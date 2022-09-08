@@ -210,8 +210,8 @@ def test_binary_relation():
     }
 
     annotation_store = {
-        head.id: ("head", head),
-        tail.id: ("tail", tail),
+        head.id: head,
+        tail.id: tail,
     }
     binary_relation2 == BinaryRelation.fromdict(
         binary_relation2.asdict(), annotation_store=annotation_store
@@ -251,8 +251,8 @@ def test_multilabeled_binary_relation():
     }
 
     annotation_store = {
-        head.id: ("head", head),
-        tail.id: ("tail", tail),
+        head.id: head,
+        tail.id: tail,
     }
     binary_relation2 == MultiLabeledBinaryRelation.fromdict(
         binary_relation2.asdict(), annotation_store=annotation_store

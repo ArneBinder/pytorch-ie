@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
-from pytorch_ie.core.document import Annotation, T_annotation_store_key, resolve_annotation
+from pytorch_ie.core.document import Annotation, resolve_annotation
 
 
 def _validate_single_label(self):
@@ -122,7 +122,7 @@ class BinaryRelation(Annotation):
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[T_annotation_store_key, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)
@@ -155,7 +155,7 @@ class MultiLabeledBinaryRelation(Annotation):
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[T_annotation_store_key, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)

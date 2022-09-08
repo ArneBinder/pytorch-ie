@@ -86,7 +86,6 @@ def annotation_field(
 
 # for now, we only have annotation lists and texts
 TARGET_TYPE = Union["AnnotationList", str]
-T_annotation_store_key: TypeAlias = int
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -148,7 +147,7 @@ class Annotation:
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[T_annotation_store_key, Tuple[str, "Annotation"]]] = None,
+        annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
         tmp_dct.pop("_id", None)
@@ -399,7 +398,7 @@ class Document(Mapping[str, Any]):
                     annotation_id = annotation_dict.pop("_id")
                     # annotations can only reference annotations
                     annotation = annotation_class.fromdict(annotation_dict, annotations)
-                    annotations[annotation_id] = (field.name, annotation)
+                    annotations[annotation_id] = annotation
                     annotations_per_field[field.name].append(annotation)
                 # build predictions
                 for annotation_data in value["predictions"]:
@@ -409,7 +408,7 @@ class Document(Mapping[str, Any]):
                     annotation = annotation_class.fromdict(
                         annotation_dict, {**annotations, **predictions}
                     )
-                    predictions[annotation_id] = (field.name, annotation)
+                    predictions[annotation_id] = annotation
                     predictions_per_field[field.name].append(annotation)
             else:
                 raise Exception("Error")
@@ -429,14 +428,12 @@ class Document(Mapping[str, Any]):
 
 
 def resolve_annotation(
-    id_or_annotation: Union[T_annotation_store_key, Annotation],
-    store: Optional[Dict[T_annotation_store_key, Tuple[str, Annotation]]],
+    id_or_annotation: Union[int, Annotation],
+    store: Optional[Dict[int, Annotation]],
 ) -> Annotation:
     if isinstance(id_or_annotation, Annotation):
         return id_or_annotation
     else:
         if store is None:
             raise ValueError("Unable to resolve the annotation id without annotation_store.")
-        if isinstance(id_or_annotation, list):
-            id_or_annotation = tuple(id_or_annotation)
-        return store[id_or_annotation][1]
+        return store[id_or_annotation]
