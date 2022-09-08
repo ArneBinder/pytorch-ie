@@ -1,5 +1,6 @@
+import json
 import re
-from dataclasses import dataclass
+from typing import Dict, Optional
 
 import pytest
 
@@ -14,8 +15,17 @@ from pytorch_ie.annotations import (
     MultiLabeledSpan,
     Span,
 )
-from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.core import Annotation
+
+
+def _test_reconstruct(
+    annotation: Annotation, annotation_store: Optional[Dict[int, Annotation]] = None
+):
+    ann_str = json.dumps(annotation.asdict())
+    annotation_reconstructed = type(annotation).fromdict(
+        json.loads(ann_str), annotation_store=annotation_store
+    )
+    assert annotation_reconstructed == annotation
 
 
 def test_label():
@@ -33,7 +43,7 @@ def test_label():
         "score": 0.5,
     }
 
-    assert label2 == Label.fromdict(label2.asdict())
+    _test_reconstruct(label2)
 
 
 def test_multilabel():
@@ -45,18 +55,18 @@ def test_multilabel():
     assert multilabel2.label == ("label3", "label4")
     assert multilabel2.score == pytest.approx((0.4, 0.5))
 
-    multilabel2.asdict() == {
+    assert multilabel2.asdict() == {
         "_id": multilabel2.id,
         "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
 
-    assert multilabel2 == MultiLabel.fromdict(multilabel2.asdict())
+    _test_reconstruct(multilabel2)
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
     ):
-        MultiLabel(label=["label5", "label6"], score=[0.1, 0.2, 0.3])
+        MultiLabel(label=("label5", "label6"), score=(0.1, 0.2, 0.3))
 
 
 def test_span():
@@ -64,13 +74,13 @@ def test_span():
     assert span.start == 1
     assert span.end == 2
 
-    span.asdict() == {
+    assert span.asdict() == {
         "_id": span.id,
         "start": 1,
         "end": 2,
     }
 
-    assert span == Span.fromdict(span.asdict())
+    _test_reconstruct(span)
 
 
 def test_labeled_span():
@@ -86,13 +96,15 @@ def test_labeled_span():
     assert labeled_span2.label == "label2"
     assert labeled_span2.score == pytest.approx(0.5)
 
-    labeled_span2.asdict() == {
+    assert labeled_span2.asdict() == {
         "_id": labeled_span2.id,
-        "label": ("label3", "label4"),
-        "score": (0.4, 0.5),
+        "start": 3,
+        "end": 4,
+        "label": "label2",
+        "score": 0.5,
     }
 
-    assert labeled_span2 == LabeledSpan.fromdict(labeled_span2.asdict())
+    _test_reconstruct(labeled_span2)
 
 
 def test_multilabeled_span():
@@ -110,7 +122,7 @@ def test_multilabeled_span():
     assert multilabeled_span2.label == ("label3", "label4")
     assert multilabeled_span2.score == pytest.approx((0.4, 0.5))
 
-    multilabeled_span2.asdict() == {
+    assert multilabeled_span2.asdict() == {
         "_id": multilabeled_span2.id,
         "start": 3,
         "end": 4,
@@ -118,12 +130,12 @@ def test_multilabeled_span():
         "score": (0.4, 0.5),
     }
 
-    assert multilabeled_span2 == MultiLabeledSpan.fromdict(multilabeled_span2.asdict())
+    _test_reconstruct(multilabeled_span2)
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
     ):
-        MultiLabeledSpan(start=5, end=6, label=["label5", "label6"], score=[0.1, 0.2, 0.3])
+        MultiLabeledSpan(start=5, end=6, label=("label5", "label6"), score=(0.1, 0.2, 0.3))
 
 
 def test_labeled_multi_span():
@@ -141,14 +153,14 @@ def test_labeled_multi_span():
     assert labeled_multi_span2.label == "label2"
     assert labeled_multi_span2.score == pytest.approx(0.5)
 
-    labeled_multi_span2.asdict() == {
+    assert labeled_multi_span2.asdict() == {
         "_id": labeled_multi_span2.id,
         "slices": ((5, 6), (7, 8)),
         "label": "label2",
         "score": 0.5,
     }
 
-    assert labeled_multi_span2 == LabeledMultiSpan.fromdict(labeled_multi_span2.asdict())
+    _test_reconstruct(labeled_multi_span2)
 
 
 def test_multilabeled_multi_span():
@@ -166,16 +178,14 @@ def test_multilabeled_multi_span():
     assert multilabeled_multi_span2.label == ("label3", "label4")
     assert multilabeled_multi_span2.score == pytest.approx((0.4, 0.5))
 
-    multilabeled_multi_span2.asdict() == {
+    assert multilabeled_multi_span2.asdict() == {
         "_id": multilabeled_multi_span2.id,
         "slices": ((5, 6), (7, 8)),
-        "label": ("label2", "label3"),
+        "label": ("label3", "label4"),
         "score": (0.4, 0.5),
     }
 
-    assert multilabeled_multi_span2 == MultiLabeledMultiSpan.fromdict(
-        multilabeled_multi_span2.asdict()
-    )
+    _test_reconstruct(multilabeled_multi_span2)
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
@@ -201,10 +211,10 @@ def test_binary_relation():
     assert binary_relation2.label == "label2"
     assert binary_relation2.score == pytest.approx(0.5)
 
-    binary_relation2.asdict() == {
+    assert binary_relation2.asdict() == {
         "_id": binary_relation2.id,
         "head": head.id,
-        "tail": head.id,
+        "tail": tail.id,
         "label": "label2",
         "score": 0.5,
     }
@@ -213,15 +223,13 @@ def test_binary_relation():
         head.id: head,
         tail.id: tail,
     }
-    binary_relation2 == BinaryRelation.fromdict(
-        binary_relation2.asdict(), annotation_store=annotation_store
-    )
+    _test_reconstruct(binary_relation2, annotation_store=annotation_store)
 
     with pytest.raises(
         ValueError,
         match=re.escape("Unable to resolve the annotation id without annotation_store."),
     ):
-        binary_relation2 == BinaryRelation.fromdict(binary_relation2.asdict())
+        BinaryRelation.fromdict(binary_relation2.asdict())
 
 
 def test_multilabeled_binary_relation():
@@ -242,7 +250,7 @@ def test_multilabeled_binary_relation():
     assert binary_relation2.label == ("label3", "label4")
     assert binary_relation2.score == pytest.approx((0.4, 0.5))
 
-    binary_relation2.asdict() == {
+    assert binary_relation2.asdict() == {
         "_id": binary_relation2.id,
         "head": head.id,
         "tail": tail.id,
@@ -254,15 +262,13 @@ def test_multilabeled_binary_relation():
         head.id: head,
         tail.id: tail,
     }
-    binary_relation2 == MultiLabeledBinaryRelation.fromdict(
-        binary_relation2.asdict(), annotation_store=annotation_store
-    )
+    _test_reconstruct(binary_relation2, annotation_store=annotation_store)
 
     with pytest.raises(
         ValueError,
         match=re.escape("Unable to resolve the annotation id without annotation_store."),
     ):
-        binary_relation2 == MultiLabeledBinaryRelation.fromdict(binary_relation2.asdict())
+        MultiLabeledBinaryRelation.fromdict(binary_relation2.asdict())
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
