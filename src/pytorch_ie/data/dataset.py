@@ -117,7 +117,7 @@ def _check_fields_for_casting(
 D = TypeVar("D", bound=Document)
 
 
-def _infer_document_type_from_function_return(function: Callable, default: Type[D]) -> Type[D]:
+def _infer_document_type_from_function_return(function: Callable) -> Optional[Type[Document]]:
     # try to infer the document type from the return type annotation of function
     return_signature = signature(function).return_annotation
     if not return_signature == Signature.empty:
@@ -126,7 +126,7 @@ def _infer_document_type_from_function_return(function: Callable, default: Type[
                 f"the return type annotation of the function used with map is not a subclass of Document"
             )
         return return_signature
-    return default
+    return None
 
 
 class Dataset(datasets.Dataset):
@@ -221,9 +221,10 @@ class Dataset(datasets.Dataset):
         )
 
         if result_document_type is None:
-            result_document_type = _infer_document_type_from_function_return(
-                function=function, default=self.document_type
-            )
+            if function is not None:
+                result_document_type = _infer_document_type_from_function_return(function=function)
+            if result_document_type is None:
+                result_document_type = self.document_type
 
         return Dataset.from_hf_dataset(dataset, document_type=result_document_type)
 
@@ -329,9 +330,10 @@ class IterableDataset(datasets.IterableDataset):
         )
 
         if result_document_type is None:
-            result_document_type = _infer_document_type_from_function_return(
-                function=function, default=self.document_type
-            )
+            if function is not None:
+                result_document_type = _infer_document_type_from_function_return(function=function)
+            if result_document_type is None:
+                result_document_type = self.document_type
 
         return IterableDataset.from_hf_dataset(dataset_mapped, document_type=result_document_type)
 
