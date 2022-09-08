@@ -110,7 +110,10 @@ def test_document_with_annotations():
     document1.sentences.predictions.append(span3)
     document1.sentences.predictions.append(span4)
     # add a prediction that is also an annotation
-    document1.entities.predictions.append(labeled_span1)
+    # remove the annotation to allow reassigning it
+    relation1_popped = document1.relations.pop(0)
+    assert relation1_popped == relation1
+    document1.relations.predictions.append(relation1)
 
     assert len(document1.sentences.predictions) == 2
     assert document1.sentences.predictions[1].target == document1.text

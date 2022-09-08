@@ -15,7 +15,7 @@ from typing import (
     overload,
 )
 
-from typing_extensions import TypeAlias
+from typing_extensions import SupportsIndex, TypeAlias
 
 
 def _enumerate_dependencies(
@@ -96,6 +96,12 @@ class Annotation:
     TARGET_NAMES: ClassVar[Optional[Tuple[str, ...]]] = None
 
     def set_targets(self, value: Optional[Tuple[TARGET_TYPE, ...]]):
+        if value is not None and self._targets is not None:
+            raise ValueError(
+                f"Annotation already has assigned targets. Clear the "
+                f"annotation list container or remove the annotation with pop() "
+                f"to assign it to a new annotation list with other targets."
+            )
         object.__setattr__(self, "_targets", value)
 
     @property
@@ -196,6 +202,11 @@ class BaseAnnotationList(Sequence[T]):
         for annotation in self._annotations:
             annotation.set_targets(None)
         self._annotations = []
+
+    def pop(self, index=None):
+        ann = self._annotations.pop(index)
+        ann.set_targets(None)
+        return ann
 
 
 class AnnotationList(BaseAnnotationList[T]):
