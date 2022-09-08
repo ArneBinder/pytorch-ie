@@ -175,9 +175,6 @@ class BaseAnnotationList(Sequence[T]):
 
         return self._targets == other._targets and self._annotations == other._annotations
 
-    def __hash__(self):
-        return hash(tuple(self._targets) + tuple(ann.id for ann in self._annotations))
-
     @overload
     def __getitem__(self, index: int) -> T:
         ...
@@ -229,9 +226,6 @@ class AnnotationList(BaseAnnotationList[T]):
             return NotImplemented
 
         return super().__eq__(other) and self.predictions == other.predictions
-
-    def __hash__(self):
-        return hash((super().__hash__(), hash(self._predictions)))
 
     def __repr__(self) -> str:
         return f"AnnotationList({str(self._annotations)})"
