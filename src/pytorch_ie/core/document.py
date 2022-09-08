@@ -1,5 +1,6 @@
 import dataclasses
 import typing
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import (
     Any,
@@ -375,6 +376,8 @@ class Document(Mapping[str, Any]):
 
         annotations = {}
         predictions = {}
+        annotations_per_field = defaultdict(list)
+        predictions_per_field = defaultdict(list)
         for field_name in dependency_ordered_fields:
             # terminal nodes do not have to be an annotation field (e.g. the text field)
             if field_name not in name_to_field:
@@ -394,28 +397,28 @@ class Document(Mapping[str, Any]):
                 for annotation_data in value["annotations"]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
-                    annotations[annotation_id] = (
-                        field.name,
-                        # annotations can only reference annotations
-                        annotation_class.fromdict(annotation_dict, annotations),
-                    )
+                    # annotations can only reference annotations
+                    annotation = annotation_class.fromdict(annotation_dict, annotations)
+                    annotations[annotation_id] = (field.name, annotation)
+                    annotations_per_field[field.name].append(annotation)
                 # build predictions
                 for annotation_data in value["predictions"]:
                     annotation_dict = dict(annotation_data)
                     annotation_id = annotation_dict.pop("_id")
-                    predictions[annotation_id] = (
-                        field.name,
-                        # predictions can reference annotations and predictions
-                        annotation_class.fromdict(annotation_dict, {**annotations, **predictions}),
+                    # predictions can reference annotations and predictions
+                    annotation = annotation_class.fromdict(
+                        annotation_dict, {**annotations, **predictions}
                     )
+                    predictions[annotation_id] = (field.name, annotation)
+                    predictions_per_field[field.name].append(annotation)
             else:
                 raise Exception("Error")
 
-        for field_name, annotation in annotations.values():
-            getattr(doc, field_name).append(annotation)
+        for field_name, field_annotations in annotations_per_field.items():
+            getattr(doc, field_name).extend(field_annotations)
 
-        for field_name, annotation in predictions.values():
-            getattr(doc, field_name).predictions.append(annotation)
+        for field_name, field_annotations in predictions_per_field.items():
+            getattr(doc, field_name).predictions.extend(field_annotations)
 
         return doc
 
