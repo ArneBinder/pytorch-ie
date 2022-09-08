@@ -74,8 +74,8 @@ class LabeledSpan(Span):
 
 @dataclass(eq=True, frozen=True)
 class MultiLabeledSpan(Span):
-    label: Tuple[str]
-    score: Optional[Tuple[float]] = None
+    label: Tuple[str, ...]
+    score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
         _validate_multi_label(self)
