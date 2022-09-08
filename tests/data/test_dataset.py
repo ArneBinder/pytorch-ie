@@ -128,7 +128,7 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
         document.relations.clear()
         # the conversion here is not really necessary, but to have correct typing
         result = document.as_type(TestDocumentWithTokensButNoRelations)
-        result.tokens.append(Span(0, len(document.text)))
+        result.tokens.append(Span(0, len(document.text) - 1))
         return result
 
     train_dataset = maybe_iterable_dataset["train"]
@@ -147,7 +147,7 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
     assert len(doc0_mapped.tokens) == 1
     token = doc0_mapped.tokens[0]
     assert token.start == 0
-    assert token.end == len(doc0.text)
+    assert token.end == len(doc0.text) - 1
     # check field names because isinstance does not work (the code of the document types
     # is the same, but lives at different locations)
     assert {f.name for f in doc0.fields()} == {f.name for f in TestDocument.fields()}
