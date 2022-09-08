@@ -221,7 +221,7 @@ class Dataset(datasets.Dataset):
         )
 
         if result_document_type is None:
-            if function is not None:
+            if function is not None and as_documents:
                 result_document_type = _infer_document_type_from_function_return(function=function)
             if result_document_type is None:
                 result_document_type = self.document_type
@@ -318,19 +318,22 @@ class IterableDataset(datasets.IterableDataset):
         self,
         function: Optional[Callable] = None,
         batched: bool = False,
+        as_documents: bool = True,
         result_document_type: Optional[Type[Document]] = None,
         **kwargs,
     ) -> "IterableDataset":
         dataset_mapped = super().map(
             function=decorate_convert_to_document_and_back(
                 function, document_type=self.document_type, batched=batched
-            ),
+            )
+            if as_documents
+            else function,
             batched=batched,
             **kwargs,
         )
 
         if result_document_type is None:
-            if function is not None:
+            if function is not None and as_documents:
                 result_document_type = _infer_document_type_from_function_return(function=function)
             if result_document_type is None:
                 result_document_type = self.document_type
