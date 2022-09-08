@@ -5,11 +5,10 @@ from typing import Sequence
 import numpy
 import pytest
 import torch
-from conftest import TestDocument
 
 import datasets
 from pytorch_ie import Dataset, IterableDataset
-from pytorch_ie.annotations import LabeledSpan, Span
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.core.taskmodule import (
     IterableTaskEncodingDataset,
@@ -111,13 +110,19 @@ def test_dataset_map_batched(maybe_iterable_dataset):
 
 def test_dataset_map_with_result_document_type(maybe_iterable_dataset):
     @dataclass
+    class TestDocument(TextDocument):
+        sentences: AnnotationList[Span] = annotation_field(target="text")
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+    @dataclass
     class TestDocumentWithoutRelations(TextDocument):
         sentences: AnnotationList[Span] = annotation_field(target="text")
         entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
     def clear_relations(document: TestDocument) -> TestDocumentWithoutRelations:
         document.relations.clear()
-        # teh conversion here is not really necessary, but to have correct typing
+        # the conversion here is not really necessary, but to have correct typing
         return document.as_type(TestDocumentWithoutRelations)
 
     train_dataset = maybe_iterable_dataset["train"]
@@ -132,7 +137,8 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset):
 
     doc0 = list(train_dataset)[0]
     doc0_mapped = list(mapped_dataset1)[0]
-    # check field names because isinstance does not work (the code of the document types may be copied somewhere)
+    # check field names because isinstance does not work (the code of the document types
+    # is the same, but lives at different locations)
     assert {f.name for f in doc0.fields()} == {f.name for f in TestDocument.fields()}
     assert {f.name for f in doc0_mapped.fields()} == {
         f.name for f in TestDocumentWithoutRelations.fields()
