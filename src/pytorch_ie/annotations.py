@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Tuple
 from pytorch_ie.core.document import Annotation, resolve_annotation
 
 
-def _validate_single_label(self):
+def _post_init_single_label(self):
     if not isinstance(self.label, str):
         raise ValueError("label must be a single string.")
 
@@ -12,7 +12,7 @@ def _validate_single_label(self):
         raise ValueError("score must be a single float.")
 
 
-def _validate_multi_label(self):
+def _post_init_multi_label(self):
     if self.score is None:
         score = tuple([1.0] * len(self.label))
         object.__setattr__(self, "score", score)
@@ -40,7 +40,7 @@ class Label(Annotation):
     score: float = 1.0
 
     def __post_init__(self) -> None:
-        _validate_single_label(self)
+        _post_init_single_label(self)
 
 
 @dataclass(eq=True, frozen=True)
@@ -49,7 +49,7 @@ class MultiLabel(Annotation):
     score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
-        _validate_multi_label(self)
+        _post_init_multi_label(self)
 
 
 @dataclass(eq=True, frozen=True)
@@ -69,7 +69,7 @@ class LabeledSpan(Span):
     score: float = 1.0
 
     def __post_init__(self) -> None:
-        _validate_single_label(self)
+        _post_init_single_label(self)
 
 
 @dataclass(eq=True, frozen=True)
@@ -78,7 +78,7 @@ class MultiLabeledSpan(Span):
     score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
-        _validate_multi_label(self)
+        _post_init_multi_label(self)
 
 
 @dataclass(eq=True, frozen=True)
@@ -89,7 +89,7 @@ class LabeledMultiSpan(Annotation):
 
     def __post_init__(self) -> None:
         _post_init_multi_span(self)
-        _validate_single_label(self)
+        _post_init_single_label(self)
 
 
 @dataclass(eq=True, frozen=True)
@@ -100,7 +100,7 @@ class MultiLabeledMultiSpan(Annotation):
 
     def __post_init__(self) -> None:
         _post_init_multi_span(self)
-        _validate_multi_label(self)
+        _post_init_multi_label(self)
 
 
 @dataclass(eq=True, frozen=True)
@@ -111,7 +111,7 @@ class BinaryRelation(Annotation):
     score: float = 1.0
 
     def __post_init__(self) -> None:
-        _validate_single_label(self)
+        _post_init_single_label(self)
 
     def asdict(self) -> Dict[str, Any]:
         dct = super().asdict()
@@ -142,7 +142,7 @@ class MultiLabeledBinaryRelation(Annotation):
     score: Optional[Tuple[float, ...]] = None
 
     def __post_init__(self) -> None:
-        _validate_multi_label(self)
+        _post_init_multi_label(self)
 
     def asdict(self) -> Dict[str, Any]:
         dct = super().asdict()
