@@ -128,6 +128,8 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
         document.relations.clear()
         # the conversion here is not really necessary, but to have correct typing
         result = document.as_type(TestDocumentWithTokensButNoRelations)
+        # subtract 1 to create a Span different from the sentence to account for
+        # https://github.com/ChristophAlt/pytorch-ie/pull/222
         result.tokens.append(Span(0, len(document.text) - 1))
         return result
 
