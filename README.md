@@ -208,6 +208,9 @@ enhanced with some functionality to work with the [Huggingface Hub](https://hugg
 they provide the methods `from_pretrained()` and `save_pretrained()` out of the box and work with `pytorch_ie.Auto*`
 classes.
 
+You can find some predefined models for transformer based _text-_ and _token classification_, _sequence generation_,
+and other use cases in the package `pytorch_ie.models`.
+
 ## ⚡️ Examples: Prediction
 
 **The following examples work out of the box. No further setup like manually downloading a model is needed!**
