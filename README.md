@@ -196,8 +196,8 @@ TODO:
 
 -   describe: `_config` and `prepare` and `from_pretrained` / `save_pretraiend`
 
-You can find some working taskmodules for text and token classification, text classification based relation extraction,
-or joint entity and relation classification and others in the package `pytorch_ie.taskmodules`.
+You can find some predefined taskmodules for *text-* and *token classification*, *text classification based relation 
+extraction*, *joint entity and relation classification* and other use cases in the package `pytorch_ie.taskmodules`.
 
 ### 🧮 Model
 
