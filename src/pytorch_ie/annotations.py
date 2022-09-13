@@ -121,7 +121,7 @@ class BinaryRelation(Annotation):
     def fromdict(
         cls,
         dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, "Annotation"]] = None,
+        annotation_store: Optional[Dict[int, Annotation]] = None,
     ):
         # copy to not modify the input
         tmp_dct = dict(dct)
