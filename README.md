@@ -276,6 +276,12 @@ enhanced with some functionality to work with the [Huggingface Hub](https://hugg
 they provide the methods `from_pretrained()` and `save_pretrained()` out of the box and work with `pytorch_ie.Auto*`
 classes.
 
+In addition to following the PyTorch-Lightning module interface, there are two constraints a model has to fulfill:
+
+-   in the `__init__`, remaining kwargs (keyword arguments) should be passed to its super, and
+-   `self.save_hyperparameters()` should be called, also there. This will save alle constructor arguments and allows
+    that `_config()` can provide the respective entries for serialization with `save_pretrained()`.
+
 You can find some predefined models for transformer based _text-_ and _token classification_, _sequence generation_,
 and other use cases in the package `pytorch_ie.models`.
 
