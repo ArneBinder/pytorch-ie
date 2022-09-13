@@ -123,13 +123,11 @@ class BinaryRelation(Annotation):
         dct: Dict[str, Any],
         annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
+        # copy to not modify the input
         tmp_dct = dict(dct)
-        tmp_dct.pop("_id", None)
-
         tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
         tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
-
-        return cls(**tmp_dct)
+        return super().fromdict(tmp_dct, annotation_store)
 
 
 @dataclass(eq=True, frozen=True)
