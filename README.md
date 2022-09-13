@@ -86,36 +86,38 @@ class MyDocument(Document):
 Note that the `label` is a special annotation field that does not define a target because it belongs to the whole document.
 You can also have more complex constructs, like annotation fields that target multiple other fields by using
 `annotation_field(targets)` or `annotation_field(named_targets)`. The latter is useful if you want to access the
-targets by name from within the annotation.
-
-<details>
-<summary>
+targets by name from within the annotation, see below for an example.
 
 #### Annotations
 
-</summary>
-
-There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free, to define your own.
-Annotations have to be dataclasses that subclass `pytorch_ie.core.Annotation`. Annotations need to be hashable and
+There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free to define your own.
+Annotations have to be dataclasses that subclass `pytorch_ie.core.Annotation`. They also need to be hashable and
 immutable. The following is a simple example:
 
 ```python
 @dataclass(eq=True, frozen=True)
-class SimpleSpan(Annotation):
+class SimpleLabeledSpan(Annotation):
     start: int
     end: int
+    label: str
 ```
 
-###### Accessing Target Content
+<details>
+<summary>
 
-We can expand it a little to have a nice string representation. However, it now expects a single
+**Accessing Target Content**
+
+</summary>
+
+We can expand the above example a little to have a nice string representation. However, it now expects a single
 `collections.abc.Sequence` as `target`:
 
 ```python
 @dataclass(eq=True, frozen=True)
-class Span(Annotation):
+class LabeledSpan(Annotation):
     start: int
     end: int
+    label: str
 
     def __str__(self) -> str:
         if self.target is None:
