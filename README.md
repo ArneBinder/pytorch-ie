@@ -46,25 +46,27 @@ $ pip install pytorch-ie
 
 ## 🥧 Concepts & Architecture
 
-PyTorch-IE builds on three core concepts that are explained in the following. They are all represented by 
+PyTorch-IE builds on three core concepts that are explained in the following. They are all represented by
 abstract classes and should be used to derive use-case specific versions.
 
 ### 📃 Document
 
 The `Document` class is a special `dataclass` that defines the document model. It can consist of several elements:
-* **Data fields** like strings to represent one or multiple texts or arrays for image data. These elements can be 
-arbitrary python objects, but have to follow one constraint: The need to be hashable.
-* **Annotation fields** like labeled spans for entities or tuples of spans for relations. These elements have to be of a 
-certain container type `AnnotationList` that is dynamically typed with the actual annotation type, e.g. 
-`entities: AnnotationList[LabeledSpan]`. Furthermore, annotation elements define one or multiple annotation `targets`. 
-An annotation target is either a data element or another annotation container. Internally, targets are used to construct the 
-annotation graph, i.e. data elements and annotation containers are the nodes and targets define the edges. The 
-annotation graph defines the (de-)serialization order and what is accessible from within an annotation. To 
-facilitate the setup of annotation containers, there is the `annotation_field()` method.
-* **Other fields** to save metadata, ids, etc. They are not constrained in any way, but con not be accessed from within 
-annotations.
- 
+
+-   **Data fields** like strings to represent one or multiple texts or arrays for image data. These elements can be
+    arbitrary python objects, but have to follow one constraint: The need to be hashable.
+-   **Annotation fields** like labeled spans for entities or tuples of spans for relations. These elements have to be of a
+    certain container type `AnnotationList` that is dynamically typed with the actual annotation type, e.g.
+    `entities: AnnotationList[LabeledSpan]`. Furthermore, annotation elements define one or multiple annotation `targets`.
+    An annotation target is either a data element or another annotation container. Internally, targets are used to construct the
+    annotation graph, i.e. data elements and annotation containers are the nodes and targets define the edges. The
+    annotation graph defines the (de-)serialization order and what is accessible from within an annotation. To
+    facilitate the setup of annotation containers, there is the `annotation_field()` method.
+-   **Other fields** to save metadata, ids, etc. They are not constrained in any way, but con not be accessed from within
+    annotations.
+
 Have a look at the following example:
+
 ```python
 from typing import Optional
 from pytorch_ie.core import Document, AnnotationList, annotation_field
@@ -80,14 +82,13 @@ class MyDocument(Document):
     # other fields
     doc_id: Optional[str] = None
 ```
-Note that the `label` is a special annotation that does not define a target because it belongs to the whole. 
+
+Note that the `label` is a special annotation that does not define a target because it belongs to the whole.
 
 #### Annotations
 
-There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free, to define your own. 
+There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free, to define your own.
 Annotations have to be dataclasses that subclass `pytorch_ie.core.Annotation`. TODO
-
-
 
 ### 🔤 ⇔ 🔢 Taskmodule
 
