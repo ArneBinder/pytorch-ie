@@ -190,7 +190,8 @@ user to implement the following methods:
     In that means it can be understood as the opposite to `collate`. The number of `TaskOutput`s should match the
     number of `TaskEncoding`s that got into the batch because we align them later on for easy creation of new annotations.
 -   `create_annotations_from_output`: This gets a pair of `TaskEncoding` and `TaskOutput` and should yield tuples each
-    consisting of an annotation field name and an annotation.
+    consisting of an annotation field name and an annotation. The annotations will be added as predictions to the
+    annotation field with the respective name.
 
 TODO:
 
