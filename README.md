@@ -153,6 +153,7 @@ class Alignment(Annotation):
     def __str__(self) -> str:
         if self.targets is None:
             return ""
+        # we can access the `named_targets` which has the keys defined in `TARGET_NAMES`
         span1 = self.named_targets["text1"][self.start1 : self.end1]
         span2 = self.named_targets["text2"][self.start2 : self.end2]
         return f'span1="{span1}" is aligned with span2="{span2}"'
@@ -164,6 +165,7 @@ This requires to define the annotation container as follows:
 class MyDocumentWithAlignment(Document):
     text_a: str
     text_b: str
+    # `named_targets` defines the mapping from `TARGET_NAMES` to data fields
     my_alignments: AnnotationList[Alignment] = annotation_field(named_targets={"text1": "text_a", "text2": "text_b"})
 ```
 
