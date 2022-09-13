@@ -187,9 +187,9 @@ Note that `text1` and `text2` can also target the same field.
 
 ##### Targeting Other Annotations
 
-TODO: explain (de-)serialization via `fromdict()` and `asdict()` with BinaryRelation
-
 </summary>
+
+TODO: explain (de-)serialization via `fromdict()` and `asdict()` with BinaryRelation
 
 </details>
 </details>
