@@ -182,6 +182,16 @@ class MyDocumentWithAlignment(Document):
 Note that `text1` and `text2` can also target the same field.
 
 </details>
+<details>
+<summary>
+
+##### Targeting Other Annotations
+
+TODO: explain (de-)serialization via `fromdict()` and `asdict()` with BinaryRelation
+
+</summary>
+
+</details>
 </details>
 <details>
 <summary>
