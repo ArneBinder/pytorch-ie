@@ -195,7 +195,7 @@ user to implement the following methods:
 
 TODO:
 
--   describe: `_config` and `prepare` and `from_pretrained` / `save_pretraiend`
+-   describe: `_config` and `prepare` and `from_pretrained` / `save_pretrained`
 
 You can find some predefined taskmodules for _text-_ and _token classification_, _text classification based relation
 extraction_, _joint entity and relation classification_ and other use cases in the package `pytorch_ie.taskmodules`.
@@ -205,7 +205,7 @@ extraction_, _joint entity and relation classification_ and other use cases in t
 Models are meant to do the heavy lifting training and inference. They are
 [Pytorch-Lightning modules](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html),
 enhanced with some functionality to work with the [Huggingface Hub](https://huggingface.co/docs/hub/index). Especially,
-they provide the methods `from_pretrained()` and `save_pretraiend()` out of the box and work with `pytorch_ie.Auto*`
+they provide the methods `from_pretrained()` and `save_pretrained()` out of the box and work with `pytorch_ie.Auto*`
 classes.
 
 ## ⚡️ Examples: Prediction
