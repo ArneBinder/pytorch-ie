@@ -83,7 +83,7 @@ class MyDocument(Document):
     doc_id: Optional[str] = None
 ```
 
-Note that the `label` is a special annotation fields that does not define a target because it belongs to the whole document.
+Note that the `label` is a special annotation field that does not define a target because it belongs to the whole document.
 You can also have more complex constructs, like annotation fields that target multiple other fields by using
 `annotation_field(targets)` or `annotation_field(named_targets)`. The latter is useful if you want to access the
 targets by name from within the annotation.
@@ -97,7 +97,7 @@ targets by name from within the annotation.
 
 There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free, to define your own.
 Annotations have to be dataclasses that subclass `pytorch_ie.core.Annotation`. Annotations need to be hashable and
-immutable. The following is a simpel example:
+immutable. The following is a simple example:
 
 ```python
 @dataclass(eq=True, frozen=True)
@@ -123,16 +123,19 @@ class Span(Annotation):
         return str(self.target[self.start : self.end])
 ```
 
+Note that this expects usage as a document field like:
+
+```python
+my_spans: AnnotationList[Span] = annotation_field(target="<NAME_OF_THE_SEQUENCE_FIELD>")
+```
+
 If we have multiple targets, we need to define target names to access them. For this, we need to set the special
 field `TARGET_NAMES`:
 
 ```python
 @dataclass(eq=True, frozen=True)
 class Alignment(Annotation):
-    TARGET_NAMES = (
-        "text1",
-        "text2",
-    )
+    TARGET_NAMES = ("text1", "text2")
     start1: int
     end1: int
     start2: int
@@ -145,6 +148,17 @@ class Alignment(Annotation):
         span2 = self.named_targets["text2"][self.start2 : self.end2]
         return f'span1="{span1}" is aligned with span2="{span2}"'
 ```
+
+This requires to define the annotation container as follows:
+
+```python
+class MyDocumentWithAlignment(Document):
+    text_a: str
+    text_b: str
+    my_alignments: AnnotationList[Alignment] = annotation_field(targets={"text1": "text_a", "text2": "text_b"})
+```
+
+Note that `text1` and `text2` can also target the same field.
 
 </details>
 
