@@ -183,7 +183,6 @@ Note that `text1` and `text2` can also target the same field.
 
 </details>
 </details>
-
 <details>
 <summary>
 
@@ -216,7 +215,6 @@ You can find some predefined taskmodules for _text-_ and _token classification_,
 extraction_, _joint entity and relation classification_ and other use cases in the package `pytorch_ie.taskmodules`.
 
 </details>
-
 <details>
 <summary>
 
@@ -310,7 +308,6 @@ ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, n
 ```
 
 </details>
-
 <details>
 <summary>
 
