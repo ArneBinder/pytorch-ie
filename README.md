@@ -65,7 +65,13 @@ The `Document` class is a special `dataclass` that defines the document model. I
 -   **Other fields** to save metadata, ids, etc. They are not constrained in any way, but con not be accessed from within
     annotations.
 
-Have a look at the following example:
+<details>
+
+<summary>
+
+#### Example Document Model
+
+</summary>
 
 ```python
 from typing import Optional
@@ -87,6 +93,8 @@ Note that the `label` is a special annotation field that does not define a targe
 You can also have more complex constructs, like annotation fields that target multiple other fields by using
 `annotation_field(targets)` or `annotation_field(named_targets)`. The latter is useful if you want to access the
 targets by name from within the annotation, see below for an example.
+
+</details>
 
 #### Annotations
 
