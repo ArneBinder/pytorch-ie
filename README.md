@@ -157,7 +157,7 @@ This requires to define the annotation container as follows:
 class MyDocumentWithAlignment(Document):
     text_a: str
     text_b: str
-    my_alignments: AnnotationList[Alignment] = annotation_field(targets={"text1": "text_a", "text2": "text_b"})
+    my_alignments: AnnotationList[Alignment] = annotation_field(named_targets={"text1": "text_a", "text2": "text_b"})
 ```
 
 Note that `text1` and `text2` can also target the same field.
