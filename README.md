@@ -105,7 +105,7 @@ class SimpleLabeledSpan(Annotation):
 <details>
 <summary>
 
-**Accessing Target Content**
+##### Accessing Target Content
 
 </summary>
 
