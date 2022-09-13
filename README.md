@@ -180,7 +180,7 @@ The taskmodule is responsible for converting documents to model inputs and back.
 user to implement the following methods:
 
 -   `encode_input`: Taking one document, create one or multiple `TaskEncoding`s. A `TaskEncoding` represents an
-    example that may later on passed to the model. It is a container holding `inputs`, optional `targets`, the
+    example that will be passed to the model later on. It is a container holding `inputs`, optional `targets`, the
     original `document`, and `metadata`. Note that `encode_input` should not assign a value to `targets`.
 -   `encode_target`: This gets a single `TaskEncoding` and should produce a target encoding that will be assigned
     to `targets` later on.
