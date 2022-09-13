@@ -46,8 +46,10 @@ $ pip install pytorch-ie
 
 ## 🥧 Concepts & Architecture
 
-PyTorch-IE builds on three core concepts, **📃 Document**, **🔤 ⇔ 🔢 Taskmodule**, and **🧮 Model**, that are explained in the
-following. They are all represented by abstract classes that should be used to derive use-case specific versions.
+PyTorch-IE builds on three core concepts, **📃 Document**, **🔤 ⇔ 🔢 Taskmodule**, and **🧮 Model**, that are
+explained in the following. In a nutshell, the Document says how your data is structured, the Model defines your
+trainable logic and the Taskmodule converts from one end to the other. All three concepts are represented as abstract
+classes that should be used to derive use-case specific versions.
 
 ### 📃 Document
 
