@@ -176,7 +176,36 @@ Note that `text1` and `text2` can also target the same field.
 
 ### 🔤 ⇔ 🔢 Taskmodule
 
+The taskmodule is responsible for converting documents to model inputs and back. For that purpose, it requires the
+user to implement the following methods:
+
+-   `encode_input`: Taking one document, create one or multiple `TaskEncoding`s. A `TaskEncoding` represents an
+    example that may later on passed to the model. It is a container holding `inputs`, optional `targets`, the
+    original `document`, and `metadata`. Note that `encode_input` should not assign a value to `targets`.
+-   `encode_target`: This gets a single `TaskEncoding` and should produce a target encoding that will be assigned
+    to `targets` later on.
+-   `collate`: Taking a batch of `TaskEncoding`s, this should produce a batch input for the model. Note that this has to
+    work with existing targets (training and evaluation) and without of them (inference).
+-   `unbatch_output`: This gets a batch output from the model and should rearrange that into a sequence of `TaskOutput`s.
+    In that means it can be understood as the opposite to `collate`. The number of `TaskOutput`s should match the
+    number of `TaskEncoding`s that got into the batch because we align them later on for easy creation of new annotations.
+-   `create_annotations_from_output`: This gets a pair of `TaskEncoding` and `TaskOutput` and should yield tuples each
+    consisting of an annotation field name and an annotation.
+
+TODO:
+
+-   describe: `_config` and `prepare` and `from_pretrained` / `save_pretraiend`
+
+You can find some working taskmodules for text and token classification, text classification based relation extraction,
+or joint entity and relation classification and others in the package `pytorch_ie.taskmodules`.
+
 ### 🧮 Model
+
+Models are meant to do the heavy lifting training and inference. They are
+[Pytorch-Lightning modules](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html),
+enhanced with some functionality to work with the [Huggingface Hub](https://huggingface.co/docs/hub/index). Especially,
+they provide the methods `from_pretrained()` and `save_pretraiend()` out of the box and work with `pytorch_ie.Auto*`
+classes.
 
 ## ⚡️ Examples: Prediction
 
