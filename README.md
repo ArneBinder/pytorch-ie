@@ -46,12 +46,13 @@ $ pip install pytorch-ie
 
 ## 🥧 Concepts & Architecture
 
-PyTorch-IE builds on three core concepts that are explained in the following. They are all represented by
-abstract classes and should be used to derive use-case specific versions.
+PyTorch-IE builds on three core concepts, **Document**, **Taskmodule**, and **Model**, that are explained in the
+following. They are all represented by abstract classes and should be used to derive use-case specific versions.
 
 ### 📃 Document
 
-The `Document` class is a special `dataclass` that defines the document model. It can consist of several elements:
+The `Document` class is a special `dataclass` that defines the document model. Derivations can contain several
+elements:
 
 -   **Data fields** like strings to represent one or multiple texts or arrays for image data. These elements can be
     arbitrary python objects, but have to follow one constraint: The need to be hashable.
@@ -62,7 +63,7 @@ The `Document` class is a special `dataclass` that defines the document model. I
     annotation graph, i.e. data elements and annotation containers are the nodes and targets define the edges. The
     annotation graph defines the (de-)serialization order and what is accessible from within an annotation. To
     facilitate the setup of annotation containers, there is the `annotation_field()` method.
--   **Other fields** to save metadata, ids, etc. They are not constrained in any way, but con not be accessed from within
+-   **Other fields** to save metadata, ids, etc. They are not constrained in any way, but can not be accessed from within
     annotations.
 
 <details>
