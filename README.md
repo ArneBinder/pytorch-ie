@@ -117,8 +117,7 @@ class SimpleLabeledSpan(Annotation):
 
 </summary>
 
-We can expand the above example a little to have a nice string representation. However, it now expects a single
-`collections.abc.Sequence` as `target`:
+We can expand the above example a little to have a nice string representation:
 
 ```python
 @dataclass(eq=True, frozen=True)
@@ -128,12 +127,12 @@ class LabeledSpan(Annotation):
     label: str
 
     def __str__(self) -> str:
-        if self.target is None:
+        if self.targets is None:
             return ""
         return str(self.target[self.start : self.end])
 ```
 
-Note that this expects usage as a document field like:
+Note that this now expects a single `collections.abc.Sequence` as `target`, e.g.:
 
 ```python
 my_spans: AnnotationList[Span] = annotation_field(target="<NAME_OF_THE_SEQUENCE_FIELD>")
