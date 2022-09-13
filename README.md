@@ -80,7 +80,7 @@ from pytorch_ie.core import Document, AnnotationList, annotation_field
 from pytorch_ie.annotations import LabeledSpan, BinaryRelation, Label
 
 class MyDocument(Document):
-    # data fields
+    # data fields (any field that is targeted by an annotation fields)
     text: str
     # annotation fields
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
