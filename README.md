@@ -133,6 +133,8 @@ class LabeledSpan(Annotation):
         return str(self.target[self.start : self.end])
 ```
 
+The content of `self.target` is lazily assigned as soon as the annotation is added to a document.
+
 Note that this now expects a single `collections.abc.Sequence` as `target`, e.g.:
 
 ```python
