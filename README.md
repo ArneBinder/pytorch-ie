@@ -270,7 +270,7 @@ extraction_, _joint entity and relation classification_ and other use cases in t
 
 </summary>
 
-Models are meant to do the heavy lifting training and inference. They are
+PyTorch-ie models are meant to do the heavy lifting training and inference. They are
 [Pytorch-Lightning modules](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html),
 enhanced with some functionality to work with the [Huggingface Hub](https://huggingface.co/docs/hub/index). Especially,
 they provide the methods `from_pretrained()` and `save_pretrained()` out of the box and work with `pytorch_ie.Auto*`
