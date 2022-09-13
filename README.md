@@ -51,7 +51,12 @@ nutshell, the Document says how your data is structured, the Model defines your 
 converts from one end to the other. All three concepts are represented as abstract classes that should be used to
 derive use-case specific versions. In the following, they are explained in detail.
 
+<details>
+<summary>
+
 ### 📃 Document
+
+</summary>
 
 The `Document` class is a special `dataclass` that defines the document model. Derivations can contain several
 elements:
@@ -177,8 +182,14 @@ class MyDocumentWithAlignment(Document):
 Note that `text1` and `text2` can also target the same field.
 
 </details>
+</details>
+
+<details>
+<summary>
 
 ### 🔤 ⇔ 🔢 Taskmodule
+
+</summary>
 
 The taskmodule is responsible for converting documents to model inputs and back. For that purpose, it requires the
 user to implement the following methods:
@@ -204,7 +215,14 @@ TODO:
 You can find some predefined taskmodules for _text-_ and _token classification_, _text classification based relation
 extraction_, _joint entity and relation classification_ and other use cases in the package `pytorch_ie.taskmodules`.
 
+</details>
+
+<details>
+<summary>
+
 ### 🧮 Model
+
+</summary>
 
 Models are meant to do the heavy lifting training and inference. They are
 [Pytorch-Lightning modules](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html),
@@ -214,6 +232,8 @@ classes.
 
 You can find some predefined models for transformer based _text-_ and _token classification_, _sequence generation_,
 and other use cases in the package `pytorch_ie.models`.
+
+</details>
 
 ## ⚡️ Examples: Prediction
 
