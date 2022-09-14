@@ -69,6 +69,7 @@ class SimpleTransformerTextClassificationTaskModule(
         label_to_id: Optional[Dict[str, int]] = None,
         **kwargs,
     ) -> None:
+        # Important: Remaining keyword arguments need to be passed to super.
         super().__init__(**kwargs)
         # Save all passed arguments. They will be available via self._config().
         self.save_hyperparameters()
