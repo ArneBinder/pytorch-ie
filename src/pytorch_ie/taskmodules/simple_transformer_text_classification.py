@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Iterator, MutableMapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import numpy as np
@@ -13,6 +14,8 @@ from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
     TransformerTextClassificationModelStepBatchEncoding,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TextDocumentWithLabel(TextDocument):
@@ -98,17 +101,25 @@ class SimpleTransformerTextClassificationTaskModule(
         Prepare the task module with training documents, e.g. collect all possible labels.
         """
 
-        # create the label-to-id mapping
-        labels = set()
-        for document in documents:
-            # all annotations of a document are hold in list like containers,
-            # so we have to take its first element
-            label_annotation = document.label[0]
-            labels.add(label_annotation.label)
+        # Don't do anything if we directly created a prepared taskmodule. This may be useful for very large
+        # datasets where it is not reasonable to scan them before training.
+        if len(self.label_to_id) > 0:
+            logger.warning(
+                f"It looks like the taskmodule is already prepared since label_to_id contains entries, "
+                f"so they are not collected again. label_to_id = {str(self.label_to_id)}"
+            )
+        else:
+            # create the label-to-id mapping
+            labels = set()
+            for document in documents:
+                # all annotations of a document are hold in list like containers,
+                # so we have to take its first element
+                label_annotation = document.label[0]
+                labels.add(label_annotation.label)
 
-        # create the mapping, but spare the first index for the "O" (outside) class
-        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
-        self.label_to_id["O"] = 0
+            # create the mapping, but spare the first index for the "O" (outside) class
+            self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
+            self.label_to_id["O"] = 0
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
