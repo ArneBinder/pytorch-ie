@@ -63,8 +63,8 @@ elements:
 
 -   **Data fields** like strings to represent one or multiple texts or arrays for image data. These elements can be
     arbitrary python objects, but have to follow one constraint: The need to be hashable.
--   **Annotation fields** like labeled spans for entities or tuples of spans for relations. These elements have to be of a
-    certain container type `AnnotationList` that is dynamically typed with the actual annotation type, e.g.
+-   **Annotation fields** like labeled spans for entities or labeled tuples of spans for relations. These elements have
+    to be of a certain container type `AnnotationList` that is dynamically typed with the actual annotation type, e.g.
     `entities: AnnotationList[LabeledSpan]`. Furthermore, annotation elements define one or multiple annotation `targets`.
     An annotation target is either a data element or another annotation container. Internally, targets are used to construct the
     annotation graph, i.e. data elements and annotation containers are the nodes and targets define the edges. The
