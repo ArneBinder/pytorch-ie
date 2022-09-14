@@ -3,7 +3,7 @@ import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import tqdm
@@ -177,7 +177,7 @@ class Pipeline:
         postprocess_parameters: Dict[str, Any] = {}
 
         # set preprocess parameters
-        for p_name in []:
+        for p_name in ["document_batch_size"]:
             if p_name in pipeline_parameters:
                 preprocess_parameters[p_name] = pipeline_parameters[p_name]
 
@@ -201,6 +201,7 @@ class Pipeline:
     def preprocess(
         self,
         documents: Union[Sequence[Document], Dataset],
+        document_batch_size: Optional[int] = None,
         **preprocess_parameters: Dict,
     ) -> Sequence[TaskEncoding]:
         """
@@ -209,7 +210,10 @@ class Pipeline:
         """
 
         encodings = self.taskmodule.encode(
-            documents, encode_target=False, as_task_encoding_sequence=True
+            documents,
+            encode_target=False,
+            as_task_encoding_sequence=True,
+            document_batch_size=document_batch_size,
         )
         if not isinstance(encodings, Sequence):
             raise TypeError("preprocess has to return a sequence")
