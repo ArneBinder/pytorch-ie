@@ -251,13 +251,11 @@ user to implement the following methods:
 -   `unbatch_output`: This gets a batch output from the model and should rearrange that into a sequence of `TaskOutput`s.
     In that means it can be understood as the opposite to `collate`. The number of `TaskOutput`s should match the
     number of `TaskEncoding`s that got into the batch because we align them later on for easy creation of new annotations.
--   `create_annotations_from_output`: This gets a single `TaskEncoding` with its corresponding `TaskOutput` and 
-    should yield tuples each consisting of an annotation field name and an annotation. The annotations will be added 
+-   `create_annotations_from_output`: This gets a single `TaskEncoding` with its corresponding `TaskOutput` and
+    should yield tuples each consisting of an annotation field name and an annotation. The annotations will be added
     as predictions to the annotation field with the respective name.
-
-TODO:
-
--   describe: `_config` and `prepare` and `from_pretrained` / `save_pretrained`
+-   `prepare` (OPTIONAL): This will get the train dataset, i.e. a Sequence or Iterable of Documents, and can be used
+    to calculate additional parameters like the list of all available labels, etc.
 
 You can find some predefined taskmodules for _text-_ and _token classification_, _text classification based relation
 extraction_, _joint entity and relation classification_ and other use cases in the package `pytorch_ie.taskmodules`.
@@ -279,17 +277,66 @@ enhanced with some functionality to work with the [Huggingface Hub](https://hugg
 they provide the methods `from_pretrained()` and `save_pretrained()` out of the box and work with `pytorch_ie.Auto*`
 classes.
 
-In addition to following the PyTorch-Lightning module interface, there are two constraints a model implementation has
-to fulfill:
-
--   in the `__init__`, remaining kwargs (keyword arguments) should be passed to its super, and
--   `self.save_hyperparameters()` should be called, also there. This will save alle constructor arguments and allows
-    that `_config()` can provide the respective entries for serialization with `save_pretrained()`.
-
 You can find some predefined models for transformer based _text-_ and _token classification_, _sequence generation_,
 and other use cases in the package `pytorch_ie.models`.
 
 </details>
+
+### Reusability and Sharing
+
+Taskmodules and Models provide some functionality to ease reusability. Especially, they provide the methods
+`save_pretrained()` and `from_pretrained()` that can be used to save their specification, i.e. their
+**config**, and available model wights to disc and exactly re-create them again from that data.
+
+<details>
+<summary>
+
+#### Huggingface Hub and Extended Configs
+
+</summary>
+
+These methods come along
+with integration to the [Huggingface Hub](https://huggingface.co/docs/hub/index). By passing `push_to_hub=True` to
+`save_pretrained()`, the taskmodule / model is directly pushed to the Hub and can be loaded again with the respective
+identifier (see the [Examples](examples) for how to do so). However, to work properly, each taskmodule / model has to
+correctly implement the `_config()` getter method. Per default, it returns all parameters passed to the `__init__`
+method if this calls `save_hyperparameters()` which is very recommended. But you may have created some further
+parameters that should be persisted, for instance a label-to-id mapping. In this case, `_config()` should be
+overwritten to take this into account:
+
+```python
+def _config(self) -> Dict[str, Any]:
+    # add the label-to-id mapping to the config
+    config = super()._config()
+    config["label_to_id"] = self.label_to_id
+    return config
+```
+
+Furthermore, you can use the property `is_from_pretrained` to know if the taskmodule / model is just loaded or created
+from scratch. This may be useful, for instance, to avoid downloading a model from Huggingface Transformers when you
+in fact want to load your own trained model from disc via `from_pretrained`:
+
+```python
+from transformers import AutoConfig, AutoModel
+
+hf_config = AutoConfig.from_pretrained(model_name_or_path)
+# If this is already trained, just create an empty transformer model. The weights are loaded afterwards
+# via the pytorch_ie.Model.from_pretrained() logic.
+if self.is_from_pretrained:
+    self.model = AutoModel.from_config(config=hf_config)
+# Otherwise, download the whole model from the Huggingface Hub.
+else:
+    self.model = AutoModel.from_pretrained(model_name_or_path, config=hf_config)
+```
+
+</details>
+
+In short, each taskmodule / model implementation should:
+
+-   call `save_hyperparameters()` in `__init__` to save all constructor arguments,
+-   pass remaining `__init__` kwargs (keyword arguments) to its super to not break some other helpful functionality
+    (e.g. `is_from_pretrained`), and
+-   overwrite `_config()` if additional parameters are calculated, e.g. from the dataset.
 
 ## ⚡️ Examples: Prediction
 
