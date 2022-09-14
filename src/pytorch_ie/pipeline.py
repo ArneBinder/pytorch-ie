@@ -3,7 +3,7 @@ import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import tqdm
@@ -166,7 +166,7 @@ class Pipeline:
         _sanitize_parameters will be called with any excessive named arguments from either `__init__` or `__call__`
         methods. It should return 4 dictionaries of the resolved parameters used by the various `preprocess`,
         `get_dataloader`, `forward` and `postprocess` methods. Do not fill dictionaries if the caller didn't specify
-        a kwargs. This let's you keep defaults in function signatures, which is more "natural".
+        a kwargs. This lets you keep defaults in function signatures, which is more "natural".
 
         It is not meant to be called directly, it will be automatically called and the final parameters resolved by
         `__init__` and `__call__`
@@ -177,9 +177,9 @@ class Pipeline:
         postprocess_parameters: Dict[str, Any] = {}
 
         # set preprocess parameters
-        field = pipeline_parameters.get("predict_field")
-        if field:
-            preprocess_parameters["predict_field"] = field
+        for p_name in ["document_batch_size"]:
+            if p_name in pipeline_parameters:
+                preprocess_parameters[p_name] = pipeline_parameters[p_name]
 
         # set forward parameters
         for p_name in ["show_progress_bar", "fast_dev_run"]:
@@ -201,7 +201,7 @@ class Pipeline:
     def preprocess(
         self,
         documents: Union[Sequence[Document], Dataset],
-        predict_field: str,
+        document_batch_size: Optional[int] = None,
         **preprocess_parameters: Dict,
     ) -> Sequence[TaskEncoding]:
         """
@@ -209,11 +209,11 @@ class Pipeline:
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
         """
 
-        for document in documents:
-            document[predict_field].predictions.clear()
-
         encodings = self.taskmodule.encode(
-            documents, encode_target=False, as_task_encoding_sequence=True
+            documents,
+            encode_target=False,
+            as_task_encoding_sequence=True,
+            document_batch_size=document_batch_size,
         )
         if not isinstance(encodings, Sequence):
             raise TypeError("preprocess has to return a sequence")

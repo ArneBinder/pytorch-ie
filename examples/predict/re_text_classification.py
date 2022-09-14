@@ -28,7 +28,7 @@ def main():
     for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
         document.entities.append(LabeledSpan(start=start, end=end, label=label))
 
-    re_pipeline(document, predict_field="relations", batch_size=2)
+    re_pipeline(document, batch_size=2)
 
     for relation in document.relations.predictions:
         print(f"({relation.head} -> {relation.tail}) -> {relation.label}")

@@ -24,7 +24,7 @@ def main():
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
 
-    ner_pipeline(document, predict_field="entities")
+    ner_pipeline(document)
 
     for entity in document.entities.predictions:
         print(f"{entity} -> {entity.label}")

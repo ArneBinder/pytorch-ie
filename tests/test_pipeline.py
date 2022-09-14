@@ -91,7 +91,7 @@ def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inpl
     document = documents[1]
     pipeline = Pipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
-    returned_document = pipeline(document, inplace=inplace, predict_field="entities")
+    returned_document = pipeline(document, inplace=inplace)
 
     if inplace:
         assert id(returned_document) == id(document)
@@ -108,7 +108,7 @@ def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inpl
 def test_pipeline_with_documents(documents, prepared_taskmodule, mock_model, inplace):
     pipeline = Pipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
-    returned_documents = pipeline(documents, inplace=inplace, predict_field="entities")
+    returned_documents = pipeline(documents, inplace=inplace)
 
     assert len(documents) == len(returned_documents)
 
@@ -135,9 +135,9 @@ def test_pipeline_with_dataset(dataset, prepared_taskmodule, mock_model, inplace
             InplaceNotSupportedException,
             match=re.escape("Datasets can't be modified in place. Please set inplace=False."),
         ):
-            returned_documents = pipeline(train_dataset, inplace=inplace, predict_field="entities")
+            returned_documents = pipeline(train_dataset, inplace=inplace)
     else:
-        returned_documents = pipeline(train_dataset, inplace=inplace, predict_field="entities")
+        returned_documents = pipeline(train_dataset, inplace=inplace)
 
         assert len(train_dataset) == len(returned_documents)
 

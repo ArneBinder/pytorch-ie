@@ -30,7 +30,7 @@ def test_ner_span_classification(fast_dev_run):
 
     text = "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     documents = [ExampleDocument(text), ExampleDocument(text), ExampleDocument(text)]
-    ner_pipeline(documents, predict_field="entities", batch_size=2)
+    ner_pipeline(documents, batch_size=2)
 
     for i, document in enumerate(documents):
         entities = document.entities.predictions

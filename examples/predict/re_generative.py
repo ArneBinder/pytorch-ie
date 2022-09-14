@@ -33,7 +33,7 @@ def main():
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
 
-    pipeline(document, predict_field="relations")
+    pipeline(document)
 
     for relation in document.relations.predictions:
         print(f"({relation.head} -> {relation.tail}) -> {relation.label}")

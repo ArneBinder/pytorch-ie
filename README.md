@@ -74,7 +74,7 @@ document = ExampleDocument(
 # see below for the long version
 ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
 
-ner_pipeline(document, predict_field="entities")
+ner_pipeline(document)
 
 for entity in document.entities.predictions:
     print(f"{entity} -> {entity.label}")
@@ -150,7 +150,7 @@ re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", devi
 for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
     document.entities.append(LabeledSpan(start=start, end=end, label=label))
 
-re_pipeline(document, predict_field="relations", batch_size=2)
+re_pipeline(document, batch_size=2)
 
 for relation in document.relations.predictions:
     print(f"({relation.head} -> {relation.tail}) -> {relation.label}")
