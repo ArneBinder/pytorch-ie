@@ -261,6 +261,9 @@ TODO:
 
 You can find some predefined taskmodules for _text-_ and _token classification_, _text classification based relation
 extraction_, _joint entity and relation classification_ and other use cases in the package `pytorch_ie.taskmodules`.
+Especially, have a look at the
+[SimpleTransformerTextClassificationTaskModule](src/pytorch_ie/taskmodules/simple_transformer_text_classification.py)
+that is well documented and should provide a good starting point to implement your own one.
 
 </details>
 <details>
