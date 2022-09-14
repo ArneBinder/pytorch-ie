@@ -258,8 +258,8 @@ user to implement the following methods:
     to calculate additional parameters like the list of all available labels, etc.
 
 You can find some predefined taskmodules for _text-_ and _token classification_, _text classification based relation
-extraction_, _joint entity and relation classification_ and other use cases in the package `pytorch_ie.taskmodules`.
-Especially, have a look at the
+extraction_, _joint entity and relation classification_ and other use cases in the package
+[`pytorch_ie.taskmodules`](src/pytorch_ie/taskmodules). Especially, have a look at the
 [SimpleTransformerTextClassificationTaskModule](src/pytorch_ie/taskmodules/simple_transformer_text_classification.py)
 that is well documented and should provide a good starting point to implement your own one.
 
@@ -271,21 +271,19 @@ that is well documented and should provide a good starting point to implement yo
 
 </summary>
 
-PyTorch-ie models are meant to do the heavy lifting training and inference. They are
+PyTorch-IE models are meant to do the heavy lifting training and inference. They are
 [Pytorch-Lightning modules](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html),
-enhanced with some functionality to work with the [Huggingface Hub](https://huggingface.co/docs/hub/index). Especially,
-they provide the methods `from_pretrained()` and `save_pretrained()` out of the box and work with `pytorch_ie.Auto*`
-classes.
+enhanced with some functionality to ease persisting them, see [Reusability and Sharing](#reusability-and-sharing).
 
 You can find some predefined models for transformer based _text-_ and _token classification_, _sequence generation_,
-and other use cases in the package `pytorch_ie.models`.
+and other use cases in the package [`pytorch_ie.models`](src/pytorch_ie/models).
 
 </details>
 
 ### Reusability and Sharing
 
-Taskmodules and Models provide some functionality to ease reusability. Especially, they provide the methods
-`save_pretrained()` and `from_pretrained()` that can be used to save their specification, i.e. their
+Taskmodules and Models provide some functionality to ease reusability and reproducibility. Especially, they provide
+the methods `save_pretrained()` and `from_pretrained()` that can be used to save their specification, i.e. their
 **config**, and available model wights to disc and exactly re-create them again from that data.
 
 <details>
