@@ -148,6 +148,33 @@ class SimpleTransformerTextClassificationTaskModule(
         # translate the textual label to the target id
         return self.label_to_id[label_annotation.label]
 
+    def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelEncodingType:
+        """
+        Convert a list of task encodings to a batch that will be passed to the model.
+        """
+        # get the inputs from the task encodings
+        input_features = [task_encoding.inputs for task_encoding in task_encodings]
+
+        # pad the inputs and return torch tensors
+        inputs = self.tokenizer.pad(
+            input_features,
+            padding=self.padding,
+            max_length=self.max_length,
+            pad_to_multiple_of=self.pad_to_multiple_of,
+            return_tensors="pt",
+        )
+
+        if task_encodings[0].has_targets:
+            # convert the targets (label ids) to a tensor
+            targets = torch.tensor(
+                [task_encoding.targets for task_encoding in task_encodings], dtype=torch.int64
+            )
+        else:
+            # during inference, we do not have any targets
+            targets = None
+
+        return inputs, targets
+
     def unbatch_output(
         self, model_output: TransformerTextClassificationModelBatchOutput
     ) -> Sequence[TaskOutputType]:
@@ -191,30 +218,3 @@ class SimpleTransformerTextClassificationTaskModule(
 
         # just yield a single annotation (other tasks may need multiple annotations per task output)
         yield "label", Label(label=task_outputs["label"], score=task_outputs["probability"])
-
-    def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelEncodingType:
-        """
-        Convert a list of task encodings to a batch that will be passed to the model.
-        """
-        # get the inputs from the task encodings
-        input_features = [task_encoding.inputs for task_encoding in task_encodings]
-
-        # pad the inputs and return torch tensors
-        inputs = self.tokenizer.pad(
-            input_features,
-            padding=self.padding,
-            max_length=self.max_length,
-            pad_to_multiple_of=self.pad_to_multiple_of,
-            return_tensors="pt",
-        )
-
-        if task_encodings[0].has_targets:
-            # convert the targets (label ids) to a tensor
-            targets = torch.tensor(
-                [task_encoding.targets for task_encoding in task_encodings], dtype=torch.int64
-            )
-        else:
-            # during inference, we do not have any targets
-            targets = None
-
-        return inputs, targets
