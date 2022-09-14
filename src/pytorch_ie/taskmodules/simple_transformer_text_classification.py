@@ -37,7 +37,7 @@ workflow:
 """
 
 
-# Define input and output types
+# Define task specific input and output types
 DocumentType = TextDocumentWithLabel
 InputEncodingType = MutableMapping[str, Any]
 TargetEncodingType = int
@@ -45,20 +45,20 @@ ModelEncodingType = TransformerTextClassificationModelStepBatchEncoding
 ModelOutputType = TransformerTextClassificationModelBatchOutput
 TaskOutputType = TaskOutput
 
+# This should be the same for all taskmodules
 TaskEncodingType = TaskEncoding[DocumentType, InputEncodingType, TargetEncodingType]
+TaskModuleType = TaskModule[
+    DocumentType,
+    InputEncodingType,
+    TargetEncodingType,
+    ModelEncodingType,
+    ModelOutputType,
+    TaskOutputType,
+]
 
 
 @TaskModule.register()
-class SimpleTransformerTextClassificationTaskModule(
-    TaskModule[
-        DocumentType,
-        InputEncodingType,
-        TargetEncodingType,
-        ModelEncodingType,
-        ModelOutputType,
-        TaskOutputType,
-    ]
-):
+class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
