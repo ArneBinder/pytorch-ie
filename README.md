@@ -247,13 +247,13 @@ user to implement the following methods:
 -   `encode_target`: This gets a single `TaskEncoding` and should produce a target encoding that will be assigned
     to `targets` later on.
 -   `collate`: Taking a batch of `TaskEncoding`s, this should produce a batch input for the model. Note that this has to
-    work with existing targets (training and evaluation) and without them (inference).
+    work with available targets (training and evaluation) and without them (inference).
 -   `unbatch_output`: This gets a batch output from the model and should rearrange that into a sequence of `TaskOutput`s.
     In that means it can be understood as the opposite to `collate`. The number of `TaskOutput`s should match the
     number of `TaskEncoding`s that got into the batch because we align them later on for easy creation of new annotations.
--   `create_annotations_from_output`: This gets a pair of `TaskEncoding` and `TaskOutput` and should yield tuples each
-    consisting of an annotation field name and an annotation. The annotations will be added as predictions to the
-    annotation field with the respective name.
+-   `create_annotations_from_output`: This gets a single `TaskEncoding` with its corresponding `TaskOutput` and 
+    should yield tuples each consisting of an annotation field name and an annotation. The annotations will be added 
+    as predictions to the annotation field with the respective name.
 
 TODO:
 
