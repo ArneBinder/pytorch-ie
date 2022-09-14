@@ -67,7 +67,7 @@ def test_auto_pipeline():
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
 
-    pipeline(document, predict_field="entities", num_workers=0)
+    pipeline(document, num_workers=0)
 
     entities = document.entities.predictions
     assert len(entities) == 3

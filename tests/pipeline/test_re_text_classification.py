@@ -34,7 +34,7 @@ def test_re_text_classification():
     for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
         document.entities.append(LabeledSpan(start=start, end=end, label=label))
 
-    pipeline(document, predict_field="relations", batch_size=2)
+    pipeline(document, batch_size=2)
     relations: Sequence[BinaryRelation] = document["relations"].predictions
     assert len(relations) == 4
 

@@ -36,7 +36,7 @@ def test_re_generative():
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     )
 
-    pipeline(document, predict_field="relations", batch_size=2)
+    pipeline(document, batch_size=2)
 
     relations = document.relations.predictions
     assert len(relations) == 2
