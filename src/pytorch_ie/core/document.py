@@ -107,16 +107,7 @@ class Annotation:
 
     @property
     def id(self) -> int:
-        if self.targets is not None:
-            # Take the hash from itself and all targets that are no annotation lists since
-            # the relevant entries of annotation lists are already referenced, and thus hashed,
-            # in the annotation itself.
-            non_annotationlist_targets = tuple(
-                target for target in self.targets if not isinstance(target, AnnotationList)
-            )
-            return hash((self,) + non_annotationlist_targets)
-        else:
-            return hash(self)
+        return hash(self)
 
     @property
     def target(self) -> Optional[TARGET_TYPE]:
