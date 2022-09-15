@@ -182,7 +182,7 @@ class TaskModule(
         )
 
         if encode_target:
-            self.encode_targets(task_encodings)
+            task_encodings = self.encode_targets(task_encodings)
         return task_encodings, documents_in_order
 
     def _encoding_iterator(
@@ -316,16 +316,30 @@ class TaskModule(
     def encode_targets(
         self,
         task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-    ) -> None:
+    ) -> List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
+        """
+        Given a list of task encodings, get and assign the respective target encodings
+        and return all task encodings that got a target.
+
+        In that means, this will filter out all encodings without a target. This can be useful
+        when different sets of encodings are required for training and inference. It mitigates the need
+        to implement special logic that depends on target information in encode_input(). Encodings that
+        are not suitable for training, i.e. where no target information is available, can be filtered out
+        easily by letting encode_target() return None.
+        """
+        res = []
         for task_encoding in task_encodings:
             target_encoding = self.encode_target(task_encoding)
-            task_encoding.targets = target_encoding
+            if target_encoding is not None:
+                task_encoding.targets = target_encoding
+                res.append(task_encoding)
+        return res
 
     @abstractmethod
     def encode_target(
         self,
         task_encoding: TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
-    ) -> TargetEncoding:
+    ) -> Optional[TargetEncoding]:
         pass
 
     @abstractmethod
