@@ -62,7 +62,7 @@ The `Document` class is a special `dataclass` that defines the document model. D
 elements:
 
 -   **Data fields** like strings to represent one or multiple texts or arrays for image data. These elements can be
-    arbitrary python objects, but have to follow one constraint: The need to be hashable.
+    arbitrary python objects.
 -   **Annotation fields** like labeled spans for entities or labeled tuples of spans for relations. These elements have
     to be of a certain container type `AnnotationList` that is dynamically typed with the actual annotation type, e.g.
     `entities: AnnotationList[LabeledSpan]`. Furthermore, annotation elements define one or multiple annotation `targets`.
@@ -204,10 +204,10 @@ class BinaryRelation(Annotation):
     label: str
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super().asdict()
-        # convert the annotations to their ids
-        dct["head"] = self.head.id
-        dct["tail"] = self.tail.id
+        # Convert the annotations to their ids.
+        # We use the _asdicts() method with overrides to avoid converting the original
+        # entries to dicts in the first place (this can slow down the preprocessing a lot).
+        dct = super()._asdict(overrides={"head": self.head.id, "tail": self.tail.id})
         return dct
 
     @classmethod
