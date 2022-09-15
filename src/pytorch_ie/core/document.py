@@ -135,10 +135,17 @@ class Annotation:
             raise TypeError(f"no TARGET_NAMES defined")
         return {name: self._targets[i] for i, name in enumerate(self.TARGET_NAMES)}
 
-    def _asdict(self, exclude_fields: Optional[List[str]] = None) -> Dict[str, Any]:
-        result = []
+    def _asdict(
+        self,
+        exclude_fields: Optional[List[str]] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        result: List[Tuple[str, Any]] = []
         _exclude_fields = set(exclude_fields) if exclude_fields is not None else set()
         _exclude_fields.add("_targets")
+        if overrides is not None:
+            _exclude_fields.update(overrides)
+            result.extend(overrides.items())
         for f in dataclasses.fields(self):
             if f.name in _exclude_fields:
                 continue
