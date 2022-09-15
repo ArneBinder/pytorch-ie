@@ -36,8 +36,7 @@ class OcrPhrase(Annotation):
         _post_init_bbox(self)
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super()._asdict(exclude_fields=["words"])
-        dct["words"] = tuple(word.id for word in self.words)
+        dct = super()._asdict(overrides={"words": tuple(word.id for word in self.words)})
         return dct
 
     @classmethod
@@ -64,9 +63,7 @@ class OcrBinaryRelation(Annotation):
     score: float = 1.0
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super()._asdict(exclude_fields=["head", "tail"])
-        dct["head"] = self.head.id
-        dct["tail"] = self.tail.id
+        dct = super()._asdict(overrides={"head": self.head.id, "tail": self.tail.id})
         return dct
 
     @classmethod

@@ -114,9 +114,7 @@ class BinaryRelation(Annotation):
         _post_init_single_label(self)
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super().asdict()
-        dct["head"] = self.head.id
-        dct["tail"] = self.tail.id
+        dct = super()._asdict(overrides={"head": self.head.id, "tail": self.tail.id})
         return dct
 
     @classmethod
@@ -145,11 +143,8 @@ class MultiLabeledBinaryRelation(Annotation):
         _post_init_multi_label(self)
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super().asdict()
-
         # replace object references with object hashes
-        dct["head"] = self.head.id
-        dct["tail"] = self.tail.id
+        dct = super()._asdict(overrides={"head": self.head.id, "tail": self.tail.id})
         return dct
 
     @classmethod
