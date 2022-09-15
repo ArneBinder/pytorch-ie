@@ -59,7 +59,7 @@ class XFUNConfig(datasets.BuilderConfig):
             lang: string, language for the input text
             **kwargs: keyword arguments forwarded to super.
         """
-        super(XFUNConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.lang = lang
         self.additional_langs = additional_langs
 
@@ -154,7 +154,7 @@ class XFUN(datasets.GeneratorBasedBuilder):
     def _generate_examples(self, filepaths):
         for filepath in filepaths:
             logger.info("Generating examples from = %s", filepath)
-            with open(filepath[0], "r", encoding="utf-8") as f:
+            with open(filepath[0], encoding="utf-8") as f:
                 data = json.load(f)
 
             for doc in data["documents"]:
