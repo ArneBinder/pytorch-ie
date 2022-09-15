@@ -245,7 +245,8 @@ user to implement the following methods:
     example that will be passed to the model later on. It is a container holding `inputs`, optional `targets`, the
     original `document`, and `metadata`. Note that `encode_input` should not assign a value to `targets`.
 -   `encode_target`: This gets a single `TaskEncoding` and should produce a target encoding that will be assigned
-    to `targets` later on.
+    to `targets` later on. As such, it is called only during training / evaluation, but not for inference. Note that,
+    this is allowed to return None. In this case, the respective `TaskEncoding` will not be passed to the model at all.
 -   `collate`: Taking a batch of `TaskEncoding`s, this should produce a batch input for the model. Note that this has to
     work with available targets (training and evaluation) and without them (inference).
 -   `unbatch_output`: This gets a batch output from the model and should rearrange that into a sequence of `TaskOutput`s.
