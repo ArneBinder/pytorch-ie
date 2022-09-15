@@ -164,22 +164,6 @@ def test_document_with_same_annotations():
     doc.tokens1.append(token1)
     doc.tokens2.append(token2)
     doc.tokens3.append(token3)
-    token0_id_added = token0.id
-    token1_id_added = token1.id
-    token2_id_added = token2.id
-    token3_id_added = token3.id
-    # after adding them to a document, the targets are taken into account, so their id changed
-    assert token0_id_added != token0_id
-    assert token1_id_added != token1_id
-    assert token2_id_added != token2_id
-    assert token3_id_added != token3_id
-
-    # token0 and token1 spans are still identical because they have the same target
-    assert token0_id_added == token1_id_added
-    # they are also still identical with token2 because they have the same target content (!)
-    assert token2_id_added == token0_id_added
-    # teh differ from token3 because their target content (!) is different
-    assert token3_id_added != token0_id_added
 
     # test reconstruction
     doc_dict = doc.asdict()

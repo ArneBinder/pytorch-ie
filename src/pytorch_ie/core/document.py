@@ -2,6 +2,7 @@ import dataclasses
 import typing
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from dataclasses import _asdict_inner  # type: ignore
 from typing import (
     Any,
     ClassVar,
@@ -106,16 +107,7 @@ class Annotation:
 
     @property
     def id(self) -> int:
-        if self.targets is not None:
-            # Take the hash from itself and all targets that are no annotation lists since
-            # the relevant entries of annotation lists are already referenced, and thus hashed,
-            # in the annotation itself.
-            non_annotationlist_targets = tuple(
-                target for target in self.targets if not isinstance(target, AnnotationList)
-            )
-            return hash((self,) + non_annotationlist_targets)
-        else:
-            return hash(self)
+        return hash(self)
 
     @property
     def target(self) -> Optional[TARGET_TYPE]:
@@ -143,11 +135,29 @@ class Annotation:
             raise TypeError(f"no TARGET_NAMES defined")
         return {name: self._targets[i] for i, name in enumerate(self.TARGET_NAMES)}
 
-    def asdict(self) -> Dict[str, Any]:
-        dct = dataclasses.asdict(self)
+    def _asdict(
+        self,
+        exclude_fields: Optional[List[str]] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        result: List[Tuple[str, Any]] = []
+        _exclude_fields = set(exclude_fields) if exclude_fields is not None else set()
+        _exclude_fields.add("_targets")
+        if overrides is not None:
+            _exclude_fields.update(overrides)
+            result.extend(overrides.items())
+        for f in dataclasses.fields(self):
+            if f.name in _exclude_fields:
+                continue
+            field_value = getattr(self, f.name)
+            value = _asdict_inner(field_value, dict)
+            result.append((f.name, value))
+        dct = dict(result)
         dct["_id"] = self.id
-        del dct["_targets"]
         return dct
+
+    def asdict(self) -> Dict[str, Any]:
+        return self._asdict()
 
     @classmethod
     def fromdict(
