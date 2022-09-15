@@ -1,27 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
-
-import pytorch_ie.data.builder
-from pytorch_ie.core import AnnotationList, Document, annotation_field
+from typing import Any, Dict, Optional, Tuple
 
 import datasets
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple, Union
-
-from pytorch_ie.core import Annotation
-#from pytorch_ie.core.document import resolve_annotation
-
-
-def resolve_annotation(
-    id_or_annotation: Union[int, Annotation],
-    store: Optional[Dict[int, Annotation]],
-) -> Annotation:
-    if isinstance(id_or_annotation, Annotation):
-        return id_or_annotation
-    else:
-        if store is None:
-            raise ValueError("Unable to resolve the annotation id without annotation_store.")
-        return store[id_or_annotation][1]
+import pytorch_ie.data.builder
+from pytorch_ie.core import Annotation, AnnotationList, Document, annotation_field
+from pytorch_ie.core.document import resolve_annotation
 
 
 def _post_init_bbox(self):
@@ -53,8 +36,8 @@ class OcrPhrase(Annotation):
         _post_init_bbox(self)
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super().asdict()
-        dct["words"] = tuple(hash(word) for word in self.words)
+        dct = super()._asdict(exclude_fields=["words"])
+        dct["words"] = tuple(word.id for word in self.words)
         return dct
 
     @classmethod
@@ -81,9 +64,9 @@ class OcrBinaryRelation(Annotation):
     score: float = 1.0
 
     def asdict(self) -> Dict[str, Any]:
-        dct = super().asdict()
-        dct["head"] = hash(self.head)
-        dct["tail"] = hash(self.tail)
+        dct = super()._asdict(exclude_fields=["head", "tail"])
+        dct["head"] = self.head.id
+        dct["tail"] = self.tail.id
         return dct
 
     @classmethod
@@ -99,6 +82,62 @@ class OcrBinaryRelation(Annotation):
         tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
 
         return cls(**tmp_dct)
+
+
+def dl2ld(dl):
+    # convert a dict of lists to a list of dicts
+    return [dict(zip(dl, t)) for t in zip(*dl.values())]
+
+
+def example2doc(example, int_to_str):
+    document = XFUNDocument(
+        id=example["id"],
+        image=example["img_data"],
+        image_width=example["img_meta"]["width"],
+        image_height=example["img_meta"]["height"],
+        image_fname=example["img_meta"]["fname"],
+    )
+    all_words = []
+    phrases = {}
+    relation_id_pairs = []
+    for _phrase in dl2ld(example["document"]):
+        # skip empty phrases
+        if len(_phrase["text"]) == 0:
+            continue
+        words = []
+        for _word in dl2ld(_phrase["words"]):
+            word = OcrWord(bbox=_word["box"], text=_word["text"])
+            words.append(word)
+        all_words.extend(words)
+        label = int_to_str(_phrase["label"])
+        phrase = OcrPhrase(
+            words=tuple(words), bbox=_phrase["box"], label=label, text=_phrase["text"]
+        )
+        phrases[_phrase["id"]] = phrase
+        relation_id_pairs.extend(_phrase["linking"])
+
+    valid_arg_pairs = set()
+    for arg1_id, arg2_id in relation_id_pairs:
+        if arg1_id not in phrases or arg2_id not in phrases:
+            continue
+        label_pair = [phrases[arg1_id].label, phrases[arg2_id].label]
+        if label_pair == ["question", "answer"]:
+            valid_arg_pairs.add((arg1_id, arg2_id))
+        elif label_pair == ["answer", "question"]:
+            valid_arg_pairs.add((arg2_id, arg1_id))
+        else:
+            continue
+
+    relations = [
+        OcrBinaryRelation(head=phrases[head_id], tail=phrases[tail_id])
+        for head_id, tail_id in valid_arg_pairs
+    ]
+
+    document.words.extend(all_words)
+    document.phrases.extend(phrases.values())
+    document.relations.extend(relations)
+
+    return document
 
 
 _LANG = ["zh", "de", "es", "fr", "en", "it", "ja", "pt"]
@@ -136,11 +175,6 @@ class XFUNConfig(datasets.BuilderConfig):
         super().__init__(**kwargs)
 
 
-def dl2ld(dl):
-    # convert a dict of lists to a list of dicts
-    return [dict(zip(dl, t)) for t in zip(*dl.values())]
-
-
 class XFUN(pytorch_ie.data.builder.GeneratorBasedBuilder):
     DOCUMENT_TYPE = XFUNDocument
 
@@ -150,71 +184,8 @@ class XFUN(pytorch_ie.data.builder.GeneratorBasedBuilder):
         XFUNConfig(name=f"xfun.{lang}", version=datasets.Version("1.0.0")) for lang in _LANG
     ]
 
-    def __init__(self, **kwargs):
-        builder_kwargs = dict(kwargs)
-        builder_kwargs.pop("hash", None)
-        builder_kwargs.pop("base_path", None)
-        config_name = builder_kwargs.pop("config_name", None)
-        print(builder_kwargs)
-        self.base_builder = None
-        if self.BASE_DATASET_PATH is not None:
-            self.base_builder = datasets.load.load_dataset_builder(
-                path=self.BASE_DATASET_PATH,
-                name=config_name,
-                **builder_kwargs,
-            )
-
-        super().__init__(**kwargs)
-
     def _generate_document_kwargs(self, dataset):
         return {"int_to_str": dataset.features["document"].feature["label"].int2str}
 
     def _generate_document(self, example, int_to_str):
-        document = XFUNDocument(
-            id=example["id"],
-            image=example["img_data"],
-            image_width=example["img_meta"]["width"],
-            image_height=example["img_meta"]["height"],
-            image_fname=example["img_meta"]["fname"],
-        )
-        all_words = []
-        phrases = {}
-        relation_id_pairs = []
-        for _phrase in dl2ld(example["document"]):
-            # skip empty phrases
-            if len(_phrase["text"]) == 0:
-                continue
-            words = []
-            for _word in dl2ld(_phrase["words"]):
-                word = OcrWord(bbox=_word["box"], text=_word["text"])
-                words.append(word)
-            all_words.extend(words)
-            label = int_to_str(_phrase["label"])
-            phrase = OcrPhrase(
-                words=tuple(words), bbox=_phrase["box"], label=label, text=_phrase["text"]
-            )
-            phrases[_phrase["id"]] = phrase
-            relation_id_pairs.extend(_phrase["linking"])
-
-        valid_arg_pairs = set()
-        for arg1_id, arg2_id in relation_id_pairs:
-            if arg1_id not in phrases or arg2_id not in phrases:
-                continue
-            label_pair = [phrases[arg1_id].label, phrases[arg2_id].label]
-            if label_pair == ["question", "answer"]:
-                valid_arg_pairs.add((arg1_id, arg2_id))
-            elif label_pair == ["answer", "question"]:
-                valid_arg_pairs.add((arg2_id, arg1_id))
-            else:
-                continue
-
-        relations = [
-            OcrBinaryRelation(head=phrases[head_id], tail=phrases[tail_id])
-            for head_id, tail_id in valid_arg_pairs
-        ]
-
-        document.words.extend(all_words)
-        document.phrases.extend(phrases.values())
-        document.relations.extend(relations)
-
-        return document
+        return example2doc(example=example, int_to_str=int_to_str)
