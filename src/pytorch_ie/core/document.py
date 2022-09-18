@@ -106,7 +106,7 @@ class Annotation:
         object.__setattr__(self, "_targets", value)
 
     @property
-    def id(self) -> int:
+    def _id(self) -> int:
         return hash(self)
 
     @property
@@ -153,7 +153,7 @@ class Annotation:
             value = _asdict_inner(field_value, dict)
             result.append((f.name, value))
         dct = dict(result)
-        dct["_id"] = self.id
+        dct["_id"] = self._id
         return dct
 
     def asdict(self) -> Dict[str, Any]:
