@@ -90,8 +90,8 @@ def test_document_with_annotations():
     relation1 = BinaryRelation(head=labeled_span1, tail=labeled_span2, label="label1")
     relation2 = BinaryRelation(head=labeled_span1, tail=labeled_span2, label="label1")
     relation3 = BinaryRelation(head=labeled_span2, tail=labeled_span1, label="label1")
-    assert relation1.id == relation2.id
-    assert relation1.id != relation3.id
+    assert relation1._id == relation2._id
+    assert relation1._id != relation3._id
 
     document1.relations.append(relation1)
     assert len(document1.relations) == 1
@@ -152,10 +152,10 @@ def test_document_with_same_annotations():
     token1 = Span(start=start, end=end)
     token2 = Span(start=start, end=end)
     token3 = Span(start=start, end=end)
-    token0_id = token0.id
-    token1_id = token1.id
-    token2_id = token2.id
-    token3_id = token3.id
+    token0_id = token0._id
+    token1_id = token1._id
+    token2_id = token2._id
+    token3_id = token3._id
     # all spans are identical, so are there ids
     assert token1_id == token0_id
     assert token2_id == token0_id
