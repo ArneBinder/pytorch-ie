@@ -207,7 +207,7 @@ class BinaryRelation(Annotation):
         # Convert the annotations to their ids.
         # We use the _asdicts() method with overrides to avoid converting the original
         # entries to dicts in the first place (this can slow down the preprocessing a lot).
-        dct = super()._asdict(overrides={"head": self.head.id, "tail": self.tail.id})
+        dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
         return dct
 
     @classmethod
