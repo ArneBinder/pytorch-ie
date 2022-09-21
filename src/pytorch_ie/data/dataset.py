@@ -1,6 +1,6 @@
 from functools import wraps
 from inspect import Signature, isclass, signature
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import pandas as pd
 from datasets.formatting import _register_formatter
@@ -27,6 +27,18 @@ def decorate_convert_to_dict_of_lists(f):
             )
         else:
             return f(item, *args, **kwargs).asdict()
+
+    return decorated
+
+
+def decorate_convert_result_document_to_dict(f):
+    """
+    Decorate the mapped function, so that converts a single Document to a dict.
+    """
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        return f(*args, **kwargs).asdict()
 
     return decorated
 
@@ -162,8 +174,26 @@ class Dataset(datasets.Dataset):
 
     @classmethod
     def from_hf_dataset(
-        cls, dataset: datasets.Dataset, document_type: Type[Document]
+        cls,
+        dataset: datasets.Dataset,
+        document_type: Optional[Type[Document]] = None,
+        example2document_converter: Optional[Callable[[Dict[str, Any]], Document]] = None,
     ) -> "Dataset":
+        if document_type is None and example2document_converter is None:
+            raise ValueError(
+                "either a document_type or a example2document converter function is required to create "
+                "a pytorch_ie dataset from a huggingface dataset"
+            )
+        if document_type is None:
+            document_type = _infer_document_type_from_function_return(example2document_converter)
+            if document_type is None:
+                raise ValueError(
+                    "can not infer the document type from the example2document converter function"
+                )
+        if example2document_converter is not None:
+            dataset = dataset.map(
+                function=decorate_convert_result_document_to_dict(example2document_converter)
+            )
         document_dataset = cls(document_type=document_type, **cls.get_base_kwargs(dataset))
         return document_dataset
 
@@ -300,9 +330,25 @@ class IterableDataset(datasets.IterableDataset):
     def from_hf_dataset(
         cls,
         dataset: datasets.IterableDataset,
-        document_type: Type[Document],
+        document_type: Optional[Type[Document]] = None,
+        example2document_converter: Optional[Callable[[Dict[str, Any]], Document]] = None,
         hidden_columns: Optional[Set[str]] = None,
     ) -> "IterableDataset":
+        if document_type is None and example2document_converter is None:
+            raise ValueError(
+                "either a document_type or a example2document converter function is required to create a "
+                "pytorch_ie dataset from a huggingface dataset"
+            )
+        if document_type is None:
+            document_type = _infer_document_type_from_function_return(example2document_converter)
+            if document_type is None:
+                raise ValueError(
+                    "can not infer the document type from the example2document converter function"
+                )
+        if example2document_converter is not None:
+            dataset = dataset.map(
+                function=decorate_convert_result_document_to_dict(example2document_converter)
+            )
         dataset = cls(
             document_type=document_type,
             hidden_columns=hidden_columns,

@@ -54,7 +54,12 @@ def iterable_json_dataset():
     return dataset
 
 
-def example_to_doc_dict(example):
+@pytest.fixture(params=["json_dataset", "iterable_json_dataset"])
+def maybe_iterable_hf_dataset(request):
+    return request.getfixturevalue(request.param)
+
+
+def example_to_doc(example) -> TestDocument:
     doc = TestDocument(text=example["text"], id=example["id"])
 
     doc.metadata = dict(example["metadata"])
@@ -77,7 +82,11 @@ def example_to_doc_dict(example):
     for relation in relations:
         doc.relations.append(relation)
 
-    return doc.asdict()
+    return doc
+
+
+def example_to_doc_dict(example):
+    return example_to_doc(example).asdict()
 
 
 @pytest.fixture

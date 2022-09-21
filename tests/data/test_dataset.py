@@ -9,7 +9,7 @@ import torch
 import datasets
 from pytorch_ie import Dataset, IterableDataset
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationList, Document, annotation_field
 from pytorch_ie.core.taskmodule import (
     IterableTaskEncodingDataset,
     TaskEncodingDataset,
@@ -17,6 +17,7 @@ from pytorch_ie.core.taskmodule import (
 )
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+from tests.conftest import TestDocument, example_to_doc, example_to_doc_dict
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +75,38 @@ def test_dataset_index(dataset):
     assert train_dataset[4].id == "train_doc5"
     assert [doc.id for doc in train_dataset[0, 3, 5]] == ["train_doc1", "train_doc4", "train_doc6"]
     assert [doc.id for doc in train_dataset[2:5]] == ["train_doc3", "train_doc4", "train_doc5"]
+
+
+@pytest.mark.parametrize("use_converter_function", [False, True])
+def test_dataset_from_hf(maybe_iterable_hf_dataset, use_converter_function):
+
+    # map huggingface types to pytorch_ie types
+    type_mapping = {datasets.Dataset: Dataset, datasets.IterableDataset: IterableDataset}
+    if use_converter_function:
+        dataset = maybe_iterable_hf_dataset
+        document_type = None
+        example2document_converter = example_to_doc
+    else:
+        dataset = maybe_iterable_hf_dataset.map(example_to_doc_dict)
+        document_type = TestDocument
+        example2document_converter = None
+    dataset = datasets.DatasetDict(
+        {
+            k: type_mapping[type(ds)].from_hf_dataset(
+                ds,
+                document_type=document_type,
+                example2document_converter=example2document_converter,
+            )
+            for k, ds in dataset.items()
+        }
+    )
+
+    assert len(dataset) == 3
+    assert set(dataset.keys()) == {"train", "validation", "test"}
+
+    for k, ds in dataset.items():
+        for doc in ds:
+            assert isinstance(doc, Document)
 
 
 def test_dataset_map(maybe_iterable_dataset):
