@@ -10,6 +10,7 @@ import tqdm
 from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
+from transformers.utils import ModelOutput
 
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.model import PyTorchIEModel
@@ -134,11 +135,14 @@ class Pipeline:
         return self._ensure_tensor_on_device(inputs, self.device)
 
     def _ensure_tensor_on_device(self, inputs, device):
-        # if isinstance(inputs, ModelOutput):
-        #     return ModelOutput(
-        #         {name: self._ensure_tensor_on_device(tensor, device) for name, tensor in inputs.items()}
-        #     )
-        if isinstance(inputs, dict):
+        if isinstance(inputs, ModelOutput):
+            return type(inputs)(
+                {
+                    name: self._ensure_tensor_on_device(tensor, device)
+                    for name, tensor in inputs.items()
+                }
+            )
+        elif isinstance(inputs, dict):
             return {
                 name: self._ensure_tensor_on_device(tensor, device)
                 for name, tensor in inputs.items()
