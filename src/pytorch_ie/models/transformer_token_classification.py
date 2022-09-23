@@ -41,7 +41,6 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
 
         config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_classes)
         if self.is_from_pretrained:
-            config = AutoConfig.from_pretrained(model_name_or_path)
             self.model = AutoModelForTokenClassification.from_config(config=config)
         else:
             self.model = AutoModelForTokenClassification.from_pretrained(

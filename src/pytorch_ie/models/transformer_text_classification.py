@@ -45,7 +45,6 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         config = AutoConfig.from_pretrained(model_name_or_path)
         if self.is_from_pretrained:
-            config = AutoConfig.from_pretrained(model_name_or_path)
             self.model = AutoModel.from_config(config=config)
         else:
             self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
