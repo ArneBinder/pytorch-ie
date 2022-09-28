@@ -30,6 +30,10 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
             base_dataset_kwargs = base_dataset_kwargs or {}
             base_builder_kwargs: Dict[str, Any] = {}
 
+            for param_name in ["data_dir", "data_files"]:
+                if param_name in kwargs:
+                    base_builder_kwargs[param_name] = kwargs[param_name]
+
             config_name = kwargs.get("config_name", None)
 
             # get base config kwargs from mapping
