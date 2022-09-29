@@ -1,6 +1,6 @@
 import abc
 from functools import partial
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Iterable, Mapping, Optional, Type
 
 from datasets.load import load_dataset_builder
 
@@ -23,7 +23,7 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     # builder kwargs dicts as values.
     BASE_BUILDER_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = None
     # These PIE dataset loading script arguments are also passed to the base builder.
-    BASE_BUILDER_COPY_ARGUMENTS: Union[List[str], Tuple[str]] = ("data_dir", "data_files")
+    BASE_BUILDER_COPY_ARGUMENTS: Iterable[str] = ("data_dir", "data_files")
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
 
