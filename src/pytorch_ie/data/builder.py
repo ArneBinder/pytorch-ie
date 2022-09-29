@@ -1,6 +1,6 @@
 import abc
 from functools import partial
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
 
 from datasets.load import load_dataset_builder
 
@@ -22,6 +22,8 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     # Define base builder kwargs. This should contain config names as keys and the respective
     # builder kwargs dicts as values.
     BASE_BUILDER_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = None
+    # These PIE dataset loading script arguments are also passed to the base builder.
+    BASE_BUILDER_COPY_ARGUMENTS: Union[List[str], Tuple[str]] = ("data_dir", "data_files")
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
 
@@ -30,9 +32,9 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
             base_dataset_kwargs = base_dataset_kwargs or {}
             base_builder_kwargs: Dict[str, Any] = {}
 
-            for param_name in ["data_dir", "data_files"]:
-                if param_name in kwargs:
-                    base_builder_kwargs[param_name] = kwargs[param_name]
+            for argument_name in self.BASE_BUILDER_COPY_ARGUMENTS:
+                if argument_name in kwargs:
+                    base_builder_kwargs[argument_name] = kwargs[argument_name]
 
             config_name = kwargs.get("config_name", None)
 
