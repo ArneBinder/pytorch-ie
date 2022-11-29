@@ -173,6 +173,9 @@ class PyTorchIEBaseModelHubMixin:
 
         config.update(model_kwargs)
 
+        # the entry may be already in the config, so we overwrite it
+        config["is_from_pretrained"] = True
+
         return cls._from_pretrained(
             model_id,
             revision,
@@ -182,7 +185,6 @@ class PyTorchIEBaseModelHubMixin:
             resume_download,
             local_files_only,
             use_auth_token,
-            is_from_pretrained=True,
             **config,
         )
 
