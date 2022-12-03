@@ -44,6 +44,299 @@ This is an experimental framework that aims to combine the lessons learned from 
 $ pip install pytorch-ie
 ```
 
+## 🥧 Concepts & Architecture
+
+PyTorch-IE builds on three core concepts: the **📃 Document**, the **🔤 ⇔ 🔢 Taskmodule**, and the **🧮 Model**. In a
+nutshell, the Document says how your data is structured, the Model defines your trainable logic and the Taskmodule
+converts from one end to the other. All three concepts are represented as abstract classes that should be used to
+derive use-case specific versions. In the following, they are explained in detail.
+
+<details>
+<summary>
+
+### 📃 Document
+
+</summary>
+
+The `Document` class is a special `dataclass` that defines the document model. Derivations can contain several
+elements:
+
+-   **Data fields** like strings to represent one or multiple texts or arrays for image data. These elements can be
+    arbitrary python objects.
+-   **Annotation fields** like labeled spans for entities or labeled tuples of spans for relations. These elements have
+    to be of a certain container type `AnnotationList` that is dynamically typed with the actual annotation type, e.g.
+    `entities: AnnotationList[LabeledSpan]`. Furthermore, annotation elements define one or multiple annotation `targets`.
+    An annotation target is either a data element or another annotation container. Internally, targets are used to construct the
+    annotation graph, i.e. data elements and annotation containers are the nodes and targets define the edges. The
+    annotation graph defines the (de-)serialization order and what is accessible from within an annotation. To
+    facilitate the setup of annotation containers, there is the `annotation_field()` method.
+-   **Other fields** to save metadata, ids, etc. They are not constrained in any way, but can not be accessed from within
+    annotations.
+
+<details>
+
+<summary>
+
+#### Example Document Model
+
+</summary>
+
+```python
+from typing import Optional
+from pytorch_ie.core import Document, AnnotationList, annotation_field
+from pytorch_ie.annotations import LabeledSpan, BinaryRelation, Label
+
+class MyDocument(Document):
+    # data fields (any field that is targeted by an annotation fields)
+    text: str
+    # annotation fields
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+    label: AnnotationList[Label] = annotation_field()
+    # other fields
+    doc_id: Optional[str] = None
+```
+
+Note that the `label` is a special annotation field that does not define a target because it belongs to the whole document.
+You can also have more complex constructs, like annotation fields that target multiple other fields by using
+`annotation_field(targets)` or `annotation_field(named_targets)`. The latter is useful if you want to access the
+targets by name from within the annotation, see below for an example.
+
+</details>
+
+#### Annotations
+
+There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free to define your own.
+Annotations have to be dataclasses that subclass `pytorch_ie.core.Annotation`. They also need to be hashable and
+immutable. The following is a simple example:
+
+```python
+@dataclass(eq=True, frozen=True)
+class SimpleLabeledSpan(Annotation):
+    start: int
+    end: int
+    label: str
+```
+
+<details>
+<summary>
+
+##### Accessing Target Content
+
+</summary>
+
+We can expand the above example a little to have a nice string representation:
+
+```python
+@dataclass(eq=True, frozen=True)
+class LabeledSpan(Annotation):
+    start: int
+    end: int
+    label: str
+
+    def __str__(self) -> str:
+        if self.targets is None:
+            return ""
+        return str(self.target[self.start : self.end])
+```
+
+The content of `self.target` is lazily assigned as soon as the annotation is added to a document.
+
+Note that this now expects a single `collections.abc.Sequence` as `target`, e.g.:
+
+```python
+my_spans: AnnotationList[Span] = annotation_field(target="<NAME_OF_THE_SEQUENCE_FIELD>")
+```
+
+If we have multiple targets, we need to define target names to access them. For this, we need to set the special
+field `TARGET_NAMES`:
+
+```python
+@dataclass(eq=True, frozen=True)
+class Alignment(Annotation):
+    TARGET_NAMES = ("text1", "text2")
+    start1: int
+    end1: int
+    start2: int
+    end2: int
+
+    def __str__(self) -> str:
+        if self.targets is None:
+            return ""
+        # we can access the `named_targets` which has the keys defined in `TARGET_NAMES`
+        span1 = self.named_targets["text1"][self.start1 : self.end1]
+        span2 = self.named_targets["text2"][self.start2 : self.end2]
+        return f'span1="{span1}" is aligned with span2="{span2}"'
+```
+
+This requires to define the annotation container as follows:
+
+```python
+class MyDocumentWithAlignment(Document):
+    text_a: str
+    text_b: str
+    # `named_targets` defines the mapping from `TARGET_NAMES` to data fields
+    my_alignments: AnnotationList[Alignment] = annotation_field(named_targets={"text1": "text_a", "text2": "text_b"})
+```
+
+Note that `text1` and `text2` can also target the same field.
+
+</details>
+<details>
+<summary>
+
+##### (De-)Serialization of Annotations
+
+</summary>
+
+As usual for dataclasses, annotations can be converted to json like objects with `.asdict()`. However, they can be
+also created with `MyAnnotation.fromdict(dct, annotation_store)`. Both methods are required because documents and
+their annotations are created on the fly when working with PIE datasets (see below).
+
+Sometimes, it is required to overwrite both methods. This is the case when targeting another annotation field. Consider
+the following example where `head` and `tail` are entries from another annotation field:
+
+```python
+@dataclass(eq=True, frozen=True)
+class BinaryRelation(Annotation):
+    head: Span
+    tail: Span
+    label: str
+
+    def asdict(self) -> Dict[str, Any]:
+        # Convert the annotations to their ids.
+        # We use the _asdicts() method with overrides to avoid converting the original
+        # entries to dicts in the first place (this can slow down the preprocessing a lot).
+        dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
+        return dct
+
+    @classmethod
+    def fromdict(
+        cls,
+        dct: Dict[str, Any],
+        annotation_store: Optional[Dict[int, Annotation]] = None,
+    ):
+        # copy to not modify the input
+        tmp_dct = dict(dct)
+        # get the annotations by their ids
+        tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
+        tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
+        return super().fromdict(tmp_dct, annotation_store)
+```
+
+Here it is necessary to replace the referenced `Span` annotations with their ids during serialization because
+we save them already in the respective annotation field. Thus, we also have to replace the ids with the actual
+annotations during construction. This can be easily done with the helper method
+`resolve_annotation(id_or_annotation, store)`.
+
+</details>
+</details>
+<details>
+<summary>
+
+### 🔤 ⇔ 🔢 Taskmodule
+
+</summary>
+
+The taskmodule is responsible for converting documents to model inputs and back. For that purpose, it requires the
+user to implement the following methods:
+
+-   `encode_input`: Taking one document, create one or multiple `TaskEncoding`s. A `TaskEncoding` represents an
+    example that will be passed to the model later on. It is a container holding `inputs`, optional `targets`, the
+    original `document`, and `metadata`. Note that `encode_input` should not assign a value to `targets`.
+-   `encode_target`: This gets a single `TaskEncoding` and should produce a target encoding that will be assigned
+    to `targets` later on. As such, it is called only during training / evaluation, but not for inference. Note that,
+    this is allowed to return None. In this case, the respective `TaskEncoding` will not be passed to the model at all.
+-   `collate`: Taking a batch of `TaskEncoding`s, this should produce a batch input for the model. Note that this has to
+    work with available targets (training and evaluation) and without them (inference).
+-   `unbatch_output`: This gets a batch output from the model and should rearrange that into a sequence of `TaskOutput`s.
+    In that means it can be understood as the opposite to `collate`. The number of `TaskOutput`s should match the
+    number of `TaskEncoding`s that got into the batch because we align them later on for easy creation of new annotations.
+-   `create_annotations_from_output`: This gets a single `TaskEncoding` with its corresponding `TaskOutput` and
+    should yield tuples each consisting of an annotation field name and an annotation. The annotations will be added
+    as predictions to the annotation field with the respective name.
+-   `prepare` (OPTIONAL): This will get the train dataset, i.e. a Sequence or Iterable of Documents, and can be used
+    to calculate additional parameters like the list of all available labels, etc.
+
+You can find some predefined taskmodules for _text-_ and _token classification_, _text classification based relation
+extraction_, _joint entity and relation classification_ and other use cases in the package
+[`pytorch_ie.taskmodules`](src/pytorch_ie/taskmodules). Especially, have a look at the
+[SimpleTransformerTextClassificationTaskModule](src/pytorch_ie/taskmodules/simple_transformer_text_classification.py)
+that is well documented and should provide a good starting point to implement your own one.
+
+</details>
+<details>
+<summary>
+
+### 🧮 Model
+
+</summary>
+
+PyTorch-IE models are meant to do the heavy lifting training and inference. They are
+[Pytorch-Lightning modules](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html),
+enhanced with some functionality to ease persisting them, see [Reusability and Sharing](#reusability-and-sharing).
+
+You can find some predefined models for transformer based _text-_ and _token classification_, _sequence generation_,
+and other use cases in the package [`pytorch_ie.models`](src/pytorch_ie/models).
+
+</details>
+
+### Reusability and Sharing
+
+Taskmodules and Models provide some functionality to ease reusability and reproducibility. Especially, they provide
+the methods `save_pretrained()` and `from_pretrained()` that can be used to save their specification, i.e. their
+**config**, and available model wights to disc and exactly re-create them again from that data.
+
+<details>
+<summary>
+
+#### Huggingface Hub and Extended Configs
+
+</summary>
+
+These methods come along
+with integration to the [Huggingface Hub](https://huggingface.co/docs/hub/index). By passing `push_to_hub=True` to
+`save_pretrained()`, the taskmodule / model is directly pushed to the Hub and can be loaded again with the respective
+identifier (see the [Examples](examples) for how to do so). However, to work properly, each taskmodule / model has to
+correctly implement the `_config()` getter method. Per default, it returns all parameters passed to the `__init__`
+method if this calls `save_hyperparameters()` which is very recommended. But you may have created some further
+parameters that should be persisted, for instance a label-to-id mapping. In this case, `_config()` should be
+overwritten to take this into account:
+
+```python
+def _config(self) -> Dict[str, Any]:
+    # add the label-to-id mapping to the config
+    config = super()._config()
+    config["label_to_id"] = self.label_to_id
+    return config
+```
+
+Furthermore, you can use the property `is_from_pretrained` to know if the taskmodule / model is just loaded or created
+from scratch. This may be useful, for instance, to avoid downloading a model from Huggingface Transformers when you
+in fact want to load your own trained model from disc via `from_pretrained`:
+
+```python
+from transformers import AutoConfig, AutoModel
+
+hf_config = AutoConfig.from_pretrained(model_name_or_path)
+# If this is already trained, just create an empty transformer model. The weights are loaded afterwards
+# via the pytorch_ie.Model.from_pretrained() logic.
+if self.is_from_pretrained:
+    self.model = AutoModel.from_config(config=hf_config)
+# Otherwise, download the whole model from the Huggingface Hub.
+else:
+    self.model = AutoModel.from_pretrained(model_name_or_path, config=hf_config)
+```
+
+</details>
+
+In short, each taskmodule / model implementation should:
+
+-   call `save_hyperparameters()` in `__init__` to save all constructor arguments,
+-   pass remaining `__init__` kwargs (keyword arguments) to its super to not break some other helpful functionality
+    (e.g. `is_from_pretrained`), and
+-   overwrite `_config()` if additional parameters are calculated, e.g. from the dataset.
+
 ## ⚡️ Examples: Prediction
 
 **The following examples work out of the box. No further setup like manually downloading a model is needed!**
@@ -119,7 +412,6 @@ ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, n
 ```
 
 </details>
-
 <details>
 <summary>
 
