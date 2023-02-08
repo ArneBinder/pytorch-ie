@@ -197,9 +197,11 @@ class TaskModule(
         show_progress: bool = False,
     ) -> Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         document_batch = []
-        for i, doc in tqdm(
-            enumerate(documents), disable=not (show_progress and batch_size is not None)
-        ):
+        if show_progress and batch_size is not None:
+            logger.warning(
+                "do not show document encoding progress because we encode lazily with an iterator"
+            )
+        for i, doc in enumerate(documents):
             document_batch.append(doc)
 
             if batch_size is not None and len(document_batch) >= batch_size:
