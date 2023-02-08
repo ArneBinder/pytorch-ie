@@ -1,7 +1,6 @@
 [build-system]
-# 1.2 causes an error: RuntimeError: The Poetry configuration is invalid:
-#  [extras.pipfile_deprecated_finder.2] 'pip-shims<=0.3.4' does not match '^[a-zA-Z-_.0-9]+$'
-requires = ["poetry-core==1.1.15"]
+# later versions are not compatible with nox-poetry, see https://github.com/cjolowicz/nox-poetry/issues/873
+requires = ["poetry-core~=1.1.15"]
 #requires = ["poetry-core @ git+https://github.com/python-poetry/poetry-core.git@master"]
 build-backend = "poetry.core.masonry.api"
 
@@ -33,9 +32,9 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pytorch-lightning = "^1.6.1"
+pytorch-lightning = "^1.9"
 # 2.8.0 causes an error, see https://github.com/ChristophAlt/pytorch-ie/issues/239
-datasets = "<2.8.0"
+datasets = "~2.7"
 transformers = "^4.18.0"
 huggingface-hub = "^0.5.1"
 torchmetrics = "^0.8.0"
@@ -68,9 +67,9 @@ myst-parser = {version = ">=0.16.1"}
 sh = "^1.14.2"
 types-requests = "^2.27.7"
 nox = "^2022.1.7"
-nox-poetry = "^0.9.0"
-absl-py = "^1.0.0"
-python-dotenv = "^0.20.0"
+nox-poetry = "^1.0.2"
+absl-py = "^1.4.0"
+python-dotenv = "^0.21.0"
 
 [tool.black]
 line-length = 99
