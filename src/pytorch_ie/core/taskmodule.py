@@ -18,6 +18,7 @@ from typing import (
 )
 
 import torch.utils.data.dataset as torch_dataset
+from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
@@ -171,18 +172,21 @@ class TaskModule(
         return None
 
     def batch_encode(
-        self, documents: Union[Sequence[DocumentType], Dataset], encode_target: bool
+        self,
+        documents: Union[Sequence[DocumentType], Dataset],
+        encode_target: bool,
+        show_progress: bool = False,
     ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]], Sequence[DocumentType]
     ]:
         ## TODO: revisit the assumption that encode_target=True always implies that
         ## is_training=True
         task_encodings, documents_in_order = self.encode_inputs(
-            documents, is_training=encode_target
+            documents, is_training=encode_target, show_progress=show_progress
         )
 
         if encode_target:
-            task_encodings = self.encode_targets(task_encodings)
+            task_encodings = self.encode_targets(task_encodings, show_progress=show_progress)
         return task_encodings, documents_in_order
 
     def _encoding_iterator(
@@ -190,19 +194,30 @@ class TaskModule(
         documents: Iterable[DocumentType],
         encode_target: bool,
         batch_size: Optional[int] = None,
+        show_progress: bool = False,
     ) -> Iterator[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         document_batch = []
+        if show_progress and batch_size is not None:
+            logger.warning(
+                "do not show document encoding progress because we encode lazily with an iterator"
+            )
         for i, doc in enumerate(documents):
             document_batch.append(doc)
 
             if batch_size is not None and len(document_batch) >= batch_size:
                 yield from self.batch_encode(
-                    documents=document_batch[:batch_size], encode_target=encode_target
+                    documents=document_batch[:batch_size],
+                    encode_target=encode_target,
+                    show_progress=False,
                 )[0]
                 document_batch = document_batch[batch_size:]
 
         if len(document_batch) > 0:
-            yield from self.batch_encode(documents=document_batch, encode_target=encode_target)[0]
+            yield from self.batch_encode(
+                documents=document_batch,
+                encode_target=encode_target,
+                show_progress=show_progress and batch_size is None,
+            )[0]
 
     def encode(
         self,
@@ -212,6 +227,7 @@ class TaskModule(
         as_task_encoding_sequence: Optional[bool] = None,
         as_iterator: Optional[bool] = None,
         as_dataset: bool = False,
+        show_progress: bool = False,
     ) -> Union[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         TaskEncodingSequence[
@@ -238,7 +254,10 @@ class TaskModule(
             if as_task_encoding_sequence:
                 raise ValueError(f"can not return a TaskEncodingSequence as Iterator")
             encodings_iterator = self._encoding_iterator(
-                documents=documents, encode_target=encode_target, batch_size=document_batch_size
+                documents=documents,
+                encode_target=encode_target,
+                batch_size=document_batch_size,
+                show_progress=show_progress,
             )
             if as_dataset:
                 return IterableTaskEncodingDataset(encodings=encodings_iterator)
@@ -249,9 +268,15 @@ class TaskModule(
             documents_in_order: List[DocumentType] = []
             docs_as_list = list(documents)
             bs = document_batch_size or len(docs_as_list)
-            for i in range(0, len(docs_as_list), bs):
+            for i in tqdm(
+                range(0, len(docs_as_list), bs),
+                disable=not (show_progress and document_batch_size is not None),
+                desc="encode documents",
+            ):
                 cur_task_encodings, cur_documents_in_order = self.batch_encode(
-                    documents=docs_as_list[i : i + bs], encode_target=encode_target
+                    documents=docs_as_list[i : i + bs],
+                    encode_target=encode_target,
+                    show_progress=show_progress and document_batch_size is None,
                 )
                 encodings.extend(cur_task_encodings)
                 documents_in_order.extend(cur_documents_in_order)
@@ -276,13 +301,14 @@ class TaskModule(
         self,
         documents: Union[Sequence[DocumentType], Dataset, IterableDataset],
         is_training: bool = False,
+        show_progress: bool = False,
     ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         Sequence[DocumentType],
     ]:
         documents_in_order: List[DocumentType] = []
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
-        for document in documents:
+        for document in tqdm(documents, disable=not show_progress, desc="encode inputs"):
             # a document might be generated on the fly (e.g. with a Dataset), so we add it here
             documents_in_order.append(document)
 
@@ -316,6 +342,7 @@ class TaskModule(
     def encode_targets(
         self,
         task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
+        show_progress: bool = False,
     ) -> List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         """
         Given a list of task encodings, get and assign the respective target encodings
@@ -328,7 +355,9 @@ class TaskModule(
         easily by letting encode_target() return None.
         """
         res = []
-        for task_encoding in task_encodings:
+        for task_encoding in tqdm(
+            task_encodings, disable=not show_progress, desc="encode targets"
+        ):
             target_encoding = self.encode_target(task_encoding)
             if target_encoding is not None:
                 task_encoding.targets = target_encoding
