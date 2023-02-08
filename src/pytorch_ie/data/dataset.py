@@ -184,7 +184,7 @@ class Dataset(datasets.Dataset):
         drop_last_batch: bool = False,
         remove_columns: Optional[Union[str, List[str]]] = None,
         keep_in_memory: bool = False,
-        load_from_cache_file: bool = None,
+        load_from_cache_file: Optional[bool] = None,
         cache_file_name: Optional[str] = None,
         writer_batch_size: Optional[int] = 1000,
         features: Optional[datasets.Features] = None,
@@ -207,7 +207,8 @@ class Dataset(datasets.Dataset):
             drop_last_batch=drop_last_batch,
             remove_columns=remove_columns,
             keep_in_memory=keep_in_memory,
-            load_from_cache_file=load_from_cache_file,
+            # ignore typing because typing in Huggingface Dataset.map() is incorrect
+            load_from_cache_file=load_from_cache_file,  # type: ignore
             cache_file_name=cache_file_name,
             writer_batch_size=writer_batch_size,
             features=features,
