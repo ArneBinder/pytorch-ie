@@ -34,7 +34,7 @@ class InvalidTagSequence(Exception):
 
 def bio_tags_to_spans(
     tag_sequence: Sequence[str],
-    classes_to_ignore: List[str] = None,
+    classes_to_ignore: Optional[List[str]] = None,
     include_ill_formed: bool = True,
 ) -> List[TypedStringSpan]:
     """
@@ -113,7 +113,7 @@ def bio_tags_to_spans(
 
 
 def io_tags_to_spans(
-    tag_sequence: List[str], classes_to_ignore: List[str] = None
+    tag_sequence: List[str], classes_to_ignore: Optional[List[str]] = None
 ) -> List[TypedStringSpan]:
     """
     Decode spans from simple IO encoding tag sequence, i.e. tags with an expected tag set of labels + "O".
