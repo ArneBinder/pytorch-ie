@@ -17,7 +17,8 @@ from typing import (
     overload,
 )
 
-from typing_extensions import SupportsIndex, TypeAlias
+from typing_extensions import TypeAlias
+from typing import SupportsIndex
 
 
 def _enumerate_dependencies(
@@ -344,7 +345,6 @@ class Document(Mapping[str, Any]):
     def asdict(self):
         dct = {}
         for field in self.fields():
-
             value = getattr(self, field.name)
 
             if isinstance(value, AnnotationList):

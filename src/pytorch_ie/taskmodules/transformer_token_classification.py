@@ -281,7 +281,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         task_encoding: TransformerTokenClassificationTaskEncoding,
         task_output: TransformerTokenClassificationTaskOutput,
     ) -> Iterator[Tuple[str, LabeledSpan]]:
-
         offset = 0
         if self.partition_annotation is not None:
             partitions = task_encoding.document[self.partition_annotation]

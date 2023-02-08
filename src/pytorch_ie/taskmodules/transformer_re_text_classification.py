@@ -295,7 +295,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 document=document, partition=partition, add_special_tokens=add_special_tokens
             )
 
-            for head, tail, in _enumerate_entity_pairs(
+            for (
+                head,
+                tail,
+            ) in _enumerate_entity_pairs(
                 entities=entities,
                 partition=partition,
                 relations=relations,
@@ -473,7 +476,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     def collate(
         self, task_encodings: Sequence[TransformerReTextClassificationTaskEncoding]
     ) -> TransformerTextClassificationModelStepBatchEncoding:
-
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(

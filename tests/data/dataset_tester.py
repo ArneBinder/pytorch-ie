@@ -44,7 +44,6 @@ class DatasetTester:
     ):
         for config in configs:
             with tempfile.TemporaryDirectory() as processed_temp_dir, tempfile.TemporaryDirectory() as raw_temp_dir:
-
                 # create config and dataset
                 dataset_builder_cls = self.load_builder_class(dataset_name, is_local=is_local)
                 name = config.name if config is not None else None

@@ -108,7 +108,6 @@ def documents(dataset):
 
 @pytest.fixture
 def iterable_dataset(iterable_json_dataset):
-
     dataset = datasets.IterableDatasetDict(
         {
             k: IterableDataset.from_hf_dataset(
