@@ -54,7 +54,7 @@ def test_transformer_token_classification(model, prepared_taskmodule, documents,
         fast_dev_run=False,
         max_epochs=num_epochs,
         gpus=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         precision=32,
     )
     trainer.fit(model, train_dataloader)

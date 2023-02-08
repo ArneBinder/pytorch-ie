@@ -556,7 +556,7 @@ trainer = pl.Trainer(
     fast_dev_run=False,
     max_epochs=num_epochs,
     gpus=0,
-    checkpoint_callback=False,
+    enable_checkpointing=False,
     # callbacks=[checkpoint_callback],
     precision=32,
 )
