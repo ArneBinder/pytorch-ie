@@ -3,6 +3,7 @@
 requires = ["poetry-core @ git+https://github.com/python-poetry/poetry-core.git@master"]
 build-backend = "poetry.core.masonry.api"
 
+
 [tool.poetry]
 name = "pytorch-ie"
 version = "0.12.0"
