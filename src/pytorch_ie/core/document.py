@@ -17,8 +17,6 @@ from typing import (
     overload,
 )
 
-from typing_extensions import SupportsIndex, TypeAlias
-
 
 def _enumerate_dependencies(
     resolved: List[str],
