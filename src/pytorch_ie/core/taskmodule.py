@@ -271,6 +271,7 @@ class TaskModule(
             for i in tqdm(
                 range(0, len(docs_as_list), bs),
                 disable=not (show_progress and document_batch_size is not None),
+                desc="encode documents",
             ):
                 cur_task_encodings, cur_documents_in_order = self.batch_encode(
                     documents=docs_as_list[i : i + bs],
@@ -307,7 +308,7 @@ class TaskModule(
     ]:
         documents_in_order: List[DocumentType] = []
         task_encodings: List[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]] = []
-        for document in tqdm(documents, disable=not show_progress):
+        for document in tqdm(documents, disable=not show_progress, desc="encode inputs"):
             # a document might be generated on the fly (e.g. with a Dataset), so we add it here
             documents_in_order.append(document)
 
@@ -354,7 +355,7 @@ class TaskModule(
         easily by letting encode_target() return None.
         """
         res = []
-        for task_encoding in tqdm(task_encodings, disable=not show_progress):
+        for task_encoding in tqdm(task_encodings, disable=not show_progress, desc="encode inputs"):
             target_encoding = self.encode_target(task_encoding)
             if target_encoding is not None:
                 task_encoding.targets = target_encoding
