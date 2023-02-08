@@ -355,7 +355,9 @@ class TaskModule(
         easily by letting encode_target() return None.
         """
         res = []
-        for task_encoding in tqdm(task_encodings, disable=not show_progress, desc="encode targets"):
+        for task_encoding in tqdm(
+            task_encodings, disable=not show_progress, desc="encode targets"
+        ):
             target_encoding = self.encode_target(task_encoding)
             if target_encoding is not None:
                 task_encoding.targets = target_encoding
