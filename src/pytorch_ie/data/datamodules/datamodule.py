@@ -41,6 +41,7 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         val_split: Optional[str] = "validation",
         test_split: Optional[str] = "test",
         prepare_split: Optional[str] = None,
+        show_progress_for_encode: bool = False,
         **dataloader_kwargs,
     ):
         super().__init__()
@@ -53,6 +54,7 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         self.test_split = test_split
         # per default, use train data to prepare the taskmodule
         self.prepare_split = prepare_split or self.train_split
+        self.show_progress_for_encode = show_progress_for_encode
         self.dataloader_kwargs = dataloader_kwargs
 
         self._data: Dict[
@@ -87,7 +89,10 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
             if split is None or split not in self.dataset:
                 continue
             task_encoding_dataset = self.taskmodule.encode(
-                self.dataset[split], encode_target=True, as_dataset=True
+                self.dataset[split],
+                encode_target=True,
+                as_dataset=True,
+                show_progress=self.show_progress_for_encode,
             )
             if not isinstance(
                 task_encoding_dataset, (TaskEncodingDataset, IterableTaskEncodingDataset)
