@@ -206,7 +206,6 @@ def test_cast_document_type_swap_fields(dataset_train):
 
 
 def test_cast_document_type_rename_source_not_available(dataset_train):
-
     with pytest.raises(
         ValueError,
         match=re.escape(
@@ -219,7 +218,6 @@ def test_cast_document_type_rename_source_not_available(dataset_train):
 
 
 def test_cast_document_type_rename_target_not_available(dataset_train):
-
     with pytest.raises(
         ValueError,
         match=re.escape(
@@ -232,7 +230,6 @@ def test_cast_document_type_rename_target_not_available(dataset_train):
 
 
 def test_cast_document_type_rename_wrong_type(dataset_train):
-
     with pytest.raises(ValueError, match=re.escape("new field is not the same as old field:")):
         dataset_train.cast_document_type(
             DocumentWithEntsWrongType, field_mapping={"entities": "ents"}

@@ -197,7 +197,6 @@ class Dataset(datasets.Dataset):
         as_documents: bool = True,
         result_document_type: Optional[Type[Document]] = None,
     ) -> "Dataset":
-
         dataset = super().map(
             function=decorate_convert_to_dict_of_lists(function) if as_documents else function,
             with_indices=with_indices,
@@ -234,7 +233,6 @@ class Dataset(datasets.Dataset):
         remove_columns: bool = False,
         field_mapping: Optional[Dict[str, str]] = None,
     ) -> "Dataset":
-
         field_mapping = field_mapping or {}
 
         removed_field_names, added_field_names = _check_fields_for_casting(

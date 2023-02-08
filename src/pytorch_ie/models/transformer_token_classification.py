@@ -64,7 +64,6 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
         stage: str,
         batch: TransformerTokenClassificationModelStepBatchEncoding,
     ):
-
         input_, target = batch
         assert target is not None, "target has to be available for training"
 

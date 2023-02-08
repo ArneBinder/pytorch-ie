@@ -91,7 +91,6 @@ def test_enumerate_windows_with_overlap2():
 
 
 def test_get_window_around_slice():
-
     # default: result is centered around slice
     window_slice = get_window_around_slice(
         slice=(5, 7), max_window_size=6, available_input_length=10

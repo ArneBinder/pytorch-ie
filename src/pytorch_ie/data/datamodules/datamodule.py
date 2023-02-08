@@ -77,7 +77,6 @@ class DataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Targe
         return len(data_train)
 
     def setup(self, stage: Optional[str] = None, **kwargs):
-
         if stage == "fit" or stage is None:
             if self.prepare_split is None:
                 raise ValueError(f"prepare_data_split is required to prepare the taskmodule")

@@ -342,7 +342,6 @@ class Document(Mapping[str, Any]):
     def asdict(self):
         dct = {}
         for field in self.fields():
-
             value = getattr(self, field.name)
 
             if isinstance(value, AnnotationList):

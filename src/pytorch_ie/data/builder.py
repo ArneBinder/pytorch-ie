@@ -24,7 +24,6 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
     BASE_BUILDER_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = None
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
-
         self.base_builder = None
         if self.BASE_DATASET_PATH is not None:
             base_dataset_kwargs = base_dataset_kwargs or {}
