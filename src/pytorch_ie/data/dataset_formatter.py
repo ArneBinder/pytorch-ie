@@ -7,8 +7,8 @@ from pytorch_ie.core.document import Document
 
 
 class DocumentFormatter(Formatter[Document, list, List[Document]]):
-    def __init__(self, document_type, features=None, decoded=True, **kwargs):
-        super().__init__(features=None, decoded=None)
+    def __init__(self, document_type, features=None, **kwargs):
+        super().__init__(features=None)
         self.document_type = document_type
 
     def format_row(self, pa_table: pa.Table) -> Document:

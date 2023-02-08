@@ -31,11 +31,12 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pytorch-lightning = "^1.6.1"
-datasets = "^2.4.0"
+pytorch-lightning = "^1.9"
+datasets = "~2.9"
 transformers = "^4.18.0"
 huggingface-hub = "^0.5.1"
 torchmetrics = "^0.8.0"
+absl-py = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
@@ -48,7 +49,7 @@ flake8-bugbear = ">=21.9.2"
 flake8-docstrings = ">=1.6.0"
 flake8-rst-docstrings = ">=0.2.5"
 furo = ">=2021.11.12"
-isort = ">=5.10.1"
+isort = ">=5.12.0"
 mypy = ">=0.930"
 pep8-naming = ">=0.12.1"
 pre-commit = ">=2.16.0"
@@ -66,7 +67,6 @@ sh = "^1.14.2"
 types-requests = "^2.27.7"
 nox = "^2022.1.7"
 nox-poetry = "^0.9.0"
-absl-py = "^1.0.0"
 python-dotenv = "^0.20.0"
 
 [tool.black]

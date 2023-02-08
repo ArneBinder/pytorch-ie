@@ -184,7 +184,7 @@ class Dataset(datasets.Dataset):
         drop_last_batch: bool = False,
         remove_columns: Optional[Union[str, List[str]]] = None,
         keep_in_memory: bool = False,
-        load_from_cache_file: bool = None,
+        load_from_cache_file: Optional[bool] = None,
         cache_file_name: Optional[str] = None,
         writer_batch_size: Optional[int] = 1000,
         features: Optional[datasets.Features] = None,
@@ -197,7 +197,6 @@ class Dataset(datasets.Dataset):
         as_documents: bool = True,
         result_document_type: Optional[Type[Document]] = None,
     ) -> "Dataset":
-
         dataset = super().map(
             function=decorate_convert_to_dict_of_lists(function) if as_documents else function,
             with_indices=with_indices,
@@ -208,7 +207,8 @@ class Dataset(datasets.Dataset):
             drop_last_batch=drop_last_batch,
             remove_columns=remove_columns,
             keep_in_memory=keep_in_memory,
-            load_from_cache_file=load_from_cache_file,
+            # ignore typing because typing in Huggingface Dataset.map() is incorrect
+            load_from_cache_file=load_from_cache_file,  # type: ignore
             cache_file_name=cache_file_name,
             writer_batch_size=writer_batch_size,
             features=features,
@@ -234,7 +234,6 @@ class Dataset(datasets.Dataset):
         remove_columns: bool = False,
         field_mapping: Optional[Dict[str, str]] = None,
     ) -> "Dataset":
-
         field_mapping = field_mapping or {}
 
         removed_field_names, added_field_names = _check_fields_for_casting(
