@@ -358,14 +358,14 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 if head_token_slice[0] < tail_token_slice[0]:
                     assert (
                         head_token_slice[1] <= tail_token_slice[0]
-                    ), f"the head and tail entities are not allowed to overlap"
+                    ), f"the head and tail entities are not allowed to overlap in {document.id}"
                     entity_pair = (head, tail)
                     entity_slices = (head_token_slice, tail_token_slice)
                     entity_args = (HEAD, TAIL)
                 else:
                     assert (
                         tail_token_slice[1] <= head_token_slice[0]
-                    ), f"the head and tail entities are not allowed to overlap"
+                    ), f"the head and tail entities are not allowed to overlap in {document.id}"
                     entity_pair = (tail, head)
                     entity_slices = (tail_token_slice, head_token_slice)
                     entity_args = (TAIL, HEAD)
