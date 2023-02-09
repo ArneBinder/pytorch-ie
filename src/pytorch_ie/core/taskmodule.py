@@ -155,7 +155,9 @@ class TaskModule(
         TaskOutput,
     ],
 ):
-    def __init__(self, encode_document_batch_size: Optional[int] = None, is_prepared: bool = False, **kwargs):
+    def __init__(
+        self, encode_document_batch_size: Optional[int] = None, is_prepared: bool = False, **kwargs
+    ):
         super().__init__(**kwargs)
         self.is_prepared = is_prepared
         self.encode_document_batch_size = encode_document_batch_size

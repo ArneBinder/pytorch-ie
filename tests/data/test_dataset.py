@@ -183,8 +183,7 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
 @pytest.mark.parametrize("inplace", [False, True])
 @pytest.mark.parametrize("as_dataset", [False, True])
 def test_dataset_with_taskmodule(
-    maybe_iterable_dataset, taskmodule_prepared, model_output, encode_target, inplace
-, as_dataset
+    maybe_iterable_dataset, taskmodule_prepared, model_output, encode_target, inplace, as_dataset
 ):
     train_dataset = maybe_iterable_dataset["train"]
 

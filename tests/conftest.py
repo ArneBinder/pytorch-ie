@@ -125,7 +125,6 @@ def json_dataset_to_prepare():
 
 @pytest.fixture(scope="module")
 def dataset_to_prepare(json_dataset_to_prepare):
-
     mapped_dataset = json_dataset_to_prepare.map(example_to_doc_dict)
 
     dataset = datasets.DatasetDict(
