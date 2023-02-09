@@ -194,6 +194,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         config["entity_labels"] = self.entity_labels
         return config
 
+    def _is_prepared(self):
+        return self.label_to_id is not None and self.entity_labels is not None
+
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()

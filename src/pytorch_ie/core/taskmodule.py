@@ -159,7 +159,7 @@ class TaskModule(
         self, encode_document_batch_size: Optional[int] = None, is_prepared: bool = False, **kwargs
     ):
         super().__init__(**kwargs)
-        self.is_prepared = is_prepared
+        self._is_prepared_value = is_prepared
         self.encode_document_batch_size = encode_document_batch_size
 
     def _config(self) -> Dict[str, Any]:
@@ -169,17 +169,36 @@ class TaskModule(
         config["taskmodule_type"] = (
             registered_name if registered_name is not None else this_class.__name__
         )
-        config["is_prepared"] = self.is_prepared
+        config["is_prepared"] = self._is_prepared_value
         return config
+
+    @property
+    def is_prepared(self) -> bool:
+        return self._is_prepared_value or self._is_prepared()
+
+    def _is_prepared(self) -> bool:
+        """
+        Overwrite this method to allow for preparation from config values instead of
+        from data (useful for large datasets). prepare() will do nothing, if this method returns True.
+        In general, this should check for all values that are manually added to the config.
+
+        Example:
+        ```
+        def _is_prepared(self) -> bool:
+            return self.label_to_id is not None
+        ```
+        """
+        return False
 
     def _prepare(self, documents: Sequence[DocumentType]) -> None:
         return None
 
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         if self.is_prepared:
-            raise Exception("The taskmodule is already prepared, it can not be prepared again.")
-        self._prepare(documents=documents)
-        self.is_prepared = True
+            logger.warning("The taskmodule is already prepared, skip preparation step.")
+        else:
+            self._prepare(documents=documents)
+        self._is_prepared_value = True
         return None
 
     def batch_encode(
