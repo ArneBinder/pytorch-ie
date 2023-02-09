@@ -8,7 +8,13 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.annotations import Label
-from pytorch_ie.core import AnnotationList, TaskEncoding, TaskModule, annotation_field
+from pytorch_ie.core import (
+    AnnotationList,
+    TaskEncoding,
+    TaskModule,
+    annotation_field,
+    taskmodule_init,
+)
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
@@ -59,6 +65,9 @@ TaskModuleType = TaskModule[
 
 @TaskModule.register()
 class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
+    # Mark the constructor with @taskmodule_init to automatically call _post_prepare() when loaded from pretrained
+    # and to auto-add parameters to the config that require preparation.
+    @taskmodule_init(require_preparation=["label_to_id"])
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -82,22 +91,20 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         self.padding = padding
         self.pad_to_multiple_of = pad_to_multiple_of
 
-        # this will be prepared from the data or loaded from the config
+        # this will be prepared from the data if not loaded from a saved config
         self.label_to_id = label_to_id
+        self.id_to_label: Dict[int, str] = {}
 
     def _config(self) -> Dict[str, Any]:
         """
         Add config entries. The config will be dumped when calling save_pretrained().
         Entries of the config will be passed to the constructor of this taskmodule when
-        loading it with from_pretrained().
+        loading it with from_pretrained(). Note, that arguments that are mentioned with
+        require_preparation with @taskmodule_init() are added automatically.
         """
-        # add the label-to-id mapping to the config
         config = super()._config()
-        config["label_to_id"] = self.label_to_id
+        # add any values to the config
         return config
-
-    def _is_prepared(self):
-        return self.label_to_id is not None
 
     def _prepare(self, documents: Sequence[DocumentType]) -> None:
         """
@@ -115,6 +122,13 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         # create the mapping, but spare the first index for the "O" (outside) class
         self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
         self.label_to_id["O"] = 0
+
+    def _post_prepare(self):
+        """
+        This is called after the preparation with the documents but also after an already prepared taskmodule is loaded.
+        """
+        assert self.label_to_id is not None
+        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
         self,
@@ -198,11 +212,9 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         max_label_ids = np.argmax(probabilities, axis=-1)
 
         outputs = []
-        assert self.label_to_id is not None
-        id_to_label = {v: k for k, v in self.label_to_id.items()}
         for idx, label_id in enumerate(max_label_ids):
             # translate the label id back to the label text
-            label = id_to_label[label_id]
+            label = self.id_to_label[label_id]
             # get the probability and convert from tensor value to python float
             prob = float(probabilities[idx, label_id])
             # we create TransformerTextClassificationTaskOutput primarily for typing purposes,

@@ -8,7 +8,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, MultiLabeledBinaryRelation, Span
-from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.core import TaskEncoding, TaskModule, taskmodule_init
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
@@ -132,6 +132,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         TODO: add remaining parameters
     """
 
+    @taskmodule_init(require_preparation=["label_to_id", "entity_labels"])
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -174,27 +175,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
         self.argument_markers = None
-
-        if self.is_prepared:
-            assert (
-                self.entity_labels is not None
-            ), f"No entity labels available, was `prepare` called correctly?"
-            self.argument_markers = _create_argument_markers(
-                # ignore typing because is_prepared already checks that entity_labels is not None
-                entity_labels=self.entity_labels,
-                add_type_to_marker=self.add_type_to_marker,
-            )
-            # do not sort here to keep order from loaded taskmodule config
-            self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
-
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        config["entity_labels"] = self.entity_labels
-        return config
-
-    def _is_prepared(self):
-        return self.label_to_id is not None and self.entity_labels is not None
+        self.id_to_label: Dict[int, str] = {}
 
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         entity_labels: Set[str] = set()
@@ -217,14 +198,21 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.label_to_id[self.none_label] = 0
 
         self.entity_labels = sorted(entity_labels)
-        argument_markers = _create_argument_markers(
+
+    def _post_prepare(self):
+        self.argument_markers = _create_argument_markers(
             entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
         )
         # Sort argument markers by value to ensure that added tokens are in a reproducible order.
         # Note: To maintain backwards compatibility, the argument markers are not sorted when loading from a saved
         # taskmodule!
-        self.argument_markers = dict(sorted(argument_markers.items(), key=lambda kv: kv[1]))
+        if not self.is_from_pretrained:
+            self.argument_markers = dict(
+                sorted(self.argument_markers.items(), key=lambda kv: kv[1])
+            )
         self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
+        assert self.label_to_id is not None
+        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def _encode_text(
         self,
@@ -435,15 +423,14 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
         output_label_probs = output_label_probs.detach().cpu().numpy()
 
-        assert self.label_to_id is not None
         unbatched_output = []
         if self.multi_label:
             raise NotImplementedError
         else:
             label_ids = np.argmax(output_label_probs, axis=-1)
-            id_to_label = {v: k for k, v in self.label_to_id.items()}
+
             for batch_idx, label_id in enumerate(label_ids):
-                label = id_to_label[label_id]
+                label = self.id_to_label[label_id]
                 prob = float(output_label_probs[batch_idx, label_id])
                 result: TransformerReTextClassificationTaskOutput = {
                     "labels": [label],

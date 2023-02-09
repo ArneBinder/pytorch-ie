@@ -2,6 +2,7 @@ import collections.abc
 import copy
 import logging
 from abc import ABC, abstractmethod
+from functools import wraps
 from typing import (
     Any,
     Dict,
@@ -142,6 +143,29 @@ class TaskEncodingSequence(
         return len(self.task_encodings)
 
 
+def taskmodule_init(require_preparation: Optional[List[str]] = None):
+    def wrap_init(init):
+        @wraps(init)
+        def wrapped(self: "TaskModule", **kwargs):
+            # extend any existing list
+            local_require_preparation = require_preparation or []
+            local_require_preparation.extend(kwargs.pop("require_preparation", []))
+            init(self, require_preparation=local_require_preparation, **kwargs)
+
+            # if loaded from pretrained, we may not call prepare(), so we call it directly here
+            # since we should have all required arguments available
+            if self.is_from_pretrained:
+                if not self.is_prepared:
+                    raise Exception(
+                        "the taskmodule was loaded from pretrained, but it is not yet prepared"
+                    )
+                self._post_prepare()
+
+        return wrapped
+
+    return wrap_init
+
+
 class TaskModule(
     ABC,
     PyTorchIETaskmoduleModelHubMixin,
@@ -156,11 +180,14 @@ class TaskModule(
     ],
 ):
     def __init__(
-        self, encode_document_batch_size: Optional[int] = None, is_prepared: bool = False, **kwargs
+        self,
+        encode_document_batch_size: Optional[int] = None,
+        require_preparation: Optional[List[str]] = None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
-        self._is_prepared_value = is_prepared
         self.encode_document_batch_size = encode_document_batch_size
+        self._require_preparation = require_preparation or []
 
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
@@ -169,36 +196,42 @@ class TaskModule(
         config["taskmodule_type"] = (
             registered_name if registered_name is not None else this_class.__name__
         )
-        config["is_prepared"] = self._is_prepared_value
+
+        config.update(self.prepared_arguments)
+        # we do not want to persist which parameters require preparation
+        if "require_preparation" in config:
+            del config["require_preparation"]
+
         return config
 
     @property
     def is_prepared(self) -> bool:
-        return self._is_prepared_value or self._is_prepared()
+        return all(getattr(self, k) is not None for k in self._require_preparation)
 
-    def _is_prepared(self) -> bool:
-        """
-        Overwrite this method to allow for preparation from config values instead of
-        from data (useful for large datasets). prepare() will do nothing, if this method returns True.
-        In general, this should check for all values that are manually added to the config.
-
-        Example:
-        ```
-        def _is_prepared(self) -> bool:
-            return self.label_to_id is not None
-        ```
-        """
-        return False
+    @property
+    def prepared_arguments(self) -> Dict[str, Any]:
+        return {
+            k: getattr(self, k) for k in self._require_preparation if getattr(self, k) is not None
+        }
 
     def _prepare(self, documents: Sequence[DocumentType]) -> None:
         return None
 
+    def _post_prepare(self):
+        """
+        This is called after the preparation with the documents but also after an already prepared taskmodule is loaded.
+        """
+        pass
+
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         if self.is_prepared:
-            logger.warning("The taskmodule is already prepared, skip preparation step.")
+            msg = "The taskmodule is already prepared, skip preparation step."
+            for k, v in self.prepared_arguments.items():
+                msg += f"\n{k} = {str(v)}"
+            logger.warning(msg)
         else:
             self._prepare(documents=documents)
-        self._is_prepared_value = True
+            self._post_prepare()
         return None
 
     def batch_encode(

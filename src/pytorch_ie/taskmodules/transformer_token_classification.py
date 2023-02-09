@@ -9,7 +9,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.annotations import LabeledSpan, Span
-from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.core import TaskEncoding, TaskModule, taskmodule_init
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_token_classification import (
     TransformerTokenClassificationModelBatchOutput,
@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 
 @TaskModule.register()
 class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
+    @taskmodule_init(require_preparation=["label_to_id"])
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -90,14 +91,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.window_overlap = window_overlap
         self.show_statistics = show_statistics
         self.include_ill_formed_predictions = include_ill_formed_predictions
-
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        return config
-
-    def _is_prepared(self):
-        return self.label_to_id is not None
 
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()

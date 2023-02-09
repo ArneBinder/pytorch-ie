@@ -18,7 +18,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.annotations import Label, MultiLabel
-from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.core import TaskEncoding, TaskModule, taskmodule_init
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelBatchOutput,
@@ -72,6 +72,7 @@ _TransformerTextClassificationTaskModule = TaskModule[
 
 @TaskModule.register()
 class TransformerTextClassificationTaskModule(_TransformerTextClassificationTaskModule):
+    @taskmodule_init(require_preparation=["label_to_id"])
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -103,14 +104,6 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label
-
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        return config
-
-    def _is_prepared(self):
-        return self.label_to_id is not None
 
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()

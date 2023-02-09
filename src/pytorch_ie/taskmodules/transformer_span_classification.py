@@ -9,7 +9,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 
 from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
-from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.core import TaskEncoding, TaskModule, taskmodule_init
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_span_classification import (
     TransformerSpanClassificationModelBatchOutput,
@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 @TaskModule.register()
 class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTaskModule):
+    @taskmodule_init(require_preparation=["label_to_id"])
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -85,14 +86,6 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self.pad_to_multiple_of = pad_to_multiple_of
         self.label_pad_token_id = label_pad_token_id
         self.multi_label = multi_label
-
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        return config
-
-    def _is_prepared(self):
-        return self.label_to_id is not None
 
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels: Set[str] = set()

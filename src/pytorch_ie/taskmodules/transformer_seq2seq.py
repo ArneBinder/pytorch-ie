@@ -7,7 +7,7 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
-from pytorch_ie.core import Annotation, TaskEncoding, TaskModule
+from pytorch_ie.core import Annotation, TaskEncoding, TaskModule, taskmodule_init
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import (
     TransformerSeq2SeqModelBatchOutput,
@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 
 @TaskModule.register()
 class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
+    @taskmodule_init()
     def __init__(
         self,
         tokenizer_name_or_path: str,
