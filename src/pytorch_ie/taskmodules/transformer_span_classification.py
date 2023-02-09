@@ -78,8 +78,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self.entity_annotation = entity_annotation
         self.single_sentence = single_sentence
         self.sentence_annotation = sentence_annotation
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        self.label_to_id = label_to_id
         self.padding = padding
         self.truncation = truncation
         self.max_length = max_length
@@ -91,6 +90,9 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         config = super()._config()
         config["label_to_id"] = self.label_to_id
         return config
+
+    def _is_prepared(self):
+        return self.label_to_id is not None
 
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels: Set[str] = set()
@@ -111,13 +113,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                 else:
                     labels.add(entity.label)
 
+        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
         self.label_to_id["O"] = 0
-        label_id = 1
-        for label in sorted(labels):
-            self.label_to_id[label] = label_id
-            label_id += 1
-
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
         self,
@@ -176,6 +173,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
         targets: List[Tuple[int, int, int]] = []
         entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+        assert self.label_to_id is not None
         if self.single_sentence:
             partition_idx = metadata["partition_idx"]
             partitions: Sequence[Span] = document[self.sentence_annotation]
@@ -223,10 +221,12 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
         tags: List[List[Tuple[str, Tuple[int, int]]]] = [[] for _ in np.unique(batch_indices)]
         probabilities: List[List[float]] = [[] for _ in np.unique(batch_indices)]
+        assert self.label_to_id is not None
+        id_to_label = {v: k for k, v in self.label_to_id.items()}
         for start, end, batch_idx, label_id, prob in zip(
             start_indices, end_indices, batch_indices, label_ids, probs
         ):
-            label = self.id_to_label[label_id]
+            label = id_to_label[label_id]
             if label != "O":
                 tags[batch_idx].append((label, (start, end)))
                 probabilities[batch_idx].append(prob[label_id])

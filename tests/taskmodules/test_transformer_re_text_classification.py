@@ -98,19 +98,12 @@ def test_prepare(taskmodule_optional_marker, documents):
             ("tail", "end"): "[/T]",
         }
 
-    assert set(taskmodule.label_to_id.keys()) == {
-        taskmodule.none_label,
-        "per:employee_of",
-        "org:founded_by",
-        "per:founder",
+    assert taskmodule.label_to_id == {
+        taskmodule.none_label: 0,
+        "org:founded_by": 1,
+        "per:employee_of": 2,
+        "per:founder": 3,
     }
-    assert [taskmodule.id_to_label[i] for i in range(4)] == [
-        taskmodule.none_label,
-        "org:founded_by",
-        "per:employee_of",
-        "per:founder",
-    ]
-    assert taskmodule.label_to_id[taskmodule.none_label] == 0
 
 
 def test_config(prepared_taskmodule_optional_marker):

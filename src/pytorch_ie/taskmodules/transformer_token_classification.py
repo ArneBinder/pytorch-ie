@@ -80,8 +80,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
         self.partition_annotation = partition_annotation
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        self.label_to_id = label_to_id
         self.padding = padding
         self.truncation = truncation
         self.max_length = max_length
@@ -97,6 +96,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         config["label_to_id"] = self.label_to_id
         return config
 
+    def _is_prepared(self):
+        return self.label_to_id is not None
+
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
@@ -104,16 +106,11 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
             for entity in entities:
                 labels.add(entity.label)
-                # labels.update(entity.label)
 
-        self.label_to_id["O"] = 0
-        current_id = 1
+        self.label_to_id = {"O": 0}
         for label in sorted(labels):
             for prefix in ["B", "I"]:
-                self.label_to_id[f"{prefix}-{label}"] = current_id
-                current_id += 1
-
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+                self.label_to_id[f"{prefix}-{label}"] = len(self.label_to_id)
 
     def encode_text(
         self, text, partition: Optional[Span] = None, add_special_tokens: bool = True
@@ -260,6 +257,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             tag_sequence[0 : window_labels[0]] = [None] * window_labels[0]
             tag_sequence[window_labels[1] :] = [None] * len(tag_sequence[window_labels[1] :])
 
+        assert self.label_to_id is not None
         targets = [
             self.label_to_id[tag] if tag is not None else self.label_pad_token_id
             for tag in tag_sequence
@@ -273,7 +271,9 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         logits = model_output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
-        tags = [[self.id_to_label[e] for e in b] for b in indices]
+        assert self.label_to_id is not None
+        id_to_label = {v: k for k, v in self.label_to_id.items()}
+        tags = [[id_to_label[e] for e in b] for b in indices]
         return [{"tags": t, "probabilities": p} for t, p in zip(tags, probabilities)]
 
     def create_annotations_from_output(

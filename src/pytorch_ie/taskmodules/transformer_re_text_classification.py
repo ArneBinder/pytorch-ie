@@ -159,8 +159,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.relation_annotation = relation_annotation
         self.padding = padding
         self.truncation = truncation
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        self.label_to_id = label_to_id
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label
@@ -216,8 +215,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(relation_labels))}
         self.label_to_id[self.none_label] = 0
-
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
         self.entity_labels = sorted(entity_labels)
         argument_markers = _create_argument_markers(
@@ -424,6 +421,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             (relation.head, relation.tail): [relation.label] for relation in relations
         }
 
+        assert self.label_to_id is not None
         labels = head_tail_to_labels.get((metadata[HEAD], metadata[TAIL]), [self.none_label])
         target = [self.label_to_id[label] for label in labels]
 
@@ -437,13 +435,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
         output_label_probs = output_label_probs.detach().cpu().numpy()
 
+        assert self.label_to_id is not None
         unbatched_output = []
         if self.multi_label:
             raise NotImplementedError
         else:
             label_ids = np.argmax(output_label_probs, axis=-1)
+            id_to_label = {v: k for k, v in self.label_to_id.items()}
             for batch_idx, label_id in enumerate(label_ids):
-                label = self.id_to_label[label_id]
+                label = id_to_label[label_id]
                 prob = float(output_label_probs[batch_idx, label_id])
                 result: TransformerReTextClassificationTaskOutput = {
                     "labels": [label],

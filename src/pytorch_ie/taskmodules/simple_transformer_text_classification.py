@@ -83,8 +83,7 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         self.pad_to_multiple_of = pad_to_multiple_of
 
         # this will be prepared from the data or loaded from the config
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        self.label_to_id = label_to_id
 
     def _config(self) -> Dict[str, Any]:
         """
@@ -97,31 +96,25 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         config["label_to_id"] = self.label_to_id
         return config
 
-    def prepare(self, documents: Sequence[DocumentType]) -> None:
+    def _is_prepared(self):
+        return self.label_to_id is not None
+
+    def _prepare(self, documents: Sequence[DocumentType]) -> None:
         """
         Prepare the task module with training documents, e.g. collect all possible labels.
         """
 
-        # Don't do anything if we directly created a prepared taskmodule. This may be useful for very large
-        # datasets where it is not reasonable to scan them before training.
-        if len(self.label_to_id) > 0:
-            logger.warning(
-                f"It looks like the taskmodule is already prepared since label_to_id contains entries, "
-                f"so they are not collected again. label_to_id = {str(self.label_to_id)}"
-            )
-        else:
-            # create the label-to-id mapping
-            labels = set()
-            for document in documents:
-                # all annotations of a document are hold in list like containers,
-                # so we have to take its first element
-                label_annotation = document.label[0]
-                labels.add(label_annotation.label)
+        # create the label-to-id mapping
+        labels = set()
+        for document in documents:
+            # all annotations of a document are hold in list like containers,
+            # so we have to take its first element
+            label_annotation = document.label[0]
+            labels.add(label_annotation.label)
 
-            # create the mapping, but spare the first index for the "O" (outside) class
-            self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
-            self.label_to_id["O"] = 0
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        # create the mapping, but spare the first index for the "O" (outside) class
+        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
+        self.label_to_id["O"] = 0
 
     def encode_input(
         self,
@@ -158,6 +151,7 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         # as above, all annotations are hold in lists, so we have to take its first element
         label_annotation = task_encoding.document.label[0]
         # translate the textual label to the target id
+        assert self.label_to_id is not None
         return self.label_to_id[label_annotation.label]
 
     def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelEncodingType:
@@ -204,9 +198,11 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         max_label_ids = np.argmax(probabilities, axis=-1)
 
         outputs = []
+        assert self.label_to_id is not None
+        id_to_label = {v: k for k, v in self.label_to_id.items()}
         for idx, label_id in enumerate(max_label_ids):
             # translate the label id back to the label text
-            label = self.id_to_label[label_id]
+            label = id_to_label[label_id]
             # get the probability and convert from tensor value to python float
             prob = float(probabilities[idx, label_id])
             # we create TransformerTextClassificationTaskOutput primarily for typing purposes,

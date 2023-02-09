@@ -99,8 +99,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         self.label_to_verbalizer = label_to_verbalizer
         self.padding = padding
         self.truncation = truncation
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        self.label_to_id = label_to_id
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label
@@ -110,6 +109,9 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         config["label_to_id"] = self.label_to_id
         return config
 
+    def _is_prepared(self):
+        return self.label_to_id is not None
+
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
@@ -118,13 +120,8 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
             for annotation in annotations:
                 labels.add(annotation.label)
 
+        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
         self.label_to_id["O"] = 0
-        current_id = 1
-        for label in sorted(labels):
-            self.label_to_id[label] = current_id
-            current_id += 1
-
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
         self,
@@ -166,6 +163,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         ]
 
         targets: TransformerTextClassificationTargetEncoding
+        assert self.label_to_id is not None
         if self.multi_label:
             assert isinstance(label_annotation, MultiLabel)
             targets = [0] * len(self.label_to_id)
@@ -193,8 +191,10 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         else:
             unbatched_output = []
             label_ids = np.argmax(output_label_probs, axis=-1)
+            assert self.label_to_id is not None
+            id_to_label = {v: k for k, v in self.label_to_id.items()}
             for batch_idx, label_id in enumerate(label_ids):
-                label = self.id_to_label[label_id]
+                label = id_to_label[label_id]
                 prob = float(output_label_probs[batch_idx, label_id])
                 result: TransformerTextClassificationTaskOutputSingle = {
                     "labels": [label],

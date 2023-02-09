@@ -53,9 +53,7 @@ def model_output():
 
 def test_prepare(taskmodule, documents):
     taskmodule.prepare(documents)
-    assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
-    assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
-    assert taskmodule.label_to_id["O"] == 0
+    assert taskmodule.label_to_id == {"O": 0, "ORG": 1, "PER": 2}
 
 
 def test_config(prepared_taskmodule):

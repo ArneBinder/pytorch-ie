@@ -32,9 +32,7 @@ def taskmodule():
 def taskmodule_prepared(dataset_to_prepare, taskmodule):
     train_dataset = dataset_to_prepare["train"]
     taskmodule.prepare(train_dataset)
-    assert set(taskmodule.label_to_id.keys()) == {"PER", "ORG", "O"}
-    assert [taskmodule.id_to_label[i] for i in range(3)] == ["O", "ORG", "PER"]
-    assert taskmodule.label_to_id["O"] == 0
+    assert taskmodule.label_to_id == {"O": 0, "ORG": 1, "PER": 2}
     return taskmodule
 
 
