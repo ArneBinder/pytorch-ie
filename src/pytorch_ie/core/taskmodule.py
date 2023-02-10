@@ -197,6 +197,8 @@ class TaskModule(
         config["taskmodule_type"] = (
             registered_name if registered_name is not None else this_class.__name__
         )
+        # add all prepared attributes
+        config.update(self.prepared_attributes)
         return config
 
     def prepare(self, documents: Sequence[DocumentType]) -> None:
