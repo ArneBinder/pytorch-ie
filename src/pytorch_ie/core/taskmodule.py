@@ -190,6 +190,28 @@ class TaskModule(
         """
         pass
 
+    def prepare(self, documents: Sequence[DocumentType]) -> None:
+        if self.is_prepared:
+            if len(self.ATTRIBUTES_REQUIRE_PREPARATION) > 0:
+                msg = "The taskmodule is already prepared, do not prepare again."
+                for k, v in self.prepared_attributes.items():
+                    msg += f"\n{k} = {str(v)}"
+                logger.warning(msg)
+        else:
+            self._prepare(documents)
+            if not self.is_prepared:
+                attributes_not_prepared = [
+                    param
+                    for param in self.ATTRIBUTES_REQUIRE_PREPARATION
+                    if getattr(self, param, None) is None
+                ]
+                raise Exception(
+                    f"_prepare() was called, but the taskmodule is not prepared. "
+                    f"Required attributes that are not set: {str(attributes_not_prepared)}"
+                )
+        self._post_prepare()
+        return None
+
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
         this_class = self.__class__
@@ -200,9 +222,6 @@ class TaskModule(
         # add all prepared attributes
         config.update(self.prepared_attributes)
         return config
-
-    def prepare(self, documents: Sequence[DocumentType]) -> None:
-        return None
 
     def batch_encode(
         self,
