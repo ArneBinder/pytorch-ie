@@ -213,6 +213,10 @@ class TaskModule(
         self._post_prepare()
         return None
 
+    def maybe_post_prepare(self):
+        if self.is_prepared:
+            self._post_prepare()
+
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
         this_class = self.__class__
