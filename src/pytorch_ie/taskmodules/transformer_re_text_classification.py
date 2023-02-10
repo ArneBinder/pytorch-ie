@@ -194,6 +194,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             )
         self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
+        self.argument_markers_to_id = {
+            marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
+        }
+
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
         config["label_to_id"] = self.label_to_id
@@ -270,9 +274,6 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         assert (
             self.argument_markers is not None
         ), f"No argument markers available, was `prepare` already called?"
-        argument_markers_to_id = {
-            marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
-        }
 
         entities: Sequence[Span] = document[self.entity_annotation]
 
@@ -377,11 +378,11 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                 for entity, arg_name in zip(entity_pair, entity_args):
                     for pos in [START, END]:
                         if self.add_type_to_marker:
-                            markers[(arg_name, pos)] = argument_markers_to_id[
+                            markers[(arg_name, pos)] = self.argument_markers_to_id[
                                 self.argument_markers[(arg_name, pos, entity.label)]
                             ]
                         else:
-                            markers[(arg_name, pos)] = argument_markers_to_id[
+                            markers[(arg_name, pos)] = self.argument_markers_to_id[
                                 self.argument_markers[(arg_name, pos)]
                             ]
 
