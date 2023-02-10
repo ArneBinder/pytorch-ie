@@ -177,13 +177,22 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.argument_markers = None
 
         if self.is_prepared():
-            self.argument_markers = _create_argument_markers(
-                # ignore typing because is_prepared already checks that entity_labels is not None
-                entity_labels=self.entity_labels,  # type: ignore
-                add_type_to_marker=self.add_type_to_marker,
+            self._post_prepare()
+
+    def _post_prepare(self):
+        self.argument_markers = _create_argument_markers(
+            # ignore typing because is_prepared already checks that entity_labels is not None
+            entity_labels=self.entity_labels,  # type: ignore
+            add_type_to_marker=self.add_type_to_marker,
+        )
+        if not self.is_from_pretrained:
+            # Sort argument markers by value to ensure that added tokens are in a reproducible order.
+            # Note: To maintain backwards compatibility, the argument markers are not sorted when loading from a saved
+            # taskmodule!
+            self.argument_markers = dict(
+                sorted(self.argument_markers.items(), key=lambda kv: kv[1])
             )
-            # do not sort here to keep order from loaded taskmodule config
-            self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
+        self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
@@ -222,14 +231,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
         self.entity_labels = sorted(entity_labels)
-        argument_markers = _create_argument_markers(
-            entity_labels=self.entity_labels, add_type_to_marker=self.add_type_to_marker
-        )
-        # Sort argument markers by value to ensure that added tokens are in a reproducible order.
-        # Note: To maintain backwards compatibility, the argument markers are not sorted when loading from a saved
-        # taskmodule!
-        self.argument_markers = dict(sorted(argument_markers.items(), key=lambda kv: kv[1]))
-        self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
+
+        self._post_prepare()
 
     def _encode_text(
         self,
