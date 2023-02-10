@@ -155,9 +155,40 @@ class TaskModule(
         TaskOutput,
     ],
 ):
+    ATTRIBUTES_REQUIRE_PREPARATION: List[str] = []
+
     def __init__(self, encode_document_batch_size: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
         self.encode_document_batch_size = encode_document_batch_size
+
+    @property
+    def is_prepared(self):
+        """
+        Returns True, iff all attributes listed in ATTRIBUTES_REQUIRE_PREPARATION are set.
+        Note: Attributes set to None are not considered to be prepared!
+        """
+        return all(
+            getattr(self, attribute, None) is not None
+            for attribute in self.ATTRIBUTES_REQUIRE_PREPARATION
+        )
+
+    @property
+    def prepared_attributes(self):
+        if not self.is_prepared:
+            raise Exception("The taskmodule is not prepared.")
+        return {param: getattr(self, param) for param in self.ATTRIBUTES_REQUIRE_PREPARATION}
+
+    def _prepare(self, documents: Sequence[DocumentType]):
+        """
+        This method needs to set all attributes listed in ATTRIBUTES_REQUIRE_PREPARATION.
+        """
+        pass
+
+    def _post_prepare(self):
+        """
+        Any code to do further one-time setup, but that requires the prepared attributes.
+        """
+        pass
 
     def _config(self) -> Dict[str, Any]:
         config = dict(self.hparams)
