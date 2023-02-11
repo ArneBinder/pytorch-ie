@@ -89,8 +89,6 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         # this will be prepared from the data or loaded from the config
         self.label_to_id = label_to_id
 
-        self.maybe_post_prepare()
-
     def _prepare(self, documents: Sequence[DocumentType]) -> None:
         """
         Prepare the task module with training documents, e.g. collect all possible labels.
