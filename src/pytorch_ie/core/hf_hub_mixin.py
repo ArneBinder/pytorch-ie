@@ -433,4 +433,6 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         **module_kwargs,
     ):
         module_kwargs.pop("taskmodule_type")
-        return cls(**module_kwargs)
+        taskmodule = cls(**module_kwargs)
+        taskmodule._post_prepare()
+        return taskmodule
