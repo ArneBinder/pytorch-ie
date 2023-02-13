@@ -132,6 +132,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         TODO: add remaining parameters
     """
 
+    PREPARED_ATTRIBUTES = ["label_to_id", "entity_labels"]
+
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -176,8 +178,27 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.argument_markers = None
 
-        if self.is_prepared():
-            self._post_prepare()
+    def _prepare(self, documents: Sequence[TextDocument]) -> None:
+        entity_labels: Set[str] = set()
+        relation_labels: Set[str] = set()
+        for document in documents:
+            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
+            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
+
+            if self.add_type_to_marker:
+                for entity in entities:
+                    entity_labels.add(entity.label)
+
+            for relation in relations:
+                relation_labels.add(relation.label)
+
+        if self.none_label in relation_labels:
+            relation_labels.remove(self.none_label)
+
+        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(relation_labels))}
+        self.label_to_id[self.none_label] = 0
+
+        self.entity_labels = sorted(entity_labels)
 
     def _post_prepare(self):
         self.argument_markers = _create_argument_markers(
@@ -198,45 +219,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
         }
 
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        config["entity_labels"] = self.entity_labels
-        return config
-
-    def is_prepared(self):
-        """
-        This should return True iff all config entries added by the _config() method are available.
-        By doing so, it marks the taskmodule ready to save with save_pretrained(), i.e. that the
-        exact same taskmodule will be produced when loaded again via from_pretrained().
-        """
-        return self.entity_labels is not None and self.label_to_id is not None
-
-    def prepare(self, documents: Sequence[TextDocument]) -> None:
-        entity_labels: Set[str] = set()
-        relation_labels: Set[str] = set()
-        for document in documents:
-            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
-            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
-
-            if self.add_type_to_marker:
-                for entity in entities:
-                    entity_labels.add(entity.label)
-
-            for relation in relations:
-                relation_labels.add(relation.label)
-
-        if self.none_label in relation_labels:
-            relation_labels.remove(self.none_label)
-
-        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(relation_labels))}
-        self.label_to_id[self.none_label] = 0
-
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
-
-        self.entity_labels = sorted(entity_labels)
-
-        self._post_prepare()
 
     def _encode_text(
         self,
