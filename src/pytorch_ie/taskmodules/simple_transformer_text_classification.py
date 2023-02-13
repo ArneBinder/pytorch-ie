@@ -59,6 +59,10 @@ TaskModuleType = TaskModule[
 
 @TaskModule.register()
 class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
+    # If these attributes are set, the taskmodule is considered as prepared. They should be calculated
+    # within _prepare() and are dumped automatically when saving the taskmodule with save_pretrained().
+    PREPARED_ATTRIBUTES = ["label_to_id"]
+
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -83,44 +87,32 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         self.pad_to_multiple_of = pad_to_multiple_of
 
         # this will be prepared from the data or loaded from the config
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        self.label_to_id = label_to_id
 
-    def _config(self) -> Dict[str, Any]:
-        """
-        Add config entries. The config will be dumped when calling save_pretrained().
-        Entries of the config will be passed to the constructor of this taskmodule when
-        loading it with from_pretrained().
-        """
-        # add the label-to-id mapping to the config
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        return config
-
-    def prepare(self, documents: Sequence[DocumentType]) -> None:
+    def _prepare(self, documents: Sequence[DocumentType]) -> None:
         """
         Prepare the task module with training documents, e.g. collect all possible labels.
+        This method needs to set all attributes listed in PREPARED_ATTRIBUTES.
         """
 
-        # Don't do anything if we directly created a prepared taskmodule. This may be useful for very large
-        # datasets where it is not reasonable to scan them before training.
-        if len(self.label_to_id) > 0:
-            logger.warning(
-                f"It looks like the taskmodule is already prepared since label_to_id contains entries, "
-                f"so they are not collected again. label_to_id = {str(self.label_to_id)}"
-            )
-        else:
-            # create the label-to-id mapping
-            labels = set()
-            for document in documents:
-                # all annotations of a document are hold in list like containers,
-                # so we have to take its first element
-                label_annotation = document.label[0]
-                labels.add(label_annotation.label)
+        # create the label-to-id mapping
+        labels = set()
+        for document in documents:
+            # all annotations of a document are hold in list like containers,
+            # so we have to take its first element
+            label_annotation = document.label[0]
+            labels.add(label_annotation.label)
 
-            # create the mapping, but spare the first index for the "O" (outside) class
-            self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
-            self.label_to_id["O"] = 0
+        # create the mapping, but spare the first index for the "O" (outside) class
+        self.label_to_id = {label: i + 1 for i, label in enumerate(sorted(labels))}
+        self.label_to_id["O"] = 0
+
+    def _post_prepare(self):
+        """
+        Any further preparation logic that requires the result of _prepare(). But its result is not serialized
+        with the taskmodule.
+        """
+
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_input(
@@ -158,6 +150,7 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         # as above, all annotations are hold in lists, so we have to take its first element
         label_annotation = task_encoding.document.label[0]
         # translate the textual label to the target id
+        assert self.label_to_id is not None
         return self.label_to_id[label_annotation.label]
 
     def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelEncodingType:
