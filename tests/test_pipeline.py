@@ -149,7 +149,6 @@ def test_pipeline_with_dataset(dataset, prepared_taskmodule, mock_model, inplace
 
 @pytest.mark.slow
 def test_pipeline_with_dataset_never_cached(dataset, prepared_taskmodule, mock_model):
-
     train_dataset = dataset["train"]
 
     pipeline = Pipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1, inplace=False)
