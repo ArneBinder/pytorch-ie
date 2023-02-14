@@ -44,6 +44,8 @@ This is an experimental framework that aims to combine the lessons learned from 
 $ pip install pytorch-ie
 ```
 
+**For even faster prototyping with pre-defined, but fully configurable training pipelines and much more useful tooling, have a look into the [PyTorch-IE-Hydra-Template](https://github.com/ChristophAlt/pytorch-ie-hydra-template).**
+
 ## 🥧 Concepts & Architecture
 
 PyTorch-IE builds on three core concepts: the **📃 Document**, the **🔤 ⇔ 🔢 Taskmodule**, and the **🧮 Model**. In a
