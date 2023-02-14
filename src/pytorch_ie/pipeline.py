@@ -398,6 +398,7 @@ class Pipeline:
                         forward_params=forward_params,
                         postprocess_params=postprocess_params,
                     ),
+                    result_document_type=documents.document_type,
                     batched=True,
                 )
             finally:
