@@ -63,9 +63,9 @@ def model_output():
 
 def test_prepare(taskmodule_optional_marker, documents):
     taskmodule = taskmodule_optional_marker
-    assert not taskmodule.is_prepared()
+    assert not taskmodule.is_prepared
     taskmodule.prepare(documents)
-    assert taskmodule.is_prepared()
+    assert taskmodule.is_prepared
 
     if taskmodule.add_type_to_marker:
         assert taskmodule.entity_labels == ["ORG", "PER"]
@@ -349,7 +349,7 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
 #     path = os.path.join(tmp_path, "taskmodule")
 #     prepared_taskmodule.save_pretrained(path)
 #     loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
-#     assert loaded_taskmodule.is_prepared()
+#     assert loaded_taskmodule.is_prepared
 #     assert loaded_taskmodule.argument_markers == prepared_taskmodule.argument_markers
 
 
