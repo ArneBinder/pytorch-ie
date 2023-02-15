@@ -1,15 +1,12 @@
 import abc
-from functools import partial
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Optional, Type, Union
 
-from datasets.load import load_dataset_builder
-
-import datasets
+from datasets import ReadInstruction, Split, builder, load
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
 
 
-class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
+class GeneratorBasedBuilder(builder.GeneratorBasedBuilder):
     DOCUMENT_TYPE: Optional[Type[Document]] = None
 
     BASE_DATASET_PATH: Optional[str] = None
@@ -46,7 +43,7 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
                 base_builder_kwargs.update(self.BASE_BUILDER_KWARGS_DICT[config_name])
 
             base_builder_kwargs.update(base_dataset_kwargs)
-            self.base_builder = load_dataset_builder(
+            self.base_builder = load.load_dataset_builder(
                 path=self.BASE_DATASET_PATH,
                 **base_builder_kwargs,
             )
@@ -63,33 +60,27 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
         return self.base_builder._generate_examples(*args, **kwargs)
 
     @abc.abstractmethod
-    def _generate_document(self, example, dataset):
+    def _generate_document(self, example, **kwargs):
         pass
 
     def _generate_document_kwargs(self, dataset):
         return None
 
-    def _post_process(
-        self, dataset: datasets.Dataset, resources_paths: Mapping[str, str]
-    ) -> Optional[datasets.Dataset]:
-        fn_kwargs = {}
-        additional_kwargs = self._generate_document_kwargs(dataset)
+    def _as_dataset(
+        self,
+        split: Union[ReadInstruction, Split] = Split.TRAIN,  # type: ignore
+        in_memory: bool = False,
+    ) -> Dataset:
+        dataset = super()._as_dataset(split=split, in_memory=in_memory)
 
-        if additional_kwargs is not None:
-            fn_kwargs.update(additional_kwargs)
-
-        mapped_dataset = dataset.map(
-            decorate_convert_to_dict_of_lists(self._generate_document), fn_kwargs=fn_kwargs
-        )
+        fn = decorate_convert_to_dict_of_lists(self._generate_document)
+        fn_kwargs = self._generate_document_kwargs(dataset)
+        mapped_dataset = dataset.map(fn, fn_kwargs=fn_kwargs)
 
         if self.DOCUMENT_TYPE is None:
             raise TypeError("the builder has no DOCUMENT_TYPE defined")
 
-        document_dataset = Dataset.from_hf_dataset(
-            mapped_dataset, document_type=self.DOCUMENT_TYPE
-        )
-
-        return document_dataset
+        return Dataset.from_hf_dataset(dataset=mapped_dataset, document_type=self.DOCUMENT_TYPE)
 
     def _as_streaming_dataset_single(
         self,
@@ -99,9 +90,7 @@ class GeneratorBasedBuilder(datasets.builder.GeneratorBasedBuilder):
 
         fn = decorate_convert_to_dict_of_lists(self._generate_document)
         fn_kwargs = self._generate_document_kwargs(dataset)
-        if fn_kwargs is not None:
-            fn = partial(fn, **fn_kwargs)
-        mapped_dataset = dataset.map(fn)
+        mapped_dataset = dataset.map(fn, fn_kwargs=fn_kwargs)
 
         if self.DOCUMENT_TYPE is None:
             raise TypeError("the builder has no DOCUMENT_TYPE defined")
