@@ -1,3 +1,12 @@
+"""
+workflow:
+    document
+        -> (input_encoding, target_encoding) -> task_encoding
+            -> model_encoding -> model_output
+        -> task_output
+    -> document
+"""
+
 import logging
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union
 
@@ -7,6 +16,7 @@ import torch.nn.functional as F
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
@@ -16,26 +26,17 @@ from pytorch_ie.models.transformer_span_classification import (
     TransformerSpanClassificationModelStepBatchEncoding,
 )
 
-"""
-workflow:
-    Document
-        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
-            -> ModelBatchEncoding -> ModelBatchOutput
-        -> TaskOutput
-    -> Document
-"""
+TransformerSpanClassificationInputEncoding: TypeAlias = BatchEncoding
+TransformerSpanClassificationTargetEncoding: TypeAlias = Sequence[Tuple[int, int, int]]
 
-TransformerSpanClassificationInputEncoding = BatchEncoding
-TransformerSpanClassificationTargetEncoding = Sequence[Tuple[int, int, int]]
-
-TransformerSpanClassificationTaskEncoding = TaskEncoding[
+TransformerSpanClassificationTaskEncoding: TypeAlias = TaskEncoding[
     TextDocument,
     TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationTargetEncoding,
 ]
-TransformerSpanClassificationTaskOutput = Dict[str, Any]
+TransformerSpanClassificationTaskOutput: TypeAlias = Dict[str, Any]
 
-_TransformerSpanClassificationTaskModule = TaskModule[
+_TransformerSpanClassificationTaskModule: TypeAlias = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TextDocument,
     TransformerSpanClassificationInputEncoding,

@@ -1,3 +1,12 @@
+"""
+workflow:
+    document
+        -> (input_encoding, target_encoding) -> task_encoding
+            -> model_encoding -> model_output
+        -> task_output
+    -> document
+"""
+
 from typing import (
     Any,
     Dict,
@@ -16,6 +25,7 @@ import torch
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
+from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import Label, MultiLabel
 from pytorch_ie.core import TaskEncoding, TaskModule
@@ -25,19 +35,10 @@ from pytorch_ie.models.transformer_text_classification import (
     TransformerTextClassificationModelStepBatchEncoding,
 )
 
-"""
-workflow:
-    Document
-        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
-            -> ModelBatchEncoding -> ModelBatchOutput
-        -> TaskOutput
-    -> Document
-"""
+TransformerTextClassificationInputEncoding: TypeAlias = MutableMapping[str, Any]
+TransformerTextClassificationTargetEncoding: TypeAlias = Sequence[int]
 
-TransformerTextClassificationInputEncoding = MutableMapping[str, Any]
-TransformerTextClassificationTargetEncoding = Sequence[int]
-
-TransformerTextClassificationTaskEncoding = TaskEncoding[
+TransformerTextClassificationTaskEncoding: TypeAlias = TaskEncoding[
     TextDocument,
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
@@ -54,12 +55,12 @@ class TransformerTextClassificationTaskOutputMulti(TypedDict, total=False):
     probabilities: Sequence[Sequence[float]]
 
 
-TransformerTextClassificationTaskOutput = Union[
+TransformerTextClassificationTaskOutput: TypeAlias = Union[
     TransformerTextClassificationTaskOutputSingle,
     TransformerTextClassificationTaskOutputMulti,
 ]
 
-_TransformerTextClassificationTaskModule = TaskModule[
+_TransformerTextClassificationTaskModule: TypeAlias = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TextDocument,
     TransformerTextClassificationInputEncoding,
