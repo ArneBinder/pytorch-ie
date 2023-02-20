@@ -1,3 +1,12 @@
+"""
+workflow:
+    document
+        -> (input_encoding, target_encoding) -> task_encoding
+            -> model_encoding -> model_output
+        -> task_output
+    -> document
+"""
+
 import logging
 from typing import Any, Dict, Iterator, MutableMapping, Optional, Sequence, Tuple, TypedDict, Union
 
@@ -6,6 +15,7 @@ import torch
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
+from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import Label
 from pytorch_ie.core import AnnotationList, TaskEncoding, TaskModule, annotation_field
@@ -27,27 +37,17 @@ class TaskOutput(TypedDict, total=False):
     probability: float
 
 
-"""
-workflow:
-    document
-        -> (input_encoding, target_encoding) -> task_encoding
-            -> model_encoding -> model_output
-        -> task_output
-    -> document
-"""
-
-
 # Define task specific input and output types
-DocumentType = TextDocumentWithLabel
-InputEncodingType = MutableMapping[str, Any]
-TargetEncodingType = int
-ModelEncodingType = TransformerTextClassificationModelStepBatchEncoding
-ModelOutputType = TransformerTextClassificationModelBatchOutput
-TaskOutputType = TaskOutput
+DocumentType: TypeAlias = TextDocumentWithLabel
+InputEncodingType: TypeAlias = MutableMapping[str, Any]
+TargetEncodingType: TypeAlias = int
+ModelEncodingType: TypeAlias = TransformerTextClassificationModelStepBatchEncoding
+ModelOutputType: TypeAlias = TransformerTextClassificationModelBatchOutput
+TaskOutputType: TypeAlias = TaskOutput
 
 # This should be the same for all taskmodules
-TaskEncodingType = TaskEncoding[DocumentType, InputEncodingType, TargetEncodingType]
-TaskModuleType = TaskModule[
+TaskEncodingType: TypeAlias = TaskEncoding[DocumentType, InputEncodingType, TargetEncodingType]
+TaskModuleType: TypeAlias = TaskModule[
     DocumentType,
     InputEncodingType,
     TargetEncodingType,
