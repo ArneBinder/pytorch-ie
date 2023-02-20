@@ -1,3 +1,12 @@
+"""
+workflow:
+    Document
+        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
+            -> ModelBatchEncoding -> ModelBatchOutput
+        -> TaskOutput
+    -> Document
+"""
+
 import logging
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, TypedDict, Union
 
@@ -6,6 +15,7 @@ import torch
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, MultiLabeledBinaryRelation, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
@@ -17,19 +27,10 @@ from pytorch_ie.models import (
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
 from pytorch_ie.utils.window import get_window_around_slice
 
-"""
-workflow:
-    Document
-        -> (InputEncoding, TargetEncoding) -> TaskEncoding -> TaskBatchEncoding
-            -> ModelBatchEncoding -> ModelBatchOutput
-        -> TaskOutput
-    -> Document
-"""
+TransformerReTextClassificationInputEncoding: TypeAlias = Dict[str, Any]
+TransformerReTextClassificationTargetEncoding: TypeAlias = Sequence[int]
 
-TransformerReTextClassificationInputEncoding = Dict[str, Any]
-TransformerReTextClassificationTargetEncoding = Sequence[int]
-
-TransformerReTextClassificationTaskEncoding = TaskEncoding[
+TransformerReTextClassificationTaskEncoding: TypeAlias = TaskEncoding[
     TextDocument,
     TransformerReTextClassificationInputEncoding,
     TransformerReTextClassificationTargetEncoding,
@@ -41,7 +42,7 @@ class TransformerReTextClassificationTaskOutput(TypedDict, total=False):
     probabilities: Sequence[float]
 
 
-_TransformerReTextClassificationTaskModule = TaskModule[
+_TransformerReTextClassificationTaskModule: TypeAlias = TaskModule[
     # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
     TextDocument,
     TransformerReTextClassificationInputEncoding,
@@ -50,6 +51,7 @@ _TransformerReTextClassificationTaskModule = TaskModule[
     TransformerTextClassificationModelBatchOutput,
     TransformerReTextClassificationTaskOutput,
 ]
+
 
 HEAD = "head"
 TAIL = "tail"
