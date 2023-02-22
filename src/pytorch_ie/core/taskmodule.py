@@ -224,6 +224,16 @@ class TaskModule(
         config.update(self.prepared_attributes)
         return config
 
+    @classmethod
+    def _from_pretrained(
+        cls,
+        *args,
+        **kwargs,
+    ):
+        taskmodule = super()._from_pretrained(*args, **kwargs)
+        taskmodule._post_prepare()
+        return taskmodule
+
     def batch_encode(
         self,
         documents: Union[Sequence[DocumentType], Dataset],
