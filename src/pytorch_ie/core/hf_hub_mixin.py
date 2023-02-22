@@ -304,6 +304,8 @@ class PyTorchIEBaseModelHubMixin:
 
 
 class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
+    type_key = "model_type"
+
     def __init__(self, *args, **kwargs):
         """
         Mix this class with your torch-model class for ease process of saving & loading from huggingface-hub
@@ -372,7 +374,8 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
                 use_auth_token=use_auth_token,
                 local_files_only=local_files_only,
             )
-        model_kwargs.pop("model_type")
+        if cls.type_key is not None:
+            model_kwargs.pop(cls.type_key)
         model = cls(**model_kwargs)
 
         state_dict = torch.load(model_file, map_location=map_location)
@@ -384,6 +387,7 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
 
 class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
     config_name = TASKMODULE_CONFIG_NAME
+    type_key = "taskmodule_type"
 
     def __init__(self, *args, **kwargs):
         """
@@ -426,6 +430,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         use_auth_token,
         **module_kwargs,
     ):
-        module_kwargs.pop("taskmodule_type")
+        if cls.type_key is not None:
+            module_kwargs.pop(cls.type_key)
         taskmodule = cls(**module_kwargs)
         return taskmodule
