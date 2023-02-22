@@ -18,6 +18,7 @@ from typing import (
 )
 
 import torch.utils.data.dataset as torch_dataset
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
@@ -145,6 +146,7 @@ class TaskEncodingSequence(
 class TaskModule(
     ABC,
     PyTorchIETaskmoduleModelHubMixin,
+    HyperparametersMixin,
     Registrable,
     Generic[
         DocumentType,
@@ -214,12 +216,10 @@ class TaskModule(
         return None
 
     def _config(self) -> Dict[str, Any]:
-        config = dict(self.hparams)
-        this_class = self.__class__
-        registered_name = TaskModule.registered_name_for_class(this_class)
-        config["taskmodule_type"] = (
-            registered_name if registered_name is not None else this_class.__name__
-        )
+        config = super()._config() or {}
+        config["taskmodule_type"] = TaskModule.name_for_object_class(self)
+        # add all hparams
+        config.update(self.hparams)
         # add all prepared attributes
         config.update(self.prepared_attributes)
         return config
