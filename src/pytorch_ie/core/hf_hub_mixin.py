@@ -308,6 +308,7 @@ class PyTorchIEBaseModelHubMixin:
 
 
 class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
+    config_name = MODEL_CONFIG_NAME
     config_type_key = MODEL_CONFIG_TYPE_KEY
 
     def __init__(self, *args, **kwargs):
