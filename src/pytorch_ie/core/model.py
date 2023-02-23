@@ -8,12 +8,10 @@ from pytorch_ie.core.registrable import Registrable
 
 class PyTorchIEModel(PyTorchIEModelHubMixin, LightningModule, Registrable):
     def _config(self) -> Dict[str, Any]:
-        config = dict(self.hparams)
-        this_class = self.__class__
-        registered_name = PyTorchIEModel.registered_name_for_class(this_class)
-        config["model_type"] = (
-            registered_name if registered_name is not None else this_class.__name__
-        )
+        config = super()._config() or {}
+        config[self.config_type_key] = PyTorchIEModel.name_for_object_class(self)
+        # add all hparams
+        config.update(self.hparams)
         return config
 
     def predict(

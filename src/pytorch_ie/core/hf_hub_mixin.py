@@ -11,11 +11,13 @@ from huggingface_hub.constants import CONFIG_NAME, PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
 from huggingface_hub.hf_api import HfApi, HfFolder
 from huggingface_hub.repository import Repository
-from pytorch_lightning.core.mixins import HyperparametersMixin
 
 logger = logging.getLogger(__name__)
 
+MODEL_CONFIG_NAME = CONFIG_NAME
 TASKMODULE_CONFIG_NAME = "taskmodule_config.json"
+MODEL_CONFIG_TYPE_KEY = "model_type"
+TASKMODULE_CONFIG_TYPE_KEY = "taskmodule_type"
 
 
 class PyTorchIEBaseModelHubMixin:
@@ -25,7 +27,8 @@ class PyTorchIEBaseModelHubMixin:
     your classes. See ``huggingface_hub.PyTorchModelHubMixin`` for an example.
     """
 
-    config_name = CONFIG_NAME
+    config_name = MODEL_CONFIG_NAME
+    config_type_key = MODEL_CONFIG_TYPE_KEY
 
     def __init__(self, *args, is_from_pretrained: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -305,6 +308,9 @@ class PyTorchIEBaseModelHubMixin:
 
 
 class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
+    config_name = MODEL_CONFIG_NAME
+    config_type_key = MODEL_CONFIG_TYPE_KEY
+
     def __init__(self, *args, **kwargs):
         """
         Mix this class with your torch-model class for ease process of saving & loading from huggingface-hub
@@ -373,7 +379,8 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
                 use_auth_token=use_auth_token,
                 local_files_only=local_files_only,
             )
-        model_kwargs.pop("model_type")
+        if cls.config_type_key is not None:
+            model_kwargs.pop(cls.config_type_key)
         model = cls(**model_kwargs)
 
         state_dict = torch.load(model_file, map_location=map_location)
@@ -383,8 +390,9 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
         return model
 
 
-class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, HyperparametersMixin):
+class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
     config_name = TASKMODULE_CONFIG_NAME
+    config_type_key = TASKMODULE_CONFIG_TYPE_KEY
 
     def __init__(self, *args, **kwargs):
         """
@@ -411,11 +419,6 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         """
         super().__init__(*args, **kwargs)
 
-    def _config(self) -> Dict[str, Any]:
-        config = dict(self.hparams)
-        config["taskmodule_type"] = self.__class__.__name__
-        return config
-
     def _save_pretrained(self, save_directory):
         return None
 
@@ -432,7 +435,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin, Hyperparamete
         use_auth_token,
         **module_kwargs,
     ):
-        module_kwargs.pop("taskmodule_type")
+        if cls.config_type_key is not None:
+            module_kwargs.pop(cls.config_type_key)
         taskmodule = cls(**module_kwargs)
-        taskmodule._post_prepare()
         return taskmodule

@@ -51,3 +51,9 @@ class Registrable:
     def registered_name_for_class(cls: Type[T], clazz: Type[T]) -> Optional[str]:
         inverse_lookup = {v: k for k, v in Registrable._registry[cls].items()}
         return inverse_lookup.get(clazz)
+
+    @classmethod
+    def name_for_object_class(cls: Type[T], obj: T) -> str:
+        obj_class = obj.__class__
+        registered_name = cls.registered_name_for_class(obj_class)
+        return registered_name if registered_name is not None else obj_class.__name__
