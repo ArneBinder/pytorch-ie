@@ -14,7 +14,10 @@ from huggingface_hub.repository import Repository
 
 logger = logging.getLogger(__name__)
 
+MODEL_CONFIG_NAME = CONFIG_NAME
 TASKMODULE_CONFIG_NAME = "taskmodule_config.json"
+MODEL_CONFIG_TYPE_KEY = "model_type"
+TASKMODULE_CONFIG_TYPE_KEY = "taskmodule_type"
 
 
 class PyTorchIEBaseModelHubMixin:
@@ -24,7 +27,8 @@ class PyTorchIEBaseModelHubMixin:
     your classes. See ``huggingface_hub.PyTorchModelHubMixin`` for an example.
     """
 
-    config_name = CONFIG_NAME
+    config_name = MODEL_CONFIG_NAME
+    config_type_key = MODEL_CONFIG_TYPE_KEY
 
     def __init__(self, *args, is_from_pretrained: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -304,7 +308,7 @@ class PyTorchIEBaseModelHubMixin:
 
 
 class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
-    type_key = "model_type"
+    config_type_key = MODEL_CONFIG_TYPE_KEY
 
     def __init__(self, *args, **kwargs):
         """
@@ -387,7 +391,7 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
 
 class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
     config_name = TASKMODULE_CONFIG_NAME
-    type_key = "taskmodule_type"
+    config_type_key = TASKMODULE_CONFIG_TYPE_KEY
 
     def __init__(self, *args, **kwargs):
         """
@@ -430,7 +434,7 @@ class PyTorchIETaskmoduleModelHubMixin(PyTorchIEBaseModelHubMixin):
         use_auth_token,
         **module_kwargs,
     ):
-        if cls.type_key is not None:
-            module_kwargs.pop(cls.type_key)
+        if cls.config_type_key is not None:
+            module_kwargs.pop(cls.config_type_key)
         taskmodule = cls(**module_kwargs)
         return taskmodule

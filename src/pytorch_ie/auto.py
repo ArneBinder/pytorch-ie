@@ -24,7 +24,7 @@ class AutoTaskModule(PyTorchIETaskmoduleModelHubMixin):
         use_auth_token,
         **module_kwargs,
     ) -> TaskModule:
-        class_name = module_kwargs.pop(cls.type_key)
+        class_name = module_kwargs.pop(cls.config_type_key)
         clazz = TaskModule.by_name(class_name)  # type: ignore
         return clazz(**module_kwargs)
 
@@ -66,7 +66,7 @@ class AutoModel(PyTorchIEModelHubMixin):
                 local_files_only=local_files_only,
             )
 
-        class_name = model_kwargs.pop(cls.type_key)
+        class_name = model_kwargs.pop(cls.config_type_key)
         clazz = PyTorchIEModel.by_name(class_name)
         model = clazz(**model_kwargs)
 
