@@ -379,8 +379,8 @@ class PyTorchIEModelHubMixin(PyTorchIEBaseModelHubMixin):
                 use_auth_token=use_auth_token,
                 local_files_only=local_files_only,
             )
-        if cls.type_key is not None:
-            model_kwargs.pop(cls.type_key)
+        if cls.config_type_key is not None:
+            model_kwargs.pop(cls.config_type_key)
         model = cls(**model_kwargs)
 
         state_dict = torch.load(model_file, map_location=map_location)
