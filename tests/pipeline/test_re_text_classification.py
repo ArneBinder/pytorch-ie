@@ -3,6 +3,7 @@ from typing import Sequence
 
 import pytest
 
+from pytorch_ie import AutoPipeline
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TextDocument
@@ -18,14 +19,19 @@ class ExampleDocument(TextDocument):
 
 
 @pytest.mark.slow
-def test_re_text_classification():
+@pytest.mark.parametrize("use_auto", [False, True])
+def test_re_text_classification(use_auto):
     model_name_or_path = "pie/example-re-textclf-tacred"
-    re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
-    assert re_taskmodule.is_from_pretrained
-    re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
-    assert re_model.is_from_pretrained
-
-    pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
+    if use_auto:
+        pipeline = AutoPipeline.from_pretrained(model_name_or_path)
+    else:
+        re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(
+            model_name_or_path
+        )
+        re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
+        pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
+    assert pipeline.taskmodule.is_from_pretrained
+    assert pipeline.model.is_from_pretrained
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."

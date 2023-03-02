@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from pytorch_ie import AutoPipeline
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TextDocument
@@ -17,16 +18,23 @@ class ExampleDocument(TextDocument):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("fast_dev_run", [False, True])
-def test_ner_span_classification(fast_dev_run):
+@pytest.mark.parametrize("use_auto", [False, True])
+def test_ner_span_classification(fast_dev_run, use_auto):
     model_name_or_path = "pie/example-ner-spanclf-conll03"
-    ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
-    assert ner_taskmodule.is_from_pretrained
-    ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-    assert ner_model.is_from_pretrained
-
-    ner_pipeline = Pipeline(
-        model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run
-    )
+    if use_auto:
+        ner_pipeline = AutoPipeline.from_pretrained(
+            model_name_or_path, device=-1, fast_dev_run=fast_dev_run
+        )
+    else:
+        ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(
+            model_name_or_path
+        )
+        ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
+        ner_pipeline = Pipeline(
+            model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run
+        )
+    assert ner_pipeline.taskmodule.is_from_pretrained
+    assert ner_pipeline.model.is_from_pretrained
 
     text = "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
     documents = [ExampleDocument(text), ExampleDocument(text), ExampleDocument(text)]
