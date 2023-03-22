@@ -158,3 +158,26 @@ class MultiLabeledBinaryRelation(Annotation):
         tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
 
         return cls(**tmp_dct)
+
+
+def _post_init_bbox(self):
+    if not isinstance(self.bbox, tuple):
+        object.__setattr__(self, "bbox", tuple(self.bbox))
+    if not len(self.bbox) == 4:
+        raise ValueError("bounding box has to consist of 4 values.")
+
+
+@dataclass(eq=True, frozen=True)
+class OcrAnnotation(Annotation):
+    bbox: Tuple[int, int, int, int]
+    text: str
+
+    def __post_init__(self) -> None:
+        _post_init_bbox(self)
+
+
+class OcrLabeledSpan(LabeledSpan):
+    def __str__(self) -> str:
+        if self.target is None:
+            return ""
+        return str([ocr_annotation.text for ocr_annotation in self.target[self.start : self.end]])
