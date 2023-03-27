@@ -66,7 +66,8 @@ def _get_annotation_fields_with_container(cls: typing.Type) -> Dict[str, Any]:
         field_type = field.type
         # unwrap optional type
         if is_optional_type(field_type):
-            raise TypeError(f"optional type annotation is not allowed")
+            # raise TypeError(f"optional type annotation is not allowed")
+            continue
         if is_annotation_subclass(field_type):
             containers[field.name] = None
         type_args = typing.get_args(field_type)
