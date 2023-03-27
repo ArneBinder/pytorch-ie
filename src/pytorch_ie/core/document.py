@@ -71,7 +71,7 @@ def _get_annotation_fields_with_container(cls: typing.Type) -> Dict[str, Any]:
         if is_annotation_subclass(field_type):
             containers[field.name] = None
         type_args = typing.get_args(field_type)
-        if typing.get_origin(field_type) == tuple and issubclass(type_args[0], Annotation):
+        if typing.get_origin(field_type) == tuple and is_annotation_subclass(type_args[0]):
             if not (
                 type_args[1] == Ellipsis
                 or [issubclass(type_arg, Annotation) for type_arg in type_args]
