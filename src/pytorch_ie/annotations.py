@@ -113,21 +113,21 @@ class BinaryRelation(Annotation):
     def __post_init__(self) -> None:
         _post_init_single_label(self)
 
-    def asdict(self) -> Dict[str, Any]:
-        dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
-        return dct
+    # def asdict(self) -> Dict[str, Any]:
+    #    dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
+    #    return dct
 
-    @classmethod
-    def fromdict(
-        cls,
-        dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Annotation]] = None,
-    ):
-        # copy to not modify the input
-        tmp_dct = dict(dct)
-        tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
-        tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
-        return super().fromdict(tmp_dct, annotation_store)
+    # @classmethod
+    # def fromdict(
+    #    cls,
+    #    dct: Dict[str, Any],
+    #    annotation_store: Optional[Dict[int, Annotation]] = None,
+    # ):
+    #    # copy to not modify the input
+    #    tmp_dct = dict(dct)
+    #    tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
+    #    tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
+    #    return super().fromdict(tmp_dct, annotation_store)
 
 
 @dataclass(eq=True, frozen=True)
@@ -140,21 +140,21 @@ class MultiLabeledBinaryRelation(Annotation):
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
 
-    def asdict(self) -> Dict[str, Any]:
-        # replace object references with object hashes
-        dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
-        return dct
+    # def asdict(self) -> Dict[str, Any]:
+    #    # replace object references with object hashes
+    #    dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
+    #    return dct
 
-    @classmethod
-    def fromdict(
-        cls,
-        dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, "Annotation"]] = None,
-    ):
-        tmp_dct = dict(dct)
-        tmp_dct.pop("_id", None)
-
-        tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
-        tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
-
-        return cls(**tmp_dct)
+    # @classmethod
+    # def fromdict(
+    #    cls,
+    #    dct: Dict[str, Any],
+    #    annotation_store: Optional[Dict[int, "Annotation"]] = None,
+    # ):
+    #    tmp_dct = dict(dct)
+    #    tmp_dct.pop("_id", None)
+    #
+    #    tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
+    #    tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
+    #
+    #    return cls(**tmp_dct)

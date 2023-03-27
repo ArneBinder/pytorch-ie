@@ -44,6 +44,46 @@ def _enumerate_dependencies(
                 resolved.append(node)
 
 
+def is_optional_type(t: typing.Type) -> bool:
+    type_origin = typing.get_origin(t)
+    type_args = typing.get_args(t)
+    return type_origin is typing.Union and len(type_args) == 2 and type(None) in type_args
+
+
+def is_annotation_subclass(t) -> bool:
+    try:
+        if issubclass(t, Annotation):
+            return True
+    except TypeError:
+        return False
+
+
+def _get_annotation_fields_with_container(cls: typing.Type) -> Dict[str, Any]:
+    containers = {}
+    for field in dataclasses.fields(cls):
+        if field.name == "_targets":
+            continue
+        field_type = field.type
+        # unwrap optional type
+        if is_optional_type(field_type):
+            raise TypeError(f"optional type annotation is not allowed")
+        if is_annotation_subclass(field_type):
+            containers[field.name] = None
+        type_args = typing.get_args(field_type)
+        if typing.get_origin(field_type) == tuple and issubclass(type_args[0], Annotation):
+            if not (
+                type_args[1] == Ellipsis
+                or [issubclass(type_arg, Annotation) for type_arg in type_args]
+            ):
+                raise TypeError(
+                    f"only tuples that do not mix Annotations with other types are supported"
+                )
+            containers[field.name] = tuple
+            continue
+
+    return containers
+
+
 def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.Field]:
     return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
@@ -155,7 +195,18 @@ class Annotation:
         return dct
 
     def asdict(self) -> Dict[str, Any]:
-        return self._asdict()
+        overrides = {}
+        annotation_fields_with_container = _get_annotation_fields_with_container(type(self))
+        for field_name, container_type in annotation_fields_with_container.items():
+            if container_type is None:
+                overrides[field_name] = getattr(self, field_name)._id
+            elif container_type == tuple:
+                overrides[field_name] = tuple(anno._id for anno in getattr(self, field_name))
+            else:
+                raise Exception(f"unknown annotation container type: {container_type}")
+
+        dct = self._asdict(overrides=overrides)
+        return dct
 
     @classmethod
     def fromdict(
@@ -164,6 +215,20 @@ class Annotation:
         annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
+        annotation_fields_with_container = _get_annotation_fields_with_container(cls)
+        for field_name, container_type in annotation_fields_with_container.items():
+            if container_type is None:
+                tmp_dct[field_name] = resolve_annotation(
+                    tmp_dct[field_name], store=annotation_store
+                )
+            elif container_type == tuple:
+                tmp_dct[field_name] = tuple(
+                    resolve_annotation(anno_dct, store=annotation_store)
+                    for anno_dct in tmp_dct[field_name]
+                )
+            else:
+                raise Exception(f"unknown annotation container type: {container_type}")
+
         tmp_dct.pop("_id", None)
         return cls(**tmp_dct)
 
