@@ -7,7 +7,7 @@ from pytorch_ie.annotations import Span
 from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
     _contains_annotation_type,
-    _get_annotation_fields_with_container,
+    _get_reference_fields_and_container_types,
     _is_annotation_subclass,
     _is_optional_type,
     _is_tuple_of_annotations,
@@ -131,4 +131,4 @@ def test_get_annotation_fields_with_container_exception():
         b: Tuple[Tuple[Span, ...]]
 
     with pytest.raises(TypeError):
-        _get_annotation_fields_with_container(Dummy)
+        _get_reference_fields_and_container_types(Dummy)

@@ -76,7 +76,9 @@ def _is_tuple_of_annotations(t: Any) -> bool:
         return False
 
 
-def _get_annotation_fields_with_container(cls: typing.Type) -> Dict[str, Optional[typing.Type]]:
+def _get_reference_fields_and_container_types(
+    cls: typing.Type,
+) -> Dict[str, Optional[typing.Type]]:
     containers: Dict[str, Optional[typing.Type]] = {}
     for field in dataclasses.fields(cls):
         if field.name == "_targets":
@@ -218,8 +220,10 @@ class Annotation:
 
     def asdict(self) -> Dict[str, Any]:
         overrides = {}
-        annotation_fields_with_container = _get_annotation_fields_with_container(type(self))
-        for field_name, container_type in annotation_fields_with_container.items():
+        reference_fields_with_container_type = _get_reference_fields_and_container_types(
+            type(self)
+        )
+        for field_name, container_type in reference_fields_with_container_type.items():
             if container_type is None:
                 overrides[field_name] = getattr(self, field_name)._id
             elif container_type == tuple:
@@ -237,8 +241,8 @@ class Annotation:
         annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
-        annotation_fields_with_container = _get_annotation_fields_with_container(cls)
-        for field_name, container_type in annotation_fields_with_container.items():
+        reference_fields_with_container_type = _get_reference_fields_and_container_types(cls)
+        for field_name, container_type in reference_fields_with_container_type.items():
             if container_type is None:
                 tmp_dct[field_name] = resolve_annotation(
                     tmp_dct[field_name], store=annotation_store
