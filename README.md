@@ -195,42 +195,6 @@ As usual for dataclasses, annotations can be converted to json like objects with
 also created with `MyAnnotation.fromdict(dct, annotation_store)`. Both methods are required because documents and
 their annotations are created on the fly when working with PIE datasets (see below).
 
-Sometimes, it is required to overwrite both methods. This is the case when targeting another annotation field. Consider
-the following example where `head` and `tail` are entries from another annotation field:
-
-```python
-@dataclass(eq=True, frozen=True)
-class BinaryRelation(Annotation):
-    head: Span
-    tail: Span
-    label: str
-
-    def asdict(self) -> Dict[str, Any]:
-        # Convert the annotations to their ids.
-        # We use the _asdicts() method with overrides to avoid converting the original
-        # entries to dicts in the first place (this can slow down the preprocessing a lot).
-        dct = self._asdict(overrides={"head": self.head._id, "tail": self.tail._id})
-        return dct
-
-    @classmethod
-    def fromdict(
-        cls,
-        dct: Dict[str, Any],
-        annotation_store: Optional[Dict[int, Annotation]] = None,
-    ):
-        # copy to not modify the input
-        tmp_dct = dict(dct)
-        # get the annotations by their ids
-        tmp_dct["head"] = resolve_annotation(tmp_dct["head"], store=annotation_store)
-        tmp_dct["tail"] = resolve_annotation(tmp_dct["tail"], store=annotation_store)
-        return super().fromdict(tmp_dct, annotation_store)
-```
-
-Here it is necessary to replace the referenced `Span` annotations with their ids during serialization because
-we save them already in the respective annotation field. Thus, we also have to replace the ids with the actual
-annotations during construction. This can be easily done with the helper method
-`resolve_annotation(id_or_annotation, store)`.
-
 </details>
 </details>
 <details>
