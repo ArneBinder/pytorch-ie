@@ -6,6 +6,8 @@ import pytest
 
 from pytorch_ie.annotations import (
     BinaryRelation,
+    BinaryRelationWithEvidence,
+    BinaryRelationWithOptionalTrigger,
     Label,
     LabeledMultiSpan,
     LabeledSpan,
@@ -276,3 +278,83 @@ def test_multilabeled_binary_relation():
         MultiLabeledBinaryRelation(
             head=head, tail=tail, label=("label5", "label6"), score=(0.1, 0.2, 0.3)
         )
+
+
+def test_binary_relation_with_optional_trigger():
+    head = Span(start=1, end=2)
+    tail = Span(start=3, end=4)
+    trigger = Span(start=5, end=7)
+
+    binary_relation1 = BinaryRelationWithOptionalTrigger(head=head, tail=tail, label="label1")
+    assert binary_relation1.head == head
+    assert binary_relation1.tail == tail
+    assert binary_relation1.label == "label1"
+    assert binary_relation1.score == pytest.approx(1.0)
+
+    assert binary_relation1.asdict() == {
+        "_id": binary_relation1._id,
+        "head": head._id,
+        "tail": tail._id,
+        "trigger": None,
+        "label": "label1",
+        "score": 1.0,
+    }
+
+    binary_relation2 = BinaryRelationWithOptionalTrigger(
+        head=head, tail=tail, label="label2", score=0.5, trigger=trigger
+    )
+    assert binary_relation2.head == head
+    assert binary_relation2.tail == tail
+    assert binary_relation2.trigger == trigger
+    assert binary_relation2.label == "label2"
+    assert binary_relation2.score == pytest.approx(0.5)
+
+    assert binary_relation2.asdict() == {
+        "_id": binary_relation2._id,
+        "head": head._id,
+        "tail": tail._id,
+        "trigger": trigger._id,
+        "label": "label2",
+        "score": 0.5,
+    }
+
+    annotation_store = {
+        head._id: head,
+        tail._id: tail,
+        trigger._id: trigger,
+    }
+    _test_reconstruct(binary_relation1, annotation_store=annotation_store)
+    _test_reconstruct(binary_relation2, annotation_store=annotation_store)
+
+
+def test_binary_relation_with_evidence():
+    head = Span(start=1, end=2)
+    tail = Span(start=3, end=4)
+    evidence1 = Span(start=5, end=7)
+    evidence2 = Span(start=9, end=10)
+
+    relation = BinaryRelationWithEvidence(
+        head=head, tail=tail, label="label1", evidence=(evidence1, evidence2)
+    )
+    assert relation.head == head
+    assert relation.tail == tail
+    assert relation.label == "label1"
+    assert relation.score == pytest.approx(1.0)
+    assert relation.evidence == (evidence1, evidence2)
+
+    assert relation.asdict() == {
+        "_id": relation._id,
+        "head": head._id,
+        "tail": tail._id,
+        "evidence": [evidence1._id, evidence2._id],
+        "label": "label1",
+        "score": 1.0,
+    }
+
+    annotation_store = {
+        head._id: head,
+        tail._id: tail,
+        evidence1._id: evidence1,
+        evidence2._id: evidence2,
+    }
+    _test_reconstruct(relation, annotation_store=annotation_store)

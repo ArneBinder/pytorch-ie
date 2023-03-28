@@ -123,3 +123,27 @@ class MultiLabeledBinaryRelation(Annotation):
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
+
+
+@dataclass(eq=True, frozen=True)
+class BinaryRelationWithOptionalTrigger(Annotation):
+    head: Span
+    tail: Span
+    label: str
+    trigger: Optional[Span] = None
+    score: float = 1.0
+
+    def __post_init__(self) -> None:
+        _post_init_single_label(self)
+
+
+@dataclass(eq=True, frozen=True)
+class BinaryRelationWithEvidence(Annotation):
+    head: Span
+    tail: Span
+    label: str
+    evidence: Tuple[Span, ...]
+    score: float = 1.0
+
+    def __post_init__(self) -> None:
+        _post_init_single_label(self)
