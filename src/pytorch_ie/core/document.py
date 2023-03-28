@@ -44,43 +44,64 @@ def _enumerate_dependencies(
                 resolved.append(node)
 
 
-def is_optional_type(t: typing.Type) -> bool:
+def _is_optional_type(t: typing.Type) -> bool:
     type_origin = typing.get_origin(t)
     type_args = typing.get_args(t)
     return type_origin is typing.Union and len(type_args) == 2 and type(None) in type_args
 
 
-def is_annotation_subclass(t) -> bool:
-    try:
-        if issubclass(t, Annotation):
-            return True
-    except TypeError:
+def _is_annotation_subclass(t: Any) -> bool:
+    return type(t) == type and issubclass(t, Annotation)
+
+
+def _contains_annotation_type(t: Any) -> bool:
+    if _is_annotation_subclass(t):
+        return True
+    type_args = typing.get_args(t)
+    return any(_contains_annotation_type(type_arg) for type_arg in type_args)
+
+
+def _is_tuple_of_annotations(t: Any) -> bool:
+    type_args = typing.get_args(t)
+    if typing.get_origin(t) == tuple and _is_annotation_subclass(type_args[0]):
+        if not (
+            type_args[1] == Ellipsis
+            or all(issubclass(type_arg, Annotation) for type_arg in type_args)
+        ):
+            raise TypeError(
+                f"only tuples that do not mix Annotations with other types are supported"
+            )
+        return True
+    else:
         return False
 
 
-def _get_annotation_fields_with_container(cls: typing.Type) -> Dict[str, Any]:
-    containers = {}
+def _get_annotation_fields_with_container(cls: typing.Type) -> Dict[str, Optional[typing.Type]]:
+    containers: Dict[str, Optional[typing.Type]] = {}
     for field in dataclasses.fields(cls):
         if field.name == "_targets":
             continue
+        if not _contains_annotation_type(field.type):
+            continue
         field_type = field.type
         # unwrap optional type
-        if is_optional_type(field_type):
-            # raise TypeError(f"optional type annotation is not allowed")
-            continue
-        if is_annotation_subclass(field_type):
+        if _is_optional_type(field_type):
+            field_type = typing.get_args(field_type)[0]
+        if _is_annotation_subclass(field_type):
             containers[field.name] = None
-        type_args = typing.get_args(field_type)
-        if typing.get_origin(field_type) == tuple and is_annotation_subclass(type_args[0]):
-            if not (
-                type_args[1] == Ellipsis
-                or [issubclass(type_arg, Annotation) for type_arg in type_args]
-            ):
-                raise TypeError(
-                    f"only tuples that do not mix Annotations with other types are supported"
-                )
+            continue
+        if _is_tuple_of_annotations(field_type):
             containers[field.name] = tuple
             continue
+        annot_name = cls.__name__
+        raise TypeError(
+            f"The type '{field.type}' of the field '{field.name}' from Annotation subclass '{annot_name}' can not "
+            f"be handled automatically. For automatic handling, type constructs that contain any Annotation subclasses "
+            f"need to be either (1) pure subclasses of Annotation, (2) tuples of Annotation subclasses, or their "
+            f"optional variants (examples: 1) Span, 2) Tuple[Span, ...], 3) Optional[Span]). Is the defined type "
+            f"really the one you want to use? If so, consider to overwrite "
+            f"{annot_name}.asdict() and {annot_name}.fromdict() by your own."
+        )
 
     return containers
 
