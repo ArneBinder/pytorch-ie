@@ -44,6 +44,76 @@ def _enumerate_dependencies(
                 resolved.append(node)
 
 
+def _is_optional_type(t: typing.Type) -> bool:
+    type_origin = typing.get_origin(t)
+    type_args = typing.get_args(t)
+    return type_origin is typing.Union and len(type_args) == 2 and type(None) in type_args
+
+
+def _is_optional_annotation_type(t: typing.Type) -> bool:
+    is_optional = _is_optional_type(t)
+    if not is_optional:
+        return False
+    return _is_annotation_type(typing.get_args(t)[0])
+
+
+def _is_annotation_type(t: Any) -> bool:
+    return type(t) == type and issubclass(t, Annotation)
+
+
+def _contains_annotation_type(t: Any) -> bool:
+    if _is_annotation_type(t):
+        return True
+    type_args = typing.get_args(t)
+    return any(_contains_annotation_type(type_arg) for type_arg in type_args)
+
+
+def _is_tuple_of_annotation_types(t: Any) -> bool:
+    type_args = typing.get_args(t)
+    if typing.get_origin(t) == tuple and _is_annotation_type(type_args[0]):
+        if not (
+            type_args[1] == Ellipsis
+            or all(issubclass(type_arg, Annotation) for type_arg in type_args)
+        ):
+            raise TypeError(
+                f"only tuples that do not mix Annotations with other types are supported"
+            )
+        return True
+    else:
+        return False
+
+
+def _get_reference_fields_and_container_types(
+    annotation_class: typing.Type["Annotation"],
+) -> Dict[str, Any]:
+    containers: Dict[str, Any] = {}
+    for field in dataclasses.fields(annotation_class):
+        if field.name == "_targets":
+            continue
+        if not _contains_annotation_type(field.type):
+            continue
+        if _is_optional_annotation_type(field.type):
+            containers[field.name] = typing.Optional
+            continue
+        if _is_annotation_type(field.type):
+            containers[field.name] = None
+            continue
+        if _is_tuple_of_annotation_types(field.type):
+            containers[field.name] = tuple
+            continue
+        annot_name = annotation_class.__name__
+        raise TypeError(
+            f"The type '{field.type}' of the field '{field.name}' from Annotation subclass '{annot_name}' can not "
+            f"be handled automatically. For automatic handling, type constructs that contain any Annotation subclasses "
+            f"need to be either (1) pure subclasses of Annotation, (2) tuples of Annotation subclasses, or their "
+            f"optional variants (examples: 1) Span, 2) Tuple[Span, ...], 3) Optional[Span]). Is the defined type "
+            f"really the one you want to use? If so, consider to overwrite "
+            f"{annot_name}.asdict() and {annot_name}.fromdict() by your own."
+        )
+
+    return containers
+
+
 def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.Field]:
     return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
@@ -155,7 +225,24 @@ class Annotation:
         return dct
 
     def asdict(self) -> Dict[str, Any]:
-        return self._asdict()
+        overrides = {}
+        reference_fields_with_container_type = _get_reference_fields_and_container_types(
+            type(self)
+        )
+        for field_name, container_type in reference_fields_with_container_type.items():
+            if container_type is None:
+                overrides[field_name] = getattr(self, field_name)._id
+            elif container_type == typing.Optional:
+                field_value = getattr(self, field_name)
+                overrides[field_name] = None if field_value is None else field_value._id
+            elif container_type == tuple:
+                # save as list to be json compatible
+                overrides[field_name] = [anno._id for anno in getattr(self, field_name)]
+            else:
+                raise Exception(f"unknown annotation container type: {container_type}")
+
+        dct = self._asdict(overrides=overrides)
+        return dct
 
     @classmethod
     def fromdict(
@@ -164,6 +251,27 @@ class Annotation:
         annotation_store: Optional[Dict[int, "Annotation"]] = None,
     ):
         tmp_dct = dict(dct)
+        reference_fields_with_container_type = _get_reference_fields_and_container_types(cls)
+        for field_name, container_type in reference_fields_with_container_type.items():
+            if container_type is None:
+                tmp_dct[field_name] = resolve_annotation(
+                    tmp_dct[field_name], store=annotation_store
+                )
+            elif container_type == typing.Optional:
+                if tmp_dct[field_name] is None:
+                    tmp_dct[field_name] = None
+                else:
+                    tmp_dct[field_name] = resolve_annotation(
+                        tmp_dct[field_name], store=annotation_store
+                    )
+            elif container_type == tuple:
+                tmp_dct[field_name] = tuple(
+                    resolve_annotation(anno_dct, store=annotation_store)
+                    for anno_dct in tmp_dct[field_name]
+                )
+            else:
+                raise Exception(f"unknown annotation container type: {container_type}")
+
         tmp_dct.pop("_id", None)
         return cls(**tmp_dct)
 
