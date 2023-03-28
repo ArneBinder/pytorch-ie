@@ -16,7 +16,7 @@ from pytorch_ie.core.document import (
 )
 
 
-def _test_reconstruct(
+def _test_annotation_reconstruction(
     annotation: Annotation, annotation_store: Optional[Dict[int, Annotation]] = None
 ):
     ann_str = json.dumps(annotation.asdict())
@@ -215,8 +215,8 @@ def test_annotation_with_optional_reference():
         tail._id: tail,
         trigger._id: trigger,
     }
-    _test_reconstruct(binary_relation1, annotation_store=annotation_store)
-    _test_reconstruct(binary_relation2, annotation_store=annotation_store)
+    _test_annotation_reconstruction(binary_relation1, annotation_store=annotation_store)
+    _test_annotation_reconstruction(binary_relation2, annotation_store=annotation_store)
 
 
 def test_annotation_with_tuple_of_references():
@@ -260,4 +260,4 @@ def test_annotation_with_tuple_of_references():
         evidence1._id: evidence1,
         evidence2._id: evidence2,
     }
-    _test_reconstruct(relation, annotation_store=annotation_store)
+    _test_annotation_reconstruction(relation, annotation_store=annotation_store)

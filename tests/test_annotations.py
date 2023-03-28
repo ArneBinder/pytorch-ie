@@ -13,7 +13,7 @@ from pytorch_ie.annotations import (
     MultiLabeledSpan,
     Span,
 )
-from tests.core.test_document import _test_reconstruct
+from tests.core.test_document import _test_annotation_reconstruction
 
 
 def test_label():
@@ -31,7 +31,7 @@ def test_label():
         "score": 0.5,
     }
 
-    _test_reconstruct(label2)
+    _test_annotation_reconstruction(label2)
 
 
 def test_multilabel():
@@ -49,7 +49,7 @@ def test_multilabel():
         "score": (0.4, 0.5),
     }
 
-    _test_reconstruct(multilabel2)
+    _test_annotation_reconstruction(multilabel2)
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
@@ -68,7 +68,7 @@ def test_span():
         "end": 2,
     }
 
-    _test_reconstruct(span)
+    _test_annotation_reconstruction(span)
 
 
 def test_labeled_span():
@@ -92,7 +92,7 @@ def test_labeled_span():
         "score": 0.5,
     }
 
-    _test_reconstruct(labeled_span2)
+    _test_annotation_reconstruction(labeled_span2)
 
 
 def test_multilabeled_span():
@@ -118,7 +118,7 @@ def test_multilabeled_span():
         "score": (0.4, 0.5),
     }
 
-    _test_reconstruct(multilabeled_span2)
+    _test_annotation_reconstruction(multilabeled_span2)
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
@@ -148,7 +148,7 @@ def test_labeled_multi_span():
         "score": 0.5,
     }
 
-    _test_reconstruct(labeled_multi_span2)
+    _test_annotation_reconstruction(labeled_multi_span2)
 
 
 def test_multilabeled_multi_span():
@@ -173,7 +173,7 @@ def test_multilabeled_multi_span():
         "score": (0.4, 0.5),
     }
 
-    _test_reconstruct(multilabeled_multi_span2)
+    _test_annotation_reconstruction(multilabeled_multi_span2)
 
     with pytest.raises(
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
@@ -211,7 +211,7 @@ def test_binary_relation():
         head._id: head,
         tail._id: tail,
     }
-    _test_reconstruct(binary_relation2, annotation_store=annotation_store)
+    _test_annotation_reconstruction(binary_relation2, annotation_store=annotation_store)
 
     with pytest.raises(
         ValueError,
@@ -250,7 +250,7 @@ def test_multilabeled_binary_relation():
         head._id: head,
         tail._id: tail,
     }
-    _test_reconstruct(binary_relation2, annotation_store=annotation_store)
+    _test_annotation_reconstruction(binary_relation2, annotation_store=annotation_store)
 
     with pytest.raises(
         ValueError,
