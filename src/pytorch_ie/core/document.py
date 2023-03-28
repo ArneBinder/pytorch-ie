@@ -77,10 +77,10 @@ def _is_tuple_of_annotations(t: Any) -> bool:
 
 
 def _get_reference_fields_and_container_types(
-    cls: typing.Type,
+    annotation_class: typing.Type["Annotation"],
 ) -> Dict[str, Optional[typing.Type]]:
     containers: Dict[str, Optional[typing.Type]] = {}
-    for field in dataclasses.fields(cls):
+    for field in dataclasses.fields(annotation_class):
         if field.name == "_targets":
             continue
         if not _contains_annotation_type(field.type):
@@ -95,7 +95,7 @@ def _get_reference_fields_and_container_types(
         if _is_tuple_of_annotations(field_type):
             containers[field.name] = tuple
             continue
-        annot_name = cls.__name__
+        annot_name = annotation_class.__name__
         raise TypeError(
             f"The type '{field.type}' of the field '{field.name}' from Annotation subclass '{annot_name}' can not "
             f"be handled automatically. For automatic handling, type constructs that contain any Annotation subclasses "
