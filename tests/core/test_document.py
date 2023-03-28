@@ -8,15 +8,16 @@ from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
     _contains_annotation_type,
     _get_reference_fields_and_container_types,
-    _is_annotation_subclass,
+    _is_annotation_type,
+    _is_optional_annotation_type,
     _is_optional_type,
-    _is_tuple_of_annotations,
+    _is_tuple_of_annotation_types,
 )
 
 
 def test_is_optional_type():
     @dataclasses.dataclass(eq=True, frozen=True)
-    class Dummy:
+    class Dummy(Annotation):
         a: int
         b: Tuple[int, ...]
         c: Optional[List[int]]
@@ -29,24 +30,39 @@ def test_is_optional_type():
     assert _is_optional_type(fields["d"].type)
 
 
-def test_is_annotation_subclass():
+def test_is_optional_annotation_type():
     @dataclasses.dataclass(eq=True, frozen=True)
-    class Dummy:
+    class Dummy(Annotation):
+        a: int
+        b: Optional[int]
+        c: Optional[Span]
+        d: Optional[Tuple[Span, ...]] = None
+
+    fields = {field.name: field for field in dataclasses.fields(Dummy)}
+    assert not _is_optional_annotation_type(fields["a"].type)
+    assert not _is_optional_annotation_type(fields["b"].type)
+    assert _is_optional_annotation_type(fields["c"].type)
+    assert not _is_optional_annotation_type(fields["d"].type)
+
+
+def test_is_annotation_type():
+    @dataclasses.dataclass(eq=True, frozen=True)
+    class Dummy(Annotation):
         a: Span
         b: Annotation
         c: Optional[List[int]]
         d: Optional[int] = None
 
     fields = {field.name: field for field in dataclasses.fields(Dummy)}
-    assert _is_annotation_subclass(fields["a"].type)
-    assert _is_annotation_subclass(fields["b"].type)
-    assert not _is_annotation_subclass(fields["c"].type)
-    assert not _is_annotation_subclass(fields["d"].type)
+    assert _is_annotation_type(fields["a"].type)
+    assert _is_annotation_type(fields["b"].type)
+    assert not _is_annotation_type(fields["c"].type)
+    assert not _is_annotation_type(fields["d"].type)
 
 
 def test_contains_annotation_type():
     @dataclasses.dataclass(eq=True, frozen=True)
-    class Dummy:
+    class Dummy(Annotation):
         a: Span
         b: Annotation
         c: int
@@ -71,9 +87,9 @@ def test_contains_annotation_type():
     ), f'field "e" does not contain an annotation type'
 
 
-def test_is_tuple_of_annotations():
+def test_is_tuple_of_annotation_types():
     @dataclasses.dataclass(eq=True, frozen=True)
-    class Dummy:
+    class Dummy(Annotation):
         # a: no
         a: Annotation
         # b: no
@@ -94,37 +110,37 @@ def test_is_tuple_of_annotations():
         i: Tuple[Span, Annotation]
 
     fields = {field.name: field for field in dataclasses.fields(Dummy)}
-    assert not _is_tuple_of_annotations(
+    assert not _is_tuple_of_annotation_types(
         fields["a"].type
     ), f'field "a" is a pure tuple of annotation type'
-    assert not _is_tuple_of_annotations(
+    assert not _is_tuple_of_annotation_types(
         fields["b"].type
     ), f'field "b" is a pure tuple of annotation type'
-    assert not _is_tuple_of_annotations(
+    assert not _is_tuple_of_annotation_types(
         fields["c"].type
     ), f'field "c" is a pure tuple of annotation type'
-    assert _is_tuple_of_annotations(
+    assert _is_tuple_of_annotation_types(
         fields["d"].type
     ), f'field "d" is not a pure tuple of annotation type'
-    assert not _is_tuple_of_annotations(
+    assert not _is_tuple_of_annotation_types(
         fields["e"].type
     ), f'field "e" is a pure tuple of annotation type'
-    assert _is_tuple_of_annotations(
+    assert _is_tuple_of_annotation_types(
         fields["f"].type
     ), f'field "f" is not a pure tuple of annotation type'
-    assert _is_tuple_of_annotations(
+    assert _is_tuple_of_annotation_types(
         fields["g"].type
     ), f'field "g" is not a pure tuple of annotation type'
     with pytest.raises(TypeError):
-        _is_tuple_of_annotations(fields["h"].type)
-    assert _is_tuple_of_annotations(
+        _is_tuple_of_annotation_types(fields["h"].type)
+    assert _is_tuple_of_annotation_types(
         fields["i"].type
     ), f'field "i" is not a pure tuple of annotation type'
 
 
-def test_get_annotation_fields_with_container_exception():
+def test_get_reference_fields_and_container_types():
     @dataclasses.dataclass(eq=True, frozen=True)
-    class Dummy:
+    class Dummy(Annotation):
         a: Annotation
         # This causes an exception because the type of by contains an Annotation subclass (Span),
         # but it is embedded *twice* in a Tuple which is not allowed.
