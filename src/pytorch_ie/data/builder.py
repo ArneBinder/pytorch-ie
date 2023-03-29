@@ -148,8 +148,10 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         self,
         split: Optional[str] = None,
         base_path: Optional[str] = None,
-    ) -> Union[IterableDataset, IterableDatasetDict]:  # type: ignore
-        datasets: Union[hf_datasets.IterableDataset, hf_datasets.IterableDatasetDict] = super().as_streaming_dataset(
+    ) -> Union[IterableDataset, hf_datasets.IterableDatasetDict]:  # type: ignore
+        datasets: Union[
+            hf_datasets.IterableDataset, hf_datasets.IterableDatasetDict
+        ] = super().as_streaming_dataset(
             split=split, base_path=base_path
         )  # type: ignore
         converted_datasets = self._convert_datasets(datasets=datasets)
