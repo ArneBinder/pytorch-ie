@@ -22,7 +22,11 @@ def get_general_dataset_builder_parent_class(
 class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     DOCUMENT_TYPE: Optional[Type[Document]] = None
 
+    # The default path to the Huggingface dataset loading script that will be used as base dataset.
     BASE_DATASET_PATH: Optional[str] = None
+    # A mapping from config names to Huggingface dataset loading script paths. Use this to specify individual
+    # base datasets for each config.
+    BASE_DATASET_PATHS: Dict[str, str] = {}
 
     # Define kwargs to create base configs. This should contain config names as keys
     # and the respective config kwargs dicts as values. If the config name is not contained, a new entry
@@ -35,11 +39,11 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
     def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
         self.base_builder = None
-        if self.BASE_DATASET_PATH is not None:
+        config_name = kwargs.get("config_name", None)
+        base_dataset_path = self.BASE_DATASET_PATHS.get(config_name, self.BASE_DATASET_PATH)
+        if base_dataset_path is not None:
             base_dataset_kwargs = base_dataset_kwargs or {}
             base_builder_kwargs: Dict[str, Any] = {}
-
-            config_name = kwargs.get("config_name", None)
 
             # get base config kwargs from mapping
             if self.BASE_CONFIG_KWARGS_DICT is not None:
@@ -57,7 +61,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
             base_builder_kwargs.update(base_dataset_kwargs)
             self.base_builder = hf_datasets.load.load_dataset_builder(
-                path=self.BASE_DATASET_PATH,
+                path=base_dataset_path,
                 **base_builder_kwargs,
             )
             # Ensure that self and self.base_builder are derived from the same subclass of
