@@ -1,12 +1,15 @@
 import abc
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Type, Union, overload
 
-from datasets import ReadInstruction, Split, builder, load
+from datasets import Dataset as HfDataset
+from datasets import DatasetDict
+from datasets import IterableDataset as HfIterableDataset
+from datasets import IterableDatasetDict, Split, builder, load
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
 
 
-class GeneratorBasedBuilder(builder.GeneratorBasedBuilder):
+class PieDatasetBuilder(builder.DatasetBuilder):
     DOCUMENT_TYPE: Optional[Type[Document]] = None
 
     BASE_DATASET_PATH: Optional[str] = None
@@ -56,9 +59,6 @@ class GeneratorBasedBuilder(builder.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         return self.base_builder._split_generators(dl_manager)
 
-    def _generate_examples(self, *args, **kwargs):
-        return self.base_builder._generate_examples(*args, **kwargs)
-
     @abc.abstractmethod
     def _generate_document(self, example, **kwargs):
         pass
@@ -66,35 +66,94 @@ class GeneratorBasedBuilder(builder.GeneratorBasedBuilder):
     def _generate_document_kwargs(self, dataset):
         return None
 
-    def _as_dataset(
-        self,
-        split: Union[ReadInstruction, Split] = Split.TRAIN,  # type: ignore
-        in_memory: bool = False,
-    ) -> Dataset:
-        dataset = super()._as_dataset(split=split, in_memory=in_memory)
+    @overload
+    def _convert_dataset_single(self, dataset: HfDataset) -> Dataset:
+        ...
+
+    @overload
+    def _convert_dataset_single(self, dataset: HfIterableDataset) -> IterableDataset:
+        ...
+
+    def _convert_dataset_single(
+        self, dataset: Union[HfDataset, HfIterableDataset]
+    ) -> Union[Dataset, IterableDataset]:
+        if self.DOCUMENT_TYPE is None:
+            raise TypeError("the builder has no DOCUMENT_TYPE defined")
+        document_type = self.DOCUMENT_TYPE
 
         fn = decorate_convert_to_dict_of_lists(self._generate_document)
         fn_kwargs = self._generate_document_kwargs(dataset)
         mapped_dataset = dataset.map(fn, fn_kwargs=fn_kwargs)
 
-        if self.DOCUMENT_TYPE is None:
-            raise TypeError("the builder has no DOCUMENT_TYPE defined")
+        if isinstance(mapped_dataset, HfDataset):
+            return Dataset.from_hf_dataset(dataset=mapped_dataset, document_type=document_type)
+        elif isinstance(mapped_dataset, HfIterableDataset):
+            return IterableDataset.from_hf_dataset(
+                dataset=mapped_dataset, document_type=document_type
+            )
+        else:
+            raise TypeError(
+                f"hugginggface dataset has unknown type: {type(mapped_dataset).__name__}. Expected: "
+                f"{HfDataset.__name__} or {HfIterableDataset.__name__}"
+            )
 
-        return Dataset.from_hf_dataset(dataset=mapped_dataset, document_type=self.DOCUMENT_TYPE)
+    @overload
+    def _convert_datasets(self, datasets: HfDataset) -> Dataset:
+        ...
 
-    def _as_streaming_dataset_single(
+    @overload
+    def _convert_datasets(self, datasets: HfIterableDataset) -> IterableDataset:
+        ...
+
+    @overload
+    def _convert_datasets(self, datasets: DatasetDict) -> DatasetDict:
+        ...
+
+    @overload
+    def _convert_datasets(self, datasets: IterableDatasetDict) -> IterableDatasetDict:
+        ...
+
+    def _convert_datasets(
+        self, datasets: Union[HfDataset, HfIterableDataset, DatasetDict, IterableDatasetDict]
+    ) -> Union[Dataset, IterableDataset, DatasetDict, IterableDatasetDict]:
+        if isinstance(datasets, dict):
+            return type(datasets)(
+                {k: self._convert_dataset_single(v) for k, v in datasets.items()}
+            )
+        else:
+            return self._convert_dataset_single(datasets)
+
+    def as_dataset(
         self,
-        splits_generator,
-    ) -> IterableDataset:
-        dataset = super()._as_streaming_dataset_single(splits_generator)
-
-        fn = decorate_convert_to_dict_of_lists(self._generate_document)
-        fn_kwargs = self._generate_document_kwargs(dataset)
-        mapped_dataset = dataset.map(fn, fn_kwargs=fn_kwargs)
-
-        if self.DOCUMENT_TYPE is None:
-            raise TypeError("the builder has no DOCUMENT_TYPE defined")
-
-        return IterableDataset.from_hf_dataset(
-            dataset=mapped_dataset, document_type=self.DOCUMENT_TYPE
+        split: Optional[Split] = None,
+        run_post_process=True,
+        ignore_verifications=False,
+        in_memory=False,
+    ) -> Union[Dataset, DatasetDict]:
+        datasets = super().as_dataset(
+            split=split,
+            run_post_process=run_post_process,
+            ignore_verifications=ignore_verifications,
+            in_memory=in_memory,
         )
+        converted_datasets = self._convert_datasets(datasets=datasets)
+        return converted_datasets
+
+    def as_streaming_dataset(
+        self,
+        split: Optional[str] = None,
+        base_path: Optional[str] = None,
+    ) -> Union[IterableDataset, IterableDatasetDict]:  # type: ignore
+        datasets: Union[HfIterableDataset, IterableDatasetDict] = super().as_streaming_dataset(split=split, base_path=base_path)  # type: ignore
+        converted_datasets = self._convert_datasets(datasets=datasets)
+        return converted_datasets
+
+
+class GeneratorBasedBuilder(PieDatasetBuilder, builder.GeneratorBasedBuilder):
+    def _generate_examples(self, *args, **kwargs):
+        return self.base_builder._generate_examples(*args, **kwargs)
+
+
+class ArrowBasedBuilder(PieDatasetBuilder, builder.ArrowBasedBuilder):
+    def _generate_tables(self, *args, **kwargs):
+        return self.base_builder._generate_tables(*args, **kwargs)
