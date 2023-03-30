@@ -121,3 +121,22 @@ def test_builder_class_name_mapping_and_defaults():
         assert builder.info.config_name == "nl"
         assert builder.base_builder.info.config_name == "default"
         assert builder.base_builder.info.version == "0.0.0"
+
+
+def test_wrong_builder_class_config():
+    dataset_module = dataset_module_factory(str(DATASETS_ROOT / "wrong_builder_class_config"))
+    builder_cls = import_main_class(dataset_module.module_path)
+    with tempfile.TemporaryDirectory() as tmp_cache_dir:
+        # This should raise an exception because the base builder is derived from GeneratorBasedBuilder,
+        # but the PIE dataset builder is derived from ArrowBasedBuilder.
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "The PyTorch-IE dataset builder class 'Example' is derived from "
+                "<class 'datasets.builder.ArrowBasedBuilder'>, but the base builder is not which is not allowed. "
+                "The base builder is of type 'Conll2003' that is derived from "
+                "<class 'datasets.builder.GeneratorBasedBuilder'>. Consider to derive your PyTorch-IE dataset builder "
+                "'Example' from a PyTorch-IE variant of 'GeneratorBasedBuilder'."
+            ),
+        ):
+            builder_cls(cache_dir=tmp_cache_dir)
