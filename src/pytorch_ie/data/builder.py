@@ -6,6 +6,19 @@ from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
 
 
+def get_general_dataset_builder_parent_class(
+    obj: hf_datasets.builder.DatasetBuilder,
+) -> Type[hf_datasets.builder.DatasetBuilder]:
+    general_dataset_builder_parent_classes = [
+        cls
+        for cls in hf_datasets.builder.DatasetBuilder.__subclasses__()
+        if cls != PieDatasetBuilder and isinstance(obj, cls)
+    ]
+    if len(general_dataset_builder_parent_classes) != 1:
+        raise TypeError("can not determine general dataset builder parent class of the object")
+    return general_dataset_builder_parent_classes[0]
+
+
 class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     DOCUMENT_TYPE: Optional[Type[Document]] = None
 
@@ -47,6 +60,21 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
                 path=self.BASE_DATASET_PATH,
                 **base_builder_kwargs,
             )
+            # Ensure that self and self.base_builder are derived from the same subclass of
+            # hf_datasets.builder.DatasetBuilder.
+            base_builder_general_parent_class = get_general_dataset_builder_parent_class(
+                self.base_builder
+            )
+            self_general_parent_class = get_general_dataset_builder_parent_class(self)
+            if base_builder_general_parent_class != self_general_parent_class:
+                raise TypeError(
+                    f"The PyTorch-IE dataset builder class '{type(self).__name__}' is derived from "
+                    f"{self_general_parent_class}, but the base builder is not which is not allowed. The base builder "
+                    f"is of type '{type(self.base_builder).__name__}' that is derived from "
+                    f"{base_builder_general_parent_class}. Consider to derive your PyTorch-IE dataset builder "
+                    f"'{type(self).__name__}' from a PyTorch-IE variant of "
+                    f"'{base_builder_general_parent_class.__name__}'."
+                )
 
         super().__init__(**kwargs)
 
