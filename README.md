@@ -646,7 +646,36 @@ is the case for standard Huggingface dataset loading scripts).
 
 ✨📚✨ [Read the full documentation](https://pytorch-ie.readthedocs.io/)
 
-## 🔧 Development Setup
+## 🔧 Project Development
+
+### Setup
+
+This project is build with [Poetry](https://python-poetry.org/). It is recommended, to install Poetry via
+[pipx](https://pypa.github.io/pipx/).
+
+0. To install pipx execute the following (taken from
+   [pipx installation instructions](https://pypa.github.io/pipx/installation/)):
+
+    ```
+    # [IF PIP IS NOT AVAILABLE] install pip
+    python -m ensurepip --upgrade
+    # [OPTIONAL] update pip
+    python -m pip install --upgrade pip
+
+    # install pipx (requires pip 19.0 or later)
+    python3 -m pip install --user pipx
+    python3 -m pipx ensurepath
+    ```
+
+1. Install Poetry via pipx (or see [Poetry installation guide](https://python-poetry.org/docs/#installation)):
+
+```
+pipx install poetry
+```
+
+### Updating Dependencies
+
+### Releasing
 
 ## 🏅 Acknowledgements
 
