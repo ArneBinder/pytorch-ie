@@ -716,7 +716,7 @@ To run a specific command from that list, call:
 poetry run nox -s <command>
 ```
 
-Note: To run the nox commands in the same, reproducibles setup that is specified by the lock file, we call them via
+Note: To run the nox commands in the same, reproducible setup that is specified by the lock file, we call them via
 `poetry run <nox-command>`.
 
 For instance, to run static type checking with `mypy`, call:
