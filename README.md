@@ -656,7 +656,7 @@ This project is build with [Poetry](https://python-poetry.org/). It is recommend
 0. To install `pipx`, execute the following (taken from
    [pipx installation instructions](https://pypa.github.io/pipx/installation/)):
 
-    ```
+    ```bash
     # [IF PIP IS NOT AVAILABLE] install pip
     python -m ensurepip --upgrade
     # [OPTIONAL] update pip
@@ -671,7 +671,7 @@ This project is build with [Poetry](https://python-poetry.org/). It is recommend
 
 1. Install Poetry via `pipx` (or see [Poetry installation guide](https://python-poetry.org/docs/#installation)):
 
-    ```
+    ```bash
     pipx install poetry
     ```
 
@@ -679,7 +679,7 @@ This project is build with [Poetry](https://python-poetry.org/). It is recommend
 
 2. [IF REQUIRED PYTHON VERSION IS NOT AVAILABLE] install required python:
 
-    ```
+    ```bash
     # for instance, to install python3.9 on Ubuntu:
     sudo add-apt-repository ppa:deadsnakes/ppa
     sudo apt update
@@ -692,7 +692,7 @@ This project is build with [Poetry](https://python-poetry.org/). It is recommend
 
 3. Finally, install the dependencies (including for development) for PyTorch-IE:
 
-    ```
+    ```bash
     poetry install --with dev
     ```
 
@@ -706,13 +706,13 @@ We use [Nox](https://nox.thea.codes/en/stable/) to execute any tests and code qu
 
 To get a list of available toolchains, call:
 
-```
+```bash
 poetry run nox -l
 ```
 
 To run a specific command from that list, call:
 
-```
+```bash
 poetry run nox -s <command>
 ```
 
@@ -721,19 +721,19 @@ Note: To run the nox commands in the same, reproducibles setup that is specified
 
 For instance, to run static type checking with `mypy`, call:
 
-```
+```bash
 poetry run nox -s mypy-3.9
 ```
 
 To run all commands that also run on GitHub CI, call:
 
-```
+```bash
 poetry run nox
 ```
 
 To run more tests (also tests marked with `@pytest.mark.slow`, but without tests for all datasets which would take forever), call:
 
-```
+```bash
 poetry run nox -s tests_no_local_datasets-3.9
 ```
 
@@ -741,7 +741,7 @@ poetry run nox -s tests_no_local_datasets-3.9
 
 Call this to update individual packages:
 
-```
+```bash
 poetry update <package>
 ```
 
