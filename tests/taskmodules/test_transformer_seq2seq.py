@@ -247,7 +247,7 @@ def test_annotations_from_output(annotations_from_output):
 
 @pytest.fixture(scope="module")
 def batch(taskmodule, task_encoding):
-    return taskmodule.collate(task_encodings=[task_encoding, task_encoding])
+    return taskmodule.collate(task_encodings=[task_encoding])
 
 
 def test_collate(batch):
@@ -259,46 +259,6 @@ def test_collate(batch):
     input_ids = batch[0].input_ids
     input_ids_expected = torch.IntTensor(
         [
-            [
-                0,
-                17,
-                48,
-                31845,
-                10,
-                2422,
-                22307,
-                11838,
-                12,
-                611,
-                13552,
-                5897,
-                16,
-                129,
-                457,
-                9,
-                24,
-                6,
-                17,
-                46,
-                26,
-                6002,
-                2265,
-                26942,
-                6,
-                937,
-                1784,
-                23,
-                36363,
-                846,
-                8,
-                4196,
-                736,
-                9,
-                35890,
-                40790,
-                4,
-                2,
-            ],
             [
                 0,
                 17,
@@ -386,46 +346,6 @@ def test_collate(batch):
                 1,
                 1,
             ],
-            [
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-            ],
         ]
     ).to(dtype=torch.int64)
     torch.testing.assert_close(attention_mask, attention_mask_expected)
@@ -433,25 +353,6 @@ def test_collate(batch):
     labels = batch[0].labels
     labels_expected = torch.IntTensor(
         [
-            [
-                0,
-                50267,
-                11838,
-                12,
-                611,
-                13552,
-                5897,
-                1437,
-                50266,
-                2422,
-                1437,
-                50265,
-                34,
-                1215,
-                90,
-                14631,
-                2,
-            ],
             [
                 0,
                 50267,
