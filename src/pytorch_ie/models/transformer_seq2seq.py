@@ -1,19 +1,15 @@
-from typing import Any, Sequence, Tuple
+from typing import Any, Tuple
 
 import torch
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
 from pytorch_ie.core import PyTorchIEModel
-from pytorch_ie.core.taskmodule import Metadata
-from pytorch_ie.documents import TextDocument
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
-TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?
+TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput
 
-TransformerSeq2SeqModelStepBatchEncoding = Tuple[
-    TransformerSeq2SeqModelBatchEncoding, None, Sequence[Metadata], Sequence[TextDocument]
-]
+TransformerSeq2SeqModelStepBatchEncoding = Tuple[TransformerSeq2SeqModelBatchEncoding,]
 
 
 @PyTorchIEModel.register()
@@ -39,7 +35,6 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
         inputs: Any,
         **kwargs,
     ) -> Any:
-        # TODO: check if this is necessary
         if "labels" in inputs:
             inputs = {k: v for k, v in inputs.items() if k != "labels"}
 

@@ -187,8 +187,6 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         self, task_encodings: Sequence[TransformerSeq2SeqTaskEncoding]
     ) -> TransformerSeq2SeqModelStepBatchEncoding:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
-        metadata = [task_encoding.metadata for task_encoding in task_encodings]
-        documents = [task_encoding.document for task_encoding in task_encodings]
 
         padded_encoding = self.tokenizer.pad(
             input_features,
@@ -215,7 +213,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             # TODO: this is a bit of a hack -- fix
             padded_encoding["labels"] = padded_labels["input_ids"]
 
-        return padded_encoding, None, metadata, documents
+        return (padded_encoding,)
 
     # TODO: improve this method as soon as we have unittests for this taskmodule
     def _extract_triplets(self, text) -> TransformerSeq2SeqTaskOutput:
