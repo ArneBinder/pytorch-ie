@@ -7,7 +7,7 @@ from transformers.modeling_outputs import Seq2SeqLMOutput
 from pytorch_ie.core import PyTorchIEModel
 
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
-TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput  # TODO: is this the correct type?
+TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput
 
 TransformerSeq2SeqModelStepBatchEncoding = Tuple[TransformerSeq2SeqModelBatchEncoding,]
 
@@ -35,7 +35,6 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
         inputs: Any,
         **kwargs,
     ) -> Any:
-        # TODO: check if this is necessary
         if "labels" in inputs:
             inputs = {k: v for k, v in inputs.items() if k != "labels"}
 
