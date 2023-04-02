@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import pytest
 import torch
+from transformers import BatchEncoding
 
 from pytorch_ie import TransformerSeq2SeqTaskModule
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
@@ -254,9 +255,8 @@ def test_collate(batch):
     assert batch is not None
     # each batch consists of just one entry (this is not the number of batches!)
     assert len(batch) == 1
-    assert set(batch[0].data) == {"input_ids", "attention_mask", "labels"}
+    batch_encoding = batch[0]
 
-    input_ids = batch[0].input_ids
     input_ids_expected = torch.IntTensor(
         [
             [
@@ -301,9 +301,6 @@ def test_collate(batch):
             ],
         ]
     ).to(dtype=torch.int64)
-    torch.testing.assert_close(input_ids, input_ids_expected)
-
-    attention_mask = batch[0].attention_mask
     attention_mask_expected = torch.IntTensor(
         [
             [
@@ -348,9 +345,6 @@ def test_collate(batch):
             ],
         ]
     ).to(dtype=torch.int64)
-    torch.testing.assert_close(attention_mask, attention_mask_expected)
-
-    labels = batch[0].labels
     labels_expected = torch.IntTensor(
         [
             [
@@ -374,4 +368,15 @@ def test_collate(batch):
             ],
         ]
     ).to(dtype=torch.int64)
-    torch.testing.assert_close(labels, labels_expected)
+
+    encoding_expected = BatchEncoding(
+        data={
+            "input_ids": input_ids_expected,
+            "attention_mask": attention_mask_expected,
+            "labels": labels_expected,
+        }
+    )
+    assert set(batch_encoding.data) == set(encoding_expected.data)
+    torch.testing.assert_close(batch_encoding.input_ids, encoding_expected.input_ids)
+    torch.testing.assert_close(batch_encoding.attention_mask, encoding_expected.attention_mask)
+    torch.testing.assert_close(batch_encoding.labels, encoding_expected.labels)
