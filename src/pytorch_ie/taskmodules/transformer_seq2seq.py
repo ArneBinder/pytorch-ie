@@ -166,8 +166,15 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
             # for now, just use the first head and tail match in the document
             text = task_encoding.document.text.lower()
-            head_match = re.search(head_entity.lower(), text)
-            tail_match = re.search(tail_entity.lower(), text)
+            try:
+                head_match = re.search(head_entity.lower(), text)
+                tail_match = re.search(tail_entity.lower(), text)
+            except Exception:
+                logger.warning(
+                    f"could not successfully search for the entities in the text, skip the triplet "
+                    f"(head: {head_entity}, tail: {tail_entity}, label: {label})"
+                )
+                continue
 
             if head_match is None or tail_match is None:
                 continue
