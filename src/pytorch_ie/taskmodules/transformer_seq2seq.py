@@ -167,6 +167,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             # for now, just use the first head and tail match in the document
             text = task_encoding.document.text.lower()
             try:
+                # this may fail if head_entity or tail_entity contains any special regex character (e.g. brackets)
                 head_match = re.search(head_entity.lower(), text)
                 tail_match = re.search(tail_entity.lower(), text)
             except Exception:
