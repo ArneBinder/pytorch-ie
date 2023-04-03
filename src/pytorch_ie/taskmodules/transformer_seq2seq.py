@@ -172,7 +172,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
             except Exception:
                 logger.warning(
                     f"could not successfully search for the entities in the text, skip the triplet "
-                    f"(head: {head_entity}, tail: {tail_entity}, label: {label})"
+                    f'(head: "{head_entity}", tail: "{tail_entity}", label: "{label}")'
                 )
                 continue
 
