@@ -646,7 +646,127 @@ is the case for standard Huggingface dataset loading scripts).
 
 ✨📚✨ [Read the full documentation](https://pytorch-ie.readthedocs.io/)
 
-## 🔧 Development Setup
+## 🔧 Project Development
+
+### Setup
+
+This project is build with [Poetry](https://python-poetry.org/). It is recommended, to install Poetry via
+[pipx](https://pypa.github.io/pipx/).
+
+0. To install `pipx`, execute the following (taken from
+   [pipx installation instructions](https://pypa.github.io/pipx/installation/)):
+
+    ```bash
+    # [IF PIP IS NOT AVAILABLE] install pip
+    python -m ensurepip --upgrade
+    # [OPTIONAL] update pip
+    python -m pip install --upgrade pip
+
+    # install pipx (requires pip 19.0 or later)
+    python3 -m pip install --user pipx
+    python3 -m pipx ensurepath
+    ```
+
+    NOTE: This installs `pipx` globally!
+
+1. Install Poetry via `pipx` (or see [Poetry installation guide](https://python-poetry.org/docs/#installation)):
+
+    ```bash
+    pipx install poetry
+    ```
+
+    NOTE: This installs `pipx` globally!
+
+2. [IF REQUIRED PYTHON VERSION IS NOT AVAILABLE] install required python:
+
+    ```bash
+    # for instance, to install python3.9 on Ubuntu:
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt update
+    sudo install python3.9
+
+    # or via conda:
+    conda create -n python3.9=python3.9 -y
+    conda activate python3.9
+    ```
+
+3. Finally, install the dependencies (including for development) for PyTorch-IE:
+
+    ```bash
+    poetry install --with dev
+    ```
+
+    NOTE: If the installation gets stuck, try if disabling experimental parallel installer helps
+    ([source](https://github.com/python-poetry/poetry/issues/3352#issuecomment-732761629)):
+    `poetry config experimental.new-installer false`
+
+### Testing and code quality checks
+
+We use [Nox](https://nox.thea.codes/en/stable/) to execute any tests and code quality tooling in a reproducible way.
+
+To get a list of available toolchains, call:
+
+```bash
+poetry run nox -l
+```
+
+To run a specific command from that list, call:
+
+```bash
+poetry run nox -s <command>
+```
+
+Note: To run the nox commands in the same, reproducible setup that is specified by the lock file, we call them via
+`poetry run <nox-command>`.
+
+For instance, to run static type checking with `mypy`, call:
+
+```bash
+poetry run nox -s mypy-3.9
+```
+
+To run all commands that also run on GitHub CI, call:
+
+```bash
+poetry run nox
+```
+
+To run more tests (also tests marked with `@pytest.mark.slow`, but without tests for all datasets which would take forever), call:
+
+```bash
+poetry run nox -s tests_no_local_datasets-3.9
+```
+
+### Updating Dependencies
+
+Call this to update individual packages:
+
+```bash
+poetry update <package>
+```
+
+Then, commit the modified lock file to persist the state.
+
+### Releasing
+
+Since this project is based on the [Cookiecutter template](https://cookiecutter-hypermodern-python.readthedocs.io), we can follow
+[their release steps](https://cookiecutter-hypermodern-python.readthedocs.io/en/2022.6.3.post1/guide.html#how-to-make-a-release):
+
+1. Create the release branch:
+   `git switch --create release main`
+2. Increase the version:
+   `poetry version <PATCH|MINOR|MAJOR>`,
+   e.g. `poetry version patch` for a patch release
+3. Commit the changes:
+   `git commit --message="release <NEW VERSION>" pyproject.toml`,
+   e.g. `git commit --message="release 0.13.0" pyproject.toml`
+4. Push the changes to GitHub:
+   `git push origin release`
+5. Create a PR for that `release` branch on GitHub.
+6. Wait until checks passed successfully.
+7. Integrate the PR into the main branch (use `rebase` to have a linear history). This triggers the GitHub Action that
+   creates all relevant release artefacts and also uploads them to PyPI.
+8. Cleanup: Delete the `release` branch.
 
 ## 🏅 Acknowledgements
 
