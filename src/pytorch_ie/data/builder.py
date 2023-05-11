@@ -76,6 +76,11 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
                     f"'{base_builder_general_parent_class.__name__}'."
                 )
 
+            # append the base_builder config_id to the hash, otherwise the base_builder config arguments
+            # are not respected in the cache fingerprint
+            if "hash" in kwargs:
+                kwargs["hash"] = f"{kwargs['hash']}-{self.base_builder.config_id}"
+
         super().__init__(**kwargs)
 
     def _info(self):
