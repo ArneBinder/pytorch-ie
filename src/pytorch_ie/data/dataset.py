@@ -105,7 +105,6 @@ def _check_fields_for_casting(
         new_f = new_fields[f_name_mapped]
         if not (
             f.type == new_f.type
-            and f.metadata == new_f.metadata
             and f.default == new_f.default
             and f.default_factory == new_f.default_factory
         ):
