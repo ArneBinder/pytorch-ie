@@ -537,10 +537,19 @@ class Document(Mapping[str, Any]):
         return doc
 
     def as_type(
-        self, new_type: typing.Type[D], field_mapping: Optional[Dict[str, str]] = None
+        self,
+        new_type: typing.Type[D],
+        field_mapping: Optional[Dict[str, str]] = None,
+        keep_remaining: bool = True,
     ) -> D:
         field_mapping = field_mapping or {}
-        new_doc = new_type.fromdict({field_mapping.get(k, k): v for k, v in self.asdict().items()})
+        new_doc = new_type.fromdict(
+            {
+                field_mapping.get(k, k): v
+                for k, v in self.asdict().items()
+                if keep_remaining or k in field_mapping
+            }
+        )
         return new_doc
 
 
