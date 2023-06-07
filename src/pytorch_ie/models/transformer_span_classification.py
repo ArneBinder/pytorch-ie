@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+import logging
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple
 
 import torch
 import torchmetrics
@@ -28,23 +29,32 @@ VALIDATION = "val"
 TEST = "test"
 
 
+logger = logging.getLogger(__name__)
+
+
 @PyTorchIEModel.register()
 class TransformerSpanClassificationModel(PyTorchIEModel):
     def __init__(
         self,
         model_name_or_path: str,
         num_classes: int,
-        t_total: int,
         learning_rate: float = 1e-5,
         task_learning_rate: float = 1e-4,
         warmup_proportion: float = 0.1,
         ignore_index: int = 0,
         max_span_length: int = 8,
         span_length_embedding_dim: int = 150,
+        t_total: Optional[int] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters()
+
+        if t_total is not None:
+            logger.warning(
+                "t_total is deprecated, we use estimated_stepping_batches from the pytorch lightning trainer instead"
+            )
+
+        self.save_hyperparameters(ignore=["t_total"])
 
         self.t_total = t_total
         self.learning_rate = learning_rate
@@ -234,8 +244,11 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             },
         ]
         optimizer = AdamW(optimizer_grouped_parameters, lr=self.learning_rate)
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer, int(self.t_total * self.warmup_proportion), self.t_total
-        )
-        return [optimizer], [scheduler]
-        # return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        if self.warmup_proportion > 0.0:
+            stepping_batches = self.trainer.estimated_stepping_batches
+            scheduler = get_linear_schedule_with_warmup(
+                optimizer, int(stepping_batches * self.warmup_proportion), stepping_batches
+            )
+            return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
+        else:
+            return optimizer
