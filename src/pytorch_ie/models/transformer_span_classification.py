@@ -4,13 +4,8 @@ from typing import Any, Dict, Iterable, Optional, Sequence, Tuple
 import torch
 import torchmetrics
 from torch import Tensor, nn
-from transformers import (
-    AdamW,
-    AutoConfig,
-    AutoModel,
-    BatchEncoding,
-    get_linear_schedule_with_warmup,
-)
+from torch.optim import AdamW
+from transformers import AutoConfig, AutoModel, BatchEncoding, get_linear_schedule_with_warmup
 
 from pytorch_ie.core import PyTorchIEModel
 from pytorch_ie.models.modules.mlp import MLP
