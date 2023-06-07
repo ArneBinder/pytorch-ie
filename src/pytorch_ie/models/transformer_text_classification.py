@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, MutableMapping, Optional, Tuple
 
 import torchmetrics
@@ -18,13 +19,14 @@ TRAINING = "train"
 VALIDATION = "val"
 TEST = "test"
 
+logger = logging.getLogger(__name__)
+
 
 @PyTorchIEModel.register()
 class TransformerTextClassificationModel(PyTorchIEModel):
     def __init__(
         self,
         model_name_or_path: str,
-        t_total: int,
         num_classes: int,
         tokenizer_vocab_size: int,
         ignore_index: Optional[int] = None,
@@ -33,12 +35,18 @@ class TransformerTextClassificationModel(PyTorchIEModel):
         warmup_proportion: float = 0.1,
         freeze_model: bool = False,
         multi_label: bool = False,
+        t_total: Optional[int] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters()
 
-        self.t_total = t_total
+        if t_total is not None:
+            logger.warning(
+                "t_total is deprecated, we use estimated_stepping_batches from the pytorch lightning trainer instead"
+            )
+
+        self.save_hyperparameters(ignore=["t_total"])
+
         self.learning_rate = learning_rate
         self.task_learning_rate = task_learning_rate
         self.warmup_proportion = warmup_proportion
@@ -111,10 +119,14 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
     def configure_optimizers(self):
         optimizer = AdamW(self.parameters(), lr=self.learning_rate)
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer, int(self.t_total * self.warmup_proportion), self.t_total
-        )
-        return [optimizer], [scheduler]
+        if self.warmup_proportion > 0.0:
+            stepping_batches = self.trainer.estimated_stepping_batches
+            scheduler = get_linear_schedule_with_warmup(
+                optimizer, int(stepping_batches * self.warmup_proportion), stepping_batches
+            )
+            return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
+        else:
+            return optimizer
 
         # param_optimizer = list(self.named_parameters())
         # # TODO: this needs fixing (does not work models other than BERT)

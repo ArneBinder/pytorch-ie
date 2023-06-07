@@ -69,9 +69,10 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
     model = TransformerSpanClassificationModel(
         model_name_or_path="some-model-name",
         num_classes=num_classes,
-        t_total=1,
         span_length_embedding_dim=15,
         max_span_length=2,
+        # disable warmup because it would require a trainer and a datamodule to get the total number of training steps
+        warmup_proportion=0.0,
     )
     assert not model.is_from_pretrained
 
@@ -137,9 +138,8 @@ def test_validation_step(documents, prepared_taskmodule, mock_model, no_attentio
 
 
 def test_configure_optimizers(mock_model):
-    optimizers, schedulers = mock_model.configure_optimizers()
-    assert len(optimizers) == 1
-    assert len(schedulers) == 1
+    optimizer = mock_model.configure_optimizers()
+    assert isinstance(optimizer, torch.optim.Optimizer)
 
 
 @pytest.mark.parametrize("seq_lengths", [None, [3, 4]])
