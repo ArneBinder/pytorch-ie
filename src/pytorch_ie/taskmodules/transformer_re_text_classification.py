@@ -14,11 +14,11 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, MultiLabeledBinaryRelation, Span
-from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import (
     TransformerTextClassificationModelBatchOutput,
@@ -62,64 +62,56 @@ END = "end"
 logger = logging.getLogger(__name__)
 
 
-def _create_argument_markers(
-    entity_labels: List[str], add_type_to_marker: bool
-) -> Dict[Union[Tuple[str, str, str], Tuple[str, str]], str]:
-    argument_markers: Dict[Union[Tuple[str, str, str], Tuple[str, str]], str] = {}
-    for arg_type in [HEAD, TAIL]:
-        is_head = arg_type == HEAD
+class RelationArgument:
+    def __init__(
+        self,
+        entity: LabeledSpan,
+        role: str,
+        token_span: Span,
+        add_type_to_marker: bool,
+        role_to_marker: Dict[str, str],
+    ) -> None:
+        self.entity = entity
+        self.role_to_marker = role_to_marker
+        if role not in self.role_to_marker:
+            raise Exception(f"role={role} not in role_to_marker={role_to_marker}")
+        self.role = role
+        self.token_span = token_span
+        self.add_type_to_marker = add_type_to_marker
 
-        for arg_pos in [START, END]:
-            is_start = arg_pos == START
+    @property
+    def as_start_marker(self) -> str:
+        return self._get_marker(is_start=True)
 
-            if add_type_to_marker:
-                for entity_type in entity_labels:
-                    marker = f"[{'' if is_start else '/'}{'H' if is_head else 'T'}:{entity_type}]"
-                    argument_markers[(arg_type, arg_pos, entity_type)] = marker
-            else:
-                marker = f"[{'' if is_start else '/'}{'H' if is_head else 'T'}]"
-                argument_markers[(arg_type, arg_pos)] = marker
+    @property
+    def as_end_marker(self) -> str:
+        return self._get_marker(is_start=False)
 
-    return argument_markers
+    @property
+    def role_marker(self) -> str:
+        return self.role_to_marker[self.role]
 
+    def _get_marker(self, is_start: bool = True) -> str:
+        return f"[{'' if is_start else '/'}{self.role_marker}" + (
+            f":{self.entity.label}]" if self.add_type_to_marker else "]"
+        )
 
-def _enumerate_entity_pairs(
-    entities: Sequence[Span],
-    partition: Optional[Span] = None,
-    relations: Optional[Sequence[BinaryRelation]] = None,
-):
-    """
-    Given a list of `entities` iterate all valid pairs of entities. If a `partition` is provided,
-    restrict pairs to be contained in that. If `relations` are given, return only pairs for which a relation exists.
-    """
-    existing_head_tail = {(relation.head, relation.tail) for relation in relations or []}
-    for head in entities:
-        if partition is not None and not is_contained_in(
-            (head.start, head.end), (partition.start, partition.end)
-        ):
-            continue
+    @property
+    def as_append_marker(self) -> str:
+        return f"[{self.role_marker}={self.entity.label}]"
 
-        for tail in entities:
-            if partition is not None and not is_contained_in(
-                (tail.start, tail.end), (partition.start, partition.end)
-            ):
-                continue
-
-            if head == tail:
-                continue
-
-            if relations is not None and (head, tail) not in existing_head_tail:
-                continue
-
-            yield head, tail
+    def shift_token_span(self, value: int):
+        self.token_span = Span(
+            start=self.token_span.start + value, end=self.token_span.end + value
+        )
 
 
 @TaskModule.register()
 class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
-    """
-    Marker based relation extraction. This taskmodule prepares the input token ids in such a way
+    """Marker based relation extraction. This taskmodule prepares the input token ids in such a way
     that before and after the candidate head and tail entities special marker tokens are inserted.
-    Then, the modified token ids can be simply passed into a transformer based text classifier model.
+    Then, the modified token ids can be simply passed into a transformer based text classifier
+    model.
 
     parameters:
 
@@ -130,8 +122,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             Predicted relations with that label will not be added to the document(s).
         max_window: int, optional. If specified, use the tokens in a window of maximal this amount of tokens
             around the center of head and tail entities and pass only that into the transformer.
-
-        TODO: add remaining parameters
+        create_relation_candidates: bool, defaults to False. If True, create relation candidates by pairwise
+            combining all entities in the document and assigning the none_label. If the document already contains
+            a relation with the entity pair, we do not add it again. If False, assume that the document already
+            contains relation annotations including negative examples (i.e. relations with the none_label).
     """
 
     PREPARED_ATTRIBUTES = ["label_to_id", "entity_labels"]
@@ -139,8 +133,10 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        entity_annotation: str = "entities",
+        # this is deprecated, the target of the relation layer already specifies the entity layer
+        entity_annotation: Optional[str] = None,
         relation_annotation: str = "relations",
+        create_relation_candidates: bool = False,
         partition_annotation: Optional[str] = None,
         none_label: str = "no_relation",
         padding: Union[bool, str, PaddingStrategy] = True,
@@ -150,17 +146,25 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         multi_label: bool = False,
         label_to_id: Optional[Dict[str, int]] = None,
         add_type_to_marker: bool = False,
+        argument_role_to_marker: Optional[Dict[str, str]] = None,
         single_argument_pair: bool = True,
         append_markers: bool = False,
         entity_labels: Optional[List[str]] = None,
+        reversed_relation_label_suffix: Optional[str] = None,
         max_window: Optional[int] = None,
+        log_first_n_examples: int = 0,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters()
+        if entity_annotation is not None:
+            logger.warning(
+                "The parameter entity_annotation is deprecated and will be discarded because it is not necessary "
+                "anymore. The target of the relation layer already specifies the entity layer."
+            )
+        self.save_hyperparameters(ignore=["entity_annotation"])
 
-        self.entity_annotation = entity_annotation
         self.relation_annotation = relation_annotation
+        self.create_relation_candidates = create_relation_candidates
         self.padding = padding
         self.truncation = truncation
         self.label_to_id = label_to_id or {}
@@ -174,22 +178,44 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self.entity_labels = entity_labels
         self.partition_annotation = partition_annotation
         self.none_label = none_label
+        self.reversed_relation_label_suffix = reversed_relation_label_suffix
         self.max_window = max_window
+        # overwrite None with 0 for backward compatibility
+        self.log_first_n_examples = log_first_n_examples or 0
+
+        if argument_role_to_marker is None:
+            self.argument_role_to_marker = {HEAD: "H", TAIL: "T"}
+        else:
+            self.argument_role_to_marker = argument_role_to_marker
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
         self.argument_markers = None
 
+        self._logged_examples_counter = 0
+
+    def get_relation_layer(self, document: Document) -> AnnotationList[BinaryRelation]:
+        return document[self.relation_annotation]
+
+    def get_entity_layer(self, document: Document) -> AnnotationList[LabeledSpan]:
+        relations: AnnotationList[BinaryRelation] = self.get_relation_layer(document)
+        if len(relations._targets) != 1:
+            raise Exception(
+                f"the relation layer is expected to target exactly one entity layer, but it has "
+                f"the following targets: {relations._targets}"
+            )
+        entity_layer_name = relations._targets[0]
+        return document[entity_layer_name]
+
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            entities: Sequence[LabeledSpan] = document[self.entity_annotation]
-            relations: Sequence[BinaryRelation] = document[self.relation_annotation]
+            relations: AnnotationList[BinaryRelation] = self.get_relation_layer(document)
+            entities: AnnotationList[LabeledSpan] = self.get_entity_layer(document)
 
-            if self.add_type_to_marker:
-                for entity in entities:
-                    entity_labels.add(entity.label)
+            for entity in entities:
+                entity_labels.add(entity.label)
 
             for relation in relations:
                 relation_labels.add(relation.label)
@@ -202,48 +228,64 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         self.entity_labels = sorted(entity_labels)
 
+    def construct_argument_markers(self) -> List[str]:
+        # ignore the typing because we know that this is only called on a prepared taskmodule,
+        # i.e. self.entity_labels is already set by _prepare or __init__
+        entity_labels: List[str] = self.entity_labels  # type: ignore
+        argument_markers: Set[str] = set()
+        for arg_role, role_marker in self.argument_role_to_marker.items():
+            for arg_pos in [START, END]:
+                is_start = arg_pos == START
+                argument_markers.add(f"[{'' if is_start else '/'}{role_marker}]")
+                if self.add_type_to_marker:
+                    for entity_type in entity_labels:
+                        argument_markers.add(
+                            f"[{'' if is_start else '/'}{role_marker}"
+                            f"{':' + entity_type if self.add_type_to_marker else ''}]"
+                        )
+                if self.append_markers:
+                    for entity_type in entity_labels:
+                        argument_markers.add(f"[{role_marker}={entity_type}]")
+
+        return sorted(list(argument_markers))
+
     def _post_prepare(self):
-        self.argument_markers = _create_argument_markers(
-            # ignore typing because is_prepared already checks that entity_labels is not None
-            entity_labels=self.entity_labels,  # type: ignore
-            add_type_to_marker=self.add_type_to_marker,
-        )
-        if not self.is_from_pretrained:
-            # Sort argument markers by value to ensure that added tokens are in a reproducible order.
-            # Note: To maintain backwards compatibility, the argument markers are not sorted when loading from a saved
-            # taskmodule!
-            self.argument_markers = dict(
-                sorted(self.argument_markers.items(), key=lambda kv: kv[1])
-            )
-        self.tokenizer.add_tokens(list(self.argument_markers.values()), special_tokens=True)
+        self.argument_markers = self.construct_argument_markers()
+        self.tokenizer.add_tokens(self.argument_markers, special_tokens=True)
 
         self.argument_markers_to_id = {
-            marker: self.tokenizer.vocab[marker] for marker in self.argument_markers.values()
+            marker: self.tokenizer.vocab[marker] for marker in self.argument_markers
         }
+        self.sep_token_id = self.tokenizer.vocab[self.tokenizer.sep_token]
 
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
-    def _encode_text(
+    def _create_relation_candidates(
         self,
-        document: TextDocument,
-        partition: Optional[Span] = None,
-        add_special_tokens: bool = True,
-    ) -> BatchEncoding:
-        text = (
-            document.text[partition.start : partition.end]
-            if partition is not None
-            else document.text
-        )
-        encoding = self.tokenizer(
-            text,
-            padding=False,
-            truncation=self.truncation,
-            max_length=self.max_length,
-            is_split_into_words=False,
-            return_offsets_mapping=False,
-            add_special_tokens=add_special_tokens,
-        )
-        return encoding
+        document: Document,
+    ) -> List[BinaryRelation]:
+        relation_candidates: List[BinaryRelation] = []
+        relations: AnnotationList[BinaryRelation] = self.get_relation_layer(document)
+        entities: AnnotationList[LabeledSpan] = self.get_entity_layer(document)
+        arguments_to_relation = {(rel.head, rel.tail): rel for rel in relations}
+        # iterate over all possible argument candidates
+        for head in entities:
+            for tail in entities:
+                if head != tail:
+                    # If there is no relation with the candidate arguments, we create a relation candidate with the
+                    # none label. Otherwise, we use the existing relation.
+                    candidate = arguments_to_relation.get(
+                        (head, tail),
+                        BinaryRelation(
+                            head=head,
+                            tail=tail,
+                            label=self.none_label,
+                            score=1.0,
+                        ),
+                    )
+                    relation_candidates.append(candidate)
+
+        return relation_candidates
 
     def encode_input(
         self,
@@ -255,168 +297,217 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             Sequence[TransformerReTextClassificationTaskEncoding],
         ]
     ]:
-        # TODO (CA): can't this be moved to some other place?
-        assert (
-            self.argument_markers is not None
-        ), f"No argument markers available, was `prepare` already called?"
-
-        entities: Sequence[Span] = document[self.entity_annotation]
-
-        relations: Optional[Sequence[BinaryRelation]]
-        if is_training:
-            relations = document[self.relation_annotation]
+        relations: Sequence[BinaryRelation]
+        if self.create_relation_candidates:
+            relations = self._create_relation_candidates(document)
         else:
-            relations = None
-        # relation_mapping = {(rel.head, rel.tail): rel.label for rel in relations or []}
+            relations = self.get_relation_layer(document)
 
-        partitions: Sequence[Optional[Span]]
+        partitions: Sequence[Span]
         if self.partition_annotation is not None:
             partitions = document[self.partition_annotation]
+            if len(partitions) == 0:
+                logger.warning(
+                    f"the document {document.id} has no '{self.partition_annotation}' partition entries, "
+                    f"no inputs will be created!"
+                )
         else:
             # use single dummy partition
-            partitions = [None]
+            partitions = [Span(start=0, end=len(document.text))]
 
         task_encodings: List[TransformerReTextClassificationTaskEncoding] = []
-        for partition_idx, partition in enumerate(partitions):
-            partition_offset = 0 if partition is None else partition.start
-            add_special_tokens = self.max_window is None
-            encoding = self._encode_text(
-                document=document, partition=partition, add_special_tokens=add_special_tokens
+        for partition in partitions:
+            without_special_tokens = self.max_window is not None
+            text = document.text[partition.start : partition.end]
+            encoding = self.tokenizer(
+                text,
+                padding=False,
+                truncation=self.truncation if self.max_window is None else False,
+                max_length=self.max_length,
+                is_split_into_words=False,
+                return_offsets_mapping=False,
+                add_special_tokens=not without_special_tokens,
             )
 
-            for (
-                head,
-                tail,
-            ) in _enumerate_entity_pairs(
-                entities=entities,
-                partition=partition,
-                relations=relations,
-            ):
-                head_token_slice = get_token_slice(
-                    character_slice=(head.start, head.end),
-                    char_to_token_mapper=encoding.char_to_token,
-                    character_offset=partition_offset,
-                )
-                tail_token_slice = get_token_slice(
-                    character_slice=(tail.start, tail.end),
-                    char_to_token_mapper=encoding.char_to_token,
-                    character_offset=partition_offset,
-                )
-                # this happens if the head/tail start/end does not match a token start/end
-                if head_token_slice is None or tail_token_slice is None:
-                    # if statistics is not None:
-                    #     statistics["entity_token_alignment_error"][
-                    #         relation_mapping.get((head, tail), "TO_PREDICT")
-                    #     ] += 1
+            for rel in relations:
+                if isinstance(rel, BinaryRelation):
+                    if not isinstance(rel.head, LabeledSpan) or not isinstance(
+                        rel.tail, LabeledSpan
+                    ):
+                        raise ValueError(
+                            f"the taskmodule expects the relation arguments to be of type LabeledSpan, "
+                            f"but got {type(rel.head)} and {type(rel.tail)}"
+                        )
+                    arg_spans: List[LabeledSpan] = [rel.head, rel.tail]
+                    arg_roles = [HEAD, TAIL]
+                else:
+                    raise NotImplementedError(
+                        f"the taskmodule does not yet support relations of type: {type(rel)}"
+                    )
+
+                # check if the argument spans are in the current partition
+                if any(
+                    not is_contained_in((arg.start, arg.end), (partition.start, partition.end))
+                    for arg in arg_spans
+                ):
                     continue
+
+                # map character spans to token spans
+                arg_token_slices_including_none = [
+                    get_token_slice(
+                        character_slice=(arg.start, arg.end),
+                        char_to_token_mapper=encoding.char_to_token,
+                        character_offset=partition.start,
+                    )
+                    for arg in arg_spans
+                ]
+                # Check if the mapping was successful. It may fail (and is None) if any argument start or end does not
+                # match a token start or end, respectively.
+                if any(token_slice is None for token_slice in arg_token_slices_including_none):
+                    logger.warning(
+                        f"Skipping invalid example {document.id}, cannot get argument token slice(s)"
+                    )
+                    continue
+
+                # ignore the typing, because we checked for None above
+                arg_token_slices: List[Tuple[int, int]] = arg_token_slices_including_none  # type: ignore
+
+                # create the argument objects
+                args = [
+                    RelationArgument(
+                        entity=span,
+                        role=role,
+                        token_span=Span(start=token_slice[0], end=token_slice[1]),
+                        add_type_to_marker=self.add_type_to_marker,
+                        role_to_marker=self.argument_role_to_marker,
+                    )
+                    for span, role, token_slice in zip(arg_spans, arg_roles, arg_token_slices)
+                ]
 
                 input_ids = encoding["input_ids"]
 
-                # windowing
+                # windowing: we restrict the input to a window of a maximal size (max_window) with the arguments
+                # of the candidate relation in the center (as much as possible)
                 if self.max_window is not None:
-                    head_start, head_end = head_token_slice
-                    tail_start, tail_end = tail_token_slice
-                    # The actual number of tokens will be lower than max_window because we add the
-                    # 4 marker tokens (before / after the head /tail) and the default special tokens
+                    # The actual number of tokens needs to be lower than max_window because we add two
+                    # marker tokens (before / after) each argument and the default special tokens
                     # (e.g. CLS and SEP).
-                    num_added_special_tokens = len(
-                        self.tokenizer.build_inputs_with_special_tokens([])
+                    max_tokens = (
+                        self.max_window
+                        - len(args) * 2
+                        - self.tokenizer.num_special_tokens_to_add()
                     )
-                    max_tokens = self.max_window - 4 - num_added_special_tokens
+                    # if we add the markers also to the end, this decreases the available window again by
+                    # two tokens (marker + sep) per argument
+                    if self.append_markers:
+                        max_tokens -= len(args) * 2
                     # the slice from the beginning of the first entity to the end of the second is required
-                    slice_required = (min(head_start, tail_start), max(head_end, tail_end))
+                    slice_required = (
+                        min(arg.token_span.start for arg in args),
+                        max(arg.token_span.end for arg in args),
+                    )
                     window_slice = get_window_around_slice(
                         slice=slice_required,
                         max_window_size=max_tokens,
                         available_input_length=len(input_ids),
                     )
-                    # this happens if slice_required does not fit into max_tokens
+                    # this happens if slice_required (all arguments) does not fit into max_tokens (the available window)
                     if window_slice is None:
-                        # if statistics is not None:
-                        #     statistics["out_of_token_window"][
-                        #         relation_mapping.get((head, tail), "TO_PREDICT")
-                        #     ] += 1
                         continue
 
                     window_start, window_end = window_slice
                     input_ids = input_ids[window_start:window_end]
 
-                    head_token_slice = head_start - window_start, head_end - window_start
-                    tail_token_slice = tail_start - window_start, tail_end - window_start
+                    for arg in args:
+                        arg.shift_token_span(-window_start)
 
-                if head_token_slice[0] < tail_token_slice[0]:
-                    assert (
-                        head_token_slice[1] <= tail_token_slice[0]
-                    ), f"the head and tail entities are not allowed to overlap in {document.id}"
-                    entity_pair = (head, tail)
-                    entity_slices = (head_token_slice, tail_token_slice)
-                    entity_args = (HEAD, TAIL)
-                else:
-                    assert (
-                        tail_token_slice[1] <= head_token_slice[0]
-                    ), f"the head and tail entities are not allowed to overlap in {document.id}"
-                    entity_pair = (tail, head)
-                    entity_slices = (tail_token_slice, head_token_slice)
-                    entity_args = (TAIL, HEAD)
+                # collect all markers with their target positions
+                marker_ids_with_positions = []
+                for arg in args:
+                    marker_ids_with_positions.append(
+                        (self.argument_markers_to_id[arg.as_start_marker], arg.token_span.start)
+                    )
+                    marker_ids_with_positions.append(
+                        (self.argument_markers_to_id[arg.as_end_marker], arg.token_span.end)
+                    )
 
-                markers = {}
-                for entity, arg_name in zip(entity_pair, entity_args):
-                    for pos in [START, END]:
-                        if self.add_type_to_marker:
-                            markers[(arg_name, pos)] = self.argument_markers_to_id[
-                                self.argument_markers[(arg_name, pos, entity.label)]
-                            ]
+                # create new input ids with the markers inserted
+                input_ids_with_markers = list(input_ids)
+                offset = 0
+                for marker_id, token_position in sorted(
+                    marker_ids_with_positions, key=lambda id_pos: id_pos[1]
+                ):
+                    input_ids_with_markers = (
+                        input_ids_with_markers[: token_position + offset]
+                        + [marker_id]
+                        + input_ids_with_markers[token_position + offset :]
+                    )
+                    offset += 1
+
+                if self.append_markers:
+                    for arg in args:
+                        if without_special_tokens:
+                            input_ids_with_markers.append(self.sep_token_id)
+                            input_ids_with_markers.append(
+                                self.argument_markers_to_id[arg.as_append_marker]
+                            )
                         else:
-                            markers[(arg_name, pos)] = self.argument_markers_to_id[
-                                self.argument_markers[(arg_name, pos)]
-                            ]
-
-                new_input_ids = (
-                    input_ids[: entity_slices[0][0]]
-                    + [markers[(entity_args[0], START)]]
-                    + input_ids[entity_slices[0][0] : entity_slices[0][1]]
-                    + [markers[(entity_args[0], END)]]
-                    + input_ids[entity_slices[0][1] : entity_slices[1][0]]
-                    + [markers[(entity_args[1], START)]]
-                    + input_ids[entity_slices[1][0] : entity_slices[1][1]]
-                    + [markers[(entity_args[1], END)]]
-                    + input_ids[entity_slices[1][1] :]
-                )
+                            input_ids_with_markers.append(
+                                self.argument_markers_to_id[arg.as_append_marker]
+                            )
+                            input_ids_with_markers.append(self.sep_token_id)
 
                 # when windowing is used, we have to add the special tokens manually
-                if not add_special_tokens:
-                    new_input_ids = self.tokenizer.build_inputs_with_special_tokens(
-                        token_ids_0=new_input_ids
+                if without_special_tokens:
+                    input_ids_with_markers = self.tokenizer.build_inputs_with_special_tokens(
+                        token_ids_0=input_ids_with_markers
                     )
 
                 task_encodings.append(
                     TaskEncoding(
                         document=document,
-                        inputs={"input_ids": new_input_ids},
-                        metadata={
-                            HEAD: head,
-                            TAIL: tail,
-                        },
+                        inputs={"input_ids": input_ids_with_markers},
+                        metadata={"candidate_annotation": rel},
                     )
                 )
 
         return task_encodings
 
+    def _maybe_log_example(
+        self,
+        task_encoding: TransformerReTextClassificationTaskEncoding,
+        target: TransformerReTextClassificationTargetEncoding,
+    ):
+        """Maybe log the example."""
+
+        # log the first n examples
+        if self._logged_examples_counter < self.log_first_n_examples:
+            input_ids = task_encoding.inputs["input_ids"]
+            tokens = self.tokenizer.convert_ids_to_tokens(input_ids)
+            target_labels = [self.id_to_label[label_id] for label_id in target]
+            logger.info("*** Example ***")
+            logger.info("doc id: %s", task_encoding.document.id)
+            logger.info("tokens: %s", " ".join([str(x) for x in tokens]))
+            logger.info("input_ids: %s", " ".join([str(x) for x in input_ids]))
+            logger.info("Expected label: %s (ids = %s)", target_labels, target)
+
+            self._logged_examples_counter += 1
+
     def encode_target(
         self,
         task_encoding: TransformerReTextClassificationTaskEncoding,
     ) -> TransformerReTextClassificationTargetEncoding:
-        metadata = task_encoding.metadata
-        document = task_encoding.document
-
-        relations: Sequence[BinaryRelation] = document[self.relation_annotation]
-
-        head_tail_to_labels = {
-            (relation.head, relation.tail): [relation.label] for relation in relations
-        }
-
-        labels = head_tail_to_labels.get((metadata[HEAD], metadata[TAIL]), [self.none_label])
+        candidate_annotation = task_encoding.metadata["candidate_annotation"]
+        if isinstance(candidate_annotation, BinaryRelation):
+            labels = [candidate_annotation.label]
+        else:
+            raise NotImplementedError(
+                f"encoding the target with a candidate_annotation of another type than BinaryRelation is "
+                f"not yet supported. candidate_annotation has the type: {type(candidate_annotation)}"
+            )
         target = [self.label_to_id[label] for label in labels]
+
+        self._maybe_log_example(task_encoding=task_encoding, target=target)
 
         return target
 
@@ -449,18 +540,31 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         task_encoding: TransformerReTextClassificationTaskEncoding,
         task_output: TransformerReTextClassificationTaskOutput,
     ) -> Iterator[Tuple[str, Union[BinaryRelation, MultiLabeledBinaryRelation]]]:
-        labels = task_output["labels"]
-        probabilities = task_output["probabilities"]
-        if labels != [self.none_label]:
-            yield (
-                self.relation_annotation,
-                BinaryRelation(
-                    head=task_encoding.metadata[HEAD],
-                    tail=task_encoding.metadata[TAIL],
-                    label=labels[0],
-                    score=probabilities[0],
-                ),
-            )
+        candidate_annotation = task_encoding.metadata["candidate_annotation"]
+        if self.multi_label:
+            raise NotImplementedError
+        else:
+            label = task_output["labels"][0]
+            probability = task_output["probabilities"][0]
+            if isinstance(candidate_annotation, BinaryRelation):
+                head = candidate_annotation.head
+                tail = candidate_annotation.tail
+                # reverse any predicted reversed relations back
+                if self.reversed_relation_label_suffix is not None and label.endswith(
+                    self.reversed_relation_label_suffix
+                ):
+                    label = label[: -len(self.reversed_relation_label_suffix)]
+                    head, tail = tail, head
+                new_annotation = BinaryRelation(
+                    head=head, tail=tail, label=label, score=probability
+                )
+            else:
+                raise NotImplementedError(
+                    f"creating a new annotation from a candidate_annotation of another type than BinaryRelation is "
+                    f"not yet supported. candidate_annotation has the type: {type(candidate_annotation)}"
+                )
+            if label != self.none_label:
+                yield self.relation_annotation, new_annotation
 
     def collate(
         self, task_encodings: Sequence[TransformerReTextClassificationTaskEncoding]

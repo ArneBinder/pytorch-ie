@@ -16,7 +16,9 @@ class ExampleDocument(TextDocument):
 
 def main():
     model_name_or_path = "pie/example-re-textclf-tacred"
-    re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(model_name_or_path)
+    re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(
+        model_name_or_path, create_relation_candidates=True
+    )
     re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
 
     re_pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)

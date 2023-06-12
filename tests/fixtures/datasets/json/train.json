@@ -89,7 +89,7 @@
             }
         },
         {
-            "id": "val_doc1",
+            "id": "train_doc7",
             "text": "A single sentence.",
             "sentences": [{ "start": 0, "end": 18 }],
             "entities": [],
@@ -99,25 +99,26 @@
             }
         },
         {
-            "id": "val_doc2",
-            "text": "First sentence. Entity M works at N. And founded O.",
+            "id": "train_doc8",
+            "text": "First sentence. Entity M works at N. And it founded O.",
             "sentences": [
                 { "start": 0, "end": 15 },
                 { "start": 16, "end": 36 },
-                { "start": 16, "end": 51 }
+                { "start": 37, "end": 53 }
             ],
             "entities": [
                 { "start": 16, "end": 24, "label": "PER" },
                 { "start": 34, "end": 35, "label": "ORG" },
-                { "start": 49, "end": 50, "label": "ORG" }
+                { "start": 41, "end": 43, "label": "PER" },
+                { "start": 52, "end": 53, "label": "ORG" }
             ],
             "relations": [
                 { "head": 0, "tail": 1, "label": "per:employee_of" },
-                { "head": 0, "tail": 2, "label": "per:founder" },
-                { "head": 2, "tail": 1, "label": "org:founded_by" }
+                { "head": 2, "tail": 3, "label": "per:founder" },
+                { "head": 3, "tail": 2, "label": "org:founded_by" }
             ],
             "metadata": {
-                "description": "sentences with multiple relation annotations and cross-sentence relation"
+                "description": "sentences with multiple relation annotations in different sentences"
             }
         }
     ]

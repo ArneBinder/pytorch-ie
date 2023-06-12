@@ -23,10 +23,13 @@ class ExampleDocument(TextDocument):
 def test_re_text_classification(use_auto):
     model_name_or_path = "pie/example-re-textclf-tacred"
     if use_auto:
-        pipeline = AutoPipeline.from_pretrained(model_name_or_path)
+        pipeline = AutoPipeline.from_pretrained(
+            model_name_or_path, taskmodule_kwargs={"create_relation_candidates": True}
+        )
     else:
         re_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(
-            model_name_or_path
+            model_name_or_path,
+            create_relation_candidates=True,
         )
         re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
         pipeline = Pipeline(model=re_model, taskmodule=re_taskmodule, device=-1)
@@ -34,7 +37,8 @@ def test_re_text_classification(use_auto):
     assert pipeline.model.is_from_pretrained
 
     document = ExampleDocument(
-        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner "
+        "at SOSV and managing director of IndieBio."
     )
 
     for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
