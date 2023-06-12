@@ -46,30 +46,29 @@ def test_re_text_classification(use_auto):
 
     pipeline(document, batch_size=2)
     relations: Sequence[BinaryRelation] = document["relations"].predictions
-    assert len(relations) == 4
+    assert len(relations) == 3
 
-    sorted_relations = sorted(relations, key=lambda rel: (rel.head.start + rel.tail.start) / 2)
+    rels = sorted(relations, key=lambda rel: (rel.head.start + rel.tail.start) / 2)
 
-    relation0 = sorted_relations[0]
-    assert relation0.label == "per:employee_of"
-    assert relation0.score == pytest.approx(0.96, abs=1e-2)
-    assert (relation0.head.start, relation0.head.end) == (65, 75)
-    assert (relation0.tail.start, relation0.tail.end) == (96, 100)
+    # Note: The scores are quite low, because the model is trained with the old version for the taskmodule,
+    # so the argument markers are not correct.
+    assert (str(rels[0].head), rels[0].label, str(rels[0].tail)) == (
+        "SOSV",
+        "org:top_members/employees",
+        "Po Bronson",
+    )
+    assert rels[0].score == pytest.approx(0.398, abs=1e-2)
 
-    relation1 = sorted_relations[1]
-    assert relation1.label == "org:top_members/employees"
-    assert relation1.score == pytest.approx(0.71, abs=1e-2)
-    assert (relation1.head.start, relation1.head.end) == (96, 100)
-    assert (relation1.tail.start, relation1.tail.end) == (65, 75)
+    assert (str(rels[1].head), rels[1].label, str(rels[1].tail)) == (
+        "Po Bronson",
+        "per:employee_of",
+        "IndieBio",
+    )
+    assert rels[1].score == pytest.approx(0.534, abs=1e-2)
 
-    relation2 = sorted_relations[2]
-    assert relation2.label == "per:employee_of"
-    assert relation2.score == pytest.approx(0.94, abs=1e-2)
-    assert (relation2.head.start, relation2.head.end) == (65, 75)
-    assert (relation2.tail.start, relation2.tail.end) == (126, 134)
-
-    relation3 = sorted_relations[3]
-    assert relation3.label == "org:top_members/employees"
-    assert relation3.score == pytest.approx(0.85, abs=1e-2)
-    assert (relation3.head.start, relation3.head.end) == (126, 134)
-    assert (relation3.tail.start, relation3.tail.end) == (65, 75)
+    assert (str(rels[2].head), rels[2].label, str(rels[2].tail)) == (
+        "IndieBio",
+        "org:top_members/employees",
+        "Po Bronson",
+    )
+    assert rels[2].score == pytest.approx(0.552, abs=1e-2)
