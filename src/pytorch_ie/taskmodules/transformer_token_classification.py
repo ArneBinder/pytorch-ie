@@ -341,7 +341,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             task_encoding.targets for task_encoding in task_encodings
         ]
 
-        sequence_length = torch.tensor(inputs["input_ids"]).shape[1]
+        sequence_length = inputs["input_ids"].shape[1]
         padding_side = self.tokenizer.padding_side
         if padding_side == "right":
             target_list_padded = [
@@ -354,7 +354,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 for t in target_list
             ]
 
-        inputs = {k: torch.tensor(v, dtype=torch.int64) for k, v in inputs.items()}
         targets = torch.tensor(target_list_padded, dtype=torch.int64)
 
         return inputs, targets
