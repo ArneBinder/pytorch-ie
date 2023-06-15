@@ -1,30 +1,40 @@
 import re
+from typing import Any, Dict
 
 import numpy
 import pytest
 import torch
 
-from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
-from pytorch_ie.taskmodules.transformer_re_text_classification import _enumerate_entity_pairs
+from pytorch_ie import TransformerRETextClassificationTaskModule
+
+
+def _config_to_str(cfg: Dict[str, Any]) -> str:
+    result = "-".join([f"{k}={cfg[k]}" for k in sorted(cfg)])
+    return result
+
+
+CONFIGS = [
+    {"add_type_to_marker": False, "append_markers": False},
+    {"add_type_to_marker": True, "append_markers": False},
+    {"add_type_to_marker": False, "append_markers": True},
+    {"add_type_to_marker": True, "append_markers": True},
+]
+CONFIGS_DICT = {_config_to_str(cfg): cfg for cfg in CONFIGS}
+
+
+@pytest.fixture(scope="module", params=CONFIGS_DICT.keys())
+def cfg(request):
+    return CONFIGS_DICT[request.param]
 
 
 @pytest.fixture(scope="module")
-def taskmodule():
+def taskmodule(cfg):
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerRETextClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path
+        tokenizer_name_or_path=tokenizer_name_or_path, **cfg
     )
     assert not taskmodule.is_from_pretrained
 
-    return taskmodule
-
-
-@pytest.fixture(scope="module", params=[False, True])
-def taskmodule_optional_marker(request):
-    tokenizer_name_or_path = "bert-base-cased"
-    taskmodule = TransformerRETextClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path, add_type_to_marker=request.param
-    )
     return taskmodule
 
 
@@ -32,12 +42,6 @@ def taskmodule_optional_marker(request):
 def prepared_taskmodule(taskmodule, documents):
     taskmodule.prepare(documents)
     return taskmodule
-
-
-@pytest.fixture
-def prepared_taskmodule_optional_marker(taskmodule_optional_marker, documents):
-    taskmodule_optional_marker.prepare(documents)
-    return taskmodule_optional_marker
 
 
 @pytest.fixture
@@ -61,84 +65,154 @@ def model_output():
     }
 
 
-def test_prepare(taskmodule_optional_marker, documents):
-    taskmodule = taskmodule_optional_marker
+def test_prepare(taskmodule, documents):
     assert not taskmodule.is_prepared
     taskmodule.prepare(documents)
     assert taskmodule.is_prepared
 
-    if taskmodule.add_type_to_marker:
-        assert taskmodule.entity_labels == ["ORG", "PER"]
-        assert taskmodule.argument_markers == {
-            ("head", "start", "PER"): "[H:PER]",
-            ("head", "end", "PER"): "[/H:PER]",
-            ("tail", "start", "PER"): "[T:PER]",
-            ("tail", "end", "PER"): "[/T:PER]",
-            ("head", "start", "ORG"): "[H:ORG]",
-            ("head", "end", "ORG"): "[/H:ORG]",
-            ("tail", "start", "ORG"): "[T:ORG]",
-            ("tail", "end", "ORG"): "[/T:ORG]",
-        }
+    assert taskmodule.entity_labels == ["ORG", "PER"]
+    assert taskmodule.sep_token_id
+
+    if taskmodule.append_markers:
+        if taskmodule.add_type_to_marker:
+            assert taskmodule.argument_markers == [
+                "[/H:ORG]",
+                "[/H:PER]",
+                "[/H]",
+                "[/T:ORG]",
+                "[/T:PER]",
+                "[/T]",
+                "[H:ORG]",
+                "[H:PER]",
+                "[H=ORG]",
+                "[H=PER]",
+                "[H]",
+                "[T:ORG]",
+                "[T:PER]",
+                "[T=ORG]",
+                "[T=PER]",
+                "[T]",
+            ]
+            assert taskmodule.argument_markers_to_id == {
+                "[/H:ORG]": 28996,
+                "[/H:PER]": 28997,
+                "[/H]": 28998,
+                "[/T:ORG]": 28999,
+                "[/T:PER]": 29000,
+                "[/T]": 29001,
+                "[H:ORG]": 29002,
+                "[H:PER]": 29003,
+                "[H=ORG]": 29004,
+                "[H=PER]": 29005,
+                "[H]": 29006,
+                "[T:ORG]": 29007,
+                "[T:PER]": 29008,
+                "[T=ORG]": 29009,
+                "[T=PER]": 29010,
+                "[T]": 29011,
+            }
+
+        else:
+            assert taskmodule.argument_markers == [
+                "[/H]",
+                "[/T]",
+                "[H=ORG]",
+                "[H=PER]",
+                "[H]",
+                "[T=ORG]",
+                "[T=PER]",
+                "[T]",
+            ]
+            assert taskmodule.argument_markers_to_id == {
+                "[/H]": 28996,
+                "[/T]": 28997,
+                "[H=ORG]": 28998,
+                "[H=PER]": 28999,
+                "[H]": 29000,
+                "[T=ORG]": 29001,
+                "[T=PER]": 29002,
+                "[T]": 29003,
+            }
     else:
-        assert taskmodule.entity_labels == []
-        assert taskmodule.argument_markers == {
-            ("head", "start"): "[H]",
-            ("head", "end"): "[/H]",
-            ("tail", "start"): "[T]",
-            ("tail", "end"): "[/T]",
-        }
+        if taskmodule.add_type_to_marker:
+            assert taskmodule.argument_markers == [
+                "[/H:ORG]",
+                "[/H:PER]",
+                "[/H]",
+                "[/T:ORG]",
+                "[/T:PER]",
+                "[/T]",
+                "[H:ORG]",
+                "[H:PER]",
+                "[H]",
+                "[T:ORG]",
+                "[T:PER]",
+                "[T]",
+            ]
+            assert taskmodule.argument_markers_to_id == {
+                "[/H:ORG]": 28996,
+                "[/H:PER]": 28997,
+                "[/H]": 28998,
+                "[/T:ORG]": 28999,
+                "[/T:PER]": 29000,
+                "[/T]": 29001,
+                "[H:ORG]": 29002,
+                "[H:PER]": 29003,
+                "[H]": 29004,
+                "[T:ORG]": 29005,
+                "[T:PER]": 29006,
+                "[T]": 29007,
+            }
+        else:
+            assert taskmodule.argument_markers == ["[/H]", "[/T]", "[H]", "[T]"]
+            assert taskmodule.argument_markers_to_id == {
+                "[/H]": 28996,
+                "[/T]": 28997,
+                "[H]": 28998,
+                "[T]": 28999,
+            }
 
-    assert set(taskmodule.label_to_id.keys()) == {
-        taskmodule.none_label,
-        "per:employee_of",
-        "org:founded_by",
-        "per:founder",
+    assert taskmodule.label_to_id == {
+        "org:founded_by": 1,
+        "per:employee_of": 2,
+        "per:founder": 3,
+        "no_relation": 0,
     }
-    assert [taskmodule.id_to_label[i] for i in range(4)] == [
-        taskmodule.none_label,
-        "org:founded_by",
-        "per:employee_of",
-        "per:founder",
-    ]
-    assert taskmodule.label_to_id[taskmodule.none_label] == 0
+    assert taskmodule.id_to_label == {
+        1: "org:founded_by",
+        2: "per:employee_of",
+        3: "per:founder",
+        0: "no_relation",
+    }
 
 
-def test_config(prepared_taskmodule_optional_marker):
-    prepared_taskmodule = prepared_taskmodule_optional_marker
-
+def test_config(prepared_taskmodule):
     config = prepared_taskmodule._config()
     assert config["taskmodule_type"] == "TransformerRETextClassificationTaskModule"
     assert "label_to_id" in config
     assert config["label_to_id"] == {
-        prepared_taskmodule.none_label: 0,
         "org:founded_by": 1,
         "per:employee_of": 2,
         "per:founder": 3,
+        "no_relation": 0,
     }
 
-    if prepared_taskmodule.add_type_to_marker:
-        assert config["entity_labels"] == ["ORG", "PER"]
-    else:
-        assert config["entity_labels"] == []
+    assert config["entity_labels"] == ["ORG", "PER"]
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
-def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
-    prepared_taskmodule = prepared_taskmodule_optional_marker
-
+def test_encode(prepared_taskmodule, documents, encode_target):
     task_encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
 
-    if encode_target:
-        assert len(task_encodings) == 7
-    else:
-        assert len(task_encodings) == 24
+    assert len(task_encodings) == 7
 
     encoding = task_encodings[0]
 
     tokens = prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.inputs["input_ids"])
+    assert len(tokens) == len(encoding.inputs["input_ids"])
 
     if prepared_taskmodule.add_type_to_marker:
-        tokens == [
+        assert tokens[:14] == [
             "[CLS]",
             "[H:PER]",
             "En",
@@ -155,7 +229,7 @@ def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
             "[SEP]",
         ]
     else:
-        tokens == [
+        assert tokens[:14] == [
             "[CLS]",
             "[H]",
             "En",
@@ -171,6 +245,11 @@ def test_encode(prepared_taskmodule_optional_marker, documents, encode_target):
             ".",
             "[SEP]",
         ]
+    if prepared_taskmodule.append_markers:
+        assert len(tokens) == 14 + 4
+        assert tokens[-4:] == ["[H=PER]", "[SEP]", "[T=ORG]", "[SEP]"]
+    else:
+        assert len(tokens) == 14
 
     if encode_target:
         assert encoding.targets == [2]
@@ -187,25 +266,279 @@ def test_collate(prepared_taskmodule, documents, encode_target):
 
     encodings = prepared_taskmodule.encode(documents, encode_target=encode_target)
 
+    assert len(encodings) == 4
     if encode_target:
-        assert len(encodings) == 4
         assert all([encoding.has_targets for encoding in encodings])
     else:
-        assert len(encodings) == 8
         assert not any([encoding.has_targets for encoding in encodings])
 
-    batch_encoding = prepared_taskmodule.collate(encodings)
+    batch_encoding = prepared_taskmodule.collate(encodings[:2])
     inputs, targets = batch_encoding
 
     assert "input_ids" in inputs
     assert "attention_mask" in inputs
     assert inputs["input_ids"].shape == inputs["attention_mask"].shape
 
-    if encode_target:
-        assert inputs["input_ids"].shape == (4, 21)
-        assert len(targets) == 4
+    if prepared_taskmodule.append_markers:
+        assert inputs["input_ids"].shape == (2, 25)
+        if prepared_taskmodule.add_type_to_marker:
+            torch.testing.assert_close(
+                inputs.input_ids,
+                torch.tensor(
+                    [
+                        [
+                            101,
+                            29003,
+                            13832,
+                            3121,
+                            2340,
+                            138,
+                            28997,
+                            1759,
+                            1120,
+                            29007,
+                            139,
+                            28999,
+                            119,
+                            102,
+                            29005,
+                            102,
+                            29009,
+                            102,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        ],
+                        [
+                            101,
+                            1752,
+                            5650,
+                            119,
+                            29003,
+                            13832,
+                            3121,
+                            2340,
+                            144,
+                            28997,
+                            1759,
+                            1120,
+                            29007,
+                            145,
+                            28999,
+                            119,
+                            1262,
+                            1771,
+                            146,
+                            119,
+                            102,
+                            29005,
+                            102,
+                            29009,
+                            102,
+                        ],
+                    ]
+                ),
+            )
+        else:
+            torch.testing.assert_close(
+                inputs.input_ids,
+                torch.tensor(
+                    [
+                        [
+                            101,
+                            29000,
+                            13832,
+                            3121,
+                            2340,
+                            138,
+                            28996,
+                            1759,
+                            1120,
+                            29003,
+                            139,
+                            28997,
+                            119,
+                            102,
+                            28999,
+                            102,
+                            29001,
+                            102,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        ],
+                        [
+                            101,
+                            1752,
+                            5650,
+                            119,
+                            29000,
+                            13832,
+                            3121,
+                            2340,
+                            144,
+                            28996,
+                            1759,
+                            1120,
+                            29003,
+                            145,
+                            28997,
+                            119,
+                            1262,
+                            1771,
+                            146,
+                            119,
+                            102,
+                            28999,
+                            102,
+                            29001,
+                            102,
+                        ],
+                    ]
+                ),
+            )
+        torch.testing.assert_close(
+            inputs.attention_mask,
+            torch.tensor(
+                [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ]
+            ),
+        )
+
     else:
-        assert inputs["input_ids"].shape == (8, 21)
+        assert inputs["input_ids"].shape == (2, 21)
+
+        if prepared_taskmodule.add_type_to_marker:
+            torch.testing.assert_close(
+                inputs.input_ids,
+                torch.tensor(
+                    [
+                        [
+                            101,
+                            29003,
+                            13832,
+                            3121,
+                            2340,
+                            138,
+                            28997,
+                            1759,
+                            1120,
+                            29005,
+                            139,
+                            28999,
+                            119,
+                            102,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        ],
+                        [
+                            101,
+                            1752,
+                            5650,
+                            119,
+                            29003,
+                            13832,
+                            3121,
+                            2340,
+                            144,
+                            28997,
+                            1759,
+                            1120,
+                            29005,
+                            145,
+                            28999,
+                            119,
+                            1262,
+                            1771,
+                            146,
+                            119,
+                            102,
+                        ],
+                    ]
+                ),
+            )
+        else:
+            torch.testing.assert_close(
+                inputs.input_ids,
+                torch.tensor(
+                    [
+                        [
+                            101,
+                            28998,
+                            13832,
+                            3121,
+                            2340,
+                            138,
+                            28996,
+                            1759,
+                            1120,
+                            28999,
+                            139,
+                            28997,
+                            119,
+                            102,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        ],
+                        [
+                            101,
+                            1752,
+                            5650,
+                            119,
+                            28998,
+                            13832,
+                            3121,
+                            2340,
+                            144,
+                            28996,
+                            1759,
+                            1120,
+                            28999,
+                            145,
+                            28997,
+                            119,
+                            1262,
+                            1771,
+                            146,
+                            119,
+                            102,
+                        ],
+                    ]
+                ),
+            )
+        torch.testing.assert_close(
+            inputs.attention_mask,
+            torch.tensor(
+                [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ]
+            ),
+        )
+
+    if encode_target:
+        torch.testing.assert_close(targets, torch.tensor([2, 2]))
+    else:
         assert targets is None
 
 
@@ -268,445 +601,158 @@ def test_decode(prepared_taskmodule, documents, model_output, inplace):
             assert not document["relations"].predictions
 
 
-# def test_encode_input_with_partitions(prepared_taskmodule_optional_marker, documents):
-#     prepared_taskmodule_with_partitions = copy.deepcopy(prepared_taskmodule_optional_marker)
-#     prepared_taskmodule_with_partitions.partition_annotation = "sentences"
-#     input_encoding, metadata, new_documents = prepared_taskmodule_with_partitions.encode_input(
-#         documents, is_training=True
-#     )
-#     assert len(input_encoding) == 1
-#     assert new_documents is not None
-#     assert len(new_documents) == 1
-#     encoding = input_encoding[0]
-#     if prepared_taskmodule_with_partitions.add_type_to_marker:
-#         assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-#             encoding["input_ids"]
-#         ) == [
-#             "[CLS]",
-#             "[H:person]",
-#             "Jane",
-#             "[/H:person]",
-#             "lives",
-#             "in",
-#             "[T:city]",
-#             "Berlin",
-#             "[/T:city]",
-#             ".",
-#             "[SEP]",
-#         ]
-#     else:
-#         assert prepared_taskmodule_optional_marker.tokenizer.convert_ids_to_tokens(
-#             encoding["input_ids"]
-#         ) == [
-#             "[CLS]",
-#             "[H]",
-#             "Jane",
-#             "[/H]",
-#             "lives",
-#             "in",
-#             "[T]",
-#             "Berlin",
-#             "[/T]",
-#             ".",
-#             "[SEP]",
-#         ]
+def test_encode_with_partition(documents):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path,
+        partition_annotation="sentences",
+    )
+    assert not taskmodule.is_from_pretrained
+    taskmodule.prepare(documents)
+
+    assert len(documents) == 8
+    encodings = taskmodule.encode(documents)
+    tokens = [
+        taskmodule.tokenizer.convert_ids_to_tokens(encoding.inputs["input_ids"])
+        for encoding in encodings
+    ]
+    assert len(encodings) == 5
+    assert encodings[0].document != encodings[1].document
+    assert encodings[1].document != encodings[2].document
+    # the last document contains 3 valid relations
+    assert encodings[2].document == encodings[3].document
+    assert encodings[3].document == encodings[4].document
+    assert tokens[0] == [
+        "[CLS]",
+        "[H]",
+        "En",
+        "##ti",
+        "##ty",
+        "A",
+        "[/H]",
+        "works",
+        "at",
+        "[T]",
+        "B",
+        "[/T]",
+        ".",
+        "[SEP]",
+    ]
+    assert tokens[1] == [
+        "[CLS]",
+        "[H]",
+        "En",
+        "##ti",
+        "##ty",
+        "G",
+        "[/H]",
+        "works",
+        "at",
+        "[T]",
+        "H",
+        "[/T]",
+        ".",
+        "[SEP]",
+    ]
+    assert tokens[2] == [
+        "[CLS]",
+        "[H]",
+        "En",
+        "##ti",
+        "##ty",
+        "M",
+        "[/H]",
+        "works",
+        "at",
+        "[T]",
+        "N",
+        "[/T]",
+        ".",
+        "[SEP]",
+    ]
+    assert tokens[3] == [
+        "[CLS]",
+        "And",
+        "[H]",
+        "it",
+        "[/H]",
+        "founded",
+        "[T]",
+        "O",
+        "[/T]",
+        "[SEP]",
+    ]
+    assert tokens[4] == [
+        "[CLS]",
+        "And",
+        "[T]",
+        "it",
+        "[/T]",
+        "founded",
+        "[H]",
+        "O",
+        "[/H]",
+        "[SEP]",
+    ]
 
 
-# def test_encode_with_windowing(prepared_taskmodule_optional_marker, documents):
-#     prepared_taskmodule_with_windowing = copy.deepcopy(prepared_taskmodule_optional_marker)
-#     prepared_taskmodule_with_windowing.max_window = 10
-#     task_encodings = prepared_taskmodule_with_windowing.encode(documents, encode_target=False)
-#     assert len(task_encodings) == 2
+def test_encode_with_windowing(documents):
+    tokenizer_name_or_path = "bert-base-cased"
+    taskmodule = TransformerRETextClassificationTaskModule(
+        tokenizer_name_or_path=tokenizer_name_or_path,
+        max_window=12,
+    )
+    assert not taskmodule.is_from_pretrained
+    taskmodule.prepare(documents)
 
-#     # just check the first entry
-#     encoding = task_encodings[0]
-#     document = documents[0]
-#     assert encoding.document == document
-#     assert "input_ids" in encoding.input
-#     assert len(encoding.input["input_ids"]) <= prepared_taskmodule_with_windowing.max_window
-#     if prepared_taskmodule_with_windowing.add_type_to_marker:
-#         assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
-#             encoding.input["input_ids"]
-#         ) == [
-#             "[CLS]",
-#             "[H:person]",
-#             "Jane",
-#             "[/H:person]",
-#             "lives",
-#             "in",
-#             "[T:city]",
-#             "Berlin",
-#             "[/T:city]",
-#             "[SEP]",
-#         ]
-#     else:
-#         assert prepared_taskmodule_with_windowing.tokenizer.convert_ids_to_tokens(
-#             encoding.input["input_ids"]
-#         ) == ["[CLS]", "[H]", "Jane", "[/H]", "lives", "in", "[T]", "Berlin", "[/T]", "[SEP]"]
-
-
-# def test_save_load(tmp_path, prepared_taskmodule):
-#     path = os.path.join(tmp_path, "taskmodule")
-#     prepared_taskmodule.save_pretrained(path)
-#     loaded_taskmodule = TransformerRETextClassificationTaskModule.from_pretrained(path)
-#     assert loaded_taskmodule.is_prepared
-#     assert loaded_taskmodule.argument_markers == prepared_taskmodule.argument_markers
-
-
-# def test_enumerate_entity_pairs(prepared_taskmodule, documents):
-#     """
-#     This should return all combinations of entities.
-#     """
-#     document = documents[0]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 3
-#     assert entities[0] == DOC1_ENTITY_JANE
-#     assert entities[1] == DOC1_ENTITY_BERLIN
-#     assert entities[2] == DOC1_ENTITY_KARL
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,  # partition=partition, add_special_tokens=add_special_tokens
-#     )
-#     assert (
-#         prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
-#         == DOC1_TOKENS
-#     )
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,  # partition=partition, relations=relations,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 6
-
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC1_ENTITY_JANE
-#     assert tail == DOC1_ENTITY_BERLIN
-
-#     head, tail = enumerated_entity_pairs[1]
-#     assert head == DOC1_ENTITY_JANE
-#     assert tail == DOC1_ENTITY_KARL
-
-#     head, tail = enumerated_entity_pairs[2]
-#     assert head == DOC1_ENTITY_BERLIN
-#     assert tail == DOC1_ENTITY_JANE
-
-#     head, tail = enumerated_entity_pairs[3]
-#     assert head == DOC1_ENTITY_BERLIN
-#     assert tail == DOC1_ENTITY_KARL
-
-#     head, tail = enumerated_entity_pairs[4]
-#     assert head == DOC1_ENTITY_KARL
-#     assert tail == DOC1_ENTITY_JANE
-
-#     head, tail = enumerated_entity_pairs[5]
-#     assert head == DOC1_ENTITY_KARL
-#     assert tail == DOC1_ENTITY_BERLIN
-
-#     document = documents[1]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 2
-#     assert entities[0] == DOC2_ENTITY_SEATTLE
-#     assert entities[1] == DOC2_ENTITY_JENNY
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,  # partition=partition, add_special_tokens=add_special_tokens
-#     )
-#     assert (
-#         prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
-#         == DOC2_TOKENS
-#     )
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,  # partition=partition, relations=relations,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 2
-
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC2_ENTITY_SEATTLE
-#     assert tail == DOC2_ENTITY_JENNY
-
-#     head, tail = enumerated_entity_pairs[1]
-#     assert head == DOC2_ENTITY_JENNY
-#     assert tail == DOC2_ENTITY_SEATTLE
-
-#     document = documents[2]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 2
-#     assert entities[0] == DOC3_ENTITY_KARL
-#     assert entities[1] == DOC3_ENTITY_BERLIN
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,  # partition=partition, add_special_tokens=add_special_tokens
-#     )
-#     assert (
-#         prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
-#         == DOC3_TOKENS
-#     )
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,  # partition=partition, relations=relations,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 2
-
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC3_ENTITY_KARL
-#     assert tail == DOC3_ENTITY_BERLIN
-
-#     head, tail = enumerated_entity_pairs[1]
-#     assert head == DOC3_ENTITY_BERLIN
-#     assert tail == DOC3_ENTITY_KARL
-
-
-# def test_enumerate_entity_pairs_with_relations(prepared_taskmodule, documents):
-#     """
-#     This should return only combinations for which a relation exists.
-#     """
-#     document = documents[0]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 3
-#     assert entities[0] == DOC1_ENTITY_JANE
-#     assert entities[1] == DOC1_ENTITY_BERLIN
-#     assert entities[2] == DOC1_ENTITY_KARL
-#     relations = document.annotations.binary_relations["relations"]
-#     assert len(relations) == 1
-#     relation = relations[0]
-#     assert relation == DOC1_REL_LIVES_IN
-#     assert relation.head == DOC1_ENTITY_JANE
-#     assert relation.tail == DOC1_ENTITY_BERLIN
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,  # partition=partition, add_special_tokens=add_special_tokens
-#     )
-#     assert (
-#         prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
-#         == DOC1_TOKENS
-#     )
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             relations=relations,
-#             # partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 1
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC1_ENTITY_JANE
-#     assert tail == DOC1_ENTITY_BERLIN
-
-#     document = documents[1]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 2
-#     assert entities[0] == DOC2_ENTITY_SEATTLE
-#     assert entities[1] == DOC2_ENTITY_JENNY
-#     relations = document.annotations.binary_relations["relations"]
-#     assert len(relations) == 1
-#     relation = relations[0]
-#     assert relation == DOC2_REL_MAYOR_OF
-#     assert relation.head == DOC2_ENTITY_JENNY
-#     assert relation.tail == DOC2_ENTITY_SEATTLE
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,  # partition=partition, add_special_tokens=add_special_tokens
-#     )
-#     assert (
-#         prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
-#         == DOC2_TOKENS
-#     )
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             relations=relations,
-#             # partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 1
-
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC2_ENTITY_JENNY
-#     assert tail == DOC2_ENTITY_SEATTLE
-
-#     document = documents[2]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 2
-#     assert entities[0] == DOC3_ENTITY_KARL
-#     assert entities[1] == DOC3_ENTITY_BERLIN
-#     relations = document.annotations.binary_relations["relations"]
-#     assert len(relations) == 0
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,  # partition=partition, add_special_tokens=add_special_tokens
-#     )
-#     assert (
-#         prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"])
-#         == DOC3_TOKENS
-#     )
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             relations=relations,  # partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 0
-
-
-# def test_enumerate_entity_pairs_with_partitions(prepared_taskmodule, documents):
-#     """
-#     This should return only combinations with entities in the same sentence.
-#     """
-#     document = documents[0]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 3
-#     assert entities[0] == DOC1_ENTITY_JANE
-#     assert entities[1] == DOC1_ENTITY_BERLIN
-#     assert entities[2] == DOC1_ENTITY_KARL
-#     sentences = document.annotations.spans["sentences"]
-#     assert len(sentences) == 1
-#     partition = sentences[0]
-#     assert partition == DOC1_SENTENCE1
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,
-#         partition=partition,  # add_special_tokens=add_special_tokens
-#     )
-#     assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
-#         "[CLS]",
-#         "Jane",
-#         "lives",
-#         "in",
-#         "Berlin",
-#         ".",
-#         "[SEP]",
-#     ]
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             # relations=relations,
-#             partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 2
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC1_ENTITY_JANE
-#     assert tail == DOC1_ENTITY_BERLIN
-
-#     head, tail = enumerated_entity_pairs[1]
-#     assert head == DOC1_ENTITY_BERLIN
-#     assert tail == DOC1_ENTITY_JANE
-
-#     document = documents[1]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 2
-#     assert entities[0] == DOC2_ENTITY_SEATTLE
-#     assert entities[1] == DOC2_ENTITY_JENNY
-#     sentences = document.annotations.spans["sentences"]
-#     assert len(sentences) == 2
-#     partition = sentences[0]
-#     assert partition == DOC2_SENTENCE1
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,
-#         partition=partition,  # add_special_tokens=add_special_tokens
-#     )
-#     assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
-#         "[CLS]",
-#         "Seattle",
-#         "is",
-#         "a",
-#         "rainy",
-#         "city",
-#         ".",
-#         "[SEP]",
-#     ]
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             # relations=relations,
-#             partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 0
-
-#     partition = sentences[1]
-#     assert partition == DOC2_SENTENCE2
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,
-#         partition=partition,  # add_special_tokens=add_special_tokens
-#     )
-#     assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
-#         "[CLS]",
-#         "Jenny",
-#         "Du",
-#         "##rka",
-#         "##n",
-#         "is",
-#         "the",
-#         "city",
-#         "'",
-#         "s",
-#         "mayor",
-#         ".",
-#         "[SEP]",
-#     ]
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             # relations=relations,
-#             partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 0
-
-#     document = documents[2]
-#     entities = document.annotations.spans["entities"]
-#     assert len(entities) == 2
-#     assert entities[0] == DOC3_ENTITY_KARL
-#     assert entities[1] == DOC3_ENTITY_BERLIN
-#     sentences = document.annotations.spans["sentences"]
-#     assert len(sentences) == 1
-#     partition = sentences[0]
-#     assert partition == DOC3_SENTENCE1
-
-#     encoding = prepared_taskmodule._encode_text(
-#         document=document,
-#         partition=partition,  # add_special_tokens=add_special_tokens
-#     )
-#     assert prepared_taskmodule.tokenizer.convert_ids_to_tokens(encoding.data["input_ids"]) == [
-#         "[CLS]",
-#         "Karl",
-#         "enjoys",
-#         "sunny",
-#         "days",
-#         "in",
-#         "Berlin",
-#         ".",
-#         "[SEP]",
-#     ]
-
-#     enumerated_entity_pairs = list(
-#         _enumerate_entity_pairs(
-#             entities=entities,
-#             # relations=relations,
-#             partition=partition,
-#         )
-#     )
-#     assert len(enumerated_entity_pairs) == 2
-
-#     head, tail = enumerated_entity_pairs[0]
-#     assert head == DOC3_ENTITY_KARL
-#     assert tail == DOC3_ENTITY_BERLIN
-
-#     head, tail = enumerated_entity_pairs[1]
-#     assert head == DOC3_ENTITY_BERLIN
-#     assert tail == DOC3_ENTITY_KARL
+    assert len(documents) == 8
+    encodings = taskmodule.encode(documents)
+    assert len(encodings) == 3
+    for encoding in encodings:
+        assert len(encoding.inputs["input_ids"]) <= taskmodule.max_window
+    tokens = [
+        taskmodule.tokenizer.convert_ids_to_tokens(encoding.inputs["input_ids"])
+        for encoding in encodings
+    ]
+    assert tokens[0] == [
+        "[CLS]",
+        "at",
+        "[T]",
+        "H",
+        "[/T]",
+        ".",
+        "And",
+        "founded",
+        "[H]",
+        "I",
+        "[/H]",
+        "[SEP]",
+    ]
+    assert tokens[1] == [
+        "[CLS]",
+        ".",
+        "And",
+        "[H]",
+        "it",
+        "[/H]",
+        "founded",
+        "[T]",
+        "O",
+        "[/T]",
+        ".",
+        "[SEP]",
+    ]
+    assert tokens[2] == [
+        "[CLS]",
+        ".",
+        "And",
+        "[T]",
+        "it",
+        "[/T]",
+        "founded",
+        "[H]",
+        "O",
+        "[/H]",
+        ".",
+        "[SEP]",
+    ]
