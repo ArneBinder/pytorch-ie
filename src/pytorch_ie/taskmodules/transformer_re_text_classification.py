@@ -17,7 +17,13 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan, MultiLabeledBinaryRelation, Span
+from pytorch_ie.annotations import (
+    BinaryRelation,
+    LabeledSpan,
+    MultiLabeledBinaryRelation,
+    NaryRelation,
+    Span,
+)
 from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import (
@@ -330,6 +336,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             )
 
             for rel in relations:
+                arg_spans: List[LabeledSpan]
                 if isinstance(rel, BinaryRelation):
                     if not isinstance(rel.head, LabeledSpan) or not isinstance(
                         rel.tail, LabeledSpan
@@ -338,8 +345,16 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                             f"the taskmodule expects the relation arguments to be of type LabeledSpan, "
                             f"but got {type(rel.head)} and {type(rel.tail)}"
                         )
-                    arg_spans: List[LabeledSpan] = [rel.head, rel.tail]
+                    arg_spans = [rel.head, rel.tail]
                     arg_roles = [HEAD, TAIL]
+                elif isinstance(rel, NaryRelation):
+                    if any(not isinstance(arg, LabeledSpan) for arg in rel.arguments):
+                        raise ValueError(
+                            f"the taskmodule expects the relation arguments to be of type LabeledSpan, "
+                            f"but got {[type(arg) for arg in rel.arguments]}"
+                        )
+                    arg_spans = list(rel.arguments)
+                    arg_roles = list(rel.roles)
                 else:
                     raise NotImplementedError(
                         f"the taskmodule does not yet support relations of type: {type(rel)}"
@@ -539,8 +554,9 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self,
         task_encoding: TransformerReTextClassificationTaskEncoding,
         task_output: TransformerReTextClassificationTaskOutput,
-    ) -> Iterator[Tuple[str, Union[BinaryRelation, MultiLabeledBinaryRelation]]]:
+    ) -> Iterator[Tuple[str, Union[BinaryRelation, MultiLabeledBinaryRelation, NaryRelation]]]:
         candidate_annotation = task_encoding.metadata["candidate_annotation"]
+        new_annotation: Union[BinaryRelation, MultiLabeledBinaryRelation, NaryRelation]
         if self.multi_label:
             raise NotImplementedError
         else:
@@ -557,6 +573,15 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
                     head, tail = tail, head
                 new_annotation = BinaryRelation(
                     head=head, tail=tail, label=label, score=probability
+                )
+            elif isinstance(candidate_annotation, NaryRelation):
+                if self.reversed_relation_label_suffix is not None:
+                    raise ValueError(f"can not reverse a NaryRelation")
+                new_annotation = NaryRelation(
+                    arguments=candidate_annotation.arguments,
+                    roles=candidate_annotation.roles,
+                    label=label,
+                    score=probability,
                 )
             else:
                 raise NotImplementedError(
