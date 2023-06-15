@@ -99,30 +99,33 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
     def document_to_target_string(self, document: TextDocument) -> str:
         relations: Sequence[BinaryRelation] = document[self.relation_annotation]
 
-        head_to_relation: Dict[Span, List[BinaryRelation]] = {}
+        head_to_tail_and_label: Dict[LabeledSpan, List[Tuple[LabeledSpan, str]]] = {}
         for relation in relations:
-            if relation.head not in head_to_relation:
-                head_to_relation[relation.head] = []
+            if not isinstance(relation.head, LabeledSpan) or not isinstance(
+                relation.tail, LabeledSpan
+            ):
+                raise TypeError(
+                    f"the taskmodule expects the relation arguments to be of type LabeledSpan, "
+                    f"but got {type(relation.head)} and {type(relation.tail)}"
+                )
+            if relation.head not in head_to_tail_and_label:
+                head_to_tail_and_label[relation.head] = []
 
-            head_to_relation[relation.head].append(relation)
-
-        all_relation_heads = {relation.head for relation in relations}
+            head_to_tail_and_label[relation.head].append((relation.tail, relation.label))
 
         lin_triplets: List[str] = []
-        for head in sorted(all_relation_heads, key=lambda head: head.start):
-            relations_with_head = head_to_relation[head]
+        for head in sorted(head_to_tail_and_label.keys(), key=lambda head: head.start):
+            tail_and_label_for_head = head_to_tail_and_label[head]
 
             head_entity = document.text[head.start : head.end]
 
             lin_triplets.append("<triplet>")
             lin_triplets.append(head_entity)
 
-            for tail_relation in sorted(
-                relations_with_head, key=lambda relation: relation.tail.start
+            for tail, label in sorted(
+                tail_and_label_for_head, key=lambda tail_and_label: tail_and_label[0].start
             ):
-                tail_entity = document.text[tail_relation.tail.start : tail_relation.tail.end]
-
-                label = tail_relation.label
+                tail_entity = document.text[tail.start : tail.end]
 
                 lin_triplets.append("<subj>")
                 lin_triplets.append(tail_entity)

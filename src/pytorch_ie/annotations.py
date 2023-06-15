@@ -105,8 +105,8 @@ class MultiLabeledMultiSpan(Annotation):
 
 @dataclass(eq=True, frozen=True)
 class BinaryRelation(Annotation):
-    head: Span
-    tail: Span
+    head: Annotation
+    tail: Annotation
     label: str
     score: float = 1.0
 
@@ -116,8 +116,8 @@ class BinaryRelation(Annotation):
 
 @dataclass(eq=True, frozen=True)
 class MultiLabeledBinaryRelation(Annotation):
-    head: Span
-    tail: Span
+    head: Annotation
+    tail: Annotation
     label: Tuple[str, ...]
     score: Optional[Tuple[float, ...]] = None
 
