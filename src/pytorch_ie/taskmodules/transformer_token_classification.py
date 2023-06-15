@@ -237,7 +237,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
     def encode_target(
         self,
         task_encoding: TransformerTokenClassificationTaskEncoding,
-    ) -> TransformerTokenClassificationTargetEncoding:
+    ) -> Optional[TransformerTokenClassificationTargetEncoding]:
         metadata = task_encoding.metadata
         document = task_encoding.document
 
@@ -248,13 +248,20 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             partition_index = metadata["sentence_index"]
             partitions = document[self.partition_annotation]
             partition = partitions[partition_index]
-        tag_sequence = convert_span_annotations_to_tag_sequence(
+        tag_sequence_or_none = convert_span_annotations_to_tag_sequence(
             spans=entities,
             special_tokens_mask=metadata["special_tokens_mask"],
             char_to_token_mapper=metadata["char_to_token_mapper"],
             partition=partition,
             statistics=None,
         )
+        if tag_sequence_or_none is None:
+            logger.warning(
+                f"can not create targets for document with id: {getattr(document, 'id', None)}, skip it"
+            )
+            return None
+        else:
+            tag_sequence = tag_sequence_or_none
 
         # exclude labels that are out of the window (when overlap is used)
         window_labels = metadata.get("window_labels")
@@ -334,7 +341,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
             task_encoding.targets for task_encoding in task_encodings
         ]
 
-        sequence_length = torch.tensor(inputs["input_ids"]).shape[1]
+        sequence_length = inputs["input_ids"].shape[1]
         padding_side = self.tokenizer.padding_side
         if padding_side == "right":
             target_list_padded = [
@@ -347,7 +354,6 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 for t in target_list
             ]
 
-        inputs = {k: torch.tensor(v, dtype=torch.int64) for k, v in inputs.items()}
         targets = torch.tensor(target_list_padded, dtype=torch.int64)
 
         return inputs, targets
