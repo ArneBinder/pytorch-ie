@@ -552,6 +552,9 @@ class Document(Mapping[str, Any]):
         )
         return new_doc
 
+    def copy(self) -> "Document":
+        return type(self).fromdict(self.asdict())
+
 
 def resolve_annotation(
     id_or_annotation: Union[int, Annotation],
