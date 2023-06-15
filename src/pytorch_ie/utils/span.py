@@ -165,7 +165,7 @@ def convert_span_annotations_to_tag_sequence(
     char_to_token_mapper: Callable[[int], Optional[int]],
     partition: Optional[Span] = None,
     statistics: Optional[DefaultDict[str, Counter]] = None,
-) -> MutableSequence[Optional[str]]:
+) -> Optional[MutableSequence[Optional[str]]]:
     """
     Given a list of span annotations, a character position to token mapper (as obtained from
     batch_encoding.char_to_token) and a special tokens mask, create a sequence of tags with the length of the
@@ -199,8 +199,8 @@ def convert_span_annotations_to_tag_sequence(
 
         for j in range(start_idx, end_idx + 1):
             if tag_sequence[j] is not None and tag_sequence[j] != "O":
-                # TODO: is ValueError a good exception type for this?
-                raise ValueError(f"tag already assigned (current span has an overlap: {span})")
+                logger.warning(f"tag already assigned (current span has an overlap: {span}).")
+                return None
             prefix = "B" if j == start_idx else "I"
             tag_sequence[j] = f"{prefix}-{span.label}"
 
