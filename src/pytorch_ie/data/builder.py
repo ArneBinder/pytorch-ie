@@ -20,7 +20,11 @@ def get_general_dataset_builder_parent_class(
 
 
 class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
+    # The default pytorch-ie document type for the dataset.
     DOCUMENT_TYPE: Optional[Type[Document]] = None
+    # A mapping from config names to PIE document types. Use this to specify individual
+    # document types per config.
+    DOCUMENT_TYPES: Dict[str, Type[Document]] = {}
 
     # The default path to the Huggingface dataset loading script that will be used as base dataset.
     BASE_DATASET_PATH: Optional[str] = None
@@ -93,6 +97,10 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def _split_generators(self, dl_manager):
         return self.base_builder._split_generators(dl_manager)
 
+    @property
+    def document_type(self) -> Optional[Type[Document]]:
+        return self.DOCUMENT_TYPES.get(self.config.name, self.DOCUMENT_TYPE)
+
     @abc.abstractmethod
     def _generate_document(self, example, **kwargs):
         pass
@@ -111,9 +119,11 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def _convert_dataset_single(
         self, dataset: Union[hf_datasets.Dataset, hf_datasets.IterableDataset]
     ) -> Union[Dataset, IterableDataset]:
-        if self.DOCUMENT_TYPE is None:
-            raise TypeError("the builder has no DOCUMENT_TYPE defined")
-        document_type = self.DOCUMENT_TYPE
+        document_type = self.document_type
+        if document_type is None:
+            raise TypeError(
+                f"the builder has no DOCUMENT_TYPE or DOCUMENT_TYPES[{self.config.name}] defined"
+            )
 
         fn = decorate_convert_to_dict_of_lists(self._generate_document)
         fn_kwargs = self._generate_document_kwargs(dataset)
@@ -127,7 +137,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             )
         else:
             raise TypeError(
-                f"hugginggface dataset has unknown type: {type(mapped_dataset).__name__}. Expected: "
+                f"huggingface dataset has unknown type: {type(mapped_dataset).__name__}. Expected: "
                 f"{hf_datasets.Dataset.__name__} or {hf_datasets.IterableDataset.__name__}"
             )
 
