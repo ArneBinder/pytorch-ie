@@ -89,6 +89,10 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             if "hash" in kwargs:
                 kwargs["hash"] = f"{kwargs['hash']}-{self.base_builder.config_id}"
 
+            # set base path to base builder base path. This is required so that the download manager
+            # works correctly with relative paths.
+            kwargs["base_path"] = self.base_builder.base_path
+
         super().__init__(**kwargs)
 
     def _info(self):
