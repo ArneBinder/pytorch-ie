@@ -34,6 +34,17 @@ def _post_init_multi_span(self):
         object.__setattr__(self, "slices", tuple(tuple(s) for s in self.slices))
 
 
+def _post_init_arguments_and_roles(self):
+    if len(self.arguments) != len(self.roles):
+        raise ValueError(
+            f"Number of arguments ({len(self.arguments)}) and roles ({len(self.roles)}) must be equal"
+        )
+    if not isinstance(self.arguments, tuple):
+        object.__setattr__(self, "arguments", tuple(self.arguments))
+    if not isinstance(self.roles, tuple):
+        object.__setattr__(self, "roles", tuple(self.roles))
+
+
 @dataclass(eq=True, frozen=True)
 class Label(Annotation):
     label: str
@@ -123,3 +134,15 @@ class MultiLabeledBinaryRelation(Annotation):
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
+
+
+@dataclass(eq=True, frozen=True)
+class NaryRelation(Annotation):
+    arguments: Tuple[Annotation, ...]
+    roles: Tuple[str, ...]
+    label: str
+    score: float = 1.0
+
+    def __post_init__(self) -> None:
+        _post_init_arguments_and_roles(self)
+        _post_init_single_label(self)
