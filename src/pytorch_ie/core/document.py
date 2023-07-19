@@ -336,12 +336,14 @@ class BaseAnnotationList(Sequence[T]):
     def __repr__(self) -> str:
         return f"BaseAnnotationList({str(self._annotations)})"
 
-    def clear(self):
+    def clear(self) -> List[T]:
+        result = list(self._annotations)
         for annotation in self._annotations:
             annotation.set_targets(None)
         self._annotations = []
+        return result
 
-    def pop(self, index: int = -1):
+    def pop(self, index: int = -1) -> T:
         ann = self._annotations.pop(index)
         ann.set_targets(None)
         return ann
