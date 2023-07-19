@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Tuple
 
 import pytest
 
-from pytorch_ie.annotations import Span, _post_init_single_label
 from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
     AnnotationList,
@@ -17,6 +16,12 @@ from pytorch_ie.core.document import (
     _is_tuple_of_annotation_types,
     annotation_field,
 )
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
+class Span(Annotation):
+    start: int
+    end: int
 
 
 def _test_annotation_reconstruction(
@@ -173,9 +178,6 @@ def test_annotation_with_optional_reference():
         trigger: Optional[Span] = None
         score: float = 1.0
 
-        def __post_init__(self) -> None:
-            _post_init_single_label(self)
-
     head = Span(start=1, end=2)
     tail = Span(start=3, end=4)
     trigger = Span(start=5, end=7)
@@ -230,9 +232,6 @@ def test_annotation_with_tuple_of_references():
         label: str
         evidence: Tuple[Span, ...]
         score: float = 1.0
-
-        def __post_init__(self) -> None:
-            _post_init_single_label(self)
 
     head = Span(start=1, end=2)
     tail = Span(start=3, end=4)
