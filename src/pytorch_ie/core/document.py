@@ -279,6 +279,21 @@ class Annotation:
     def is_attached(self) -> bool:
         return self._targets is not None
 
+    def copy(self, **overrides) -> "Annotation":
+        """
+        Create a detached copy of the annotation with the same values as the original.
+
+        :param overrides: keyword arguments to override the values of the original annotation
+        :return: a detached copy of the annotation
+        """
+        kwargs = {}
+        for f in dataclasses.fields(self):
+            if f.name == "_targets":
+                continue
+            kwargs[f.name] = getattr(self, f.name)
+        kwargs.update(overrides)
+        return type(self)(**kwargs)
+
 
 T = TypeVar("T", covariant=False, bound="Annotation")
 
