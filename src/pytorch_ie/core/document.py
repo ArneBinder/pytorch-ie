@@ -322,7 +322,7 @@ class BaseAnnotationList(Sequence[T]):
             annotation.set_targets(None)
         self._annotations = []
 
-    def pop(self, index=None):
+    def pop(self, index: int = -1):
         ann = self._annotations.pop(index)
         ann.set_targets(None)
         return ann
