@@ -7,12 +7,15 @@ import pytest
 from pytorch_ie.annotations import Span, _post_init_single_label
 from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
+    AnnotationList,
+    Document,
     _contains_annotation_type,
     _get_reference_fields_and_container_types,
     _is_annotation_type,
     _is_optional_annotation_type,
     _is_optional_type,
     _is_tuple_of_annotation_types,
+    annotation_field,
 )
 
 
@@ -261,3 +264,18 @@ def test_annotation_with_tuple_of_references():
         evidence2._id: evidence2,
     }
     _test_annotation_reconstruction(relation, annotation_store=annotation_store)
+
+
+def test_annotation_is_attached():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationList[Span] = annotation_field(target="text")
+
+    document = MyDocument(text="Hello world!")
+    word = Span(start=0, end=5)
+    assert not word.is_attached
+    document.words.append(word)
+    assert word.is_attached
+    document.words.pop()
+    assert not word.is_attached

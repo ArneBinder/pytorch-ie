@@ -275,6 +275,10 @@ class Annotation:
         tmp_dct.pop("_id", None)
         return cls(**tmp_dct)
 
+    @property
+    def is_attached(self) -> bool:
+        return self._targets is not None
+
 
 T = TypeVar("T", covariant=False, bound="Annotation")
 
