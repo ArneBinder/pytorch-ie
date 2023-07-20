@@ -337,6 +337,9 @@ class BaseAnnotationList(Sequence[T]):
         return f"BaseAnnotationList({str(self._annotations)})"
 
     def clear(self) -> List[T]:
+        """
+        Detach all annotations from the layer and return them.
+        """
         result = list(self._annotations)
         for annotation in self._annotations:
             annotation.set_targets(None)
