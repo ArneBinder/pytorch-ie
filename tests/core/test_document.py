@@ -4,16 +4,24 @@ from typing import Dict, List, Optional, Tuple
 
 import pytest
 
-from pytorch_ie.annotations import Span, _post_init_single_label
 from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
+    AnnotationList,
+    Document,
     _contains_annotation_type,
     _get_reference_fields_and_container_types,
     _is_annotation_type,
     _is_optional_annotation_type,
     _is_optional_type,
     _is_tuple_of_annotation_types,
+    annotation_field,
 )
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
+class Span(Annotation):
+    start: int
+    end: int
 
 
 def _test_annotation_reconstruction(
@@ -170,9 +178,6 @@ def test_annotation_with_optional_reference():
         trigger: Optional[Span] = None
         score: float = 1.0
 
-        def __post_init__(self) -> None:
-            _post_init_single_label(self)
-
     head = Span(start=1, end=2)
     tail = Span(start=3, end=4)
     trigger = Span(start=5, end=7)
@@ -228,9 +233,6 @@ def test_annotation_with_tuple_of_references():
         evidence: Tuple[Span, ...]
         score: float = 1.0
 
-        def __post_init__(self) -> None:
-            _post_init_single_label(self)
-
     head = Span(start=1, end=2)
     tail = Span(start=3, end=4)
     evidence1 = Span(start=5, end=7)
@@ -261,3 +263,74 @@ def test_annotation_with_tuple_of_references():
         evidence2._id: evidence2,
     }
     _test_annotation_reconstruction(relation, annotation_store=annotation_store)
+
+
+def test_annotation_is_attached():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationList[Span] = annotation_field(target="text")
+
+    document = MyDocument(text="Hello world!")
+    word = Span(start=0, end=5)
+    assert not word.is_attached
+    document.words.append(word)
+    assert word.is_attached
+    document.words.pop()
+    assert not word.is_attached
+
+
+def test_annotation_copy():
+    @dataclasses.dataclass(eq=True, frozen=True)
+    class Attribute(Annotation):
+        annotation: Annotation
+        label: str
+
+        def __repr__(self):
+            return f"Attribute(annotation={self.annotation}, label={self.label})"
+
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationList[Span] = annotation_field(target="text")
+        attributes: AnnotationList[Attribute] = annotation_field(target="words")
+
+    document = MyDocument(text="Hello world!")
+    word = Span(start=0, end=5)
+    attribute = Attribute(annotation=word, label="label")
+    # both annotations are not yet attached
+    assert not word.is_attached
+    assert not attribute.is_attached
+    # copy the annotations
+    attribute_copy0 = attribute.copy()
+    word_copy0 = word.copy()
+    # now attach the annotations
+    document.words.append(word)
+    document.attributes.append(attribute)
+    assert word.is_attached
+    assert attribute.is_attached
+    # copy the annotations again
+    word_copy1 = word.copy()
+    attribute_copy1 = attribute.copy()
+    # check that the copies are not attached
+    assert not word_copy1.is_attached
+    assert not attribute_copy1.is_attached
+    # check that the copies have the same values as the originals
+    assert word_copy1.start == word.start
+    assert word_copy1.end == word.end
+    assert attribute_copy1.annotation == attribute.annotation
+    assert attribute_copy1.label == attribute.label
+    # check that the copies before attaching the originals are the same as the copies after attaching the originals
+    assert word_copy1 == word_copy0
+    assert attribute_copy1 == attribute_copy0
+
+    # create a copy of the attribute, but let it point to a new word, i.e. overwrite a field
+    new_word = Span(start=6, end=11)
+    document.words.append(new_word)
+    attribute_copy2 = attribute.copy(annotation=new_word)
+    document.attributes.append(attribute_copy2)
+    assert len(document.attributes) == 2
+    assert str(document.attributes[0]) == "Attribute(annotation=Span(start=0, end=5), label=label)"
+    assert (
+        str(document.attributes[1]) == "Attribute(annotation=Span(start=6, end=11), label=label)"
+    )
