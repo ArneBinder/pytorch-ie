@@ -351,6 +351,22 @@ class BaseAnnotationList(Sequence[T]):
         ann.set_targets(None)
         return ann
 
+    @property
+    def target_layers(self) -> dict[str, "AnnotationList"]:
+        return {
+            target_layer_name: self._document[target_layer_name]
+            for target_layer_name in self._targets
+            if target_layer_name in self._document
+        }
+
+    @property
+    def target_fields(self) -> dict[str, Any]:
+        return {
+            target_field_name: getattr(self, target_field_name)
+            for target_field_name in self._targets
+            if hasattr(self, target_field_name)
+        }
+
 
 class AnnotationList(BaseAnnotationList[T]):
     def __init__(self, document: "Document", targets: List["str"]):
