@@ -34,6 +34,8 @@ def get_pie_dataset_type(
 
 class DatasetDict(datasets.DatasetDict):
     def __getitem__(self, k) -> Union[Dataset, IterableDataset]:  # type: ignore
+        """returns an individual dataset split"""
+
         dataset = super().__getitem__(k)
         if isinstance(dataset, (Dataset, IterableDataset)):
             return dataset
@@ -50,6 +52,13 @@ class DatasetDict(datasets.DatasetDict):
         hf_dataset: Union[datasets.DatasetDict, datasets.IterableDatasetDict],
         document_type: Union[str, Type[Document]],
     ) -> "DatasetDict":
+        """Creates a PIE DatasetDict from a HuggingFace DatasetDict.
+
+        Args:
+            hf_dataset: HuggingFace DatasetDict
+            document_type: document type of the dataset
+        """
+
         doc_type = resolve_target(document_type)
         if not isinstance(doc_type, type) or not issubclass(doc_type, Document):
             raise TypeError(f"document_type must be a subclass of Document, but is {doc_type}")
@@ -67,12 +76,27 @@ class DatasetDict(datasets.DatasetDict):
         document_type: Union[Type[Document], str],
         **kwargs,
     ) -> "DatasetDict":
+        """Creates a PIE DatasetDict from JSONLINE files. Uses `datasets.load_dataset("json")` under the hood.
+
+        Args:
+            document_type: document type of the dataset
+            **kwargs: additional keyword arguments for `datasets.load_dataset()`
+        """
+
         hf_dataset_dict = datasets.load_dataset("json", **kwargs)
         if not isinstance(hf_dataset_dict, (datasets.DatasetDict, datasets.IterableDatasetDict)):
             raise TypeError(f"expected datasets.DatasetDict, but got {type(hf_dataset_dict)}")
         return cls.from_hf_dataset(hf_dataset_dict, document_type=document_type)
 
     def to_json(self, path: Union[str, Path], **kwargs) -> None:
+        """Serializes the DatasetDict. We convert all documents with `.asdict()`
+        and dump them with `json.dump()` to one JSONLINE file per split.
+
+        Args:
+            path: path to the output directory
+            **kwargs: additional keyword arguments for `json.dump()`
+        """
+
         path = Path(path)
         for split, dataset in self.items():
             split_path = path / split
@@ -85,10 +109,10 @@ class DatasetDict(datasets.DatasetDict):
 
     @property
     def document_type(self) -> Type[Document]:
-        """Returns the document type of the dataset.
+        """Returns the document type of the dataset splits.
 
-        If there are no splits in the dataset, returns None. Raises an error if the dataset splits
-        have different document types.
+        Raises an error if there are no splits in the dataset or if the dataset splits have different
+        document types.
         """
 
         if len(self) == 0:
@@ -102,10 +126,10 @@ class DatasetDict(datasets.DatasetDict):
 
     @property
     def dataset_type(self) -> Union[Type[Dataset], Type[IterableDataset]]:
-        """Returns the dataset type of the dataset.
+        """Returns the dataset type of the dataset splits, i.e. either `Dataset` or `IterableDataset`.
 
-        If there are no splits in the dataset, returns None. Raises an error if the dataset splits
-        have different dataset types.
+        Raises an error if there are no splits in the dataset or if the dataset splits have different
+        dataset types.
         """
 
         if len(self) == 0:
@@ -125,6 +149,28 @@ class DatasetDict(datasets.DatasetDict):
         result_document_type: Optional[Union[str, Type[Document]]] = None,
         **kwargs,
     ) -> "DatasetDict":
+        """Applies a function to all documents in the dataset.
+
+        If the function is an object and is derived from the following mixins, the respective logic
+        is applied:
+        - EnterDatasetMixin: `enter_dataset(dataset_split, split_name)` is called before the function is
+            applied to a dataset split
+        - ExitDatasetMixin: `exit_dataset(processed_dataset_split, split_name)` is called after the function
+            is applied to a dataset split
+        - EnterDatasetDictMixin: `enter_dataset_dict(dataset_dict)` is called before any dataset split is
+            processed (and before any `enter_dataset()` is called)
+        - ExitDatasetDictMixin: `exit_dataset_dict(processed_dataset_dict)` is called after all dataset splits
+            are processed (and after all `exit_dataset()` are called)
+
+        Args:
+            function: function to apply to the documents. If `None`, the identity function is used. If `str`,
+                the function is resolved from the global namespace.
+            result_document_type: document type of the resulting dataset. If `None`, it is tried to infer it
+                from the function signature. If this is not possible, the document type of the input dataset
+                is used.
+            **kwargs: additional keyword arguments for `datasets.Dataset.map()`
+        """
+
         if function is not None:
             func = resolve_target(function)
             if not callable(func):
@@ -166,6 +212,18 @@ class DatasetDict(datasets.DatasetDict):
         step: Optional[SupportsIndex] = None,
         **kwargs,
     ) -> "DatasetDict":
+        """Reduce a certain dataset split to a selection of its documents. This is similar to the Huggingface
+        `select()`, but adds optional parameters `start`, `stop`, `step` that will be used to create indices,
+        if available.
+
+        Args:
+            split: name of the dataset split to modify
+            start: optional start index of the selection
+            stop: optional stop index of the selection
+            step: optional step size of the selection
+            **kwargs: additional keyword arguments for `datasets.Dataset.select()`
+        """
+
         if stop is not None:
             range_args = [stop]
             if start is not None:
@@ -198,6 +256,13 @@ class DatasetDict(datasets.DatasetDict):
         mapping: Optional[Dict[str, str]] = None,
         keep_other_splits: bool = True,
     ) -> "DatasetDict":
+        """Renames the dataset splits.
+
+        Args:
+            mapping: mapping from old split names to new split names.
+            keep_other_splits: if `True` (default), splits not contained in `mapping` are kept in the dataset
+        """
+
         if mapping is None:
             mapping = {}
         result = type(self)(
@@ -215,6 +280,9 @@ class DatasetDict(datasets.DatasetDict):
         target_split: str = "test",
         **kwargs,
     ) -> "DatasetDict":
+        """Adds a test split to the dataset by splitting the source split. Uses the Huggingface
+        `train_test_split()` method."""
+
         pie_split = self[source_split]
         if not isinstance(pie_split, Dataset):
             raise TypeError(
@@ -236,10 +304,23 @@ class DatasetDict(datasets.DatasetDict):
         return res
 
     def drop_splits(self, split_names: List[str]) -> "DatasetDict":
+        """Drops splits from the dataset.
+
+        Args:
+            split_names: names of the splits to drop
+        """
+
         result = type(self)({name: ds for name, ds in self.items() if name not in split_names})
         return result
 
     def concat_splits(self, splits: List[str], target: str) -> "DatasetDict":
+        """Concatenates selected splits into a new split.
+
+        Args:
+            splits: names of the splits to concatenate
+            target: name of the new split
+        """
+
         if any(split not in self for split in splits):
             raise ValueError(
                 f"not all splits to concatenate are present in the dataset: {splits}, {self.keys()}"
@@ -274,10 +355,25 @@ class DatasetDict(datasets.DatasetDict):
     def filter(  # type: ignore
         self,
         split: str,
-        function: Optional[Union[Callable, str]] = None,
+        function: Optional[Union[Callable[[Dict], bool], str]] = None,
         result_split_name: Optional[str] = None,
         **kwargs,
     ) -> "DatasetDict":
+        """Filters a dataset split using a filter function.
+
+        Note: In contrast to `map`, the filter function gets the example dict instead of a document as input
+        because the PIE variant of `Dataset.filter()` is not yet implemented and, thus, the Huggingface
+        variant is internally used instead.
+
+        Args:
+            split: name of the split to filter
+            function: filter function that is called on each example dict. Can be provided as a callable or as a
+                string that is resolved to a callable using `resolve_target()`.
+            result_split_name: name of the split to store the filtered examples in. If `None`, the filtered examples
+                are stored in the same split as the original examples.
+
+        """
+
         if function is not None:
             # create a shallow copy to not modify the input
             result = type(self)(self)
@@ -318,6 +414,17 @@ class DatasetDict(datasets.DatasetDict):
         source_split: str = "train",
         target_split: str = "test",
     ) -> "DatasetDict":
+        """Moves examples from one split to another split. ids or a filter function can be provided to select the
+        examples to move.
+
+        Args:
+            ids: list of ids of the examples to move
+            filter_function: filter function that is called on each example dict. Can be provided as a callable or as a
+                string that is resolved to a callable using `resolve_target()`.
+            source_split: name of the split to move the examples from
+            target_split: name of the split to move the examples to
+        """
+
         if filter_function is not None:
             filter_func = resolve_target(filter_function)
         else:
@@ -349,6 +456,8 @@ class DatasetDict(datasets.DatasetDict):
     def cast_document_type(
         self, new_document_type: Union[Type[Document], str], **kwargs
     ) -> "DatasetDict":
+        """Casts the document type of all splits to a new document type."""
+
         new_type = resolve_target(new_document_type)
 
         result = type(self)(
