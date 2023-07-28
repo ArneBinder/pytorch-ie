@@ -87,10 +87,9 @@ def test_to_json_and_back(dataset_dict, tmp_path):
 def test_document_type_empty_no_splits():
     with pytest.raises(ValueError) as excinfo:
         DatasetDict().document_type
-        assert (
-            str(excinfo.value)
-            == "dataset does not contain any splits, cannot determine document type"
-        )
+    assert (
+        str(excinfo.value) == "dataset does not contain any splits, cannot determine document type"
+    )
 
 
 def test_document_type_different_types(dataset_dict):
@@ -111,9 +110,7 @@ def test_document_type_different_types(dataset_dict):
     # "dataset contains splits with different document types:"
     with pytest.raises(ValueError) as excinfo:
         dataset_dict_different_types.document_type
-        assert str(excinfo.value).startswith(
-            "dataset contains splits with different document types:"
-        )
+    assert str(excinfo.value).startswith("dataset contains splits with different document types:")
 
 
 def test_dataset_type(dataset_dict):
@@ -123,9 +120,10 @@ def test_dataset_type(dataset_dict):
 def test_dataset_type_no_splits():
     with pytest.raises(ValueError) as excinfo:
         DatasetDict().dataset_type
-        assert (
-            excinfo.value == "dataset does not contain any splits, cannot determine dataset type"
-        )
+    assert (
+        str(excinfo.value)
+        == "dataset does not contain any splits, cannot determine the dataset type"
+    )
 
 
 def test_dataset_type_different_type(dataset_dict, iterable_dataset_dict):
@@ -137,7 +135,7 @@ def test_dataset_type_different_type(dataset_dict, iterable_dataset_dict):
     )
     with pytest.raises(ValueError) as excinfo:
         dataset_dict_different_type.dataset_type
-        assert excinfo.value == "dataset contains splits with different dataset types"
+    assert str(excinfo.value).startswith("dataset contains splits with different dataset types:")
 
 
 def test_get_pie_dataset_type():
@@ -330,7 +328,7 @@ def test_concat_splits(dataset_dict):
 def test_concat_splits_no_splits(dataset_dict):
     with pytest.raises(ValueError) as excinfo:
         dataset_dict.concat_splits(splits=[], target="train")
-        assert excinfo.value == "please provide at least one split to concatenate"
+    assert str(excinfo.value) == "please provide at least one split to concatenate"
 
 
 def test_concat_splits_different_dataset_types(dataset_dict, iterable_dataset_dict):
@@ -342,7 +340,11 @@ def test_concat_splits_different_dataset_types(dataset_dict, iterable_dataset_di
     )
     with pytest.raises(ValueError) as excinfo:
         dataset_dict_to_concat.concat_splits(splits=["train", "validation"], target="train")
-        assert excinfo.value.startswith("dataset types of splits to concatenate differ:")
+    assert (
+        str(excinfo.value)
+        == "dataset contains splits with different dataset types: {<class 'pytorch_ie.data.dataset.Dataset'>, "
+        "<class 'pytorch_ie.data.dataset.IterableDataset'>}"
+    )
 
 
 def test_filter(dataset_dict):
@@ -377,7 +379,7 @@ def test_filter_unknown_dataset_type():
     dataset_dict = DatasetDict({"train": "foo"})
     with pytest.raises(TypeError) as excinfo:
         dataset_dict.filter(function=lambda doc: True, split="train")
-        assert excinfo.value == "dataset must be of type Dataset, but is <class 'str'>"
+    assert str(excinfo.value) == "dataset must be of type Dataset, but is <class 'str'>"
 
 
 def test_filter_noop(dataset_dict):
@@ -426,7 +428,7 @@ def test_move_to_new_split_missing_arguments(dataset_dict):
             source_split="train",
             target_split="new_validation",
         )
-        assert excinfo.value == "please provide either a list of ids or a filter function"
+    assert str(excinfo.value) == "please provide either a list of ids or a filter function"
 
 
 def test_cast_document_type(dataset_dict):
