@@ -47,21 +47,29 @@ class DatasetDict(datasets.DatasetDict):
     #    return cls(datasets.load_dataset(*args, **kwargs))
 
     @classmethod
-    def from_hf_dataset(
+    def from_hf(
         cls,
-        hf_dataset: Union[datasets.DatasetDict, datasets.IterableDatasetDict],
+        hf_dataset: Union[
+            datasets.DatasetDict,
+            datasets.IterableDatasetDict,
+            datasets.Dataset,
+            datasets.IterableDataset,
+        ],
         document_type: Union[str, Type[Document]],
     ) -> "DatasetDict":
-        """Creates a PIE DatasetDict from a HuggingFace DatasetDict.
+        """Creates a PIE DatasetDict from a HuggingFace DatasetDict, IterableDatasetDict, Dataset, or IterableDataset.
+        If the input is a Dataset or IterableDataset, we create a DatasetDict with one split named "train".
 
         Args:
-            hf_dataset: HuggingFace DatasetDict
+            hf_dataset: HuggingFace (Iterable)Dataset(Dict)
             document_type: document type of the dataset
         """
 
         doc_type = resolve_target(document_type)
         if not isinstance(doc_type, type) or not issubclass(doc_type, Document):
             raise TypeError(f"document_type must be a subclass of Document, but is {doc_type}")
+        if isinstance(hf_dataset, (datasets.Dataset, datasets.IterableDataset)):
+            hf_dataset = datasets.DatasetDict({"train": hf_dataset})
         res = cls(
             {
                 k: get_pie_dataset_type(v).from_hf_dataset(v, document_type=doc_type)
@@ -83,10 +91,22 @@ class DatasetDict(datasets.DatasetDict):
             **kwargs: additional keyword arguments for `datasets.load_dataset()`
         """
 
-        hf_dataset_dict = datasets.load_dataset("json", **kwargs)
-        if not isinstance(hf_dataset_dict, (datasets.DatasetDict, datasets.IterableDatasetDict)):
-            raise TypeError(f"expected datasets.DatasetDict, but got {type(hf_dataset_dict)}")
-        return cls.from_hf_dataset(hf_dataset_dict, document_type=document_type)
+        hf_dataset = datasets.load_dataset("json", **kwargs)
+        if isinstance(
+            hf_dataset,
+            (
+                datasets.DatasetDict,
+                datasets.IterableDatasetDict,
+                datasets.Dataset,
+                datasets.IterableDataset,
+            ),
+        ):
+            return cls.from_hf(hf_dataset, document_type=document_type)
+        else:
+            raise TypeError(
+                f"expected datasets.DatasetDict, datasets.IterableDatasetDict, datasets.Dataset, "
+                f"or datasets.IterableDataset, but got {type(hf_dataset)}"
+            )
 
     def to_json(self, path: Union[str, Path], **kwargs) -> None:
         """Serializes the DatasetDict. We convert all documents with `.asdict()`
