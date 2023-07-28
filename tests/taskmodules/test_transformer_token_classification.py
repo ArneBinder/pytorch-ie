@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import numpy as np
 import pytest
@@ -17,7 +17,7 @@ def _config_to_str(cfg: Dict[str, Any]) -> str:
     return result
 
 
-CONFIGS = [
+CONFIGS: List[Dict[str, Any]] = [
     {},
     {"max_window": 8},
     {"max_window": 8, "window_overlap": 2},
