@@ -62,7 +62,8 @@ class DatasetDict(datasets.DatasetDict):
 
         Args:
             hf_dataset: HuggingFace (Iterable)Dataset(Dict)
-            document_type: document type of the dataset
+            document_type: document type of the dataset. Can be a subclass of Document or string that can be
+                resolved to such a type.
         """
 
         doc_type = resolve_target(document_type)
@@ -185,8 +186,9 @@ class DatasetDict(datasets.DatasetDict):
         Args:
             function: function to apply to the documents. If `None`, the identity function is used. If `str`,
                 the function is resolved from the global namespace.
-            result_document_type: document type of the resulting dataset. If `None`, it is tried to infer it
-                from the function signature. If this is not possible, the document type of the input dataset
+            result_document_type: optional document type of the resulting dataset. Can be a subclass of Document or
+                string that can be resolved to such a type. If not provided, it is tried to infer it from the
+                function signature. If this is not possible, the document type of the input dataset
                 is used.
             **kwargs: additional keyword arguments for `datasets.Dataset.map()`
         """
@@ -440,7 +442,7 @@ class DatasetDict(datasets.DatasetDict):
         Args:
             ids: list of ids of the examples to move
             filter_function: filter function that is called on each example dict. Can be provided as a callable or as a
-                string that is resolved to a callable using `resolve_target()`.
+                string that can be resolved to such a callable.
             source_split: name of the split to move the examples from
             target_split: name of the split to move the examples to
         """
