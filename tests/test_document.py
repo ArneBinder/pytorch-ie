@@ -504,3 +504,56 @@ def test_annotation_list_artificial_root_error():
         ),
     ):
         doc = TestDocument(text="text1")
+
+
+def test_annotation_list_targets():
+    @dataclasses.dataclass
+    class TestDocument(Document):
+        text: str
+        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations1: AnnotationList[BinaryRelation] = annotation_field(target="entities1")
+        relations2: AnnotationList[BinaryRelation] = annotation_field(
+            targets=["entities1", "entities2"]
+        )
+
+    doc = TestDocument(text="text1")
+
+    # test getting all targets
+    assert doc.entities1.targets == {"text": doc.text}
+    assert doc.entities2.targets == {"text": doc.text}
+    assert doc.relations1.targets == {"entities1": doc.entities1}
+    assert doc.relations2.targets == {"entities1": doc.entities1, "entities2": doc.entities2}
+
+    # test getting a single target
+    assert doc.entities1.target == doc.text
+    assert doc.entities2.target == doc.text
+    assert doc.relations1.target == doc.entities1
+    # check that the target of relations2 is not set because it has more than one target
+    with pytest.raises(ValueError) as excinfo:
+        doc.relations2.target
+    assert (
+        str(excinfo.value)
+        == "The annotation layer has more or less than one target: ['entities1', 'entities2']"
+    )
+
+    # test getting all target layers
+    assert doc.entities1.target_layers == {}
+    assert doc.entities2.target_layers == {}
+    assert doc.relations1.target_layers == {"entities1": doc.entities1}
+    assert doc.relations2.target_layers == {"entities1": doc.entities1, "entities2": doc.entities2}
+
+    # test getting a single target layer
+    with pytest.raises(ValueError) as excinfo:
+        doc.entities1.target_layer
+    assert str(excinfo.value) == "The annotation layer has more or less than one target layer: []"
+    with pytest.raises(ValueError) as excinfo:
+        doc.entities2.target_layer
+    assert str(excinfo.value) == "The annotation layer has more or less than one target layer: []"
+    assert doc.relations1.target_layer == doc.entities1
+    with pytest.raises(ValueError) as excinfo:
+        doc.relations2.target_layer
+    assert (
+        str(excinfo.value)
+        == "The annotation layer has more or less than one target layer: ['entities1', 'entities2']"
+    )

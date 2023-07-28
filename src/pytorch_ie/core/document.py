@@ -351,6 +351,39 @@ class BaseAnnotationList(Sequence[T]):
         ann.set_targets(None)
         return ann
 
+    @property
+    def targets(self) -> dict[str, Any]:
+        return {
+            target_field_name: getattr(self._document, target_field_name)
+            for target_field_name in self._targets
+        }
+
+    @property
+    def target(self) -> Any:
+        tgts = self.targets
+        if len(tgts) != 1:
+            raise ValueError(
+                f"The annotation layer has more or less than one target: {self._targets}"
+            )
+        return list(tgts.values())[0]
+
+    @property
+    def target_layers(self) -> dict[str, "AnnotationList"]:
+        return {
+            target_name: target
+            for target_name, target in self.targets.items()
+            if isinstance(target, AnnotationList)
+        }
+
+    @property
+    def target_layer(self) -> "AnnotationList":
+        tgt_layers = self.target_layers
+        if len(tgt_layers) != 1:
+            raise ValueError(
+                f"The annotation layer has more or less than one target layer: {list(tgt_layers.keys())}"
+            )
+        return list(tgt_layers.values())[0]
+
 
 class AnnotationList(BaseAnnotationList[T]):
     def __init__(self, document: "Document", targets: List["str"]):
