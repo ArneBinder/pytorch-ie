@@ -24,11 +24,6 @@ logger = logging.getLogger(__name__)
 DATA_PATH = FIXTURES_ROOT / "dataset_dict" / "conll2003_extract"
 
 
-@pytest.fixture(scope="module")
-def dataset():
-    return datasets.load_dataset("pie/conll2003")
-
-
 @pytest.mark.skip(reason="don't create fixture data again")
 def test_create_fixture_data():
     conll2003 = DatasetDict(datasets.load_dataset("pie/conll2003"))
@@ -55,6 +50,17 @@ def test_from_json(dataset_dict):
     assert len(dataset_dict["train"]) == 3
     assert len(dataset_dict["test"]) == 3
     assert len(dataset_dict["validation"]) == 3
+
+
+def test_load_dataset():
+    dataset_dict = DatasetDict.load_dataset(
+        "pie/brat", base_dataset_kwargs=dict(data_dir=FIXTURES_ROOT / "datasets" / "brat")
+    )
+    assert isinstance(dataset_dict, DatasetDict)
+    assert set(dataset_dict) == {"train"}
+    assert isinstance(dataset_dict["train"], Dataset)
+    assert len(dataset_dict["train"]) == 2
+    assert all(isinstance(doc, Document) for doc in dataset_dict["train"])
 
 
 @pytest.fixture(scope="module")
@@ -340,11 +346,7 @@ def test_concat_splits_different_dataset_types(dataset_dict, iterable_dataset_di
     )
     with pytest.raises(ValueError) as excinfo:
         dataset_dict_to_concat.concat_splits(splits=["train", "validation"], target="train")
-    assert (
-        str(excinfo.value)
-        == "dataset contains splits with different dataset types: {<class 'pytorch_ie.data.dataset.Dataset'>, "
-        "<class 'pytorch_ie.data.dataset.IterableDataset'>}"
-    )
+    assert str(excinfo.value).startswith("dataset contains splits with different dataset types:")
 
 
 def test_filter(dataset_dict):

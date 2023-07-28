@@ -42,9 +42,9 @@ class DatasetDict(datasets.DatasetDict):
         else:
             raise TypeError(f"dataset must be of type Dataset, but is {type(dataset)}")
 
-    # @classmethod
-    # def load_dataset(cls, *args, **kwargs) -> "DatasetDict":
-    #    return cls(datasets.load_dataset(*args, **kwargs))
+    @classmethod
+    def load_dataset(cls, *args, **kwargs) -> "DatasetDict":
+        return cls(datasets.load_dataset(*args, **kwargs))
 
     @classmethod
     def from_hf(
