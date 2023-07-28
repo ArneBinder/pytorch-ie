@@ -1,0 +1,3 @@
+{"text": "EU rejects German call to boycott British lamb .", "id": "0", "metadata": null, "entities": {"annotations": [{"start": 0, "end": 2, "label": "ORG", "score": 1.0, "_id": 39952992052351924}, {"start": 11, "end": 17, "label": "MISC", "score": 1.0, "_id": 763975142086013}, {"start": 34, "end": 41, "label": "MISC", "score": 1.0, "_id": -7419908469109575363}], "predictions": []}}
+{"text": "Peter Blackburn", "id": "1", "metadata": null, "entities": {"annotations": [{"start": 0, "end": 15, "label": "PER", "score": 1.0, "_id": -2336977660267910410}], "predictions": []}}
+{"text": "BRUSSELS 1996-08-22", "id": "2", "metadata": null, "entities": {"annotations": [{"start": 0, "end": 8, "label": "LOC", "score": 1.0, "_id": 5259325350015426157}], "predictions": []}}
