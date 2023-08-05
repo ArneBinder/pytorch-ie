@@ -681,9 +681,9 @@ class Document(Mapping[str, Any]):
                 no annotations will be added from the other document. Second, if a certain mapping
                 old_annotation._id -> new_annotation is present in the mapping for a certain field,
                 the new_annotation will be used anywhere where the old_annotation would have been
-                referenced. This can be useful if some annotations are modified, but all dependent
-                relations should be kept intact e.g. when converting a token-based document to text-based
-                or the other way around:
+                referenced. This propagates along the annotation graph and can be useful if some
+                annotations are modified, but all dependent relations should be kept intact e.g.
+                when converting a text-based document to token-based (or the other way around):
 
                 ```
                 @dataclasses.dataclass(frozen=True)
