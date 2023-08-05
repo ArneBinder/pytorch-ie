@@ -56,7 +56,7 @@ def test_document_metric(documents):
 
 
 def test_document_metric_per_label(documents):
-    metric = F1Metric(layer="entities", label_field="label", labels=["animal", "company", "cat"])
+    metric = F1Metric(layer="entities", labels=["animal", "company", "cat"])
     metric(documents)
     # tp, fp, fn for micro and per label
     assert dict(metric.counts) == {

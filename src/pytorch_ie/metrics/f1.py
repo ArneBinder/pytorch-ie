@@ -50,8 +50,8 @@ class F1Metric(DocumentMetric):
     def __init__(
         self,
         layer: str,
-        label_field: Optional[str] = None,
         labels: Optional[Collection[str]] = None,
+        label_field: str = "label",
         show_as_markdown: bool = False,
     ):
         super().__init__()
@@ -59,14 +59,15 @@ class F1Metric(DocumentMetric):
         self.label_field = label_field
         self.show_as_markdown = show_as_markdown
 
-        self.labels = set(labels or [])
-        assert (
-            "MICRO" not in self.labels and "MACRO" not in self.labels
-        ), "labels cannot contain 'MICRO' or 'MACRO' because they are used to capture aggregated metrics"
-        if self.label_field is None:
-            assert (
-                len(self.labels) == 0
-            ), "can not calculate metrics per label without a provided label_field"
+        self.per_label = labels is not None
+        self.labels = labels or []
+        if self.per_label:
+            if "MICRO" in self.labels or "MACRO" in self.labels:
+                raise ValueError(
+                    "labels cannot contain 'MICRO' or 'MACRO' because they are used to capture aggregated metrics"
+                )
+            if len(self.labels) == 0:
+                raise ValueError("labels cannot be empty")
 
     def reset(self):
         self.counts = defaultdict(lambda: (0, 0, 0))
@@ -85,7 +86,7 @@ class F1Metric(DocumentMetric):
             annotation_filter=partial(
                 has_one_of_the_labels, label_field=self.label_field, labels=self.labels
             )
-            if self.label_field is not None
+            if self.per_label
             else None,
         )
         self.add_counts(new_counts, label="MICRO")
@@ -101,7 +102,7 @@ class F1Metric(DocumentMetric):
 
     def _compute(self) -> Dict[str, Dict[str, float]]:
         res = dict()
-        if len(self.labels) > 0:
+        if self.per_label:
             res["MACRO"] = {"f1": 0.0, "p": 0.0, "r": 0.0}
         for label, counts in self.counts.items():
             tp, fp, fn = counts
