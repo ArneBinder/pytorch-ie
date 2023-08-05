@@ -2,7 +2,7 @@ import json
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Callable, Collection, Dict, Hashable, List, Optional, Set, Tuple
+from typing import Callable, Collection, Dict, Hashable, Optional, Set, Tuple
 
 import pandas as pd
 
@@ -52,7 +52,6 @@ class F1Metric(DocumentMetric):
         layer: str,
         label_field: Optional[str] = None,
         labels: Optional[Collection[str]] = None,
-        exclude_annotation_fields: Optional[List[str]] = None,
         show_as_markdown: bool = False,
     ):
         super().__init__()
@@ -68,13 +67,6 @@ class F1Metric(DocumentMetric):
             assert (
                 len(self.labels) == 0
             ), "can not calculate metrics per label without a provided label_field"
-
-        self.annotation_mapper: Optional[Callable[[Annotation], Hashable]] = None
-        if exclude_annotation_fields is not None:
-            exclude_annotation_fields.append("_id")
-            self.annotation_mapper = partial(
-                _remove_annotation_fields, exclude_annotation_fields=set(exclude_annotation_fields)
-            )
 
     def reset(self):
         self.counts = defaultdict(lambda: (0, 0, 0))
@@ -95,7 +87,6 @@ class F1Metric(DocumentMetric):
             )
             if self.label_field is not None
             else None,
-            annotation_mapper=self.annotation_mapper,
         )
         self.add_counts(new_counts, label="MICRO")
         for label in self.labels:
@@ -105,7 +96,6 @@ class F1Metric(DocumentMetric):
                 annotation_filter=partial(
                     has_this_label, label_field=self.label_field, label=label
                 ),
-                annotation_mapper=self.annotation_mapper,
             )
             self.add_counts(new_counts, label=label)
 
