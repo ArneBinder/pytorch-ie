@@ -682,7 +682,7 @@ class Document(Mapping[str, Any]):
                 old_annotation._id -> new_annotation is present in the mapping for a certain field,
                 the new_annotation will be used anywhere where the old_annotation would have been
                 referenced. This propagates along the annotation graph and can be useful if some
-                annotations are modified, but all dependent relations should be kept intact e.g.
+                annotations are modified, but all dependent annotations should be kept intact e.g.
                 when converting a text-based document to token-based (or the other way around):
 
                 ```
