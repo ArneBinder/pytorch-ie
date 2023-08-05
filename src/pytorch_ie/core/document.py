@@ -192,8 +192,17 @@ class Annotation:
         object.__setattr__(self, "_targets", value)
 
     @property
+    def non_comparison_fields_and_values(self) -> Tuple[Tuple[str, Any], ...]:
+        return tuple(
+            (f.name, getattr(self, f.name)) for f in dataclasses.fields(self) if not f.compare
+        )
+
+    @property
     def _id(self) -> int:
-        return hash(self)
+        # also calculate the hash over the non-comparison fields for id creation because otherwise
+        # these fields would not be considered (per default, hash=false for non-comparison fields)
+        # and (de-)serialization would de-duplicate annotations that vary just in these fields
+        return hash((self, self.non_comparison_fields_and_values))
 
     @property
     def target(self) -> Optional[TARGET_TYPE]:

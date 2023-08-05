@@ -1,5 +1,6 @@
 import dataclasses
 import re
+from typing import Optional
 
 import pytest
 
@@ -562,6 +563,40 @@ def test_annotation_list_targets():
         str(excinfo.value)
         == "The annotation layer has more or less than one target layer: ['entities1', 'entities2']"
     )
+
+
+def test_annotation_compare():
+    @dataclasses.dataclass(eq=True, frozen=True)
+    class TestAnnotation(Annotation):
+        value: str
+        # Note that the score field is marked as not comparable
+        score: Optional[float] = dataclasses.field(compare=False, default=None)
+
+    annotation0 = TestAnnotation(value="test")
+    annotation1 = TestAnnotation(value="test", score=0.9)
+    annotation2 = TestAnnotation(value="test", score=0.5)
+
+    assert hash(annotation0) == hash(annotation1) == hash(annotation2)
+    assert annotation0 == annotation1 and annotation0 == annotation2
+
+    # annotation id is equal if the annotation is the same
+    assert annotation0._id == TestAnnotation(value="test")._id
+    assert annotation1._id == TestAnnotation(value="test", score=0.9)._id
+    assert annotation2._id == TestAnnotation(value="test", score=0.5)._id
+    # annotation id is different if the annotation is different (just in non-comparable fields)
+    assert annotation0._id != annotation1._id and annotation0._id != annotation2._id
+
+    # assert that nothing changes when adding the annotation to a document
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        annotations: AnnotationList[TestAnnotation] = annotation_field(target="text")
+
+    id0 = annotation0._id
+    hash0 = hash(annotation0)
+    doc = TestDocument(text="test")
+    doc.annotations.append(annotation0)
+    assert annotation0._id == id0
+    assert hash(annotation0) == hash0
 
 
 def test_revert_annotation_graph():
