@@ -637,7 +637,7 @@ def test_extend_from_other_wrong_override_annotation_mapping(text_document):
     assert (
         str(excinfo.value)
         == 'Field "text" is not an annotation field of TextBasedDocumentWithEntitiesRelationsAndRelationAttributes, '
-           'but keys in override_annotation_mapping must be annotation field names.'
+        "but keys in override_annotation_mapping must be annotation field names."
     )
 
 
@@ -659,7 +659,7 @@ def test_extend_from_other_override(text_document):
     # create annotation mapping
     e1 = text_document.entities1[0]
     e2 = text_document.entities2[0]
-    annotation_mapping = {"entities1": {e1._id: e1_new}, "entities2": {e2._id: e2_new}, "text": {}}
+    annotation_mapping = {"entities1": {e1._id: e1_new}, "entities2": {e2._id: e2_new}}
     # add new entities ...
     token_document.entities1.append(e1_new)
     token_document.entities2.append(e2_new)
