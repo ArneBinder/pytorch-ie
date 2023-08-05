@@ -628,6 +628,19 @@ def test_extend_from_other_full_copy(text_document):
     assert text_document.asdict() == doc_new.asdict()
 
 
+def test_extend_from_other_wrong_override_annotation_mapping(text_document):
+    new_doc = type(text_document)(text="Hello World!")
+    with pytest.raises(ValueError) as excinfo:
+        new_doc.add_all_annotations_from_other(
+            text_document, override_annotation_mapping={"text": {}}
+        )
+    assert (
+        str(excinfo.value)
+        == 'Field "text" is not an annotation field of TextBasedDocumentWithEntitiesRelationsAndRelationAttributes, '
+           'but keys in override_annotation_mapping must be annotation field names.'
+    )
+
+
 def test_extend_from_other_override(text_document):
     @dataclasses.dataclass
     class TestDocument2(TokenBasedDocument):
@@ -646,7 +659,7 @@ def test_extend_from_other_override(text_document):
     # create annotation mapping
     e1 = text_document.entities1[0]
     e2 = text_document.entities2[0]
-    annotation_mapping = {"entities1": {e1._id: e1_new}, "entities2": {e2._id: e2_new}}
+    annotation_mapping = {"entities1": {e1._id: e1_new}, "entities2": {e2._id: e2_new}, "text": {}}
     # add new entities ...
     token_document.entities1.append(e1_new)
     token_document.entities2.append(e2_new)

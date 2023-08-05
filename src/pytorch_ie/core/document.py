@@ -728,16 +728,20 @@ class Document(Mapping[str, Any]):
         """
 
         annotation_store: Dict[str, Dict[int, Annotation]] = defaultdict(dict)
+        named_annotation_fields = {field.name: field for field in self.annotation_fields()}
         if override_annotation_mapping is not None:
             for field_name, mapping in override_annotation_mapping.items():
+                if field_name not in named_annotation_fields:
+                    raise ValueError(
+                        f'Field "{field_name}" is not an annotation field of {type(self).__name__}, but keys in '
+                        f"override_annotation_mapping must be annotation field names."
+                    )
                 annotation_store[field_name].update(mapping)
         else:
             override_annotation_mapping = dict()
 
         fields_todo = ["_artificial_root"]
         fields_done = set()
-        # get the named annotation fields here to avoid re-computing them in the loop
-        named_annotation_fields = {field.name: field for field in self.annotation_fields()}
         reverted_annotation_graph = _revert_annotation_graph(self._annotation_graph)
         while fields_todo:
             field_name = fields_todo.pop(0)
