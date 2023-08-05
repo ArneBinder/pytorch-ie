@@ -598,6 +598,21 @@ def test_annotation_compare():
     assert annotation0._id == id0
     assert hash(annotation0) == hash0
 
+    # The score field of built-in Annotations is marked with compare=False, so it is not taken
+    # into account when comparing annotations ...
+    assert LabeledSpan(0, 1, "test") == LabeledSpan(0, 1, "test", score=0.9)
+    # ... but, again, the id is different.
+    assert LabeledSpan(0, 1, "test")._id != LabeledSpan(0, 1, "test", score=0.9)._id
+
+    # works also for nested annotations
+    e1 = LabeledSpan(0, 1, "test")
+    e2 = LabeledSpan(0, 1, "test", score=0.9)
+    e3 = LabeledSpan(3, 4, "test", score=0.5)
+    assert e1 == e2
+    r1 = BinaryRelation(e1, e3, "test")
+    r2 = BinaryRelation(e2, e3, "test")
+    assert r1 == r2
+
 
 def test_revert_annotation_graph():
     @dataclasses.dataclass

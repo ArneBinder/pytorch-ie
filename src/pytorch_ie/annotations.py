@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 from pytorch_ie.core.document import Annotation
@@ -48,7 +48,7 @@ def _post_init_arguments_and_roles(self):
 @dataclass(eq=True, frozen=True)
 class Label(Annotation):
     label: str
-    score: float = 1.0
+    score: float = field(default=1.0, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_single_label(self)
@@ -57,7 +57,7 @@ class Label(Annotation):
 @dataclass(eq=True, frozen=True)
 class MultiLabel(Annotation):
     label: Tuple[str, ...]
-    score: Optional[Tuple[float, ...]] = None
+    score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
@@ -77,7 +77,7 @@ class Span(Annotation):
 @dataclass(eq=True, frozen=True)
 class LabeledSpan(Span):
     label: str
-    score: float = 1.0
+    score: float = field(default=1.0, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_single_label(self)
@@ -86,7 +86,7 @@ class LabeledSpan(Span):
 @dataclass(eq=True, frozen=True)
 class MultiLabeledSpan(Span):
     label: Tuple[str, ...]
-    score: Optional[Tuple[float, ...]] = None
+    score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
@@ -96,7 +96,7 @@ class MultiLabeledSpan(Span):
 class LabeledMultiSpan(Annotation):
     slices: Tuple[Tuple[int, int], ...]
     label: str
-    score: float = 1.0
+    score: float = field(default=1.0, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_multi_span(self)
@@ -107,7 +107,7 @@ class LabeledMultiSpan(Annotation):
 class MultiLabeledMultiSpan(Annotation):
     slices: Tuple[Tuple[int, int], ...]
     label: Tuple[str, ...]
-    score: Optional[Tuple[float, ...]] = None
+    score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_multi_span(self)
@@ -119,7 +119,7 @@ class BinaryRelation(Annotation):
     head: Annotation
     tail: Annotation
     label: str
-    score: float = 1.0
+    score: float = field(default=1.0, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_single_label(self)
@@ -130,7 +130,7 @@ class MultiLabeledBinaryRelation(Annotation):
     head: Annotation
     tail: Annotation
     label: Tuple[str, ...]
-    score: Optional[Tuple[float, ...]] = None
+    score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
@@ -141,7 +141,7 @@ class NaryRelation(Annotation):
     arguments: Tuple[Annotation, ...]
     roles: Tuple[str, ...]
     label: str
-    score: float = 1.0
+    score: float = field(default=1.0, compare=False)
 
     def __post_init__(self) -> None:
         _post_init_arguments_and_roles(self)

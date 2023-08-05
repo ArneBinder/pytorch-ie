@@ -176,7 +176,7 @@ def test_annotation_with_optional_reference():
         tail: Span
         label: str
         trigger: Optional[Span] = None
-        score: float = 1.0
+        score: float = dataclasses.field(default=1.0, compare=False)
 
     head = Span(start=1, end=2)
     tail = Span(start=3, end=4)
@@ -231,7 +231,7 @@ def test_annotation_with_tuple_of_references():
         tail: Span
         label: str
         evidence: Tuple[Span, ...]
-        score: float = 1.0
+        score: float = dataclasses.field(default=1.0, compare=False)
 
     head = Span(start=1, end=2)
     tail = Span(start=3, end=4)
