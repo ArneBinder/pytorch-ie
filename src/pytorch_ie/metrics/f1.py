@@ -1,8 +1,7 @@
-import json
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Callable, Collection, Dict, Hashable, Optional, Set, Tuple
+from typing import Callable, Collection, Dict, Hashable, Optional, Tuple
 
 import pandas as pd
 
@@ -55,12 +54,12 @@ class F1Metric(DocumentMetric):
         layer: str,
         labels: Optional[Collection[str]] = None,
         label_field: str = "label",
-        # show_as_markdown: bool = False,
+        show_as_markdown: bool = False,
     ):
         super().__init__()
         self.layer = layer
         self.label_field = label_field
-        # self.show_as_markdown = show_as_markdown
+        self.show_as_markdown = show_as_markdown
 
         self.per_label = labels is not None
         self.labels = labels or []
@@ -120,6 +119,6 @@ class F1Metric(DocumentMetric):
                 res["MACRO"]["f1"] += f1 / len(self.labels)
                 res["MACRO"]["p"] += p / len(self.labels)
                 res["MACRO"]["r"] += r / len(self.labels)
-        # if self.show_as_markdown:
-        #    logger.info(f"\n{self.layer}:\n{pd.DataFrame(res).round(3).T.to_markdown()}")
+        if self.show_as_markdown:
+            logger.info(f"\n{self.layer}:\n{pd.DataFrame(res).round(3).T.to_markdown()}")
         return res
