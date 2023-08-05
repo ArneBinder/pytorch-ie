@@ -47,6 +47,16 @@ def has_this_label(ann: Annotation, label_field: str, label: str) -> bool:
 
 
 class F1Metric(DocumentMetric):
+    """Computes the (micro aggregated) F1 score for a given layer. If labels are provided,
+    it also computes the F1 score for each label separately and the macro F1 score.
+
+    Args:
+        layer: The layer to compute the F1 score for.
+        labels: If provided, calculate F1 score for each label.
+        label_field: The field to use for the label. Defaults to "label".
+        show_as_markdown: If True, logs the F1 score as markdown on the console when calling compute().
+    """
+
     def __init__(
         self,
         layer: str,
