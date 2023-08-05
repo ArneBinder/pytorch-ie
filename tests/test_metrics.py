@@ -5,7 +5,7 @@ import pytest
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TextBasedDocument
-from pytorch_ie.metrics.f1 import F1Metric
+from pytorch_ie.metrics import F1Metric
 
 
 @pytest.fixture
