@@ -74,6 +74,12 @@ def test_document_metric_per_label(documents):
     }
 
 
+def test_document_metric_per_label_no_labels(documents):
+    with pytest.raises(ValueError) as excinfo:
+        F1Metric(layer="entities", labels=[])
+    assert str(excinfo.value) == "labels cannot be empty"
+
+
 def test_document_metric_dict(documents):
     dummy_dataset_dict = {"train": [documents[0]], "val": [], "test": [documents[1]]}
     metric = F1Metric(layer="entities")
