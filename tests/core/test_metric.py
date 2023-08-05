@@ -5,7 +5,6 @@ import pytest
 
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, Document, DocumentMetric, annotation_field
-from pytorch_ie.core.metric import T
 from pytorch_ie.documents import TextBasedDocument
 
 
