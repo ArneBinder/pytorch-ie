@@ -15,7 +15,6 @@ class DocumentMetric(ABC, Generic[T]):
     @abstractmethod
     def reset(self) -> None:
         """Any reset logic that needs to be performed before the metric is called again."""
-        ...
 
     def __call__(
         self,
@@ -61,9 +60,7 @@ class DocumentMetric(ABC, Generic[T]):
     @abstractmethod
     def _update(self, document: Document) -> None:
         """This method is called to update the metric with the new document."""
-        ...
 
     @abstractmethod
     def _compute(self) -> T:
         """This method is called to get the metric values."""
-        ...
