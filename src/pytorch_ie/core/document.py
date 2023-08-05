@@ -668,13 +668,14 @@ class Document(Mapping[str, Any]):
         self,
         other: "Document",
         override_annotation_mapping: Optional[Dict[str, Dict[int, Annotation]]] = None,
+        process_predictions: bool = True,
     ) -> None:
         """Adds all annotations from another document to this document.
 
-        Note: For now, this does not handle predictions!
-
         Args:
             other: The document to add annotations from.
+            process_predictions: Whether to process predictions as well (default: True). If set to False,
+                the predictions in the other document will be ignored.
             override_annotation_mapping: A mapping from annotation field names to a mapping from
                 annotation IDs to annotations. The effects are two-fold. First, adding any annotation
                 field name as key has the effect that the field is expected to be already handled and
@@ -754,12 +755,18 @@ class Document(Mapping[str, Any]):
                     for target in self._annotation_graph.get(field_name, []):
                         current_targets_store.update(annotation_store[target])
 
-                    other_field = getattr(other, field_name)
-                    for ann in other_field:
+                    other_annotation_field = other[field_name]
+                    for ann in other_annotation_field:
                         new_ann = ann.copy_with_store(current_targets_store)
                         if ann._id != new_ann._id:
                             annotation_store[field_name][ann._id] = new_ann
                         self[field_name].append(new_ann)
+                    if process_predictions:
+                        for ann in other_annotation_field.predictions:
+                            new_ann = ann.copy_with_store(current_targets_store)
+                            if ann._id != new_ann._id:
+                                annotation_store[field_name][ann._id] = new_ann
+                            self[field_name].predictions.append(new_ann)
                 fields_todo.extend(reverted_annotation_graph.get(field_name, []))
                 fields_done.add(field_name)
 
