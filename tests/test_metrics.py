@@ -88,8 +88,22 @@ def test_f1_per_label_not_allowed():
         == "labels cannot contain 'MICRO' or 'MACRO' because they are used to capture aggregated metrics"
     )
 
-    assert result == {
-        "train": {"MICRO": {"f1": 0.8, "p": 0.6666666666666666, "r": 1.0}},
-        "val": {},
-        "test": {"MICRO": {"f1": 0.6666666666666666, "p": 0.5, "r": 1.0}},
-    }
+
+# def test_f1_show_as_markdown(documents, caplog):
+#    metric = F1Metric(layer="entities", labels=["animal", "company", "cat"], show_as_markdown=True)
+#    metric(documents)
+#    caplog.set_level(logging.INFO)
+#    caplog.clear()
+#    metric.compute()
+#    assert len(caplog.records) == 1
+#    assert (
+#        caplog.records[0].message == "\n"
+#        "entities:\n"
+#        "|         |    f1 |   p |     r |\n"
+#        "|:--------|------:|----:|------:|\n"
+#        "| MACRO   | 0.556 | 0.5 | 0.667 |\n"
+#        "| MICRO   | 0.75  | 0.6 | 1     |\n"
+#        "| animal  | 1     | 1   | 1     |\n"
+#        "| company | 0.667 | 0.5 | 1     |\n"
+#        "| cat     | 0     | 0   | 0     |"
+#    )
