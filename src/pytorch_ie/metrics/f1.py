@@ -31,13 +31,6 @@ def eval_counts_for_layer(
     return tp, fp, fn
 
 
-def _remove_annotation_fields(ann: Annotation, exclude_annotation_fields: Set[str]):
-    return json.dumps(
-        {k: v for k, v in ann.asdict().items() if k not in exclude_annotation_fields},  # type: ignore
-        sort_keys=True,
-    )
-
-
 def has_one_of_the_labels(ann: Annotation, label_field: str, labels: Collection[str]) -> bool:
     return getattr(ann, label_field) in labels
 

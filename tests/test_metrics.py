@@ -47,7 +47,7 @@ def documents():
     return documents
 
 
-def test_document_metric(documents):
+def test_f1(documents):
     metric = F1Metric(layer="entities")
     metric(documents)
     # tp, fp, fn for micro
@@ -55,7 +55,7 @@ def test_document_metric(documents):
     assert metric.compute() == {"MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0}}
 
 
-def test_document_metric_per_label(documents):
+def test_f1_per_label(documents):
     metric = F1Metric(layer="entities", labels=["animal", "company", "cat"])
     metric(documents)
     # tp, fp, fn for micro and per label
@@ -74,16 +74,19 @@ def test_document_metric_per_label(documents):
     }
 
 
-def test_document_metric_per_label_no_labels(documents):
+def test_f1_per_label_no_labels(documents):
     with pytest.raises(ValueError) as excinfo:
         F1Metric(layer="entities", labels=[])
     assert str(excinfo.value) == "labels cannot be empty"
 
 
-def test_document_metric_dict(documents):
-    dummy_dataset_dict = {"train": [documents[0]], "val": [], "test": [documents[1]]}
-    metric = F1Metric(layer="entities")
-    result = metric(dummy_dataset_dict)
+def test_f1_per_label_not_allowed():
+    with pytest.raises(ValueError) as excinfo:
+        F1Metric(layer="entities", labels=["animal", "MICRO"])
+    assert (
+        str(excinfo.value)
+        == "labels cannot contain 'MICRO' or 'MACRO' because they are used to capture aggregated metrics"
+    )
 
     assert result == {
         "train": {"MICRO": {"f1": 0.8, "p": 0.6666666666666666, "r": 1.0}},
