@@ -71,12 +71,32 @@ class Accuracy(DocumentMetric):
 
 def test_document_metric(documents):
     accuracy = Accuracy(layer="entities")
+    accuracy(documents[0])
+    assert accuracy.total == 3
+    assert accuracy.correct == 2
+    assert accuracy.compute() == 2 / 3
+    assert accuracy.total == 0
+    assert accuracy.correct == 0
+
+
+def test_document_metric_iterable(documents):
+    accuracy = Accuracy(layer="entities")
     accuracy(documents)
     assert accuracy.total == 5
     assert accuracy.correct == 3
     assert accuracy.compute() == 3 / 5
     assert accuracy.total == 0
     assert accuracy.correct == 0
+
+
+def test_document_metric_wrong_iterable():
+    accuracy = Accuracy(layer="entities")
+    with pytest.raises(TypeError) as excinfo:
+        accuracy([1, 2])
+    assert (
+        str(excinfo.value)
+        == "document_or_collection contains an object that is not a document: <class 'int'>"
+    )
 
 
 def test_document_metric_dict(documents):
@@ -87,3 +107,10 @@ def test_document_metric_dict(documents):
     assert result["train"] == 2 / 3
     assert result["test"] == 0.5
     assert result["val"] is None
+
+
+def test_document_metric_wrong_type():
+    accuracy = Accuracy(layer="entities")
+    with pytest.raises(TypeError) as excinfo:
+        accuracy(1)
+    assert str(excinfo.value) == "document_or_collection has unknown type: <class 'int'>"

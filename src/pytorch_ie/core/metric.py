@@ -40,14 +40,14 @@ class DocumentMetric(ABC, Generic[T]):
         elif isinstance(document_or_collection, Iterable):
             for doc in document_or_collection:
                 if not isinstance(doc, Document):
-                    raise Exception(
+                    raise TypeError(
                         f"document_or_collection contains an object that is not a document: {type(doc)}"
                     )
                 self._update(doc)
             # do not reset here to allow for multiple calls
             return self.compute(reset=False)
         else:
-            raise Exception(
+            raise TypeError(
                 f"document_or_collection has unknown type: {type(document_or_collection)}"
             )
 
