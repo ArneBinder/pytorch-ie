@@ -5,8 +5,13 @@ import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.core.document import (
+    Annotation,
+    Document,
+    _enumerate_dependencies,
+    _revert_annotation_graph,
+)
+from pytorch_ie.documents import TextDocument, TokenBasedDocument
 
 
 def test_text_document():
@@ -556,4 +561,116 @@ def test_annotation_list_targets():
     assert (
         str(excinfo.value)
         == "The annotation layer has more or less than one target layer: ['entities1', 'entities2']"
+    )
+
+
+def test_revert_annotation_graph():
+    @dataclasses.dataclass
+    class TestDocument(TextDocument):
+        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationList[BinaryRelation] = annotation_field(
+            targets=["entities1", "entities2"]
+        )
+        labels: AnnotationList[Label] = annotation_field()
+
+    doc = TestDocument(text="test1")
+    annotation_graph = {k: set(v) for k, v in doc._annotation_graph.items()}
+    assert annotation_graph == {
+        "entities1": {"text"},
+        "entities2": {"text"},
+        "relations": {"entities1", "entities2"},
+        "_artificial_root": {"labels", "relations"},
+    }
+    reverted_graph = _revert_annotation_graph(doc._annotation_graph)
+    assert reverted_graph == {
+        "_artificial_root": {"text", "labels"},
+        "text": {"entities1", "entities2"},
+        "entities1": {"relations"},
+        "entities2": {"relations"},
+    }
+
+
+@dataclasses.dataclass(frozen=True)
+class Attribute(Annotation):
+    ref: Annotation
+    value: str
+
+
+@pytest.fixture
+def text_document():
+    @dataclasses.dataclass
+    class TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(TextDocument):
+        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationList[BinaryRelation] = annotation_field(
+            targets=["entities1", "entities2"]
+        )
+        labels: AnnotationList[Label] = annotation_field()
+        relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+
+    doc1 = TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(text="Hello World!")
+    e1 = LabeledSpan(0, 5, "word1")
+    e2 = LabeledSpan(6, 11, "word2")
+    doc1.entities1.append(e1)
+    doc1.entities2.append(e2)
+    r1 = BinaryRelation(e1, e2, "relation1")
+    doc1.relations.append(r1)
+    doc1.relation_attributes.append(Attribute(r1, "value1"))
+    doc1.labels.append(Label("label3"))
+    return doc1
+
+
+def test_extend_from_other_full_copy(text_document):
+    doc_new = type(text_document)(text=text_document.text)
+    doc_new.add_all_annotations_from_other(text_document)
+
+    assert text_document.asdict() == doc_new.asdict()
+
+
+def test_extend_from_other_override(text_document):
+    @dataclasses.dataclass
+    class TestDocument2(TokenBasedDocument):
+        entities1: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
+        entities2: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
+        relations: AnnotationList[BinaryRelation] = annotation_field(
+            targets=["entities1", "entities2"]
+        )
+        labels: AnnotationList[Label] = annotation_field()
+        relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+
+    token_document = TestDocument2(tokens=("Hello", "World", "!"))
+    # create new entities
+    e1_new = LabeledSpan(0, 1, "word1")
+    e2_new = LabeledSpan(1, 2, "word2")
+    # create annotation mapping
+    e1 = text_document.entities1[0]
+    e2 = text_document.entities2[0]
+    annotation_mapping = {"entities1": {e1._id: e1_new}, "entities2": {e2._id: e2_new}}
+    # add new entities ...
+    token_document.entities1.append(e1_new)
+    token_document.entities2.append(e2_new)
+    # ... and the remaining annotations
+    token_document.add_all_annotations_from_other(
+        text_document, override_annotation_mapping=annotation_mapping
+    )
+
+    assert (
+        len(token_document.entities1)
+        == len(token_document.entities2)
+        == len(token_document.relations)
+        == len(token_document.labels)
+        == len(token_document.relation_attributes)
+        == 1
+    )
+    assert (
+        str(token_document.entities1[0]) == str(token_document.relations[0].head) == "('Hello',)"
+    )
+    assert (
+        str(token_document.entities2[0]) == str(token_document.relations[0].tail) == "('World',)"
+    )
+    assert token_document.labels[0] == text_document.labels[0]
+    assert token_document.relation_attributes[0].ref == token_document.relations[0]
+    assert (
+        token_document.relation_attributes[0].value == text_document.relation_attributes[0].value
     )

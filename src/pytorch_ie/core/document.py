@@ -118,6 +118,24 @@ def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.F
     return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
 
+def _revert_annotation_graph(annotation_graph: Dict[str, List[str]]) -> Dict[str, Set[str]]:
+    """Points from field names to the names of dependent annotation fields."""
+    reverted_annotation_graph = defaultdict(set)
+    all_target_names = set()
+    all_dependent_names = set()
+    for annotation_name, target_names in annotation_graph.items():
+        all_target_names.update(target_names)
+        all_dependent_names.add(annotation_name)
+        if annotation_name == "_artificial_root":
+            continue
+        for target_name in target_names:
+            reverted_annotation_graph[target_name].add(annotation_name)
+
+    reverted_annotation_graph["_artificial_root"] = all_target_names - all_dependent_names
+
+    return dict(reverted_annotation_graph)
+
+
 def annotation_field(
     target: Optional[str] = None,
     targets: Optional[List[str]] = None,
@@ -294,6 +312,39 @@ class Annotation:
         kwargs.update(overrides)
         return type(self)(**kwargs)
 
+    def copy_with_store(self, override_annotation_store: Dict[int, "Annotation"]) -> "Annotation":
+        """
+        Create a detached copy of the annotation, but replace references to other annotations
+        with entries from an override annotation store.
+        Note: For now, fields are only allowed to directly reference an annotation or a tuple of annotations,
+         but not any nested data structure that contains annotations.
+
+        Args:
+            :param override_annotation_store: the annotation store to use, a mapping from original *annotation ids*
+                to the new *annotations*
+            :return: a detached copy of the annotation
+        """
+        overrides: Dict[str, Any] = {}
+        for f in dataclasses.fields(self):
+            if f.name == "_targets":
+                continue
+            field_value = getattr(self, f.name)
+            if isinstance(field_value, Annotation):
+                overrides[f.name] = override_annotation_store.get(field_value._id, field_value)
+            elif isinstance(field_value, tuple):
+                overrides[f.name] = tuple(
+                    override_annotation_store.get(maybe_anno._id, maybe_anno)
+                    if isinstance(maybe_anno, Annotation)
+                    else maybe_anno
+                    for maybe_anno in field_value
+                )
+            elif isinstance(field_value, (int, float, str, bool, type(None))):
+                continue
+            else:
+                raise Exception(f"unknown annotation field type: {type(field_value)}")
+
+        return self.copy(**overrides)
+
 
 T = TypeVar("T", covariant=False, bound="Annotation")
 
@@ -409,6 +460,7 @@ D = TypeVar("D", bound="Document")
 
 @dataclasses.dataclass
 class Document(Mapping[str, Any]):
+    # points from annotation field names to lists of target field names
     _annotation_graph: Dict[str, List[str]] = dataclasses.field(
         default_factory=dict, init=False, repr=False
     )
@@ -611,6 +663,101 @@ class Document(Mapping[str, Any]):
 
     def copy(self) -> "Document":
         return type(self).fromdict(self.asdict())
+
+    def add_all_annotations_from_other(
+        self,
+        other: "Document",
+        override_annotation_mapping: Optional[Dict[str, Dict[int, Annotation]]] = None,
+    ) -> None:
+        """Adds all annotations from another document to this document.
+
+        Note: For now, this does not handle predictions!
+
+        Args:
+            other: The document to add annotations from.
+            override_annotation_mapping: A mapping from annotation field names to a mapping from
+                annotation IDs to annotations. The effects are two-fold. First, adding any annotation
+                field name as key has the effect that the field is expected to be already handled and
+                no annotations will be added from the other document. Second, if a certain mapping
+                old_annotation._id -> new_annotation is present in the mapping for a certain field,
+                the new_annotation will be used anywhere where the old_annotation would have been
+                referenced. This can be useful if some annotations are modified, but all dependent
+                relations should be kept intact e.g. when converting a token-based document to text-based
+                or the other way around:
+
+                ```
+                @dataclasses.dataclass(frozen=True)
+                class Attribute(Annotation):
+                    ref: Annotation
+                    value: str
+
+                @dataclasses.dataclass
+                class TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(TextBasedDocument):
+                    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+                    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+                    relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+
+                @dataclasses.dataclass
+                class TokenBasedDocumentWithEntitiesRelationsAndRelationAttributes(TokenBasedDocument):
+                    entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
+                    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+                    relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+
+
+                doc_text = TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(text="Hello World!")
+                e1_text = LabeledSpan(0, 5, "word1")
+                e2_text = LabeledSpan(6, 11, "word2")
+                doc_text.entities.extend([e1, e2])
+                r1_text = BinaryRelation(e1_text, e2_text, "relation1")
+                doc_text.relations.append(r1_text)
+                doc_text.relation_attributes.append(Attribute(r1_text, "attribute1"))
+
+                doc_tokens = TokenBasedDocumentWithEntitiesRelationsAndRelationAttributes(
+                    tokens=("Hello", "World", "!")
+                )
+                e1_tokens = LabeledSpan(0, 1, "word1")
+                e2_tokens = LabeledSpan(1, 2, "word2")
+                doc_tokens.entities.extend([e1_tokens, e2_tokens])
+                doc_tokens.add_all_annotations_from_other(
+                    other=doc_text,
+                    override_annotation_mapping={"entities": {e1_text._id: e1_tokens, e2_text._id: e2_tokens}},
+                )
+                # Note that the relation and attribute are still present, but now refer to the new entities
+                # and new relation, respectively.
+                ```
+        """
+
+        annotation_store: Dict[str, Dict[int, Annotation]] = defaultdict(dict)
+        if override_annotation_mapping is not None:
+            for field_name, mapping in override_annotation_mapping.items():
+                annotation_store[field_name].update(mapping)
+        else:
+            override_annotation_mapping = dict()
+
+        fields_todo = ["_artificial_root"]
+        fields_done = set()
+        # get the named annotation fields here to avoid re-computing them in the loop
+        named_annotation_fields = {field.name: field for field in self.annotation_fields()}
+        reverted_annotation_graph = _revert_annotation_graph(self._annotation_graph)
+        while fields_todo:
+            field_name = fields_todo.pop(0)
+            if field_name not in fields_done:
+                if (
+                    field_name in named_annotation_fields
+                    and field_name not in override_annotation_mapping
+                ):
+                    current_targets_store = dict()
+                    for target in self._annotation_graph.get(field_name, []):
+                        current_targets_store.update(annotation_store[target])
+
+                    other_field = getattr(other, field_name)
+                    for ann in other_field:
+                        new_ann = ann.copy_with_store(current_targets_store)
+                        if ann._id != new_ann._id:
+                            annotation_store[field_name][ann._id] = new_ann
+                        self[field_name].append(new_ann)
+                fields_todo.extend(reverted_annotation_graph.get(field_name, []))
+                fields_done.add(field_name)
 
 
 def resolve_annotation(
