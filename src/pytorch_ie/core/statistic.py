@@ -26,7 +26,7 @@ def unflatten_dict(d: Dict[Tuple[str, ...], Any]) -> Union[Dict[str, Any], Any]:
     ```python
     >>> d = {("a", "b", "c"): 1, ("a", "b", "d"): 2, ("a", "e"): 3}
     >>> unflatten_dict(d)
-    {"a": {"b": {"c": 1, "d": 2}, "e": 3}}
+    {'a': {'b': {'c': 1, 'd': 2}, 'e': 3}}
     ```
     """
     result: Dict[str, Any] = {}
