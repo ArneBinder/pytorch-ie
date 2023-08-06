@@ -644,14 +644,14 @@ def text_document():
     return doc1
 
 
-def test_extend_from_other_full_copy(text_document):
+def test_document_extend_from_other_full_copy(text_document):
     doc_new = type(text_document)(text=text_document.text)
     doc_new.add_all_annotations_from_other(text_document)
 
     assert text_document.asdict() == doc_new.asdict()
 
 
-def test_extend_from_other_wrong_override_annotation_mapping(text_document):
+def test_document_extend_from_other_wrong_override_annotation_mapping(text_document):
     new_doc = type(text_document)(text="Hello World!")
     with pytest.raises(ValueError) as excinfo:
         new_doc.add_all_annotations_from_other(
@@ -664,7 +664,7 @@ def test_extend_from_other_wrong_override_annotation_mapping(text_document):
     )
 
 
-def test_extend_from_other_override(text_document):
+def test_document_extend_from_other_override(text_document):
     @dataclasses.dataclass
     class TestDocument2(TokenBasedDocument):
         entities1: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
