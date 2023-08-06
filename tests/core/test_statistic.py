@@ -34,14 +34,16 @@ def dataset():
 
 def test_prepare_data(dataset):
     statistic = DummyCounter()
-    prepared_data = statistic(dataset)
+    values_nested = statistic(dataset)
+    prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
         ("train",): [1, 1, 1],
         ("test",): [1, 1, 1],
         ("validation",): [1, 1, 1],
     }
     statistic = LabelCounter(field="entities")
-    prepared_data = statistic(dataset)
+    values_nested = statistic(dataset)
+    prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
         ("train", "ORG"): [2],
         ("train", "MISC"): [3],
@@ -55,7 +57,8 @@ def test_prepare_data(dataset):
         ("validation", "PER"): [2],
     }
     statistic = DocumentFieldLengthCounter(field="text")
-    prepared_data = statistic(dataset)
+    values_nested = statistic(dataset)
+    prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
         ("train",): [48, 15, 19],
         ("test",): [57, 11, 40],
@@ -68,7 +71,8 @@ def test_prepare_data_tokenize(dataset):
     statistic = DocumentTokenCounter(
         field="text", tokenizer_name_or_path="bert-base-uncased", add_special_tokens=False
     )
-    prepared_data = statistic(dataset)
+    values_nested = statistic(dataset)
+    prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
         ("train",): [9, 2, 6],
         ("test",): [12, 4, 12],

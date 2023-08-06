@@ -98,4 +98,4 @@ class DocumentStatistic(DocumentMetric):
                     stats[()].extend(metric_result)
                 else:
                     stats[()].append(metric_result)
-        return dict(stats)
+        return unflatten_dict(dict(stats))
