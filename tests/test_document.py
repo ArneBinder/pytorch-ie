@@ -6,12 +6,7 @@ import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.core.document import (
-    Annotation,
-    Document,
-    _enumerate_dependencies,
-    _revert_annotation_graph,
-)
+from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
 from pytorch_ie.documents import TextDocument, TokenBasedDocument
 
 
@@ -614,33 +609,6 @@ def test_annotation_compare():
     assert r1 == r2
 
 
-def test_revert_annotation_graph():
-    @dataclasses.dataclass
-    class TestDocument(TextDocument):
-        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        relations: AnnotationList[BinaryRelation] = annotation_field(
-            targets=["entities1", "entities2"]
-        )
-        labels: AnnotationList[Label] = annotation_field()
-
-    doc = TestDocument(text="test1")
-    annotation_graph = {k: set(v) for k, v in doc._annotation_graph.items()}
-    assert annotation_graph == {
-        "entities1": {"text"},
-        "entities2": {"text"},
-        "relations": {"entities1", "entities2"},
-        "_artificial_root": {"labels", "relations"},
-    }
-    reverted_graph = _revert_annotation_graph(doc._annotation_graph)
-    assert reverted_graph == {
-        "_artificial_root": {"text", "labels"},
-        "text": {"entities1", "entities2"},
-        "entities1": {"relations"},
-        "entities2": {"relations"},
-    }
-
-
 @dataclasses.dataclass(frozen=True)
 class Attribute(Annotation):
     ref: Annotation
@@ -671,14 +639,14 @@ def text_document():
     return doc1
 
 
-def test_extend_from_other_full_copy(text_document):
+def test_document_extend_from_other_full_copy(text_document):
     doc_new = type(text_document)(text=text_document.text)
     doc_new.add_all_annotations_from_other(text_document)
 
     assert text_document.asdict() == doc_new.asdict()
 
 
-def test_extend_from_other_wrong_override_annotation_mapping(text_document):
+def test_document_extend_from_other_wrong_override_annotation_mapping(text_document):
     new_doc = type(text_document)(text="Hello World!")
     with pytest.raises(ValueError) as excinfo:
         new_doc.add_all_annotations_from_other(
@@ -691,7 +659,7 @@ def test_extend_from_other_wrong_override_annotation_mapping(text_document):
     )
 
 
-def test_extend_from_other_override(text_document):
+def test_document_extend_from_other_override(text_document):
     @dataclasses.dataclass
     class TestDocument2(TokenBasedDocument):
         entities1: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
