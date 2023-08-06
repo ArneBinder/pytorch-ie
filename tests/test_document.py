@@ -6,12 +6,7 @@ import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.core.document import (
-    Annotation,
-    Document,
-    _enumerate_dependencies,
-    _revert_annotation_graph,
-)
+from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
 from pytorch_ie.documents import TextDocument, TokenBasedDocument
 
 
