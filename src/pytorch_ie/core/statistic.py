@@ -89,17 +89,17 @@ class DocumentStatistic(DocumentMetric):
         """We just integrate the values by creating lists for each leaf of the (nested)
         dictionary."""
         stats = defaultdict(list)
-        for metric_result in self._values:
-            if isinstance(metric_result, dict):
-                measure_result_flat = flatten_dict(metric_result)
-                for k, v in measure_result_flat.items():
+        for collected_result in self._values:
+            if isinstance(collected_result, dict):
+                collected_result_flat = flatten_dict(collected_result)
+                for k, v in collected_result_flat.items():
                     if isinstance(v, list):
                         stats[k].extend(v)
                     else:
                         stats[k].append(v)
             else:
-                if isinstance(metric_result, list):
-                    stats[()].extend(metric_result)
+                if isinstance(collected_result, list):
+                    stats[()].extend(collected_result)
                 else:
-                    stats[()].append(metric_result)
+                    stats[()].append(collected_result)
         return unflatten_dict(dict(stats))
