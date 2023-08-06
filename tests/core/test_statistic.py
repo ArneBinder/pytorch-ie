@@ -8,12 +8,12 @@ from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.core.statistic import flatten_dict
 from pytorch_ie.documents import TextBasedDocument
 from pytorch_ie.metrics.statistics import (
-    DocumentFieldLengthCounter,
-    DocumentSpanLengthCounter,
-    DocumentSubFieldLengthCounter,
-    DocumentTokenCounter,
-    DummyCounter,
-    LabelCounter,
+    DummyCollector,
+    FieldLengthCollector,
+    LabelCountCollector,
+    LabeledSpanLengthCollector,
+    SubFieldLengthCollector,
+    TokenCountCollector,
 )
 from tests import FIXTURES_ROOT
 
@@ -31,7 +31,7 @@ def dataset():
 
 
 def test_prepare_data(dataset):
-    statistic = DummyCounter()
+    statistic = DummyCollector()
     values_nested = statistic(dataset)
     prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
@@ -39,7 +39,7 @@ def test_prepare_data(dataset):
         ("test",): [1, 1, 1],
         ("validation",): [1, 1, 1],
     }
-    statistic = LabelCounter(field="entities")
+    statistic = LabelCountCollector(field="entities")
     values_nested = statistic(dataset)
     prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
@@ -54,7 +54,7 @@ def test_prepare_data(dataset):
         ("validation", "MISC"): [2],
         ("validation", "PER"): [2],
     }
-    statistic = DocumentFieldLengthCounter(field="text")
+    statistic = FieldLengthCollector(field="text")
     values_nested = statistic(dataset)
     prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
@@ -63,7 +63,7 @@ def test_prepare_data(dataset):
         ("validation",): [65, 17, 187],
     }
 
-    statistic = DocumentSpanLengthCounter(field="entities")
+    statistic = LabeledSpanLengthCollector(field="entities")
     values_nested = statistic(dataset)
     prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
@@ -80,7 +80,7 @@ def test_prepare_data(dataset):
     }
 
     # this is not super useful, we just collect teh lengths of the labels, but it is enough to test the code
-    statistic = DocumentSubFieldLengthCounter(field="entities", subfield="label")
+    statistic = SubFieldLengthCollector(field="entities", subfield="label")
     values_nested = statistic(dataset)
     prepared_data = flatten_dict(values_nested)
     assert prepared_data == {
@@ -92,7 +92,7 @@ def test_prepare_data(dataset):
 
 @pytest.mark.slow
 def test_prepare_data_tokenize(dataset):
-    statistic = DocumentTokenCounter(
+    statistic = TokenCountCollector(
         field="text", tokenizer_name_or_path="bert-base-uncased", add_special_tokens=False
     )
     values_nested = statistic(dataset)

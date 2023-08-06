@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from pytorch_ie.core import Document, DocumentStatistic
 
 
-class DocumentTokenCounter(DocumentStatistic):
+class TokenCountCollector(DocumentStatistic):
     """Collects the token count of a field when tokenizing its content with a Huggingface tokenizer.
 
     The field should be a string.
@@ -25,7 +25,7 @@ class DocumentTokenCounter(DocumentStatistic):
         return len(tokens)
 
 
-class DocumentFieldLengthCounter(DocumentStatistic):
+class FieldLengthCollector(DocumentStatistic):
     """Collects the length of a field, e.g. to collect the number the characters in the input text.
 
     The field should be a list of sized elements.
@@ -40,7 +40,7 @@ class DocumentFieldLengthCounter(DocumentStatistic):
         return len(field_obj)
 
 
-class DocumentSubFieldLengthCounter(DocumentStatistic):
+class SubFieldLengthCollector(DocumentStatistic):
     """Collects the length of a subfield in a field, e.g. to collect the number of arguments of N-ary relations."""
 
     def __init__(self, field: str, subfield: str):
@@ -57,7 +57,7 @@ class DocumentSubFieldLengthCounter(DocumentStatistic):
         return lengths
 
 
-class DocumentSpanLengthCounter(DocumentStatistic):
+class LabeledSpanLengthCollector(DocumentStatistic):
     """Collects the length of spans in a field per label, e.g. to collect the length of entities per type.
 
     The field should be a list of elements with a label, a start and end attribute.
@@ -75,7 +75,7 @@ class DocumentSpanLengthCounter(DocumentStatistic):
         return dict(counts)
 
 
-class DummyCounter(DocumentStatistic):
+class DummyCollector(DocumentStatistic):
     """A dummy collector that always returns 1, e.g. to count the number of documents.
 
     Can be used to count the number of documents.
@@ -85,7 +85,7 @@ class DummyCounter(DocumentStatistic):
         return 1
 
 
-class LabelCounter(DocumentStatistic):
+class LabelCountCollector(DocumentStatistic):
     """Collects the number of field entries per label, e.g. to collect the number of entities per type.
 
     The field should be a list of elements with a label attribute.
