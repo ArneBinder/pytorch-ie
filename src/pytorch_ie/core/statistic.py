@@ -48,8 +48,9 @@ class DocumentStatistic(DocumentMetric):
     ```python
     from transformers import AutoTokenizer
     from pytorch_ie import DatasetDict
+    from pytorch_ie.core import Document, DocumentStatistic
 
-    class DocumentTokenCounter(DocumentStatistic):
+    class TokenCountCollector(DocumentStatistic):
         def __init__(self, tokenizer_name_or_path: str, field: str, **kwargs):
             super().__init__()
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
@@ -63,8 +64,13 @@ class DocumentStatistic(DocumentMetric):
             return len(tokens)
 
     dataset = DatasetDict.load_dataset("pie/conll2003")
-    statistic = DocumentTokenCounter(tokenizer_name_or_path="bert-base-cased", field="text")
+    statistic = TokenCountCollector(tokenizer_name_or_path="bert-base-cased", field="text")
     values = statistic(dataset)
+    assert values == {
+        'train': [12, 4, 11, 34, 39, 43, 27, 50, 45, 43, ...],
+        'validation': [37, 11, 40, 43, 44, 27, 35, 40, 48, 43, ...],
+        'test': [33, 8, 15, 29, 30, 56, 31, 19, 21, 30, ...],
+    }
     ```
     """
 
