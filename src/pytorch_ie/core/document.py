@@ -118,24 +118,6 @@ def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.F
     return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
 
 
-def _revert_annotation_graph(annotation_graph: Dict[str, List[str]]) -> Dict[str, Set[str]]:
-    """Points from field names to the names of dependent annotation fields."""
-    reverted_annotation_graph = defaultdict(set)
-    all_target_names = set()
-    all_dependent_names = set()
-    for annotation_name, target_names in annotation_graph.items():
-        all_target_names.update(target_names)
-        all_dependent_names.add(annotation_name)
-        if annotation_name == "_artificial_root":
-            continue
-        for target_name in target_names:
-            reverted_annotation_graph[target_name].add(annotation_name)
-
-    reverted_annotation_graph["_artificial_root"] = all_target_names - all_dependent_names
-
-    return dict(reverted_annotation_graph)
-
-
 def annotation_field(
     target: Optional[str] = None,
     targets: Optional[List[str]] = None,
