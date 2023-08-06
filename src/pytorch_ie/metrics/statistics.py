@@ -7,7 +7,7 @@ from pytorch_ie.core import Document, DocumentStatistic
 
 
 class DocumentTokenCounter(DocumentStatistic):
-    """Counts the number of tokens in a field by tokenizing it with a Huggingface tokenizer.
+    """Collects the token count of a field when tokenizing its content with a Huggingface tokenizer.
 
     The field should be a string.
     """
@@ -26,7 +26,7 @@ class DocumentTokenCounter(DocumentStatistic):
 
 
 class DocumentFieldLengthCounter(DocumentStatistic):
-    """Counts the length of a field.
+    """Collects the length of a field, e.g. to collect the number the characters in the input text.
 
     The field should be a list of sized elements.
     """
@@ -41,7 +41,7 @@ class DocumentFieldLengthCounter(DocumentStatistic):
 
 
 class DocumentSubFieldLengthCounter(DocumentStatistic):
-    """Counts the length of a subfield in a field."""
+    """Collects the length of a subfield in a field, e.g. to collect the number of arguments of N-ary relations."""
 
     def __init__(self, field: str, subfield: str):
         super().__init__()
@@ -58,7 +58,7 @@ class DocumentSubFieldLengthCounter(DocumentStatistic):
 
 
 class DocumentSpanLengthCounter(DocumentStatistic):
-    """Counts the length of spans in a field.
+    """Collects the length of spans in a field per label, e.g. to collect the length of entities per type.
 
     The field should be a list of elements with a label, a start and end attribute.
     """
@@ -76,7 +76,7 @@ class DocumentSpanLengthCounter(DocumentStatistic):
 
 
 class DummyCounter(DocumentStatistic):
-    """A dummy counter that always returns 1.
+    """A dummy collector that always returns 1, e.g. to count the number of documents.
 
     Can be used to count the number of documents.
     """
@@ -86,7 +86,7 @@ class DummyCounter(DocumentStatistic):
 
 
 class LabelCounter(DocumentStatistic):
-    """A counter that counts the number of labels in a field.
+    """Collects the number of field entries per label, e.g. to collect the number of entities per type.
 
     The field should be a list of elements with a label attribute.
 
