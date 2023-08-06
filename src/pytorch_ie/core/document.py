@@ -750,34 +750,33 @@ class Document(Mapping[str, Any]):
         else:
             override_annotation_mapping = dict()
 
-        fields_todo = ["_artificial_root"]
-        fields_done = set()
-        reverted_annotation_graph = _revert_annotation_graph(self._annotation_graph)
-        while fields_todo:
-            field_name = fields_todo.pop(0)
-            if field_name not in fields_done:
-                if (
-                    field_name in named_annotation_fields
-                    and field_name not in override_annotation_mapping
-                ):
-                    current_targets_store = dict()
-                    for target in self._annotation_graph.get(field_name, []):
-                        current_targets_store.update(annotation_store[target])
+        dependency_ordered_fields: List[str] = []
+        _enumerate_dependencies(
+            dependency_ordered_fields,
+            dependency_graph=self._annotation_graph,
+            nodes=self._annotation_graph["_artificial_root"],
+        )
+        for field_name in dependency_ordered_fields:
+            if (
+                field_name in named_annotation_fields
+                and field_name not in override_annotation_mapping
+            ):
+                current_targets_store = dict()
+                for target in self._annotation_graph.get(field_name, []):
+                    current_targets_store.update(annotation_store[target])
 
-                    other_annotation_field = other[field_name]
-                    for ann in other_annotation_field:
+                other_annotation_field = other[field_name]
+                for ann in other_annotation_field:
+                    new_ann = ann.copy_with_store(current_targets_store)
+                    if ann._id != new_ann._id:
+                        annotation_store[field_name][ann._id] = new_ann
+                    self[field_name].append(new_ann)
+                if process_predictions:
+                    for ann in other_annotation_field.predictions:
                         new_ann = ann.copy_with_store(current_targets_store)
                         if ann._id != new_ann._id:
                             annotation_store[field_name][ann._id] = new_ann
-                        self[field_name].append(new_ann)
-                    if process_predictions:
-                        for ann in other_annotation_field.predictions:
-                            new_ann = ann.copy_with_store(current_targets_store)
-                            if ann._id != new_ann._id:
-                                annotation_store[field_name][ann._id] = new_ann
-                            self[field_name].predictions.append(new_ann)
-                fields_todo.extend(reverted_annotation_graph.get(field_name, []))
-                fields_done.add(field_name)
+                        self[field_name].predictions.append(new_ann)
 
 
 def resolve_annotation(
