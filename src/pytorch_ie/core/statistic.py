@@ -1,9 +1,13 @@
+import logging
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Any, Dict, Generator, List, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.metric import DocumentMetric
+from pytorch_ie.utils.hydra import InstantiationException, resolve_target
+
+logger = logging.getLogger(__name__)
 
 
 def _flatten_dict_gen(d, parent_key: Tuple[str, ...] = ()) -> Generator:
@@ -40,39 +44,98 @@ def unflatten_dict(d: Dict[Tuple[str, ...], Any]) -> Union[Dict[str, Any], Any]:
     return result
 
 
+def mean(values: List[float]) -> float:
+    return sum(values) / len(values)
+
+
+def median(values: List[float]) -> float:
+    return sorted(values)[len(values) // 2]
+
+
+def std(values: List[float]) -> float:
+    mean_value = mean(values)
+    return (sum((x - mean_value) ** 2 for x in values) / len(values)) ** 0.5
+
+
+def resolve_agg_function(name: str):
+    if name == "mean":
+        return mean
+    elif name == "median":
+        return median
+    elif name == "std":
+        return std
+    else:
+        try:
+            return resolve_target(name)
+        except InstantiationException:
+            try:
+                return resolve_target(f"builtins.{name}")
+            except InstantiationException:
+                raise ImportError(f"Cannot resolve aggregation function: {name}")
+
+
 class DocumentStatistic(DocumentMetric):
     """A special type of metric that collects statistics from a document.
 
     Usage:
 
     ```python
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer, PreTrainedTokenizer
     from pytorch_ie import DatasetDict
     from pytorch_ie.core import Document, DocumentStatistic
 
     class TokenCountCollector(DocumentStatistic):
-        def __init__(self, tokenizer_name_or_path: str, field: str, **kwargs):
-            super().__init__()
-            self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-            self.kwargs = kwargs
-            self.field = field
+
+        def __init__(
+            self,
+            tokenizer: Union[str, PreTrainedTokenizer],
+            text_field: str,
+            tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+            **kwargs,
+        ):
+            super().__init__(**kwargs)
+            self.tokenizer = (
+                AutoTokenizer.from_pretrained(tokenizer) if isinstance(tokenizer, str) else tokenizer
+            )
+            self.tokenizer_kwargs = tokenizer_kwargs or {}
+            self.text_field = text_field
 
         def _collect(self, doc: Document) -> int:
-            text = getattr(doc, self.field)
-            encodings = self.tokenizer(text, **self.kwargs)
+            text = getattr(doc, self.text_field)
+            encodings = self.tokenizer(text, **self.tokenizer_kwargs)
             tokens = encodings.tokens()
             return len(tokens)
 
     dataset = DatasetDict.load_dataset("pie/conll2003")
-    statistic = TokenCountCollector(tokenizer_name_or_path="bert-base-cased", field="text")
+    statistic = TokenCountCollector(
+        text_field="text",
+        tokenizer="bert-base-uncased",
+        tokenizer_kwargs=dict(add_special_tokens=False),
+    )
     values = statistic(dataset)
     assert values == {
-        'train': [12, 4, 11, 34, 39, 43, 27, 50, 45, 43, ...],
-        'validation': [37, 11, 40, 43, 44, 27, 35, 40, 48, 43, ...],
-        'test': [33, 8, 15, 29, 30, 56, 31, 19, 21, 30, ...],
+        'train': {'mean': 17.950502100989958, 'std': 13.016237876955675, 'min': 1, 'max': 162},
+        'validation': {'mean': 19.368307692307692, 'std': 14.583363922289669, 'min': 1, 'max': 144},
+        'test': {'mean': 16.774978279756734, 'std': 13.176981022988947, 'min': 1, 'max': 138}
     }
     ```
     """
+
+    DEFAULT_AGGREGATION_FUNCTIONS = ["mean", "std", "min", "max"]
+
+    def __init__(
+        self,
+        show_histogram: bool = False,
+        show_as_markdown: bool = False,
+        aggregation_functions: Optional[List[str]] = None,
+    ) -> None:
+        super().__init__()
+        self.aggregation_functions = {
+            f_name: resolve_agg_function(f_name)
+            for f_name in aggregation_functions or self.DEFAULT_AGGREGATION_FUNCTIONS
+        }
+        self.show_histogram = show_histogram
+        self.show_as_markdown = show_as_markdown
 
     def reset(self) -> None:
         self._values: List[Any] = []
@@ -102,4 +165,31 @@ class DocumentStatistic(DocumentMetric):
                     stats[()].extend(collected_result)
                 else:
                     stats[()].append(collected_result)
-        return unflatten_dict(dict(stats))
+        title = f"{self.__class__.__name__} ({len(self._values)} documents)"
+        if self.show_histogram:
+            import plotext as plt
+
+            for k, values in stats.items():
+                if isinstance(values, list):
+                    plt.hist(values, label=k)
+            plt.title(title)
+            plt.show()
+            plt.clear_figure()
+
+        aggregated_stats = {}
+        for k, v in stats.items():
+            for f_name, f in self.aggregation_functions.items():
+                aggregated_stats[k + (f_name,)] = f(v)
+
+        if self.show_as_markdown:
+            import pandas as pd
+
+            series = pd.Series(aggregated_stats)
+            if len(series.index.levels) > 1:
+                df = series.unstack(-1)
+                logger.info(f"{title}\n{df.round(3).to_markdown()}")
+            else:
+                series.index = series.index.get_level_values(0)
+                logger.info(f"{title}\n{series.round(3).to_markdown()}")
+
+        return unflatten_dict(aggregated_stats)

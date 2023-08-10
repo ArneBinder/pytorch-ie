@@ -1,7 +1,7 @@
 from collections import defaultdict
-from typing import Dict, List
+from typing import Any, Dict, List, Optional, Union
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizer
 
 from pytorch_ie.core import Document, DocumentStatistic
 
@@ -12,15 +12,23 @@ class TokenCountCollector(DocumentStatistic):
     The field should be a string.
     """
 
-    def __init__(self, tokenizer_name_or_path: str, field: str, **kwargs):
-        super().__init__()
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-        self.kwargs = kwargs
-        self.field = field
+    def __init__(
+        self,
+        tokenizer: Union[str, PreTrainedTokenizer],
+        text_field: str,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.tokenizer = (
+            AutoTokenizer.from_pretrained(tokenizer) if isinstance(tokenizer, str) else tokenizer
+        )
+        self.tokenizer_kwargs = tokenizer_kwargs or {}
+        self.text_field = text_field
 
     def _collect(self, doc: Document) -> int:
-        text = getattr(doc, self.field)
-        encodings = self.tokenizer(text, **self.kwargs)
+        text = getattr(doc, self.text_field)
+        encodings = self.tokenizer(text, **self.tokenizer_kwargs)
         tokens = encodings.tokens()
         return len(tokens)
 
@@ -31,8 +39,8 @@ class FieldLengthCollector(DocumentStatistic):
     The field should be a list of sized elements.
     """
 
-    def __init__(self, field: str):
-        super().__init__()
+    def __init__(self, field: str, **kwargs):
+        super().__init__(**kwargs)
         self.field = field
 
     def _collect(self, doc: Document) -> int:
@@ -43,8 +51,8 @@ class FieldLengthCollector(DocumentStatistic):
 class SubFieldLengthCollector(DocumentStatistic):
     """Collects the length of a subfield in a field, e.g. to collect the number of arguments of N-ary relations."""
 
-    def __init__(self, field: str, subfield: str):
-        super().__init__()
+    def __init__(self, field: str, subfield: str, **kwargs):
+        super().__init__(**kwargs)
         self.field = field
         self.subfield = subfield
 
@@ -63,8 +71,10 @@ class LabeledSpanLengthCollector(DocumentStatistic):
     The field should be a list of elements with a label, a start and end attribute.
     """
 
-    def __init__(self, field: str):
-        super().__init__()
+    DEFAULT_AGGREGATION_FUNCTIONS = ["mean", "std", "min", "max", "len"]
+
+    def __init__(self, field: str, **kwargs):
+        super().__init__(**kwargs)
         self.field = field
 
     def _collect(self, doc: Document) -> Dict[str, List[int]]:
@@ -81,6 +91,8 @@ class DummyCollector(DocumentStatistic):
     Can be used to count the number of documents.
     """
 
+    DEFAULT_AGGREGATION_FUNCTIONS = ["sum"]
+
     def _collect(self, doc: Document) -> int:
         return 1
 
@@ -94,13 +106,16 @@ class LabelCountCollector(DocumentStatistic):
         {("ORG",): [2, 3], ("LOC",): [2]} -> {("ORG",): [2, 3], ("LOC",): [2, 0]}
     """
 
-    def __init__(self, field: str):
-        super().__init__()
+    DEFAULT_AGGREGATION_FUNCTIONS = ["mean", "std", "min", "max", "len"]
+
+    def __init__(self, field: str, labels: List[str], **kwargs):
+        super().__init__(**kwargs)
         self.field = field
+        self.labels = labels
 
     def _collect(self, doc: Document) -> Dict[str, int]:
         field_obj = getattr(doc, self.field)
-        counts: Dict[str, int] = defaultdict(lambda: 1)
+        counts: Dict[str, int] = {label: 0 for label in self.labels}
         for elem in field_obj:
             counts[elem.label] += 1
         return dict(counts)
