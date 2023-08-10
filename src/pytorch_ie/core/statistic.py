@@ -167,7 +167,10 @@ class DocumentStatistic(DocumentMetric):
                     stats[()].extend(collected_result)
                 else:
                     stats[()].append(collected_result)
-        title = f"{self.title} ({len(self._values)} documents)"
+        if self.current_split is not None:
+            title = f"{self.title} (split: {self.current_split}, {len(self._values)} documents)"
+        else:
+            title = f"{self.title} ({len(self._values)} documents)"
         if self.show_histogram:
             import plotext as plt
 
