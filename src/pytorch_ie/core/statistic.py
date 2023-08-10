@@ -176,7 +176,7 @@ class DocumentStatistic(DocumentMetric):
 
             for k, values in stats.items():
                 if isinstance(values, list):
-                    plt.hist(values, label=k.join(".") if len(k) > 0 else None)
+                    plt.hist(values, label=".".join(k) if len(k) > 0 else None)
             plt.title(title)
             plt.show()
             plt.clear_figure()
