@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Iterable, TypeVar, Union
+from typing import Dict, Generic, Iterable, Optional, TypeVar, Union
 
 from pytorch_ie.core.document import Document
 
@@ -11,6 +11,7 @@ class DocumentMetric(ABC, Generic[T]):
 
     def __init__(self):
         self.reset()
+        self._current_split: Optional[str] = None
 
     @abstractmethod
     def reset(self) -> None:
@@ -33,9 +34,11 @@ class DocumentMetric(ABC, Generic[T]):
         elif isinstance(document_or_collection, dict):
             result: Dict[str, T] = {}
             for split_name, split in document_or_collection.items():
+                self._current_split = split_name
                 self.reset()
                 split_values: T = self(split)  # type: ignore
                 result[split_name] = split_values
+                self._current_split = None
             return result
         elif isinstance(document_or_collection, Iterable):
             for doc in document_or_collection:
@@ -64,3 +67,8 @@ class DocumentMetric(ABC, Generic[T]):
     @abstractmethod
     def _compute(self) -> T:
         """This method is called to get the metric values."""
+
+    @property
+    def current_split(self) -> Optional[str]:
+        """The current split that is being processed."""
+        return self._current_split
