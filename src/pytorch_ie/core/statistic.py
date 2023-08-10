@@ -128,6 +128,7 @@ class DocumentStatistic(DocumentMetric):
         show_histogram: bool = False,
         show_as_markdown: bool = False,
         aggregation_functions: Optional[List[str]] = None,
+        title: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.aggregation_functions = {
@@ -136,6 +137,7 @@ class DocumentStatistic(DocumentMetric):
         }
         self.show_histogram = show_histogram
         self.show_as_markdown = show_as_markdown
+        self.title = title or self.__class__.__name__
 
     def reset(self) -> None:
         self._values: List[Any] = []
@@ -165,7 +167,7 @@ class DocumentStatistic(DocumentMetric):
                     stats[()].extend(collected_result)
                 else:
                     stats[()].append(collected_result)
-        title = f"{self.__class__.__name__} ({len(self._values)} documents)"
+        title = f"{self.title} ({len(self._values)} documents)"
         if self.show_histogram:
             import plotext as plt
 
