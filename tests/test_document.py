@@ -703,3 +703,18 @@ def test_document_extend_from_other_override(text_document):
     assert (
         token_document.relation_attributes[0].value == text_document.relation_attributes[0].value
     )
+
+
+def test_document_extend_from_other_remove(text_document):
+    doc_new = type(text_document)(text=text_document.text)
+    doc_new.add_all_annotations_from_other(
+        text_document,
+        removed_annotations={"entities1": {text_document.entities1[0]._id}},
+        strict=False,
+    )
+
+    assert len(doc_new.entities1) == 0
+    assert len(doc_new.entities2) == 1
+    assert len(doc_new.relations) == 0
+    assert len(doc_new.labels) == 1
+    assert len(doc_new.relation_attributes) == 0
