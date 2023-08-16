@@ -1,6 +1,7 @@
 import logging
+from collections import defaultdict
 from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar
 
 from transformers import PreTrainedTokenizer
 
@@ -51,9 +52,10 @@ def text_based_document_to_token_based(
         if "text" in annotation_field.metadata["targets"]
     ]
 
-    override_annotation_mapping: Dict[str, Dict[int, Annotation]] = {}
+    override_annotations: Dict[str, Dict[int, Annotation]] = {}
+    removed_annotations: Dict[str, Set[int]] = defaultdict(set)
     for text_span_layer_name in text_span_layers:
-        override_annotation_mapping[text_span_layer_name] = {}
+        override_annotations[text_span_layer_name] = {}
         char_span: Span
         for char_span in doc[text_span_layer_name]:
             start_token_idx = char_to_token(char_span.start)
@@ -68,19 +70,18 @@ def text_based_document_to_token_based(
                     logger.warning(
                         f'cannot find token span for character span "{char_span}", skip it'
                     )
-                    continue
-            token_span = char_span.copy(start=start_token_idx, end=end_token_idx_inclusive + 1)
-            override_annotation_mapping[text_span_layer_name][char_span._id] = token_span
-
-        result[text_span_layer_name].extend(
-            sorted(
-                set(override_annotation_mapping[text_span_layer_name].values()),
-                key=lambda span: span.start,
-            )
-        )
+                    removed_annotations[text_span_layer_name].add(char_span._id)
+            else:
+                token_span = char_span.copy(start=start_token_idx, end=end_token_idx_inclusive + 1)
+                override_annotations[text_span_layer_name][char_span._id] = token_span
+        valid_spans = set(override_annotations[text_span_layer_name].values())
+        result[text_span_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
 
     result.add_all_annotations_from_other(
-        doc, override_annotation_mapping=override_annotation_mapping
+        doc,
+        override_annotations=override_annotations,
+        removed_annotations=removed_annotations,
+        strict=strict_span_conversion,
     )
 
     return result
