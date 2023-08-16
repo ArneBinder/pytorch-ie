@@ -221,3 +221,32 @@ def test_tokenize_document(documents, tokenizer):
     assert tokenized_doc.relations[0].head == tokenized_doc.entities[0]
     assert doc.relations[0].tail == doc.entities[1]
     assert tokenized_doc.relations[0].tail == tokenized_doc.entities[1]
+
+
+def test_tokenize_document_max_length(documents, tokenizer):
+    doc = documents[1]
+    tokenized_doc = tokenize_document(
+        doc,
+        tokenizer=tokenizer,
+        result_document_type=TokenizedTestDocument,
+        strict_span_conversion=False,
+        # This will cut out the second entity. Also, the sentence annotation will be removed,
+        # because the sentence is not complete anymore.
+        max_length=8,
+    )
+
+    # check (de-)serialization
+    tokenized_doc_dict = tokenized_doc.asdict()
+    recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+
+    assert doc.id == "train_doc2"
+    assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
+    assert tokenized_doc.tokens == ("[CLS]", "En", "##ti", "##ty", "A", "works", "at", "[SEP]")
+    assert len(doc.sentences) == 1
+    assert len(tokenized_doc.sentences) == 0
+    assert len(doc.entities) == 2
+    assert len(tokenized_doc.entities) == 1
+    assert str(doc.entities[0]) == "Entity A"
+    assert str(tokenized_doc.entities[0]) == "('En', '##ti', '##ty', 'A')"
+    assert len(doc.relations) == 1
+    assert len(tokenized_doc.relations) == 0
