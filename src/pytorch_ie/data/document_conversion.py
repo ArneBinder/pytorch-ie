@@ -34,7 +34,7 @@ def text_based_document_to_token_based(
         def char_to_token(char_idx: int) -> Optional[int]:
             return char_to_token_dict.get(char_idx)
 
-    result = result_document_type(tokens=tokens, id=doc.id, metadata=deepcopy(doc.metadata))
+    result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
     override_annotation_mapping: Dict[str, Dict[int, Annotation]] = {}
     for text_span_layer_name in text_span_layers:
