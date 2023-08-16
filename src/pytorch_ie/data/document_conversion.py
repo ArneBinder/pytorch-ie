@@ -2,6 +2,8 @@ import logging
 from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Tuple, Type, TypeVar
 
+from transformers import PreTrainedTokenizer
+
 from pytorch_ie.annotations import Span
 from pytorch_ie.core import Annotation
 from pytorch_ie.documents import TextBasedDocument, TokenBasedDocument
@@ -82,3 +84,24 @@ def text_based_document_to_token_based(
     )
 
     return result
+
+
+def tokenize_document(
+    doc: TextBasedDocument,
+    tokenizer: PreTrainedTokenizer,
+    result_document_type: Type[T],
+    strict: bool = True,
+) -> T:
+    tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
+    tokens = tokenized_text.tokens()
+    token_offset_mapping = tokenized_text.offset_mapping
+    char_to_token = tokenized_text.char_to_token
+    tokenized_document = text_based_document_to_token_based(
+        doc,
+        tokens=tokens,
+        result_document_type=result_document_type,
+        token_offset_mapping=token_offset_mapping,
+        char_to_token=char_to_token,
+        strict=strict,
+    )
+    return tokenized_document

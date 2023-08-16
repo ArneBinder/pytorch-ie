@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizer
 from pytorch_ie import text_based_document_to_token_based
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.data.document_conversion import tokenize_document
 from pytorch_ie.documents import TokenBasedDocument
 
 
@@ -167,3 +168,42 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
     assert len(doc.entities) == 1
     # the unaligned span is not included in the tokenized document
     assert len(tokenized_doc.entities) == 0
+
+
+def test_tokenize_document(documents, tokenizer):
+    doc = documents[1]
+    tokenized_doc = tokenize_document(
+        doc,
+        tokenizer=tokenizer,
+        result_document_type=TokenizedTestDocument,
+    )
+
+    assert doc.id == "train_doc2"
+    assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
+    assert tokenized_doc.tokens == (
+        "[CLS]",
+        "En",
+        "##ti",
+        "##ty",
+        "A",
+        "works",
+        "at",
+        "B",
+        ".",
+        "[SEP]",
+    )
+    assert len(tokenized_doc.sentences) == len(doc.sentences) == 1
+    assert str(doc.sentences[0]) == "Entity A works at B."
+    assert (
+        str(tokenized_doc.sentences[0]) == "('En', '##ti', '##ty', 'A', 'works', 'at', 'B', '.')"
+    )
+    assert len(tokenized_doc.entities) == len(doc.entities) == 2
+    assert str(doc.entities[0]) == "Entity A"
+    assert str(tokenized_doc.entities[0]) == "('En', '##ti', '##ty', 'A')"
+    assert str(doc.entities[1]) == "B"
+    assert str(tokenized_doc.entities[1]) == "('B',)"
+    assert len(tokenized_doc.relations) == len(doc.relations) == 1
+    assert doc.relations[0].head == doc.entities[0]
+    assert tokenized_doc.relations[0].head == tokenized_doc.entities[0]
+    assert doc.relations[0].tail == doc.entities[1]
+    assert tokenized_doc.relations[0].tail == tokenized_doc.entities[1]
