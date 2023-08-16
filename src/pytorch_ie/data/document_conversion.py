@@ -56,7 +56,10 @@ def text_based_document_to_token_based(
             override_annotation_mapping[text_span_layer_name][char_span._id] = token_span
 
         result[text_span_layer_name].extend(
-            set(override_annotation_mapping[text_span_layer_name].values())
+            sorted(
+                set(override_annotation_mapping[text_span_layer_name].values()),
+                key=lambda span: span.start,
+            )
         )
 
     result.add_all_annotations_from_other(
