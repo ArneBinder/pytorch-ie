@@ -37,8 +37,9 @@ def test_text_based_document_to_token_based(documents, tokenizer):
         assert tokenized_doc is not None
         if i == 0:
             assert doc.id == "train_doc1"
-            assert doc.text == "A single sentence."
-            assert tokenized_doc.metadata["text"] == doc.text
+            assert tokenized_doc.metadata["text"] == doc.text == "A single sentence."
+            assert tokenized_doc.metadata["token_offset_mapping"] == tokenized_text.offset_mapping
+            assert tokenized_doc.metadata.get("char_to_token") is None
             assert tokenized_doc.tokens == ("[CLS]", "A", "single", "sentence", ".", "[SEP]")
             assert len(tokenized_doc.sentences) == len(doc.sentences) == 1
             assert str(doc.sentences[0]) == "A single sentence."
@@ -47,8 +48,9 @@ def test_text_based_document_to_token_based(documents, tokenizer):
             assert len(tokenized_doc.relations) == len(doc.relations) == 0
         elif i == 1:
             assert doc.id == "train_doc2"
-            assert doc.text == "Entity A works at B."
-            assert tokenized_doc.metadata["text"] == doc.text
+            assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
+            assert tokenized_doc.metadata.get("token_offset_mapping") is None
+            assert tokenized_doc.metadata["char_to_token"] == tokenized_text.char_to_token
             assert tokenized_doc.tokens == (
                 "[CLS]",
                 "En",
@@ -79,8 +81,9 @@ def test_text_based_document_to_token_based(documents, tokenizer):
             assert tokenized_doc.relations[0].tail == tokenized_doc.entities[1]
         elif i == 2:
             assert doc.id == "train_doc3"
-            assert doc.text == "Entity C and D."
-            assert tokenized_doc.metadata["text"] == doc.text
+            assert tokenized_doc.metadata["text"] == doc.text == "Entity C and D."
+            assert tokenized_doc.metadata["token_offset_mapping"] == tokenized_text.offset_mapping
+            assert tokenized_doc.metadata["char_to_token"] == tokenized_text.char_to_token
             assert tokenized_doc.tokens == (
                 "[CLS]",
                 "En",
