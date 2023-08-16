@@ -19,7 +19,7 @@ def text_based_document_to_token_based(
     result_document_type: Type[T],
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
-    strict: bool = True,
+    strict_span_conversion: bool = True,
 ) -> T:
     result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
@@ -59,7 +59,7 @@ def text_based_document_to_token_based(
             start_token_idx = char_to_token(char_span.start)
             end_token_idx_inclusive = char_to_token(char_span.end - 1)
             if start_token_idx is None or end_token_idx_inclusive is None:
-                if strict:
+                if strict_span_conversion:
                     raise ValueError(
                         f'cannot find token span for character span: "{char_span}", text="{doc.text}", '
                         f"token_offset_mapping={token_offset_mapping}"
@@ -90,7 +90,7 @@ def tokenize_document(
     doc: TextBasedDocument,
     tokenizer: PreTrainedTokenizer,
     result_document_type: Type[T],
-    strict: bool = True,
+    strict_span_conversion: bool = True,
     **tokenize_kwargs,
 ) -> T:
     tokenized_text = tokenizer(doc.text, return_offsets_mapping=True, **tokenize_kwargs)
@@ -103,6 +103,6 @@ def tokenize_document(
         result_document_type=result_document_type,
         token_offset_mapping=token_offset_mapping,
         char_to_token=char_to_token,
-        strict=strict,
+        strict_span_conversion=strict_span_conversion,
     )
     return tokenized_document

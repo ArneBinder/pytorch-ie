@@ -36,6 +36,11 @@ def test_text_based_document_to_token_based(documents, tokenizer):
             char_to_token=None if i == 0 else tokenized_text.char_to_token,
         )
         assert tokenized_doc is not None
+
+        # check (de-)serialization
+        tokenized_doc_dict = tokenized_doc.asdict()
+        recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+
         if i == 0:
             assert doc.id == "train_doc1"
             assert tokenized_doc.metadata["text"] == doc.text == "A single sentence."
@@ -163,8 +168,13 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
         token_offset_mapping=tokenized_text.offset_mapping,
         # to increase test coverage
         char_to_token=tokenized_text.char_to_token,
-        strict=False,
+        strict_span_conversion=False,
     )
+
+    # check (de-)serialization
+    tokenized_doc_dict = tokenized_doc.asdict()
+    recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+
     assert len(doc.entities) == 1
     # the unaligned span is not included in the tokenized document
     assert len(tokenized_doc.entities) == 0
@@ -177,6 +187,10 @@ def test_tokenize_document(documents, tokenizer):
         tokenizer=tokenizer,
         result_document_type=TokenizedTestDocument,
     )
+
+    # check (de-)serialization
+    tokenized_doc_dict = tokenized_doc.asdict()
+    recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
 
     assert doc.id == "train_doc2"
     assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
