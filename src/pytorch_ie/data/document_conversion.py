@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar
 
 from transformers import PreTrainedTokenizer
 
@@ -95,21 +95,37 @@ def tokenize_document(
     doc: TextBasedDocument,
     tokenizer: PreTrainedTokenizer,
     result_document_type: Type[T],
+    partition_layer: Optional[str] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
     **tokenize_kwargs,
 ) -> List[T]:
-    tokenized_text = tokenizer(doc.text, return_offsets_mapping=True, **tokenize_kwargs)
     result = []
-    for batch_encoding in tokenized_text.encodings:
-        tokenized_document = text_based_document_to_token_based(
-            doc,
-            tokens=batch_encoding.tokens,
-            result_document_type=result_document_type,
-            token_offset_mapping=batch_encoding.offsets,
-            char_to_token=batch_encoding.char_to_token,
-            strict_span_conversion=strict_span_conversion,
-            verbose=verbose,
-        )
-        result.append(tokenized_document)
+    partitions: Iterable[Span]
+    if partition_layer is None:
+        partitions = [Span(start=0, end=len(doc.text))]
+    else:
+        partitions = doc[partition_layer]
+    for partition in partitions:
+        text = doc.text[partition.start : partition.end]
+        tokenized_text = tokenizer(text, **tokenize_kwargs)
+        for batch_encoding in tokenized_text.encodings:
+            token_offset_mapping = batch_encoding.offsets
+            char_to_token = batch_encoding.char_to_token
+            if partition.start > 0:
+                token_offset_mapping = [
+                    (start + partition.start, end + partition.start)
+                    for start, end in token_offset_mapping
+                ]
+                char_to_token = None
+            tokenized_document = text_based_document_to_token_based(
+                doc,
+                tokens=batch_encoding.tokens,
+                result_document_type=result_document_type,
+                token_offset_mapping=token_offset_mapping,
+                char_to_token=char_to_token,
+                strict_span_conversion=strict_span_conversion,
+                verbose=verbose,
+            )
+            result.append(tokenized_document)
     return result

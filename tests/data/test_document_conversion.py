@@ -216,6 +216,7 @@ def test_tokenize_document(documents, tokenizer):
     assert str(doc.entities[1]) == "B"
     assert str(tokenized_doc.entities[1]) == "('B',)"
     assert len(tokenized_doc.relations) == len(doc.relations) == 1
+    assert tokenized_doc.relations[0].label == doc.relations[0].label == "per:employee_of"
     assert doc.relations[0].head == doc.entities[0]
     assert tokenized_doc.relations[0].head == tokenized_doc.entities[0]
     assert doc.relations[0].tail == doc.entities[1]
@@ -232,6 +233,7 @@ def test_tokenize_document_max_length(documents, tokenizer):
     assert str(doc.entities[0]) == "Entity A"
     assert str(doc.entities[1]) == "B"
     assert len(doc.relations) == 1
+    assert doc.relations[0].label == "per:employee_of"
     assert doc.relations[0].head == doc.entities[0]
     assert doc.relations[0].tail == doc.entities[1]
 
@@ -271,3 +273,105 @@ def test_tokenize_document_max_length(documents, tokenizer):
     assert len(tokenized_doc.entities) == 1
     assert str(tokenized_doc.entities[0]) == "('B',)"
     assert len(tokenized_doc.relations) == 0
+
+
+def test_tokenize_document_partition(documents, tokenizer):
+    doc = documents[7]
+    assert doc.id == "train_doc8"
+    assert doc.text == "First sentence. Entity M works at N. And it founded O."
+    assert len(doc.sentences) == 3
+    assert str(doc.sentences[0]) == "First sentence."
+    assert str(doc.sentences[1]) == "Entity M works at N."
+    assert str(doc.sentences[2]) == "And it founded O"
+    assert len(doc.entities) == 4
+    assert str(doc.entities[0]) == "Entity M"
+    assert str(doc.entities[1]) == "N"
+    assert str(doc.entities[2]) == "it"
+    assert str(doc.entities[3]) == "O"
+    assert len(doc.relations) == 3
+    assert doc.relations[0].head == doc.entities[0]
+    assert doc.relations[0].tail == doc.entities[1]
+    assert doc.relations[1].head == doc.entities[2]
+    assert doc.relations[1].tail == doc.entities[3]
+    assert doc.relations[2].head == doc.entities[3]
+    assert doc.relations[2].tail == doc.entities[2]
+
+    tokenized_docs = tokenize_document(
+        doc,
+        tokenizer=tokenizer,
+        result_document_type=TokenizedTestDocument,
+        strict_span_conversion=False,
+        partition_layer="sentences",
+    )
+    assert len(tokenized_docs) == 3
+    tokenized_doc = tokenized_docs[0]
+
+    # check (de-)serialization
+    tokenized_doc.copy()
+
+    assert tokenized_doc.id == doc.id == "train_doc8"
+    assert (
+        tokenized_doc.metadata["text"]
+        == doc.text
+        == "First sentence. Entity M works at N. And it founded O."
+    )
+    assert tokenized_doc.tokens == ("[CLS]", "First", "sentence", ".", "[SEP]")
+    assert len(tokenized_doc.sentences) == 1
+    assert len(tokenized_doc.entities) == 0
+    assert len(tokenized_doc.relations) == 0
+
+    tokenized_doc = tokenized_docs[1]
+
+    # check (de-)serialization
+    tokenized_doc.copy()
+
+    assert tokenized_doc.id == doc.id == "train_doc8"
+    assert (
+        tokenized_doc.metadata["text"]
+        == doc.text
+        == "First sentence. Entity M works at N. And it founded O."
+    )
+    assert tokenized_doc.tokens == (
+        "[CLS]",
+        "En",
+        "##ti",
+        "##ty",
+        "M",
+        "works",
+        "at",
+        "N",
+        ".",
+        "[SEP]",
+    )
+    assert len(tokenized_doc.sentences) == 1
+    assert len(tokenized_doc.entities) == 2
+    assert str(tokenized_doc.entities[0]) == "('En', '##ti', '##ty', 'M')"
+    assert str(tokenized_doc.entities[1]) == "('N',)"
+    assert len(tokenized_doc.relations) == 1
+    assert tokenized_doc.relations[0].label == "per:employee_of"
+    assert tokenized_doc.relations[0].head == tokenized_doc.entities[0]
+    assert tokenized_doc.relations[0].tail == tokenized_doc.entities[1]
+
+    tokenized_doc = tokenized_docs[2]
+
+    # check (de-)serialization
+    tokenized_doc.copy()
+
+    assert tokenized_doc.id == doc.id == "train_doc8"
+    assert (
+        tokenized_doc.metadata["text"]
+        == doc.text
+        == "First sentence. Entity M works at N. And it founded O."
+    )
+    assert tokenized_doc.tokens == ("[CLS]", "And", "it", "founded", "O", "[SEP]")
+    assert len(tokenized_doc.sentences) == 1
+    assert len(tokenized_doc.entities) == 2
+    assert str(tokenized_doc.entities[0]) == "('it',)"
+    assert str(tokenized_doc.entities[1]) == "('O',)"
+    assert len(tokenized_doc.relations) == 2
+    assert tokenized_doc.relations[0].label == "per:founder"
+    assert tokenized_doc.relations[0].head == tokenized_doc.entities[0]
+    assert tokenized_doc.relations[0].tail == tokenized_doc.entities[1]
+    assert tokenized_doc.relations[1].label == "org:founded_by"
+    assert tokenized_doc.relations[1].head == tokenized_doc.entities[1]
+    assert tokenized_doc.relations[1].tail == tokenized_doc.entities[0]
