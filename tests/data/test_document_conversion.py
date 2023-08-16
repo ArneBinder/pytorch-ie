@@ -1,5 +1,6 @@
 import dataclasses
 
+import pytest
 from transformers import AutoTokenizer, PreTrainedTokenizer
 
 from pytorch_ie import text_based_document_to_token_based
@@ -8,15 +9,19 @@ from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.documents import TokenBasedDocument
 
 
-def test_text_based_document_to_token_based(documents):
-    @dataclasses.dataclass
-    class TokenizedTestDocument(TokenBasedDocument):
-        sentences: AnnotationList[Span] = annotation_field(target="tokens")
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
-        relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+@dataclasses.dataclass
+class TokenizedTestDocument(TokenBasedDocument):
+    sentences: AnnotationList[Span] = annotation_field(target="tokens")
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
 
-    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
 
+@pytest.fixture(scope="module")
+def tokenizer() -> PreTrainedTokenizer:
+    return AutoTokenizer.from_pretrained("bert-base-cased")
+
+
+def test_text_based_document_to_token_based(documents, tokenizer):
     assert len(documents) >= 3
     for i, doc in enumerate(documents[:3]):
         tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
@@ -25,8 +30,10 @@ def test_text_based_document_to_token_based(documents):
             tokens=tokenized_text.tokens(),
             text_span_layers=["sentences", "entities"],
             result_document_type=TokenizedTestDocument,
-            token_offset_mapping=tokenized_text.offset_mapping,
-            char_to_token=tokenized_text.char_to_token,
+            # to increase test coverage
+            token_offset_mapping=None if i == 1 else tokenized_text.offset_mapping,
+            # to increase test coverage
+            char_to_token=None if i == 0 else tokenized_text.char_to_token,
         )
         assert tokenized_doc is not None
         if i == 0:
@@ -99,3 +106,65 @@ def test_text_based_document_to_token_based(documents):
             assert len(tokenized_doc.relations) == len(doc.relations) == 0
         else:
             raise ValueError(f"Unexpected document: {doc.id}")
+
+
+def test_text_based_document_to_token_based_missing_args(documents, tokenizer):
+    with pytest.raises(ValueError) as excinfo:
+        doc = documents[0]
+        tokenized_text = tokenizer(doc.text)
+        tokenized_doc = text_based_document_to_token_based(
+            doc,
+            tokens=tokenized_text.tokens(),
+            text_span_layers=["sentences", "entities"],
+            result_document_type=TokenizedTestDocument,
+        )
+    assert (
+        str(excinfo.value)
+        == "either token_offset_mapping or char_to_token must be provided to convert a text based document "
+        "to token based, but both are None"
+    )
+
+
+def test_text_based_document_to_token_based_unaligned_span_strict(documents, tokenizer):
+    doc = documents[0].copy()
+    # add a span that is not aligned with the tokenization
+    doc.entities.append(LabeledSpan(start=0, end=2, label="unaligned"))
+    assert str(doc.entities[-1]) == "A "
+    tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
+    with pytest.raises(ValueError) as excinfo:
+        tokenized_doc = text_based_document_to_token_based(
+            doc,
+            tokens=tokenized_text.tokens(),
+            text_span_layers=["sentences", "entities"],
+            result_document_type=TokenizedTestDocument,
+            # to increase test coverage
+            token_offset_mapping=tokenized_text.offset_mapping,
+            # to increase test coverage
+            char_to_token=tokenized_text.char_to_token,
+        )
+    assert (
+        str(excinfo.value)
+        == 'cannot find token span for character span: "A ", text="A single sentence.", '
+        "token_offset_mapping=[(0, 0), (0, 1), (2, 8), (9, 17), (17, 18), (0, 0)]"
+    )
+
+
+def test_text_based_document_to_token_based_unaligned_span_not_strict(documents, tokenizer):
+    doc = documents[0].copy()
+    doc.entities.append(LabeledSpan(start=0, end=2, label="unaligned"))
+    assert str(doc.entities[-1]) == "A "
+    tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
+    tokenized_doc = text_based_document_to_token_based(
+        doc,
+        tokens=tokenized_text.tokens(),
+        text_span_layers=["sentences", "entities"],
+        result_document_type=TokenizedTestDocument,
+        # to increase test coverage
+        token_offset_mapping=tokenized_text.offset_mapping,
+        # to increase test coverage
+        char_to_token=tokenized_text.char_to_token,
+        strict=False,
+    )
+    assert len(doc.entities) == 1
+    # the unaligned span is not included in the tokenized document
+    assert len(tokenized_doc.entities) == 0
