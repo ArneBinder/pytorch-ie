@@ -96,18 +96,20 @@ def tokenize_document(
     tokenizer: PreTrainedTokenizer,
     result_document_type: Type[T],
     strict_span_conversion: bool = True,
+    verbose: bool = True,
     **tokenize_kwargs,
-) -> T:
+) -> List[T]:
     tokenized_text = tokenizer(doc.text, return_offsets_mapping=True, **tokenize_kwargs)
-    tokens = tokenized_text.tokens()
-    token_offset_mapping = tokenized_text.offset_mapping
-    char_to_token = tokenized_text.char_to_token
-    tokenized_document = text_based_document_to_token_based(
-        doc,
-        tokens=tokens,
-        result_document_type=result_document_type,
-        token_offset_mapping=token_offset_mapping,
-        char_to_token=char_to_token,
-        strict_span_conversion=strict_span_conversion,
-    )
-    return tokenized_document
+    result = []
+    for batch_encoding in tokenized_text.encodings:
+        tokenized_document = text_based_document_to_token_based(
+            doc,
+            tokens=batch_encoding.tokens,
+            result_document_type=result_document_type,
+            token_offset_mapping=batch_encoding.offsets,
+            char_to_token=batch_encoding.char_to_token,
+            strict_span_conversion=strict_span_conversion,
+            verbose=verbose,
+        )
+        result.append(tokenized_document)
+    return result

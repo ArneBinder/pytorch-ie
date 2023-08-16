@@ -38,8 +38,7 @@ def test_text_based_document_to_token_based(documents, tokenizer):
         assert tokenized_doc is not None
 
         # check (de-)serialization
-        tokenized_doc_dict = tokenized_doc.asdict()
-        recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+        tokenized_doc.copy()
 
         if i == 0:
             assert doc.id == "train_doc1"
@@ -172,8 +171,7 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
     )
 
     # check (de-)serialization
-    tokenized_doc_dict = tokenized_doc.asdict()
-    recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+    tokenized_doc.copy()
 
     assert len(doc.entities) == 1
     # the unaligned span is not included in the tokenized document
@@ -182,15 +180,16 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
 
 def test_tokenize_document(documents, tokenizer):
     doc = documents[1]
-    tokenized_doc = tokenize_document(
+    tokenized_docs = tokenize_document(
         doc,
         tokenizer=tokenizer,
         result_document_type=TokenizedTestDocument,
     )
+    assert len(tokenized_docs) == 1
+    tokenized_doc = tokenized_docs[0]
 
     # check (de-)serialization
-    tokenized_doc_dict = tokenized_doc.asdict()
-    recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+    tokenized_doc.copy()
 
     assert doc.id == "train_doc2"
     assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
@@ -225,7 +224,18 @@ def test_tokenize_document(documents, tokenizer):
 
 def test_tokenize_document_max_length(documents, tokenizer):
     doc = documents[1]
-    tokenized_doc = tokenize_document(
+    assert doc.id == "train_doc2"
+    assert doc.text == "Entity A works at B."
+    assert len(doc.sentences) == 1
+    assert str(doc.sentences[0]) == "Entity A works at B."
+    assert len(doc.entities) == 2
+    assert str(doc.entities[0]) == "Entity A"
+    assert str(doc.entities[1]) == "B"
+    assert len(doc.relations) == 1
+    assert doc.relations[0].head == doc.entities[0]
+    assert doc.relations[0].tail == doc.entities[1]
+
+    tokenized_docs = tokenize_document(
         doc,
         tokenizer=tokenizer,
         result_document_type=TokenizedTestDocument,
@@ -233,20 +243,31 @@ def test_tokenize_document_max_length(documents, tokenizer):
         # This will cut out the second entity. Also, the sentence annotation will be removed,
         # because the sentence is not complete anymore.
         max_length=8,
+        return_overflowing_tokens=True,
     )
+    assert len(tokenized_docs) == 2
+    tokenized_doc = tokenized_docs[0]
 
     # check (de-)serialization
-    tokenized_doc_dict = tokenized_doc.asdict()
-    recreated_tokenized_doc = type(tokenized_doc).fromdict(tokenized_doc_dict)
+    tokenized_doc.copy()
 
-    assert doc.id == "train_doc2"
+    assert tokenized_doc.id == doc.id == "train_doc2"
     assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
     assert tokenized_doc.tokens == ("[CLS]", "En", "##ti", "##ty", "A", "works", "at", "[SEP]")
-    assert len(doc.sentences) == 1
     assert len(tokenized_doc.sentences) == 0
-    assert len(doc.entities) == 2
     assert len(tokenized_doc.entities) == 1
-    assert str(doc.entities[0]) == "Entity A"
     assert str(tokenized_doc.entities[0]) == "('En', '##ti', '##ty', 'A')"
-    assert len(doc.relations) == 1
+    assert len(tokenized_doc.relations) == 0
+
+    tokenized_doc = tokenized_docs[1]
+
+    # check (de-)serialization
+    tokenized_doc.copy()
+
+    assert tokenized_doc.id == doc.id == "train_doc2"
+    assert tokenized_doc.metadata["text"] == doc.text == "Entity A works at B."
+    assert tokenized_doc.tokens == ("[CLS]", "B", ".", "[SEP]")
+    assert len(tokenized_doc.sentences) == 0
+    assert len(tokenized_doc.entities) == 1
+    assert str(tokenized_doc.entities[0]) == "('B',)"
     assert len(tokenized_doc.relations) == 0
