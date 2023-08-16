@@ -91,8 +91,9 @@ def tokenize_document(
     tokenizer: PreTrainedTokenizer,
     result_document_type: Type[T],
     strict: bool = True,
+    **tokenize_kwargs,
 ) -> T:
-    tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
+    tokenized_text = tokenizer(doc.text, return_offsets_mapping=True, **tokenize_kwargs)
     tokens = tokenized_text.tokens()
     token_offset_mapping = tokenized_text.offset_mapping
     char_to_token = tokenized_text.char_to_token
