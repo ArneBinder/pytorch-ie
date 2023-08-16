@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import typing
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -16,6 +17,8 @@ from typing import (
     Union,
     overload,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _enumerate_dependencies(
@@ -675,6 +678,7 @@ class Document(Mapping[str, Any]):
         override_annotations: Optional[Dict[str, Dict[int, Annotation]]] = None,
         process_predictions: bool = True,
         strict: bool = True,
+        verbose: bool = True,
     ) -> None:
         """Adds all annotations from another document to this document.
 
@@ -702,6 +706,8 @@ class Document(Mapping[str, Any]):
             strict: Whether to raise an exception if the other document contains annotations that reference
                 annotations that are not present in the current document (see parameter removed_annotations).
                 If set to False, the annotations are ignored.
+            verbose: Whether to print a warning if the other document contains annotations that reference
+                annotations that are not present in the current document (see parameter removed_annotations).
 
         Example:
                 ```
@@ -794,6 +800,12 @@ class Document(Mapping[str, Any]):
                                 f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
                                 f"annotations that are not present in the document."
                             )
+                        if verbose:
+                            logger.warning(
+                                f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
+                                f"annotations that are not present in the document. The annotation is ignored."
+                                f"(disable this warning with verbose=False)"
+                            )
                         # The annotation was removed, so we need to make sure that it is not referenced by any other
                         removed_annotations[field_name].add(ann._id)
                 if process_predictions:
@@ -811,6 +823,12 @@ class Document(Mapping[str, Any]):
                                 raise ValueError(
                                     f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
                                     f"annotations that are not present in the document."
+                                )
+                            if verbose:
+                                logger.warning(
+                                    f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
+                                    f"annotations that are not present in the document. The annotation is ignored. "
+                                    f"(disable this warning with verbose=False)"
                                 )
                             # The annotation was removed, so we need to make sure that it is not referenced by any other
                             removed_annotations[field_name].add(ann._id)

@@ -21,6 +21,7 @@ def text_based_document_to_token_based(
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
     strict_span_conversion: bool = True,
+    verbose: bool = True,
 ) -> T:
     result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
@@ -67,9 +68,11 @@ def text_based_document_to_token_based(
                         f"token_offset_mapping={token_offset_mapping}"
                     )
                 else:
-                    logger.warning(
-                        f'cannot find token span for character span "{char_span}", skip it'
-                    )
+                    if verbose:
+                        logger.warning(
+                            f'cannot find token span for character span "{char_span}", skip it (disable this '
+                            f"warning with verbose=False)"
+                        )
                     removed_annotations[text_span_layer_name].add(char_span._id)
             else:
                 token_span = char_span.copy(start=start_token_idx, end=end_token_idx_inclusive + 1)
@@ -82,6 +85,7 @@ def text_based_document_to_token_based(
         override_annotations=override_annotations,
         removed_annotations=removed_annotations,
         strict=strict_span_conversion,
+        verbose=verbose,
     )
 
     return result
