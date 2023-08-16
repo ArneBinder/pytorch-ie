@@ -14,7 +14,6 @@ T = TypeVar("T", bound=TokenBasedDocument)
 def text_based_document_to_token_based(
     doc: TextBasedDocument,
     tokens: List[str],
-    text_span_layers: List[str],
     result_document_type: Type[T],
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
@@ -43,6 +42,12 @@ def text_based_document_to_token_based(
 
         def char_to_token(char_idx: int) -> Optional[int]:
             return char_to_token_dict.get(char_idx)
+
+    text_span_layers = [
+        annotation_field.name
+        for annotation_field in doc.annotation_fields()
+        if "text" in annotation_field.metadata["targets"]
+    ]
 
     override_annotation_mapping: Dict[str, Dict[int, Annotation]] = {}
     for text_span_layer_name in text_span_layers:

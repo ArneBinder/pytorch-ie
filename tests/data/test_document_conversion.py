@@ -28,7 +28,6 @@ def test_text_based_document_to_token_based(documents, tokenizer):
         tokenized_doc = text_based_document_to_token_based(
             doc,
             tokens=tokenized_text.tokens(),
-            text_span_layers=["sentences", "entities"],
             result_document_type=TokenizedTestDocument,
             # to increase test coverage
             token_offset_mapping=None if i == 1 else tokenized_text.offset_mapping,
@@ -115,7 +114,6 @@ def test_text_based_document_to_token_based_missing_args(documents, tokenizer):
         tokenized_doc = text_based_document_to_token_based(
             doc,
             tokens=tokenized_text.tokens(),
-            text_span_layers=["sentences", "entities"],
             result_document_type=TokenizedTestDocument,
         )
     assert (
@@ -135,7 +133,6 @@ def test_text_based_document_to_token_based_unaligned_span_strict(documents, tok
         tokenized_doc = text_based_document_to_token_based(
             doc,
             tokens=tokenized_text.tokens(),
-            text_span_layers=["sentences", "entities"],
             result_document_type=TokenizedTestDocument,
             # to increase test coverage
             token_offset_mapping=tokenized_text.offset_mapping,
@@ -157,7 +154,6 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
     tokenized_doc = text_based_document_to_token_based(
         doc,
         tokens=tokenized_text.tokens(),
-        text_span_layers=["sentences", "entities"],
         result_document_type=TokenizedTestDocument,
         # to increase test coverage
         token_offset_mapping=tokenized_text.offset_mapping,
