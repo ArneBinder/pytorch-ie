@@ -20,6 +20,16 @@ def text_based_document_to_token_based(
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
     strict: bool = True,
 ) -> T:
+    result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
+
+    # save text, token_offset_mapping and char_to_token (if available) in metadata
+    result.metadata["text"] = doc.text
+    if token_offset_mapping is not None:
+        result.metadata["token_offset_mapping"] = token_offset_mapping
+    if char_to_token is not None:
+        result.metadata["char_to_token"] = char_to_token
+
+    # construct the char_to_token function, if not provided, from the token_offset_mapping
     if char_to_token is None:
         if token_offset_mapping is None:
             raise ValueError(
@@ -34,8 +44,6 @@ def text_based_document_to_token_based(
         def char_to_token(char_idx: int) -> Optional[int]:
             return char_to_token_dict.get(char_idx)
 
-    result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
-
     override_annotation_mapping: Dict[str, Dict[int, Annotation]] = {}
     for text_span_layer_name in text_span_layers:
         override_annotation_mapping[text_span_layer_name] = {}
@@ -46,11 +54,13 @@ def text_based_document_to_token_based(
             if start_token_idx is None or end_token_idx_inclusive is None:
                 if strict:
                     raise ValueError(
-                        f"cannot find token span for char span: {char_span}, "
+                        f'cannot find token span for character span: "{char_span}", text="{doc.text}", '
                         f"token_offset_mapping={token_offset_mapping}"
                     )
                 else:
-                    logger.warning(f"cannot find token for char span {char_span}, skip it")
+                    logger.warning(
+                        f'cannot find token span for character span "{char_span}", skip it'
+                    )
                     continue
             token_span = char_span.copy(start=start_token_idx, end=end_token_idx_inclusive + 1)
             override_annotation_mapping[text_span_layer_name][char_span._id] = token_span
@@ -65,12 +75,5 @@ def text_based_document_to_token_based(
     result.add_all_annotations_from_other(
         doc, override_annotation_mapping=override_annotation_mapping
     )
-
-    # save text, token_offset_mapping and char_to_token (if available) in metadata
-    result.metadata["text"] = doc.text
-    if token_offset_mapping is not None:
-        result.metadata["token_offset_mapping"] = token_offset_mapping
-    if char_to_token is not None:
-        result.metadata["char_to_token"] = char_to_token
 
     return result
