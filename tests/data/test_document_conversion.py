@@ -3,10 +3,9 @@ import dataclasses
 import pytest
 from transformers import AutoTokenizer, PreTrainedTokenizer
 
-from pytorch_ie import text_based_document_to_token_based
+from pytorch_ie import text_based_document_to_token_based, tokenize_document
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.data.document_conversion import tokenize_document
 from pytorch_ie.documents import TokenBasedDocument
 
 
