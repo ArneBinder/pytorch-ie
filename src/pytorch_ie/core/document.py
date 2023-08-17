@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import typing
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -16,6 +17,8 @@ from typing import (
     Union,
     overload,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _enumerate_dependencies(
@@ -303,7 +306,9 @@ class Annotation:
         kwargs.update(overrides)
         return type(self)(**kwargs)
 
-    def copy_with_store(self, override_annotation_store: Dict[int, "Annotation"]) -> "Annotation":
+    def copy_with_store(
+        self, override_annotation_store: Dict[int, "Annotation"], invalid_annotation_ids: Set[int]
+    ) -> Optional["Annotation"]:
         """
         Create a detached copy of the annotation, but replace references to other annotations
         with entries from an override annotation store.
@@ -313,7 +318,10 @@ class Annotation:
         Args:
             :param override_annotation_store: the annotation store to use, a mapping from original *annotation ids*
                 to the new *annotations*
-            :return: a detached copy of the annotation
+            :param invalid_annotation_ids: a set of annotation ids that are not valid anymore and so any Annotation that
+                references one of these ids will be discarded
+            :return: a detached copy of the annotation or None if the annotation contains references to invalid
+                annotations
         """
         overrides: Dict[str, Any] = {}
         for f in dataclasses.fields(self):
@@ -321,8 +329,16 @@ class Annotation:
                 continue
             field_value = getattr(self, f.name)
             if isinstance(field_value, Annotation):
+                if field_value._id in invalid_annotation_ids:
+                    return None
                 overrides[f.name] = override_annotation_store.get(field_value._id, field_value)
             elif isinstance(field_value, tuple):
+                if any(
+                    maybe_anno._id in invalid_annotation_ids
+                    for maybe_anno in field_value
+                    if isinstance(maybe_anno, Annotation)
+                ):
+                    return None
                 overrides[f.name] = tuple(
                     override_annotation_store.get(maybe_anno._id, maybe_anno)
                     if isinstance(maybe_anno, Annotation)
@@ -658,8 +674,11 @@ class Document(Mapping[str, Any]):
     def add_all_annotations_from_other(
         self,
         other: "Document",
-        override_annotation_mapping: Optional[Dict[str, Dict[int, Annotation]]] = None,
+        removed_annotations: Optional[Dict[str, Set[int]]] = None,
+        override_annotations: Optional[Dict[str, Dict[int, Annotation]]] = None,
         process_predictions: bool = True,
+        strict: bool = True,
+        verbose: bool = True,
     ) -> None:
         """Adds all annotations from another document to this document.
 
@@ -667,7 +686,7 @@ class Document(Mapping[str, Any]):
             other: The document to add annotations from.
             process_predictions: Whether to process predictions as well (default: True). If set to False,
                 the predictions in the other document will be ignored.
-            override_annotation_mapping: A mapping from annotation field names to a mapping from
+            override_annotations: A mapping from annotation field names to a mapping from
                 annotation IDs to annotations. The effects are two-fold. First, adding any annotation
                 field name as key has the effect that the field is expected to be already handled and
                 no annotations will be added from the other document. Second, if a certain mapping
@@ -675,8 +694,22 @@ class Document(Mapping[str, Any]):
                 the new_annotation will be used anywhere where the old_annotation would have been
                 referenced. This propagates along the annotation graph and can be useful if some
                 annotations are modified, but all dependent annotations should be kept intact e.g.
-                when converting a text-based document to token-based (or the other way around):
+                when converting a text-based document to token-based (or the other way around). See below
+                for an example.
+            removed_annotations: A mapping from annotation field names to a set of annotation ids that
+                are removed from the document. This is useful if e.g. the annotation base (the text)
+                is split up and the annotations need to be split up as well or if conversion to a token base
+                is performed, but some spans could not be converted, because of aligning issues, and, thus,
+                should be removed. Similar as for entries in override_annotations, fields that are mentioned
+                in removed_annotations are expected to be already handled manually and will not be added from
+                the other document. Also, the removal of annotations propagates along the annotation graph.
+            strict: Whether to raise an exception if the other document contains annotations that reference
+                annotations that are not present in the current document (see parameter removed_annotations).
+                If set to False, the annotations are ignored.
+            verbose: Whether to print a warning if the other document contains annotations that reference
+                annotations that are not present in the current document (see parameter removed_annotations).
 
+        Example:
                 ```
                 @dataclasses.dataclass(frozen=True)
                 class Attribute(Annotation):
@@ -712,17 +745,18 @@ class Document(Mapping[str, Any]):
                 doc_tokens.entities.extend([e1_tokens, e2_tokens])
                 doc_tokens.add_all_annotations_from_other(
                     other=doc_text,
-                    override_annotation_mapping={"entities": {e1_text._id: e1_tokens, e2_text._id: e2_tokens}},
+                    override_annotations={"entities": {e1_text._id: e1_tokens, e2_text._id: e2_tokens}},
                 )
                 # Note that the relation and attribute are still present, but now refer to the new entities
                 # and new relation, respectively.
                 ```
         """
+        removed_annotations = defaultdict(set, removed_annotations or dict())
 
         annotation_store: Dict[str, Dict[int, Annotation]] = defaultdict(dict)
         named_annotation_fields = {field.name: field for field in self.annotation_fields()}
-        if override_annotation_mapping is not None:
-            for field_name, mapping in override_annotation_mapping.items():
+        if override_annotations is not None:
+            for field_name, mapping in override_annotations.items():
                 if field_name not in named_annotation_fields:
                     raise ValueError(
                         f'Field "{field_name}" is not an annotation field of {type(self).__name__}, but keys in '
@@ -730,7 +764,7 @@ class Document(Mapping[str, Any]):
                     )
                 annotation_store[field_name].update(mapping)
         else:
-            override_annotation_mapping = dict()
+            override_annotations = dict()
 
         dependency_ordered_fields: List[str] = []
         _enumerate_dependencies(
@@ -739,26 +773,65 @@ class Document(Mapping[str, Any]):
             nodes=self._annotation_graph["_artificial_root"],
         )
         for field_name in dependency_ordered_fields:
-            if (
-                field_name in named_annotation_fields
-                and field_name not in override_annotation_mapping
+            # we process only annotation fields that are not in the override_annotations and the removed_annotations
+            # mapping because they are meant to be already manually handled
+            if field_name in named_annotation_fields and field_name not in (
+                set(override_annotations) | set(removed_annotations)
             ):
                 current_targets_store = dict()
+                current_invalid_annotation_ids = set()
                 for target in self._annotation_graph.get(field_name, []):
                     current_targets_store.update(annotation_store[target])
+                    current_invalid_annotation_ids.update(removed_annotations.get(target, set()))
 
                 other_annotation_field = other[field_name]
                 for ann in other_annotation_field:
-                    new_ann = ann.copy_with_store(current_targets_store)
-                    if ann._id != new_ann._id:
-                        annotation_store[field_name][ann._id] = new_ann
-                    self[field_name].append(new_ann)
-                if process_predictions:
-                    for ann in other_annotation_field.predictions:
-                        new_ann = ann.copy_with_store(current_targets_store)
+                    new_ann = ann.copy_with_store(
+                        override_annotation_store=current_targets_store,
+                        invalid_annotation_ids=current_invalid_annotation_ids,
+                    )
+                    if new_ann is not None:
                         if ann._id != new_ann._id:
                             annotation_store[field_name][ann._id] = new_ann
-                        self[field_name].predictions.append(new_ann)
+                        self[field_name].append(new_ann)
+                    else:
+                        if strict:
+                            raise ValueError(
+                                f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
+                                f"annotations that are not present in the document."
+                            )
+                        if verbose:
+                            logger.warning(
+                                f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
+                                f"annotations that are not present in the document. The annotation is ignored."
+                                f"(disable this warning with verbose=False)"
+                            )
+                        # The annotation was removed, so we need to make sure that it is not referenced by any other
+                        removed_annotations[field_name].add(ann._id)
+                if process_predictions:
+                    for ann in other_annotation_field.predictions:
+                        new_ann = ann.copy_with_store(
+                            override_annotation_store=current_targets_store,
+                            invalid_annotation_ids=current_invalid_annotation_ids,
+                        )
+                        if new_ann is not None:
+                            if ann._id != new_ann._id:
+                                annotation_store[field_name][ann._id] = new_ann
+                            self[field_name].predictions.append(new_ann)
+                        else:
+                            if strict:
+                                raise ValueError(
+                                    f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
+                                    f"annotations that are not present in the document."
+                                )
+                            if verbose:
+                                logger.warning(
+                                    f"Could not add annotation {ann} to {type(self).__name__} because it depends on "
+                                    f"annotations that are not present in the document. The annotation is ignored. "
+                                    f"(disable this warning with verbose=False)"
+                                )
+                            # The annotation was removed, so we need to make sure that it is not referenced by any other
+                            removed_annotations[field_name].add(ann._id)
 
 
 def resolve_annotation(
