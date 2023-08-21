@@ -44,26 +44,49 @@ def unflatten_dict(d: Dict[Tuple[str, ...], Any]) -> Union[Dict[str, Any], Any]:
     return result
 
 
-def mean(values: List[float]) -> float:
+def _min(values: List[float]) -> Optional[float]:
+    if len(values) == 0:
+        return None
+    return min(values)
+
+
+def _max(values: List[float]) -> Optional[float]:
+    if len(values) == 0:
+        return None
+    return max(values)
+
+
+def _mean(values: List[float]) -> Optional[float]:
+    if len(values) == 0:
+        return None
     return sum(values) / len(values)
 
 
-def median(values: List[float]) -> float:
+def _median(values: List[float]) -> Optional[float]:
+    if len(values) == 0:
+        return None
     return sorted(values)[len(values) // 2]
 
 
-def std(values: List[float]) -> float:
-    mean_value = mean(values)
+def _std(values: List[float]) -> Optional[float]:
+    mean_value = _mean(values)
+    if mean_value is None:
+        return None
     return (sum((x - mean_value) ** 2 for x in values) / len(values)) ** 0.5
 
 
+AGGREGATION_FUNCTIONS = {
+    "min": _min,
+    "max": _max,
+    "mean": _mean,
+    "median": _median,
+    "std": _std,
+}
+
+
 def resolve_agg_function(name: str):
-    if name == "mean":
-        return mean
-    elif name == "median":
-        return median
-    elif name == "std":
-        return std
+    if name in AGGREGATION_FUNCTIONS:
+        return AGGREGATION_FUNCTIONS[name]
     else:
         try:
             return resolve_target(name)
