@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from copy import deepcopy
+from copy import copy, deepcopy
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar
 
 from transformers import PreTrainedTokenizer
@@ -108,7 +108,12 @@ def tokenize_document(
         partitions = doc[partition_layer]
     for partition in partitions:
         text = doc.text[partition.start : partition.end]
-        tokenized_text = tokenizer(text, **tokenize_kwargs)
+        tokenize_kwargs = copy(tokenize_kwargs)
+        if "text" in tokenize_kwargs:
+            tokenize_kwargs["text_pair"] = text
+        else:
+            tokenize_kwargs["text"] = text
+        tokenized_text = tokenizer(**tokenize_kwargs)
         for batch_encoding in tokenized_text.encodings:
             token_offset_mapping = batch_encoding.offsets
             char_to_token = batch_encoding.char_to_token
