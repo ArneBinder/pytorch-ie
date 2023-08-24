@@ -119,6 +119,7 @@ def tokenize_document(
         tokenized_text = tokenizer(**current_tokenize_kwargs)
         for batch_encoding in tokenized_text.encodings:
             token_offset_mapping = batch_encoding.offsets
+            char_to_token: Optional[Callable[[int], Optional[int]]]
             char_to_token = functools.partial(
                 batch_encoding.char_to_token, sequence_index=sequence_index
             )
