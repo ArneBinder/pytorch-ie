@@ -108,12 +108,12 @@ def tokenize_document(
         partitions = doc[partition_layer]
     for partition in partitions:
         text = doc.text[partition.start : partition.end]
-        tokenize_kwargs = copy(tokenize_kwargs)
+        current_tokenize_kwargs = copy(tokenize_kwargs)
         if "text" in tokenize_kwargs:
-            tokenize_kwargs["text_pair"] = text
+            current_tokenize_kwargs["text_pair"] = text
         else:
-            tokenize_kwargs["text"] = text
-        tokenized_text = tokenizer(**tokenize_kwargs)
+            current_tokenize_kwargs["text"] = text
+        tokenized_text = tokenizer(**current_tokenize_kwargs)
         for batch_encoding in tokenized_text.encodings:
             token_offset_mapping = batch_encoding.offsets
             char_to_token = batch_encoding.char_to_token
