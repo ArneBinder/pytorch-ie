@@ -1,3 +1,4 @@
+import functools
 import logging
 from collections import defaultdict
 from copy import copy, deepcopy
@@ -111,12 +112,20 @@ def tokenize_document(
         current_tokenize_kwargs = copy(tokenize_kwargs)
         if "text" in tokenize_kwargs:
             current_tokenize_kwargs["text_pair"] = text
+            sequence_index = 1
         else:
             current_tokenize_kwargs["text"] = text
+            sequence_index = 0
         tokenized_text = tokenizer(**current_tokenize_kwargs)
         for batch_encoding in tokenized_text.encodings:
             token_offset_mapping = batch_encoding.offsets
-            char_to_token = batch_encoding.char_to_token
+            char_to_token = functools.partial(
+                batch_encoding.char_to_token, sequence_index=sequence_index
+            )
+            token_offset_mapping = [
+                offsets if s_id == sequence_index else (0, 0)
+                for s_id, offsets in zip(batch_encoding.sequence_ids, token_offset_mapping)
+            ]
             if partition.start > 0:
                 token_offset_mapping = [
                     (start + partition.start, end + partition.start)
