@@ -142,5 +142,6 @@ def tokenize_document(
                 strict_span_conversion=strict_span_conversion,
                 verbose=verbose,
             )
+            tokenized_document.metadata["tokenizer_encoding"] = batch_encoding
             result.append(tokenized_document)
     return result
