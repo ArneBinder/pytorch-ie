@@ -58,18 +58,12 @@ class F1Metric(DocumentMetric):
         self,
         document: Document,
         annotation_filter: Optional[Callable[[Annotation], bool]] = None,
-        annotation_mapper: Optional[Callable[[Annotation], Hashable]] = None,
     ) -> Tuple[int, int, int]:
         annotation_filter = annotation_filter or (lambda ann: True)
-        annotation_mapper = annotation_mapper or (lambda ann: ann)
         predicted_annotations = {
-            annotation_mapper(ann)
-            for ann in document[self.layer].predictions
-            if annotation_filter(ann)
+            ann for ann in document[self.layer].predictions if annotation_filter(ann)
         }
-        gold_annotations = {
-            annotation_mapper(ann) for ann in document[self.layer] if annotation_filter(ann)
-        }
+        gold_annotations = {ann for ann in document[self.layer] if annotation_filter(ann)}
         tp = len([ann for ann in predicted_annotations & gold_annotations])
         fn = len([ann for ann in gold_annotations - predicted_annotations])
         fp = len([ann for ann in predicted_annotations - gold_annotations])
