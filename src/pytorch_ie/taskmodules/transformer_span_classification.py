@@ -23,24 +23,23 @@ from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_span_classification import ModelOutputType, ModelStepInputType
 
-TransformerSpanClassificationInputEncoding: TypeAlias = BatchEncoding
-TransformerSpanClassificationTargetEncoding: TypeAlias = Sequence[Tuple[int, int, int]]
+InputEncodingType: TypeAlias = BatchEncoding
+TargetEncodingType: TypeAlias = Sequence[Tuple[int, int, int]]
 
-TransformerSpanClassificationTaskEncoding: TypeAlias = TaskEncoding[
+TaskEncodingType: TypeAlias = TaskEncoding[
     TextDocument,
-    TransformerSpanClassificationInputEncoding,
-    TransformerSpanClassificationTargetEncoding,
+    InputEncodingType,
+    TargetEncodingType,
 ]
-TransformerSpanClassificationTaskOutput: TypeAlias = Dict[str, Any]
+TaskOutputType: TypeAlias = Dict[str, Any]
 
-_TransformerSpanClassificationTaskModule: TypeAlias = TaskModule[
-    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+TaskModuleType: TypeAlias = TaskModule[
     TextDocument,
-    TransformerSpanClassificationInputEncoding,
-    TransformerSpanClassificationTargetEncoding,
+    InputEncodingType,
+    TargetEncodingType,
     ModelStepInputType,
     ModelOutputType,
-    TransformerSpanClassificationTaskOutput,
+    TaskOutputType,
 ]
 
 
@@ -48,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 @TaskModule.register()
-class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTaskModule):
+class TransformerSpanClassificationTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -121,12 +120,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         self,
         document: TextDocument,
         is_training: bool = False,
-    ) -> Optional[
-        Union[
-            TransformerSpanClassificationTaskEncoding,
-            Sequence[TransformerSpanClassificationTaskEncoding],
-        ]
-    ]:
+    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
         partitions: Sequence[Span]
         if self.single_sentence:
             partitions = document[self.sentence_annotation]
@@ -165,8 +159,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def encode_target(
         self,
-        task_encoding: TransformerSpanClassificationTaskEncoding,
-    ) -> TransformerSpanClassificationTargetEncoding:
+        task_encoding: TaskEncodingType,
+    ) -> TargetEncodingType:
         # inputs is a transformers BatchEncoding object
         document = task_encoding.document
         inputs = task_encoding.inputs
@@ -208,9 +202,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
         return targets
 
-    def unbatch_output(
-        self, model_output: ModelOutputType
-    ) -> Sequence[TransformerSpanClassificationTaskOutput]:
+    def unbatch_output(self, model_output: ModelOutputType) -> Sequence[TaskOutputType]:
         logits = model_output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -233,8 +225,8 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def create_annotations_from_output(
         self,
-        task_encoding: TransformerSpanClassificationTaskEncoding,
-        task_output: TransformerSpanClassificationTaskOutput,
+        task_encoding: TaskEncodingType,
+        task_output: TaskOutputType,
     ) -> Iterator[Tuple[str, Union[LabeledSpan, MultiLabeledSpan]]]:
         document = task_encoding.document
         metadata = task_encoding.metadata
@@ -269,9 +261,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
                     ),
                 )
 
-    def collate(
-        self, task_encodings: Sequence[TransformerSpanClassificationTaskEncoding]
-    ) -> ModelStepInputType:
+    def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(
@@ -285,7 +275,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         if not task_encodings[0].has_targets:
             return inputs, None
 
-        targets: Sequence[TransformerSpanClassificationTargetEncoding] = [
+        targets: Sequence[TargetEncodingType] = [
             task_encoding.targets for task_encoding in task_encodings
         ]
 
