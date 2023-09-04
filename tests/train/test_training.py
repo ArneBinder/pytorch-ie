@@ -53,7 +53,7 @@ def test_transformer_token_classification(model, prepared_taskmodule, documents,
     trainer = pl.Trainer(
         fast_dev_run=False,
         max_epochs=num_epochs,
-        gpus=0,
+        accelerator="cpu",
         enable_checkpointing=False,
         precision=32,
     )

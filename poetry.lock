@@ -965,14 +965,6 @@ optional = false
 python-versions = ">=3.8"
 
 [[package]]
-name = "pydeprecate"
-version = "0.3.2"
-description = "Deprecation tooling"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[[package]]
 name = "pydocstyle"
 version = "6.3.0"
 description = "Python docstring style checker"
@@ -1059,35 +1051,31 @@ cli = ["click (>=5.0)"]
 
 [[package]]
 name = "pytorch-lightning"
-version = "1.9.5"
+version = "2.0.8"
 description = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate."
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 
 [package.dependencies]
 fsspec = {version = ">2021.06.0", extras = ["http"]}
-lightning-utilities = ">=0.6.0.post0"
+lightning-utilities = ">=0.7.0"
 numpy = ">=1.17.2"
 packaging = ">=17.1"
 PyYAML = ">=5.4"
-torch = ">=1.10.0"
+torch = ">=1.11.0"
 torchmetrics = ">=0.7.0"
 tqdm = ">=4.57.0"
 typing-extensions = ">=4.0.0"
 
 [package.extras]
-all = ["colossalai (>=0.2.0)", "deepspeed (>=0.6.0)", "fairscale (>=0.4.5)", "gym[classic_control] (>=0.17.0)", "hivemind (==1.1.5)", "horovod (>=0.21.2,!=0.24.0)", "hydra-core (>=1.0.5)", "ipython[all] (<8.7.1)", "jsonargparse[signatures] (>=4.18.0)", "matplotlib (>3.1)", "omegaconf (>=2.0.5)", "rich (>=10.14.0,!=10.15.0.a)", "tensorboardX (>=2.2)", "torchmetrics (>=0.10.0)", "torchvision (>=0.11.1)"]
-colossalai = ["colossalai (>=0.2.0)"]
-deepspeed = ["deepspeed (>=0.6.0)"]
-dev = ["cloudpickle (>=1.3)", "codecov (==2.1.12)", "colossalai (>=0.2.0)", "coverage (==6.5.0)", "deepspeed (>=0.6.0)", "fairscale (>=0.4.5)", "fastapi (<0.87.0)", "gym[classic_control] (>=0.17.0)", "hivemind (==1.1.5)", "horovod (>=0.21.2,!=0.24.0)", "hydra-core (>=1.0.5)", "ipython[all] (<8.7.1)", "jsonargparse[signatures] (>=4.18.0)", "matplotlib (>3.1)", "omegaconf (>=2.0.5)", "onnx (<1.14.0)", "onnxruntime (<1.14.0)", "pandas (>1.0)", "pre-commit (==2.20.0)", "protobuf (<=3.20.1)", "psutil (<5.9.5)", "pytest (==7.2.0)", "pytest-cov (==4.0.0)", "pytest-forked (==1.4.0)", "pytest-rerunfailures (==10.3)", "rich (>=10.14.0,!=10.15.0.a)", "scikit-learn (>0.22.1)", "tensorboard (>=2.9.1)", "tensorboardX (>=2.2)", "torchmetrics (>=0.10.0)", "torchvision (>=0.11.1)", "uvicorn (<0.19.1)"]
-examples = ["gym[classic_control] (>=0.17.0)", "ipython[all] (<8.7.1)", "torchmetrics (>=0.10.0)", "torchvision (>=0.11.1)"]
-extra = ["hydra-core (>=1.0.5)", "jsonargparse[signatures] (>=4.18.0)", "matplotlib (>3.1)", "omegaconf (>=2.0.5)", "rich (>=10.14.0,!=10.15.0.a)", "tensorboardX (>=2.2)"]
-fairscale = ["fairscale (>=0.4.5)"]
-hivemind = ["hivemind (==1.1.5)"]
-horovod = ["horovod (>=0.21.2,!=0.24.0)"]
-strategies = ["colossalai (>=0.2.0)", "deepspeed (>=0.6.0)", "fairscale (>=0.4.5)", "hivemind (==1.1.5)", "horovod (>=0.21.2,!=0.24.0)"]
-test = ["cloudpickle (>=1.3)", "codecov (==2.1.12)", "coverage (==6.5.0)", "fastapi (<0.87.0)", "onnx (<1.14.0)", "onnxruntime (<1.14.0)", "pandas (>1.0)", "pre-commit (==2.20.0)", "protobuf (<=3.20.1)", "psutil (<5.9.5)", "pytest (==7.2.0)", "pytest-cov (==4.0.0)", "pytest-forked (==1.4.0)", "pytest-rerunfailures (==10.3)", "scikit-learn (>0.22.1)", "tensorboard (>=2.9.1)", "uvicorn (<0.19.1)"]
+all = ["deepspeed (>=0.8.2)", "gym[classic_control] (>=0.17.0)", "hydra-core (>=1.0.5)", "ipython[all] (<8.14.1)", "jsonargparse[signatures] (>=4.18.0,<4.23.0)", "lightning-utilities (>=0.7.0)", "matplotlib (>3.1)", "omegaconf (>=2.0.5)", "rich (>=12.3.0)", "tensorboardX (>=2.2)", "torchmetrics (>=0.10.0)", "torchvision (>=0.12.0)"]
+deepspeed = ["deepspeed (>=0.8.2)"]
+dev = ["cloudpickle (>=1.3)", "coverage (==7.3.0)", "deepspeed (>=0.8.2)", "fastapi (<0.100.0)", "gym[classic_control] (>=0.17.0)", "hydra-core (>=1.0.5)", "ipython[all] (<8.14.1)", "jsonargparse[signatures] (>=4.18.0,<4.23.0)", "lightning-utilities (>=0.7.0)", "matplotlib (>3.1)", "omegaconf (>=2.0.5)", "onnx (<1.15.0)", "onnxruntime (<1.16.0)", "pandas (>1.0)", "protobuf (<=3.20.1)", "psutil (<5.9.6)", "pytest (==7.4.0)", "pytest-cov (==4.1.0)", "pytest-forked (==1.4.0)", "pytest-rerunfailures (==10.3)", "rich (>=12.3.0)", "scikit-learn (>0.22.1)", "tensorboard (>=2.9.1)", "tensorboardX (>=2.2)", "torchmetrics (>=0.10.0)", "torchvision (>=0.12.0)", "uvicorn (<0.23.3)"]
+examples = ["gym[classic_control] (>=0.17.0)", "ipython[all] (<8.14.1)", "lightning-utilities (>=0.7.0)", "torchmetrics (>=0.10.0)", "torchvision (>=0.12.0)"]
+extra = ["hydra-core (>=1.0.5)", "jsonargparse[signatures] (>=4.18.0,<4.23.0)", "matplotlib (>3.1)", "omegaconf (>=2.0.5)", "rich (>=12.3.0)", "tensorboardX (>=2.2)"]
+strategies = ["deepspeed (>=0.8.2)"]
+test = ["cloudpickle (>=1.3)", "coverage (==7.3.0)", "fastapi (<0.100.0)", "onnx (<1.15.0)", "onnxruntime (<1.16.0)", "pandas (>1.0)", "protobuf (<=3.20.1)", "psutil (<5.9.6)", "pytest (==7.4.0)", "pytest-cov (==4.1.0)", "pytest-forked (==1.4.0)", "pytest-rerunfailures (==10.3)", "scikit-learn (>0.22.1)", "tensorboard (>=2.9.1)", "uvicorn (<0.23.3)"]
 
 [[package]]
 name = "pytz"
@@ -1504,27 +1492,28 @@ opt-einsum = ["opt-einsum (>=3.3)"]
 
 [[package]]
 name = "torchmetrics"
-version = "0.8.2"
+version = "1.1.1"
 description = "PyTorch native Metrics"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 
 [package.dependencies]
-numpy = ">=1.17.2"
-packaging = "*"
-pyDeprecate = ">=0.3.0,<0.4.0"
-torch = ">=1.3.1"
+lightning-utilities = ">=0.8.0"
+numpy = ">1.20.0"
+torch = ">=1.8.1"
 
 [package.extras]
-all = ["bert-score (==0.3.10)", "check-manifest", "cloudpickle (>=1.3)", "codecov (>=2.1)", "coverage (>5.2)", "docutils (>=0.16)", "fast-bss-eval (>=0.1.0)", "fire", "jiwer (>=2.3.0)", "lpips", "mir-eval (>=0.6)", "mypy (>=0.790)", "myst-parser", "nbsphinx (>=0.8)", "nltk (>=3.6)", "pandoc (>=1.0)", "pesq (>=0.0.3)", "phmdoctest (>=1.1.1)", "pre-commit (>=1.0)", "psutil", "pypesq", "pystoi", "pytest (>=6.0.0,<7.0.0)", "pytest-cov (>2.10)", "pytest-doctestplus (>=0.9.0)", "pytorch-lightning (>=1.5)", "pytorch-msssim", "regex (>=2021.9.24)", "requests", "rouge-score (>=0.0.4)", "sacrebleu (>=2.0.0)", "scikit-image (>0.17.1)", "scikit-learn (>=0.24)", "scipy", "sphinx (>=4.0)", "sphinx-autodoc-typehints (>=1.0)", "sphinx-copybutton (>=0.3)", "sphinx-paramlinks (>=0.5.1)", "sphinx-togglebutton (>=0.2)", "sphinxcontrib-fulltoc (>=1.0)", "sphinxcontrib-mockautodoc", "torch-complex", "torch-fidelity", "torchvision", "torchvision (>=0.8)", "tqdm (>=4.41.0)", "transformers (>=4.0)", "twine (>=3.2)"]
-audio = ["pesq (>=0.0.3)", "pystoi"]
-detection = ["torchvision (>=0.8)"]
-docs = ["docutils (>=0.16)", "myst-parser", "nbsphinx (>=0.8)", "pandoc (>=1.0)", "sphinx (>=4.0)", "sphinx-autodoc-typehints (>=1.0)", "sphinx-copybutton (>=0.3)", "sphinx-paramlinks (>=0.5.1)", "sphinx-togglebutton (>=0.2)", "sphinxcontrib-fulltoc (>=1.0)", "sphinxcontrib-mockautodoc"]
-image = ["lpips", "scipy", "torch-fidelity", "torchvision"]
-integrate = ["pytorch-lightning (>=1.5)"]
-test = ["bert-score (==0.3.10)", "check-manifest", "cloudpickle (>=1.3)", "codecov (>=2.1)", "coverage (>5.2)", "fast-bss-eval (>=0.1.0)", "fire", "jiwer (>=2.3.0)", "mir-eval (>=0.6)", "mypy (>=0.790)", "phmdoctest (>=1.1.1)", "pre-commit (>=1.0)", "psutil", "pypesq", "pytest (>=6.0.0,<7.0.0)", "pytest-cov (>2.10)", "pytest-doctestplus (>=0.9.0)", "pytorch-msssim", "requests", "rouge-score (>=0.0.4)", "sacrebleu (>=2.0.0)", "scikit-image (>0.17.1)", "scikit-learn (>=0.24)", "torch-complex", "transformers (>=4.0)", "twine (>=3.2)"]
-text = ["nltk (>=3.6)", "regex (>=2021.9.24)", "tqdm (>=4.41.0)"]
+all = ["SciencePlots (>=2.0.0)", "lpips (<=0.1.4)", "matplotlib (>=3.2.0)", "mypy (==1.5.1)", "nltk (>=3.6)", "piq (<=0.8.0)", "pycocotools (>2.0.0)", "pystoi (>=0.3.0)", "regex (>=2021.9.24)", "scipy (>1.0.0)", "torch-fidelity (<=0.4.0)", "torchaudio (>=0.10.0)", "torchvision (>=0.8)", "tqdm (>=4.41.0)", "transformers (>4.4.0)", "transformers (>=4.10.0)", "types-emoji", "types-protobuf", "types-pyyaml", "types-requests", "types-setuptools", "types-six", "types-tabulate"]
+audio = ["pystoi (>=0.3.0)", "torchaudio (>=0.10.0)"]
+detection = ["pycocotools (>2.0.0)", "torchvision (>=0.8)"]
+dev = ["SciencePlots (>=2.0.0)", "bert-score (==0.3.13)", "cloudpickle (>1.3)", "coverage (==7.3.0)", "dython (<=0.7.4)", "fairlearn", "fast-bss-eval (>=0.1.0)", "fire (<=0.5.0)", "huggingface-hub (<0.16)", "jiwer (>=2.3.0)", "kornia (>=0.6.7)", "lpips (<=0.1.4)", "matplotlib (>=3.2.0)", "mir-eval (>=0.6)", "mypy (==1.5.1)", "netcal (>1.0.0)", "nltk (>=3.6)", "numpy (<1.25.0)", "pandas (>1.0.0)", "pandas (>=1.4.0)", "phmdoctest (==1.4.0)", "piq (<=0.8.0)", "psutil (<=5.9.5)", "pycocotools (>2.0.0)", "pystoi (>=0.3.0)", "pytest (==7.4.0)", "pytest-cov (==4.1.0)", "pytest-doctestplus (==1.0.0)", "pytest-rerunfailures (==12.0)", "pytest-timeout (==2.1.0)", "pytorch-msssim (==1.0.0)", "regex (>=2021.9.24)", "requests (<=2.31.0)", "rouge-score (>0.1.0)", "sacrebleu (>=2.0.0)", "scikit-image (>=0.19.0)", "scikit-learn (>=1.1.1)", "scipy (>1.0.0)", "sewar (>=0.4.4)", "statsmodels (>0.13.5)", "torch-complex (<=0.4.3)", "torch-fidelity (<=0.4.0)", "torchaudio (>=0.10.0)", "torchvision (>=0.8)", "tqdm (>=4.41.0)", "transformers (>4.4.0)", "transformers (>=4.10.0)", "types-emoji", "types-protobuf", "types-pyyaml", "types-requests", "types-setuptools", "types-six", "types-tabulate"]
+image = ["lpips (<=0.1.4)", "scipy (>1.0.0)", "torch-fidelity (<=0.4.0)", "torchvision (>=0.8)"]
+multimodal = ["piq (<=0.8.0)", "transformers (>=4.10.0)"]
+test = ["bert-score (==0.3.13)", "cloudpickle (>1.3)", "coverage (==7.3.0)", "dython (<=0.7.4)", "fairlearn", "fast-bss-eval (>=0.1.0)", "fire (<=0.5.0)", "huggingface-hub (<0.16)", "jiwer (>=2.3.0)", "kornia (>=0.6.7)", "mir-eval (>=0.6)", "netcal (>1.0.0)", "numpy (<1.25.0)", "pandas (>1.0.0)", "pandas (>=1.4.0)", "phmdoctest (==1.4.0)", "psutil (<=5.9.5)", "pytest (==7.4.0)", "pytest-cov (==4.1.0)", "pytest-doctestplus (==1.0.0)", "pytest-rerunfailures (==12.0)", "pytest-timeout (==2.1.0)", "pytorch-msssim (==1.0.0)", "requests (<=2.31.0)", "rouge-score (>0.1.0)", "sacrebleu (>=2.0.0)", "scikit-image (>=0.19.0)", "scikit-learn (>=1.1.1)", "scipy (>1.0.0)", "sewar (>=0.4.4)", "statsmodels (>0.13.5)", "torch-complex (<=0.4.3)"]
+text = ["nltk (>=3.6)", "regex (>=2021.9.24)", "tqdm (>=4.41.0)", "transformers (>4.4.0)"]
+typing = ["mypy (==1.5.1)", "types-emoji", "types-protobuf", "types-pyyaml", "types-requests", "types-setuptools", "types-six", "types-tabulate"]
+visual = ["SciencePlots (>=2.0.0)", "matplotlib (>=3.2.0)"]
 
 [[package]]
 name = "tornado"
@@ -1755,7 +1744,7 @@ testing = ["big-o", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "f222a2d2dd96cc1b33e52b7ce260c1134d4971f49ca718ed3f1f6106134fca7b"
+content-hash = "437979050f2ff5d912b75a87665f78aaddb87cdd425f46af397cb45567c3bcda"
 
 [metadata.files]
 absl-py = [
@@ -2551,10 +2540,6 @@ pycodestyle = [
     {file = "pycodestyle-2.11.0-py2.py3-none-any.whl", hash = "sha256:5d1013ba8dc7895b548be5afb05740ca82454fd899971563d2ef625d090326f8"},
     {file = "pycodestyle-2.11.0.tar.gz", hash = "sha256:259bcc17857d8a8b3b4a2327324b79e5f020a13c16074670f9c8c8f872ea76d0"},
 ]
-pydeprecate = [
-    {file = "pyDeprecate-0.3.2-py3-none-any.whl", hash = "sha256:ed86b68ed837e6465245904a3de2f59bf9eef78ac7a2502ee280533d04802457"},
-    {file = "pyDeprecate-0.3.2.tar.gz", hash = "sha256:d481116cc5d7f6c473e7c4be820efdd9b90a16b594b350276e9e66a6cb5bdd29"},
-]
 pydocstyle = [
     {file = "pydocstyle-6.3.0-py3-none-any.whl", hash = "sha256:118762d452a49d6b05e194ef344a55822987a462831ade91ec5c06fd2169d019"},
     {file = "pydocstyle-6.3.0.tar.gz", hash = "sha256:7ce43f0c0ac87b07494eb9c0b462c0b73e6ff276807f204d6b53edc72b7e44e1"},
@@ -2584,8 +2569,8 @@ python-dotenv = [
     {file = "python_dotenv-0.20.0-py3-none-any.whl", hash = "sha256:d92a187be61fe482e4fd675b6d52200e7be63a12b724abbf931a40ce4fa92938"},
 ]
 pytorch-lightning = [
-    {file = "pytorch-lightning-1.9.5.tar.gz", hash = "sha256:925fe7b80ddf04859fa385aa493b260be4000b11a2f22447afb4a932d1f07d26"},
-    {file = "pytorch_lightning-1.9.5-py3-none-any.whl", hash = "sha256:06821558158623c5d2ecf5d3d0374dc8bd661e0acd3acf54a6d6f71737c156c5"},
+    {file = "pytorch-lightning-2.0.8.tar.gz", hash = "sha256:fb7e8fbe473158b2c1666b6b31fb996c8aa2c3f5e8e2a54a3f50a7b5b2d00a20"},
+    {file = "pytorch_lightning-2.0.8-py3-none-any.whl", hash = "sha256:718d11f22551d95ef38614b4727433553c95ea2b50cf843938fb13baf34325a6"},
 ]
 pytz = [
     {file = "pytz-2023.3-py2.py3-none-any.whl", hash = "sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb"},
@@ -2934,8 +2919,8 @@ torch = [
     {file = "torch-2.0.1-cp39-none-macosx_11_0_arm64.whl", hash = "sha256:671a2565e3f63b8fe8e42ae3e36ad249fe5e567435ea27b94edaa672a7d0c416"},
 ]
 torchmetrics = [
-    {file = "torchmetrics-0.8.2-py3-none-any.whl", hash = "sha256:19e4ed0305b8c02fd5765a9ff9360c9c622842c2b3491e497ddbf2aec7ce9c5a"},
-    {file = "torchmetrics-0.8.2.tar.gz", hash = "sha256:8cec51df230838b07e1bffe407fd98c25b8e1cdf820525a4ba6ef7f7e5ac4d89"},
+    {file = "torchmetrics-1.1.1-py3-none-any.whl", hash = "sha256:903b4fc30537acfc5221505c48f7627e58dbf6d9dea85c16ea7b4323f9e13793"},
+    {file = "torchmetrics-1.1.1.tar.gz", hash = "sha256:65ea34205c0506eecfd06b98f63f4d2a2c5c0e17367cf324e1747adc854c80a5"},
 ]
 tornado = [
     {file = "tornado-6.3.3-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:502fba735c84450974fec147340016ad928d29f1e91f49be168c0a4c18181e1d"},
