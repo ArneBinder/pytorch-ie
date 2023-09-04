@@ -114,11 +114,11 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         return None
 
     @overload
-    def _convert_dataset_single(self, dataset: hf_datasets.Dataset) -> Dataset:
+    def _convert_dataset_single(self, dataset: hf_datasets.IterableDataset) -> IterableDataset:
         ...
 
     @overload
-    def _convert_dataset_single(self, dataset: hf_datasets.IterableDataset) -> IterableDataset:
+    def _convert_dataset_single(self, dataset: hf_datasets.Dataset) -> Dataset:
         ...
 
     def _convert_dataset_single(
@@ -147,14 +147,6 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             )
 
     @overload
-    def _convert_datasets(self, datasets: hf_datasets.Dataset) -> Dataset:
-        ...
-
-    @overload
-    def _convert_datasets(self, datasets: hf_datasets.IterableDataset) -> IterableDataset:
-        ...
-
-    @overload
     def _convert_datasets(self, datasets: hf_datasets.DatasetDict) -> hf_datasets.DatasetDict:
         ...
 
@@ -162,6 +154,14 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def _convert_datasets(
         self, datasets: hf_datasets.IterableDatasetDict
     ) -> hf_datasets.IterableDatasetDict:
+        ...
+
+    @overload
+    def _convert_datasets(self, datasets: hf_datasets.IterableDataset) -> IterableDataset:
+        ...
+
+    @overload
+    def _convert_datasets(self, datasets: hf_datasets.Dataset) -> Dataset:
         ...
 
     def _convert_datasets(
