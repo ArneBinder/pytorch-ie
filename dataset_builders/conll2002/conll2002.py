@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import datasets
+
 import pytorch_ie.data.builder
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
@@ -8,11 +9,11 @@ from pytorch_ie.documents import TextDocument
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
-class CoNLLppConfig(datasets.BuilderConfig):
-    """BuilderConfig for CoNLLpp"""
+class Conll2002Config(datasets.BuilderConfig):
+    """BuilderConfig for CoNLL2002"""
 
     def __init__(self, **kwargs):
-        """BuilderConfig for CoNLLpp.
+        """BuilderConfig for CoNLL2002.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -20,18 +21,21 @@ class CoNLLppConfig(datasets.BuilderConfig):
 
 
 @dataclass
-class CoNLLppDocument(TextDocument):
+class CoNLL2002Document(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
-class CoNLLpp(pytorch_ie.data.builder.GeneratorBasedBuilder):
-    DOCUMENT_TYPE = CoNLLppDocument
+class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
+    DOCUMENT_TYPE = CoNLL2002Document
 
-    BASE_DATASET_PATH = "conllpp"
+    BASE_DATASET_PATH = "conll2002"
 
     BUILDER_CONFIGS = [
-        CoNLLppConfig(
-            name="conllpp", version=datasets.Version("1.0.0"), description="CoNLLpp dataset"
+        Conll2002Config(
+            name="es", version=datasets.Version("1.0.0"), description="CoNLL2002 Spanish dataset"
+        ),
+        Conll2002Config(
+            name="nl", version=datasets.Version("1.0.0"), description="CoNLL2002 Dutch dataset"
         ),
     ]
 
@@ -45,7 +49,7 @@ class CoNLLpp(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
         text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
 
-        document = CoNLLppDocument(text=text, id=doc_id)
+        document = CoNLL2002Document(text=text, id=doc_id)
 
         for span in sorted(ner_spans, key=lambda span: span.start):
             document.entities.append(span)

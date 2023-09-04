@@ -2,7 +2,7 @@ import abc
 from typing import Any, Dict, Optional, Type, Union, overload
 
 import datasets as hf_datasets
-from datasets import VerificationMode
+
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
 
@@ -184,7 +184,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         self,
         split: Optional[hf_datasets.Split] = None,
         run_post_process=True,
-        verification_mode: Optional[Union[VerificationMode, str]] = None,
+        verification_mode: Optional[Union[hf_datasets.VerificationMode, str]] = None,
         ignore_verifications="deprecated",
         in_memory=False,
     ) -> Union[Dataset, hf_datasets.DatasetDict]:

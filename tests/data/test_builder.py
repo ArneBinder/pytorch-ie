@@ -2,9 +2,9 @@ import re
 import tempfile
 
 import pytest
+from datasets import DatasetBuilder, Version
 from datasets.load import dataset_module_factory, import_main_class
 
-from datasets import DatasetBuilder, Version
 from tests import FIXTURES_ROOT
 
 DATASETS_ROOT = FIXTURES_ROOT / "builder" / "datasets"

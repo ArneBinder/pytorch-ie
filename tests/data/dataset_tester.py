@@ -11,6 +11,7 @@ from datasets.utils.file_utils import DownloadConfig, is_remote_url
 from datasets.utils.logging import get_logger
 
 from pytorch_ie.data.builder import ArrowBasedBuilder, GeneratorBasedBuilder
+from tests import DATASET_BUILDERS_ROOT
 
 logger = get_logger(__name__)
 
@@ -23,7 +24,9 @@ class DatasetTester:
     def load_builder_class(self, dataset_name, is_local=False):
         # Download/copy dataset script
         if is_local is True:
-            dataset_module = dataset_module_factory(os.path.join("datasets", dataset_name))
+            dataset_module = dataset_module_factory(
+                os.path.join(DATASET_BUILDERS_ROOT, dataset_name)
+            )
         else:
             dataset_module = dataset_module_factory(
                 dataset_name, download_config=DownloadConfig(force_download=True)

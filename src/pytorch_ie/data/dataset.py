@@ -2,10 +2,10 @@ from functools import wraps
 from inspect import Signature, isclass, signature
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
+import datasets
 import pandas as pd
 from datasets.formatting import _register_formatter
 
-import datasets
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
 

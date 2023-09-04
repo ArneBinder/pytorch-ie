@@ -2,6 +2,8 @@ import re
 from pathlib import Path
 from unittest import TestCase
 
+from tests import DATASET_BUILDERS_ROOT
+
 
 # taken from https://github.com/huggingface/datasets/blob/master/tests/test_dataset_scripts.py
 class TestDatasetScripts(TestCase):
@@ -48,16 +50,14 @@ class TestDatasetScripts(TestCase):
         return filtered_matches[0] if filtered_matches else None
 
     def test_no_encoding_on_file_open(self):
-        dataset_paths = Path("./datasets")
-        dataset_files = list(dataset_paths.absolute().glob("**/*.py"))
+        dataset_files = list(DATASET_BUILDERS_ROOT.absolute().glob("**/*.py"))
 
         for dataset in dataset_files:
             if self._no_encoding_on_file_open(str(dataset)):
                 raise AssertionError(f"open(...) must use utf-8 encoding in {dataset}")
 
     def test_no_print_statements(self):
-        dataset_paths = Path("./datasets")
-        dataset_files = list(dataset_paths.absolute().glob("**/*.py"))
+        dataset_files = list(DATASET_BUILDERS_ROOT.absolute().glob("**/*.py"))
 
         for dataset in dataset_files:
             if self._no_print_statements(str(dataset)):

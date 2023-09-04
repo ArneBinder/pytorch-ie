@@ -36,7 +36,7 @@ HUB_CANONICAL_DATASET_GIT_URL = (
     + "/datasets/{organization}/{dataset_name}.git"
 )
 HUB_API_GH_TO_HF = HUB_ENDPOINT + "/api/gh-to-hf/{github_username}"
-DATASETS_LIB_CATALOG_DIR_NAME = "datasets"
+DATASETS_LIB_CATALOG_DIR_NAME = "dataset_builders"
 DATASETS_LIB_COMMIT_URL = "https://github.com/huggingface/datasets/{organization}/commit/{hexsha}"
 CANONICAL_DATASET_REPO_MAIN_BRANCH = "main"
 HUB_DIR_NAME = "hub"
@@ -184,7 +184,9 @@ class update_main:
                 # it means that the new version of the datasets lib just got released.
                 # In this case we have to tag the new commit with this release name
                 logs.append(
-                    repo.git.tag(self.tag_name, f"-m Add tag from datasets {self.tag_name}")
+                    repo.git.tag(
+                        self.tag_name, f"-m Add tag from dataset_builders {self.tag_name}"
+                    )
                 )
                 logs.append(repo.git.push("--tags"))
         except Exception as e:
@@ -223,7 +225,7 @@ if __name__ == "__main__":
     commit_args += (f"--author={author_name} <{author_email}>",)
 
     for _tag in datasets_lib_repo.tags:
-        # Add a new tag if this is a `datasets` release
+        # Add a new tag if this is a `dataset_builders` release
         if _tag.commit == current_commit and re.match(r"^v[0-9]+\.[0-9]+\.[0-9]+$", _tag.name):
             new_tag = _tag
             break

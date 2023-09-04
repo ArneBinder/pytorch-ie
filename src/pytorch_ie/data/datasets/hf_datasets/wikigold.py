@@ -1,6 +1,5 @@
-from tqdm import tqdm
-
 import datasets
+from tqdm import tqdm
 
 _CITATION = """
 @inproceedings{balasuriya-etal-2009-named,
