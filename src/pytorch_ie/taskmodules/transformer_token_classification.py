@@ -21,10 +21,7 @@ from typing_extensions import TypeAlias
 from pytorch_ie.annotations import LabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models.transformer_token_classification import (
-    TransformerTokenClassificationModelBatchOutput,
-    TransformerTokenClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_token_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.utils.span import (
     bio_tags_to_spans,
     convert_span_annotations_to_tag_sequence,
@@ -49,8 +46,8 @@ _TransformerTokenClassificationTaskModule: TypeAlias = TaskModule[
     TextDocument,
     TransformerTokenClassificationInputEncoding,
     TransformerTokenClassificationTargetEncoding,
-    TransformerTokenClassificationModelStepBatchEncoding,
-    TransformerTokenClassificationModelBatchOutput,
+    ModelStepInputType,
+    ModelOutputType,
     TransformerTokenClassificationTaskOutput,
 ]
 
@@ -277,7 +274,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         return targets
 
     def unbatch_output(
-        self, model_output: TransformerTokenClassificationModelBatchOutput
+        self, model_output: ModelOutputType
     ) -> Sequence[TransformerTokenClassificationTaskOutput]:
         logits = model_output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
@@ -323,7 +320,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def collate(
         self, task_encodings: Sequence[TransformerTokenClassificationTaskEncoding]
-    ) -> TransformerTokenClassificationModelStepBatchEncoding:
+    ) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs = self.tokenizer.pad(

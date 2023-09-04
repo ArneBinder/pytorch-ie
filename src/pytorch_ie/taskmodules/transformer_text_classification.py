@@ -30,10 +30,7 @@ from typing_extensions import TypeAlias
 from pytorch_ie.annotations import Label, MultiLabel
 from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models.transformer_text_classification import (
-    TransformerTextClassificationModelBatchOutput,
-    TransformerTextClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 
 TransformerTextClassificationInputEncoding: TypeAlias = MutableMapping[str, Any]
 TransformerTextClassificationTargetEncoding: TypeAlias = Sequence[int]
@@ -65,8 +62,8 @@ _TransformerTextClassificationTaskModule: TypeAlias = TaskModule[
     TextDocument,
     TransformerTextClassificationInputEncoding,
     TransformerTextClassificationTargetEncoding,
-    TransformerTextClassificationModelStepBatchEncoding,
-    TransformerTextClassificationModelBatchOutput,
+    ModelStepInputType,
+    ModelOutputType,
     TransformerTextClassificationTaskOutput,
 ]
 
@@ -181,7 +178,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
         return targets
 
     def unbatch_output(
-        self, model_output: TransformerTextClassificationModelBatchOutput
+        self, model_output: ModelOutputType
     ) -> Sequence[TransformerTextClassificationTaskOutput]:
         logits = model_output["logits"]
 
@@ -226,7 +223,7 @@ class TransformerTextClassificationTaskModule(_TransformerTextClassificationTask
 
     def collate(
         self, task_encodings: Sequence[TransformerTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationModelStepBatchEncoding:
+    ) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
         metadata = [task_encoding.metadata for task_encoding in task_encodings]
         documents = [task_encoding.document for task_encoding in task_encodings]

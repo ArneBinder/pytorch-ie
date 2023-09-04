@@ -11,11 +11,11 @@ from typing_extensions import TypeAlias
 from pytorch_ie.core import PyTorchIEModel
 from pytorch_ie.models.modules.mlp import MLP
 
-TransformerSpanClassificationModelBatchEncoding: TypeAlias = BatchEncoding
-TransformerSpanClassificationModelBatchOutput: TypeAlias = Dict[str, Any]
+ModelInputType: TypeAlias = BatchEncoding
+ModelOutputType: TypeAlias = Dict[str, Any]
 
-TransformerSpanClassificationModelStepBatchEncoding: TypeAlias = Tuple[
-    Dict[str, Tensor],
+ModelStepInputType: TypeAlias = Tuple[
+    ModelInputType,
     Optional[Sequence[Sequence[Tuple[int, int, int]]]],
 ]
 
@@ -151,15 +151,15 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return torch.tensor(target)
 
-    def forward(self, input_: TransformerSpanClassificationModelBatchEncoding) -> TransformerSpanClassificationModelBatchOutput:  # type: ignore
-        output = self.model(**input_)
+    def forward(self, inputs: ModelInputType) -> ModelOutputType:
+        output = self.model(**inputs)
 
         batch_size, seq_length, hidden_dim = output.last_hidden_state.shape
         hidden_state = output.last_hidden_state.view(batch_size * seq_length, hidden_dim)
 
         seq_lengths = None
-        if "attention_mask" in input_:
-            seq_lengths = torch.sum(input_["attention_mask"], dim=-1).detach().cpu()
+        if "attention_mask" in inputs:
+            seq_lengths = torch.sum(inputs["attention_mask"], dim=-1).detach().cpu()
 
         (
             start_indices,
@@ -188,18 +188,18 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
             "end_indices": end_indices,
         }
 
-    def step(self, stage: str, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx):  # type: ignore
-        input_, target_tuples = batch
+    def step(self, stage: str, batch: ModelStepInputType, batch_idx):
+        inputs, target_tuples = batch
         assert target_tuples is not None, f"target has to be available for {stage}"
 
-        output = self(input_)
+        output = self(inputs)
 
         logits = output["logits"]
 
-        batch_size, seq_length = input_["input_ids"].shape
+        batch_size, seq_length = inputs["input_ids"].shape
         seq_lengths = None
-        if "attention_mask" in input_:
-            seq_lengths = torch.sum(input_["attention_mask"], dim=-1)
+        if "attention_mask" in inputs:
+            seq_lengths = torch.sum(inputs["attention_mask"], dim=-1)
 
         # TODO: Why is this not happening in TransformerSpanClassificationTaskModule.collate?
         target = self._expand_target_tuples(
@@ -220,13 +220,13 @@ class TransformerSpanClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def training_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def training_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=TRAINING, batch=batch, batch_idx=batch_idx)
 
-    def validation_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def validation_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=VALIDATION, batch=batch, batch_idx=batch_idx)
 
-    def test_step(self, batch: TransformerSpanClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def test_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=TEST, batch=batch, batch_idx=batch_idx)
 
     def configure_optimizers(self):

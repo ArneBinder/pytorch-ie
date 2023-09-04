@@ -5,14 +5,15 @@ import torchmetrics
 from torch import Tensor, nn
 from torch.optim import AdamW
 from transformers import AutoConfig, AutoModel, get_linear_schedule_with_warmup
+from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
 
-TransformerTextClassificationModelBatchEncoding = MutableMapping[str, Any]
-TransformerTextClassificationModelBatchOutput = Dict[str, Any]
+ModelInputType: TypeAlias = MutableMapping[str, Any]
+ModelOutputType: TypeAlias = Dict[str, Any]
 
-TransformerTextClassificationModelStepBatchEncoding = Tuple[
-    Dict[str, Tensor],
+ModelStepInputType = Tuple[
+    ModelInputType,
     Optional[Tensor],
 ]
 
@@ -85,8 +86,8 @@ class TransformerTextClassificationModel(PyTorchIEModel):
             }
         )
 
-    def forward(self, input_: TransformerTextClassificationModelBatchEncoding) -> TransformerTextClassificationModelBatchOutput:  # type: ignore
-        output = self.model(**input_)
+    def forward(self, inputs: ModelInputType) -> ModelOutputType:
+        output = self.model(**inputs)
 
         hidden_state = output.last_hidden_state
 
@@ -95,11 +96,11 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return {"logits": logits}
 
-    def step(self, stage: str, batch: TransformerTextClassificationModelStepBatchEncoding):  # type: ignore
-        input_, target = batch
+    def step(self, stage: str, batch: ModelStepInputType):
+        inputs, target = batch
         assert target is not None, "target has to be available for training"
 
-        logits = self(input_)["logits"]
+        logits = self(inputs)["logits"]
 
         loss = self.loss_fct(logits, target)
 
@@ -111,13 +112,13 @@ class TransformerTextClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def training_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def training_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=TRAINING, batch=batch)
 
-    def validation_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def validation_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=VALIDATION, batch=batch)
 
-    def test_step(self, batch: TransformerTextClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def test_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=TEST, batch=batch)
 
     def configure_optimizers(self):

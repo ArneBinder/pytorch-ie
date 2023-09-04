@@ -26,10 +26,7 @@ from pytorch_ie.annotations import (
 )
 from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models import (
-    TransformerTextClassificationModelBatchOutput,
-    TransformerTextClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
 from pytorch_ie.utils.window import get_window_around_slice
 
@@ -53,8 +50,8 @@ _TransformerReTextClassificationTaskModule: TypeAlias = TaskModule[
     TextDocument,
     TransformerReTextClassificationInputEncoding,
     TransformerReTextClassificationTargetEncoding,
-    TransformerTextClassificationModelStepBatchEncoding,
-    TransformerTextClassificationModelBatchOutput,
+    ModelStepInputType,
+    ModelOutputType,
     TransformerReTextClassificationTaskOutput,
 ]
 
@@ -527,7 +524,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         return target
 
     def unbatch_output(
-        self, model_output: TransformerTextClassificationModelBatchOutput
+        self, model_output: ModelOutputType
     ) -> Sequence[TransformerReTextClassificationTaskOutput]:
         logits = model_output["logits"]
 
@@ -593,7 +590,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def collate(
         self, task_encodings: Sequence[TransformerReTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationModelStepBatchEncoding:
+    ) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(

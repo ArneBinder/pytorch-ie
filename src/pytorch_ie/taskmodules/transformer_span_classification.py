@@ -21,10 +21,7 @@ from typing_extensions import TypeAlias
 from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models.transformer_span_classification import (
-    TransformerSpanClassificationModelBatchOutput,
-    TransformerSpanClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_span_classification import ModelOutputType, ModelStepInputType
 
 TransformerSpanClassificationInputEncoding: TypeAlias = BatchEncoding
 TransformerSpanClassificationTargetEncoding: TypeAlias = Sequence[Tuple[int, int, int]]
@@ -41,8 +38,8 @@ _TransformerSpanClassificationTaskModule: TypeAlias = TaskModule[
     TextDocument,
     TransformerSpanClassificationInputEncoding,
     TransformerSpanClassificationTargetEncoding,
-    TransformerSpanClassificationModelStepBatchEncoding,
-    TransformerSpanClassificationModelBatchOutput,
+    ModelStepInputType,
+    ModelOutputType,
     TransformerSpanClassificationTaskOutput,
 ]
 
@@ -212,7 +209,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
         return targets
 
     def unbatch_output(
-        self, model_output: TransformerSpanClassificationModelBatchOutput
+        self, model_output: ModelOutputType
     ) -> Sequence[TransformerSpanClassificationTaskOutput]:
         logits = model_output["logits"]
         probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
@@ -274,7 +271,7 @@ class TransformerSpanClassificationTaskModule(_TransformerSpanClassificationTask
 
     def collate(
         self, task_encodings: Sequence[TransformerSpanClassificationTaskEncoding]
-    ) -> TransformerSpanClassificationModelStepBatchEncoding:
+    ) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(

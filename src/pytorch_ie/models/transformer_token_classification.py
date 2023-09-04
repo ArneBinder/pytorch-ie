@@ -4,14 +4,15 @@ import torch
 import torchmetrics
 from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
+from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
 
-TransformerTokenClassificationModelBatchEncoding = BatchEncoding
-TransformerTokenClassificationModelBatchOutput = Dict[str, Any]
+ModelInputType: TypeAlias = BatchEncoding
+ModelOutputType: TypeAlias = Dict[str, Any]
 
-TransformerTokenClassificationModelStepBatchEncoding = Tuple[
-    Dict[str, Tensor],
+ModelStepInputType: TypeAlias = Tuple[
+    ModelInputType,
     Optional[Tensor],
 ]
 
@@ -56,19 +57,19 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
             }
         )
 
-    def forward(self, input_: TransformerTokenClassificationModelBatchEncoding) -> TransformerTokenClassificationModelBatchOutput:  # type: ignore
-        return self.model(**input_)
+    def forward(self, inputs: ModelInputType) -> ModelOutputType:
+        return self.model(**inputs)
 
     def step(
         self,
         stage: str,
-        batch: TransformerTokenClassificationModelStepBatchEncoding,
+        batch: ModelStepInputType,
     ):
-        input_, target = batch
+        inputs, target = batch
         assert target is not None, "target has to be available for training"
 
-        input_["labels"] = target
-        output = self(input_)
+        inputs["labels"] = target
+        output = self(inputs)
 
         loss = output.loss
         # show loss on each step only during training
@@ -86,13 +87,13 @@ class TransformerTokenClassificationModel(PyTorchIEModel):
 
         return loss
 
-    def training_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def training_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=TRAINING, batch=batch)
 
-    def validation_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def validation_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=VALIDATION, batch=batch)
 
-    def test_step(self, batch: TransformerTokenClassificationModelStepBatchEncoding, batch_idx: int):  # type: ignore
+    def test_step(self, batch: ModelStepInputType, batch_idx: int):
         return self.step(stage=TEST, batch=batch)
 
     def configure_optimizers(self):

@@ -19,10 +19,7 @@ from typing_extensions import TypeAlias
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import Annotation, TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models import (
-    TransformerSeq2SeqModelBatchOutput,
-    TransformerSeq2SeqModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_seq2seq import ModelOutputType, ModelStepInputType
 
 TransformerSeq2SeqInputEncoding: TypeAlias = Dict[str, Sequence[int]]
 TransformerSeq2SeqTargetEncoding: TypeAlias = Dict[str, Sequence[int]]
@@ -37,8 +34,8 @@ _TransformerSeq2SeqTaskModule: TypeAlias = TaskModule[
     TextDocument,
     TransformerSeq2SeqInputEncoding,
     TransformerSeq2SeqTargetEncoding,
-    TransformerSeq2SeqModelStepBatchEncoding,
-    TransformerSeq2SeqModelBatchOutput,
+    ModelStepInputType,
+    ModelOutputType,
     TransformerSeq2SeqTaskOutput,
 ]
 
@@ -142,7 +139,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
         return {"labels": self.encode_text(target_string)["input_ids"]}
 
     def unbatch_output(
-        self, model_output: TransformerSeq2SeqModelBatchOutput
+        self, model_output: ModelOutputType
     ) -> Sequence[TransformerSeq2SeqTaskOutput]:
         unbatched_output = []
         for out in model_output:
@@ -196,7 +193,7 @@ class TransformerSeq2SeqTaskModule(_TransformerSeq2SeqTaskModule):
 
     def collate(
         self, task_encodings: Sequence[TransformerSeq2SeqTaskEncoding]
-    ) -> TransformerSeq2SeqModelStepBatchEncoding:
+    ) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         padded_encoding = self.tokenizer.pad(

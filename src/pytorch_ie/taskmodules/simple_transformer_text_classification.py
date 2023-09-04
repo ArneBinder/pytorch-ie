@@ -20,10 +20,7 @@ from typing_extensions import TypeAlias
 from pytorch_ie.annotations import Label
 from pytorch_ie.core import AnnotationList, TaskEncoding, TaskModule, annotation_field
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models.transformer_text_classification import (
-    TransformerTextClassificationModelBatchOutput,
-    TransformerTextClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +38,8 @@ class TaskOutput(TypedDict, total=False):
 DocumentType: TypeAlias = TextDocumentWithLabel
 InputEncodingType: TypeAlias = MutableMapping[str, Any]
 TargetEncodingType: TypeAlias = int
-ModelEncodingType: TypeAlias = TransformerTextClassificationModelStepBatchEncoding
-ModelOutputType: TypeAlias = TransformerTextClassificationModelBatchOutput
+ModelEncodingType: TypeAlias = ModelStepInputType
+ModelOutputType: TypeAlias = ModelOutputType
 TaskOutputType: TypeAlias = TaskOutput
 
 # This should be the same for all taskmodules
@@ -180,9 +177,7 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
 
         return inputs, targets
 
-    def unbatch_output(
-        self, model_output: TransformerTextClassificationModelBatchOutput
-    ) -> Sequence[TaskOutputType]:
+    def unbatch_output(self, model_output: ModelOutputType) -> Sequence[TaskOutputType]:
         """
         Convert one model output batch to a sequence of taskmodule outputs.
         """
