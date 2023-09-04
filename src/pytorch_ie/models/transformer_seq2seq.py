@@ -9,7 +9,9 @@ from pytorch_ie.core import PyTorchIEModel
 TransformerSeq2SeqModelBatchEncoding = BatchEncoding
 TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput
 
-TransformerSeq2SeqModelStepBatchEncoding = Tuple[TransformerSeq2SeqModelBatchEncoding,]
+TransformerSeq2SeqModelStepBatchEncoding = Tuple[
+    TransformerSeq2SeqModelBatchEncoding,
+]
 
 
 @PyTorchIEModel.register()
