@@ -113,11 +113,11 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def _generate_document_kwargs(self, dataset):
         return None
 
-    @overload
+    @overload  # type: ignore
     def _convert_dataset_single(self, dataset: hf_datasets.IterableDataset) -> IterableDataset:
         ...
 
-    @overload
+    @overload  # type: ignore
     def _convert_dataset_single(self, dataset: hf_datasets.Dataset) -> Dataset:
         ...
 
@@ -146,21 +146,21 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
                 f"{hf_datasets.Dataset.__name__} or {hf_datasets.IterableDataset.__name__}"
             )
 
-    @overload
+    @overload  # type: ignore
     def _convert_datasets(self, datasets: hf_datasets.DatasetDict) -> hf_datasets.DatasetDict:
         ...
 
-    @overload
+    @overload  # type: ignore
     def _convert_datasets(
         self, datasets: hf_datasets.IterableDatasetDict
     ) -> hf_datasets.IterableDatasetDict:
         ...
 
-    @overload
+    @overload  # type: ignore
     def _convert_datasets(self, datasets: hf_datasets.IterableDataset) -> IterableDataset:
         ...
 
-    @overload
+    @overload  # type: ignore
     def _convert_datasets(self, datasets: hf_datasets.Dataset) -> Dataset:
         ...
 
