@@ -10,6 +10,8 @@ from datasets.load import dataset_module_factory, import_main_class
 from datasets.utils.file_utils import DownloadConfig, is_remote_url
 from datasets.utils.logging import get_logger
 
+from pytorch_ie.data.builder import ArrowBasedBuilder, GeneratorBasedBuilder
+
 logger = get_logger(__name__)
 
 
@@ -52,7 +54,7 @@ class DatasetTester:
                 )
 
                 # TODO: skip Beam datasets and datasets that lack dummy data for now
-                if not dataset_builder.test_dummy_data:
+                if not isinstance(dataset_builder, (ArrowBasedBuilder, GeneratorBasedBuilder)):
                     logger.info("Skip tests for this dataset for now")
                     return
 
