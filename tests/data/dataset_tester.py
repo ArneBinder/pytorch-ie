@@ -79,6 +79,7 @@ class DatasetTester:
                     use_local_dummy_data=use_local_dummy_data,
                     download_callbacks=[check_if_url_is_valid],
                 )
+                mock_dl_manager.datasets_scripts_dir = str(DATASET_BUILDERS_ROOT)
 
                 # packaged datasets like csv, text, json or pandas require some data files
                 # builder_name = dataset_builder.__class__.__name__.lower()
