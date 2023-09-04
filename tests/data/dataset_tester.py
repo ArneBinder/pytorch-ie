@@ -100,12 +100,12 @@ class DatasetTester:
                 dataset_builder.download_and_prepare(
                     dl_manager=mock_dl_manager,
                     download_mode=DownloadMode.FORCE_REDOWNLOAD,
-                    ignore_verifications=True,
+                    verification_mode="no_checks",
                     try_from_hf_gcs=False,
                 )
 
                 # get dataset
-                dataset = dataset_builder.as_dataset(ignore_verifications=True)
+                dataset = dataset_builder.as_dataset(verification_mode="no_checks")
 
                 # check that dataset is not empty
                 self.parent.assertListEqual(
