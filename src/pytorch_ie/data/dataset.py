@@ -289,8 +289,9 @@ class IterableDataset(datasets.IterableDataset):
             ex_iterable=dataset._ex_iterable,
             info=dataset.info,
             split=dataset.split,
-            format_type=dataset._format_type,
+            formatting=dataset._formatting,
             shuffling=dataset._shuffling,
+            distributed=dataset._distributed,
             token_per_repo_id=dataset._token_per_repo_id,
         )
 
