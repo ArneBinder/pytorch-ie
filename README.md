@@ -21,7 +21,7 @@
 
 ## 🤯 What's this about?
 
-This is an experimental framework that aims to combine the lessons learned from five years of information extraction research.
+This is an experimental framework that aims to combine the lessons learned from five years of information extraction research .
 
 -   **Focus on the core task:** The main goal is to develop information extraction methods not dataset loading and evaluation logic. We use external well-maintained libraries for non-core functionality. PyTorch-Lightning for training and logging, Huggingface datasets for dataset reading, and Huggingface evaluate for evaluation (coming soon).
 -   **Sharing is caring:** Being able to quickly and easily share models is key to promote your work and facilitate further research. All models developed in PyTorch-IE can be easily shared via the Huggingface model hub. This further allows to quickly build demos based on Huggingface spaces, gradio or streamlit.
