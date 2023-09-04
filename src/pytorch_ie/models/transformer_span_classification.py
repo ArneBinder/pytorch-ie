@@ -6,14 +6,15 @@ import torchmetrics
 from torch import Tensor, nn
 from torch.optim import AdamW
 from transformers import AutoConfig, AutoModel, BatchEncoding, get_linear_schedule_with_warmup
+from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
 from pytorch_ie.models.modules.mlp import MLP
 
-TransformerSpanClassificationModelBatchEncoding = BatchEncoding
-TransformerSpanClassificationModelBatchOutput = Dict[str, Any]
+TransformerSpanClassificationModelBatchEncoding: TypeAlias = BatchEncoding
+TransformerSpanClassificationModelBatchOutput: TypeAlias = Dict[str, Any]
 
-TransformerSpanClassificationModelStepBatchEncoding = Tuple[
+TransformerSpanClassificationModelStepBatchEncoding: TypeAlias = Tuple[
     Dict[str, Tensor],
     Optional[Sequence[Sequence[Tuple[int, int, int]]]],
 ]

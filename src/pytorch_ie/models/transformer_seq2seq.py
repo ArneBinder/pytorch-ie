@@ -3,13 +3,14 @@ from typing import Any, Tuple
 import torch
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
+from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
 
-TransformerSeq2SeqModelBatchEncoding = BatchEncoding
-TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput
+TransformerSeq2SeqModelBatchEncoding: TypeAlias = BatchEncoding
+TransformerSeq2SeqModelBatchOutput: TypeAlias = Seq2SeqLMOutput
 
-TransformerSeq2SeqModelStepBatchEncoding = Tuple[
+TransformerSeq2SeqModelStepBatchEncoding: TypeAlias = Tuple[
     TransformerSeq2SeqModelBatchEncoding,
 ]
 
