@@ -32,7 +32,7 @@ classifiers = [
 python = "^3.9"
 pytorch-lightning = "^2"
 torchmetrics = "^1"
-datasets = "^2"
+datasets = "^2.13"
 # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
 fsspec = "<2023.9.0"
 transformers = "^4"
