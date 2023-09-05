@@ -32,12 +32,15 @@ classifiers = [
 python = "^3.9"
 pytorch-lightning = "^2"
 torchmetrics = "^1"
-datasets = "~2.9"
+datasets = "^2"
 # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
 fsspec = "<2023.9.0"
-transformers = "^4.18.0"
-huggingface-hub = "^0.5.1"
+transformers = "^4"
+# remove, for now
+#huggingface-hub = "^0.5.1"
 absl-py = "^1.0.0"
+# we pin 2.0.0 because of https://github.com/pytorch/pytorch/issues/100974
+torch = ">=2.0.0, !=2.0.1"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"

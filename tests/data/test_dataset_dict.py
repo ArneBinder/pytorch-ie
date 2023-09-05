@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Union
 
+import datasets
 import pytest
 
-import datasets
 from pytorch_ie import Dataset, DatasetDict, IterableDataset
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, Document, annotation_field

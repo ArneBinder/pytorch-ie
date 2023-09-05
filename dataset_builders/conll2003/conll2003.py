@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import datasets
+
 import pytorch_ie.data.builder
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
@@ -8,11 +9,11 @@ from pytorch_ie.documents import TextDocument
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
-class Conll2002Config(datasets.BuilderConfig):
-    """BuilderConfig for CoNLL2002"""
+class CoNLL2003Config(datasets.BuilderConfig):
+    """BuilderConfig for CoNLL2003"""
 
     def __init__(self, **kwargs):
-        """BuilderConfig for CoNLL2002.
+        """BuilderConfig for CoNLL2003.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -20,21 +21,18 @@ class Conll2002Config(datasets.BuilderConfig):
 
 
 @dataclass
-class CoNLL2002Document(TextDocument):
+class CoNLL2003Document(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
 class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
-    DOCUMENT_TYPE = CoNLL2002Document
+    DOCUMENT_TYPE = CoNLL2003Document
 
-    BASE_DATASET_PATH = "conll2002"
+    BASE_DATASET_PATH = "conll2003"
 
     BUILDER_CONFIGS = [
-        Conll2002Config(
-            name="es", version=datasets.Version("1.0.0"), description="CoNLL2002 Spanish dataset"
-        ),
-        Conll2002Config(
-            name="nl", version=datasets.Version("1.0.0"), description="CoNLL2002 Dutch dataset"
+        CoNLL2003Config(
+            name="conll2003", version=datasets.Version("1.0.0"), description="CoNLL2003 dataset"
         ),
     ]
 
@@ -48,7 +46,7 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
         text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
 
-        document = CoNLL2002Document(text=text, id=doc_id)
+        document = CoNLL2003Document(text=text, id=doc_id)
 
         for span in sorted(ner_spans, key=lambda span: span.start):
             document.entities.append(span)

@@ -2,11 +2,11 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Dict, Sequence
 
+import datasets
 import numpy
 import pytest
 import torch
 
-import datasets
 from pytorch_ie import Dataset, IterableDataset
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
@@ -17,6 +17,7 @@ from pytorch_ie.core.taskmodule import (
 )
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+from tests import DATASET_BUILDERS_ROOT
 
 
 @pytest.fixture(scope="module")
@@ -275,7 +276,7 @@ def test_dataset_with_taskmodule(
 
 
 def test_load_with_hf_datasets():
-    dataset_path = "./datasets/conll2003"
+    dataset_path = DATASET_BUILDERS_ROOT / "conll2003"
 
     dataset = datasets.load_dataset(
         path=str(dataset_path),

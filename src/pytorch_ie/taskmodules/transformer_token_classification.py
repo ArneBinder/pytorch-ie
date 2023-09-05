@@ -21,10 +21,7 @@ from typing_extensions import TypeAlias
 from pytorch_ie.annotations import LabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models.transformer_token_classification import (
-    TransformerTokenClassificationModelBatchOutput,
-    TransformerTokenClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_token_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.utils.span import (
     bio_tags_to_spans,
     convert_span_annotations_to_tag_sequence,
@@ -34,31 +31,30 @@ from pytorch_ie.utils.span import (
 )
 from pytorch_ie.utils.window import enumerate_windows
 
-TransformerTokenClassificationInputEncoding: TypeAlias = Union[Dict[str, Any], BatchEncoding]
-TransformerTokenClassificationTargetEncoding: TypeAlias = Sequence[int]
+InputEncodingType: TypeAlias = Union[Dict[str, Any], BatchEncoding]
+TargetEncodingType: TypeAlias = Sequence[int]
 
-TransformerTokenClassificationTaskEncoding: TypeAlias = TaskEncoding[
+TaskEncodingType: TypeAlias = TaskEncoding[
     TextDocument,
-    TransformerTokenClassificationInputEncoding,
-    TransformerTokenClassificationTargetEncoding,
+    InputEncodingType,
+    TargetEncodingType,
 ]
-TransformerTokenClassificationTaskOutput: TypeAlias = Dict[str, Any]
+TaskOutputType: TypeAlias = Dict[str, Any]
 
-_TransformerTokenClassificationTaskModule: TypeAlias = TaskModule[
-    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+TaskModuleType: TypeAlias = TaskModule[
     TextDocument,
-    TransformerTokenClassificationInputEncoding,
-    TransformerTokenClassificationTargetEncoding,
-    TransformerTokenClassificationModelStepBatchEncoding,
-    TransformerTokenClassificationModelBatchOutput,
-    TransformerTokenClassificationTaskOutput,
+    InputEncodingType,
+    TargetEncodingType,
+    ModelStepInputType,
+    ModelOutputType,
+    TaskOutputType,
 ]
 
 logger = logging.getLogger(__name__)
 
 
 @TaskModule.register()
-class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTaskModule):
+class TransformerTokenClassificationTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -139,19 +135,14 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         self,
         document: TextDocument,
         is_training: bool = False,
-    ) -> Optional[
-        Union[
-            TransformerTokenClassificationTaskEncoding,
-            Sequence[TransformerTokenClassificationTaskEncoding],
-        ]
-    ]:
+    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
         partitions: Sequence[Optional[Span]]
         if self.partition_annotation is not None:
             partitions = document[self.partition_annotation]
         else:
             partitions = [None]
 
-        task_encodings: List[TransformerTokenClassificationTaskEncoding] = []
+        task_encodings: List[TaskEncodingType] = []
         for partition_index, partition in enumerate(partitions):
             add_special_tokens = self.max_window is None
             inputs: BatchEncoding = self.encode_text(
@@ -236,8 +227,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def encode_target(
         self,
-        task_encoding: TransformerTokenClassificationTaskEncoding,
-    ) -> Optional[TransformerTokenClassificationTargetEncoding]:
+        task_encoding: TaskEncodingType,
+    ) -> Optional[TargetEncodingType]:
         metadata = task_encoding.metadata
         document = task_encoding.document
 
@@ -276,9 +267,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
         return targets
 
-    def unbatch_output(
-        self, model_output: TransformerTokenClassificationModelBatchOutput
-    ) -> Sequence[TransformerTokenClassificationTaskOutput]:
+    def unbatch_output(self, model_output: ModelOutputType) -> Sequence[TaskOutputType]:
         logits = model_output["logits"]
         probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
@@ -287,8 +276,8 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
 
     def create_annotations_from_output(
         self,
-        task_encoding: TransformerTokenClassificationTaskEncoding,
-        task_output: TransformerTokenClassificationTaskOutput,
+        task_encoding: TaskEncodingType,
+        task_output: TaskOutputType,
     ) -> Iterator[Tuple[str, LabeledSpan]]:
         offset = 0
         if self.partition_annotation is not None:
@@ -321,9 +310,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
                 ),
             )
 
-    def collate(
-        self, task_encodings: Sequence[TransformerTokenClassificationTaskEncoding]
-    ) -> TransformerTokenClassificationModelStepBatchEncoding:
+    def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs = self.tokenizer.pad(
@@ -337,7 +324,7 @@ class TransformerTokenClassificationTaskModule(_TransformerTokenClassificationTa
         if not task_encodings[0].has_targets:
             return inputs, None
 
-        target_list: List[TransformerTokenClassificationTargetEncoding] = [
+        target_list: List[TargetEncodingType] = [
             task_encoding.targets for task_encoding in task_encodings
         ]
 

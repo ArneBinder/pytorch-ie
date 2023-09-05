@@ -3,15 +3,14 @@ from typing import Any, Tuple
 import torch
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
+from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
 
-TransformerSeq2SeqModelBatchEncoding = BatchEncoding
-TransformerSeq2SeqModelBatchOutput = Seq2SeqLMOutput
+ModelInputType: TypeAlias = BatchEncoding
+ModelOutputType: TypeAlias = Seq2SeqLMOutput
 
-TransformerSeq2SeqModelStepBatchEncoding = Tuple[
-    TransformerSeq2SeqModelBatchEncoding,
-]
+ModelStepInputType: TypeAlias = Tuple[ModelInputType]
 
 
 @PyTorchIEModel.register()
@@ -29,7 +28,7 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
         else:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
 
-    def forward(self, inputs: TransformerSeq2SeqModelBatchEncoding) -> TransformerSeq2SeqModelBatchOutput:  # type: ignore
+    def forward(self, inputs: ModelInputType) -> ModelOutputType:
         return self.model(**inputs)
 
     def predict(
@@ -42,7 +41,7 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         return self.model.generate(**inputs, **kwargs)
 
-    def step(self, batch: TransformerSeq2SeqModelStepBatchEncoding):
+    def step(self, batch: ModelStepInputType):
         inputs = batch[0]
         output = self.forward(inputs)
 
@@ -50,19 +49,19 @@ class TransformerSeq2SeqModel(PyTorchIEModel):
 
         return loss
 
-    def training_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):  # type: ignore
+    def training_step(self, batch: ModelStepInputType, batch_idx):
         loss = self.step(batch)
         self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss
 
-    def validation_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):  # type: ignore
+    def validation_step(self, batch: ModelStepInputType, batch_idx):
         loss = self.step(batch)
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
 
-    def test_step(self, batch: TransformerSeq2SeqModelStepBatchEncoding, batch_idx):  # type: ignore
+    def test_step(self, batch: ModelStepInputType, batch_idx):
         loss = self.step(batch)
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 

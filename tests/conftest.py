@@ -1,8 +1,8 @@
 import dataclasses
 
+import datasets
 import pytest
 
-import datasets
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.data import Dataset, IterableDataset

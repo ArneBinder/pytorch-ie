@@ -10,6 +10,9 @@ from datasets.load import dataset_module_factory, import_main_class
 from datasets.utils.file_utils import DownloadConfig, is_remote_url
 from datasets.utils.logging import get_logger
 
+from pytorch_ie.data.builder import ArrowBasedBuilder, GeneratorBasedBuilder
+from tests import DATASET_BUILDERS_ROOT
+
 logger = get_logger(__name__)
 
 
@@ -21,7 +24,9 @@ class DatasetTester:
     def load_builder_class(self, dataset_name, is_local=False):
         # Download/copy dataset script
         if is_local is True:
-            dataset_module = dataset_module_factory(os.path.join("datasets", dataset_name))
+            dataset_module = dataset_module_factory(
+                os.path.join(DATASET_BUILDERS_ROOT, dataset_name)
+            )
         else:
             dataset_module = dataset_module_factory(
                 dataset_name, download_config=DownloadConfig(force_download=True)
@@ -52,7 +57,7 @@ class DatasetTester:
                 )
 
                 # TODO: skip Beam datasets and datasets that lack dummy data for now
-                if not dataset_builder.test_dummy_data:
+                if not isinstance(dataset_builder, (ArrowBasedBuilder, GeneratorBasedBuilder)):
                     logger.info("Skip tests for this dataset for now")
                     return
 
@@ -74,6 +79,7 @@ class DatasetTester:
                     use_local_dummy_data=use_local_dummy_data,
                     download_callbacks=[check_if_url_is_valid],
                 )
+                mock_dl_manager.datasets_scripts_dir = str(DATASET_BUILDERS_ROOT)
 
                 # packaged datasets like csv, text, json or pandas require some data files
                 # builder_name = dataset_builder.__class__.__name__.lower()
@@ -98,12 +104,12 @@ class DatasetTester:
                 dataset_builder.download_and_prepare(
                     dl_manager=mock_dl_manager,
                     download_mode=DownloadMode.FORCE_REDOWNLOAD,
-                    ignore_verifications=True,
+                    verification_mode="no_checks",
                     try_from_hf_gcs=False,
                 )
 
                 # get dataset
-                dataset = dataset_builder.as_dataset(ignore_verifications=True)
+                dataset = dataset_builder.as_dataset(verification_mode="no_checks")
 
                 # check that dataset is not empty
                 self.parent.assertListEqual(

@@ -2,6 +2,7 @@ import abc
 from typing import Any, Dict, Optional, Type, Union, overload
 
 import datasets as hf_datasets
+
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
 
@@ -112,12 +113,12 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def _generate_document_kwargs(self, dataset):
         return None
 
-    @overload
-    def _convert_dataset_single(self, dataset: hf_datasets.Dataset) -> Dataset:
+    @overload  # type: ignore
+    def _convert_dataset_single(self, dataset: hf_datasets.IterableDataset) -> IterableDataset:
         ...
 
-    @overload
-    def _convert_dataset_single(self, dataset: hf_datasets.IterableDataset) -> IterableDataset:
+    @overload  # type: ignore
+    def _convert_dataset_single(self, dataset: hf_datasets.Dataset) -> Dataset:
         ...
 
     def _convert_dataset_single(
@@ -145,22 +146,22 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
                 f"{hf_datasets.Dataset.__name__} or {hf_datasets.IterableDataset.__name__}"
             )
 
-    @overload
-    def _convert_datasets(self, datasets: hf_datasets.Dataset) -> Dataset:
-        ...
-
-    @overload
-    def _convert_datasets(self, datasets: hf_datasets.IterableDataset) -> IterableDataset:
-        ...
-
-    @overload
+    @overload  # type: ignore
     def _convert_datasets(self, datasets: hf_datasets.DatasetDict) -> hf_datasets.DatasetDict:
         ...
 
-    @overload
+    @overload  # type: ignore
     def _convert_datasets(
         self, datasets: hf_datasets.IterableDatasetDict
     ) -> hf_datasets.IterableDatasetDict:
+        ...
+
+    @overload  # type: ignore
+    def _convert_datasets(self, datasets: hf_datasets.IterableDataset) -> IterableDataset:
+        ...
+
+    @overload  # type: ignore
+    def _convert_datasets(self, datasets: hf_datasets.Dataset) -> Dataset:
         ...
 
     def _convert_datasets(
@@ -183,7 +184,8 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         self,
         split: Optional[hf_datasets.Split] = None,
         run_post_process=True,
-        ignore_verifications=False,
+        verification_mode: Optional[Union[hf_datasets.VerificationMode, str]] = None,
+        ignore_verifications="deprecated",
         in_memory=False,
     ) -> Union[Dataset, hf_datasets.DatasetDict]:
         datasets = super().as_dataset(
@@ -191,6 +193,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             run_post_process=run_post_process,
             ignore_verifications=ignore_verifications,
             in_memory=in_memory,
+            verification_mode=verification_mode,
         )
         converted_datasets = self._convert_datasets(datasets=datasets)
         return converted_datasets

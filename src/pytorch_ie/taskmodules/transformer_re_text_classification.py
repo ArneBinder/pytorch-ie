@@ -26,36 +26,32 @@ from pytorch_ie.annotations import (
 )
 from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
-from pytorch_ie.models import (
-    TransformerTextClassificationModelBatchOutput,
-    TransformerTextClassificationModelStepBatchEncoding,
-)
+from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
 from pytorch_ie.utils.window import get_window_around_slice
 
-TransformerReTextClassificationInputEncoding: TypeAlias = Dict[str, Any]
-TransformerReTextClassificationTargetEncoding: TypeAlias = Sequence[int]
+InputEncodingType: TypeAlias = Dict[str, Any]
+TargetEncodingType: TypeAlias = Sequence[int]
 
-TransformerReTextClassificationTaskEncoding: TypeAlias = TaskEncoding[
+TaskEncodingType: TypeAlias = TaskEncoding[
     TextDocument,
-    TransformerReTextClassificationInputEncoding,
-    TransformerReTextClassificationTargetEncoding,
+    InputEncodingType,
+    TargetEncodingType,
 ]
 
 
-class TransformerReTextClassificationTaskOutput(TypedDict, total=False):
+class TaskOutputType(TypedDict, total=False):
     labels: Sequence[str]
     probabilities: Sequence[float]
 
 
-_TransformerReTextClassificationTaskModule: TypeAlias = TaskModule[
-    # _InputEncoding, _TargetEncoding, _TaskBatchEncoding, _ModelBatchOutput, _TaskOutput
+TaskModuleType: TypeAlias = TaskModule[
     TextDocument,
-    TransformerReTextClassificationInputEncoding,
-    TransformerReTextClassificationTargetEncoding,
-    TransformerTextClassificationModelStepBatchEncoding,
-    TransformerTextClassificationModelBatchOutput,
-    TransformerReTextClassificationTaskOutput,
+    InputEncodingType,
+    TargetEncodingType,
+    ModelStepInputType,
+    ModelOutputType,
+    TaskOutputType,
 ]
 
 
@@ -113,7 +109,7 @@ class RelationArgument:
 
 
 @TaskModule.register()
-class TransformerRETextClassificationTaskModule(_TransformerReTextClassificationTaskModule):
+class TransformerRETextClassificationTaskModule(TaskModuleType):
     """Marker based relation extraction. This taskmodule prepares the input token ids in such a way
     that before and after the candidate head and tail entities special marker tokens are inserted.
     Then, the modified token ids can be simply passed into a transformer based text classifier
@@ -297,12 +293,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         self,
         document: TextDocument,
         is_training: bool = False,
-    ) -> Optional[
-        Union[
-            TransformerReTextClassificationTaskEncoding,
-            Sequence[TransformerReTextClassificationTaskEncoding],
-        ]
-    ]:
+    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
         relations: Sequence[BinaryRelation]
         if self.create_relation_candidates:
             relations = self._create_relation_candidates(document)
@@ -321,7 +312,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             # use single dummy partition
             partitions = [Span(start=0, end=len(document.text))]
 
-        task_encodings: List[TransformerReTextClassificationTaskEncoding] = []
+        task_encodings: List[TaskEncodingType] = []
         for partition in partitions:
             without_special_tokens = self.max_window is not None
             text = document.text[partition.start : partition.end]
@@ -490,8 +481,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def _maybe_log_example(
         self,
-        task_encoding: TransformerReTextClassificationTaskEncoding,
-        target: TransformerReTextClassificationTargetEncoding,
+        task_encoding: TaskEncodingType,
+        target: TargetEncodingType,
     ):
         """Maybe log the example."""
 
@@ -510,8 +501,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def encode_target(
         self,
-        task_encoding: TransformerReTextClassificationTaskEncoding,
-    ) -> TransformerReTextClassificationTargetEncoding:
+        task_encoding: TaskEncodingType,
+    ) -> TargetEncodingType:
         candidate_annotation = task_encoding.metadata["candidate_annotation"]
         if isinstance(candidate_annotation, BinaryRelation):
             labels = [candidate_annotation.label]
@@ -526,9 +517,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
         return target
 
-    def unbatch_output(
-        self, model_output: TransformerTextClassificationModelBatchOutput
-    ) -> Sequence[TransformerReTextClassificationTaskOutput]:
+    def unbatch_output(self, model_output: ModelOutputType) -> Sequence[TaskOutputType]:
         logits = model_output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
@@ -542,7 +531,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             for batch_idx, label_id in enumerate(label_ids):
                 label = self.id_to_label[label_id]
                 prob = float(output_label_probs[batch_idx, label_id])
-                result: TransformerReTextClassificationTaskOutput = {
+                result: TaskOutputType = {
                     "labels": [label],
                     "probabilities": [prob],
                 }
@@ -552,8 +541,8 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
 
     def create_annotations_from_output(
         self,
-        task_encoding: TransformerReTextClassificationTaskEncoding,
-        task_output: TransformerReTextClassificationTaskOutput,
+        task_encoding: TaskEncodingType,
+        task_output: TaskOutputType,
     ) -> Iterator[Tuple[str, Union[BinaryRelation, MultiLabeledBinaryRelation, NaryRelation]]]:
         candidate_annotation = task_encoding.metadata["candidate_annotation"]
         new_annotation: Union[BinaryRelation, MultiLabeledBinaryRelation, NaryRelation]
@@ -591,9 +580,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
             if label != self.none_label:
                 yield self.relation_annotation, new_annotation
 
-    def collate(
-        self, task_encodings: Sequence[TransformerReTextClassificationTaskEncoding]
-    ) -> TransformerTextClassificationModelStepBatchEncoding:
+    def collate(self, task_encodings: Sequence[TaskEncodingType]) -> ModelStepInputType:
         input_features = [task_encoding.inputs for task_encoding in task_encodings]
 
         inputs: Dict[str, torch.Tensor] = self.tokenizer.pad(
@@ -607,7 +594,7 @@ class TransformerRETextClassificationTaskModule(_TransformerReTextClassification
         if not task_encodings[0].has_targets:
             return inputs, None
 
-        target_list: List[TransformerReTextClassificationTargetEncoding] = [
+        target_list: List[TargetEncodingType] = [
             task_encoding.targets for task_encoding in task_encodings
         ]
         targets = torch.tensor(target_list, dtype=torch.int64)

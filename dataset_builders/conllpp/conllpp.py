@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import datasets
+
 import pytorch_ie.data.builder
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
@@ -8,11 +9,11 @@ from pytorch_ie.documents import TextDocument
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
-class CoNLL2003Config(datasets.BuilderConfig):
-    """BuilderConfig for CoNLL2003"""
+class CoNLLppConfig(datasets.BuilderConfig):
+    """BuilderConfig for CoNLLpp"""
 
     def __init__(self, **kwargs):
-        """BuilderConfig for CoNLL2003.
+        """BuilderConfig for CoNLLpp.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -20,18 +21,18 @@ class CoNLL2003Config(datasets.BuilderConfig):
 
 
 @dataclass
-class CoNLL2003Document(TextDocument):
+class CoNLLppDocument(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
-class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
-    DOCUMENT_TYPE = CoNLL2003Document
+class CoNLLpp(pytorch_ie.data.builder.GeneratorBasedBuilder):
+    DOCUMENT_TYPE = CoNLLppDocument
 
-    BASE_DATASET_PATH = "conll2003"
+    BASE_DATASET_PATH = "conllpp"
 
     BUILDER_CONFIGS = [
-        CoNLL2003Config(
-            name="conll2003", version=datasets.Version("1.0.0"), description="CoNLL2003 dataset"
+        CoNLLppConfig(
+            name="conllpp", version=datasets.Version("1.0.0"), description="CoNLLpp dataset"
         ),
     ]
 
@@ -45,7 +46,7 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
         text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
 
-        document = CoNLL2003Document(text=text, id=doc_id)
+        document = CoNLLppDocument(text=text, id=doc_id)
 
         for span in sorted(ner_spans, key=lambda span: span.start):
             document.entities.append(span)

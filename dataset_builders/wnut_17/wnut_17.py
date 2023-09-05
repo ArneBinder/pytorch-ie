@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import datasets
+
 import pytorch_ie.data.builder
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
@@ -8,11 +9,11 @@ from pytorch_ie.documents import TextDocument
 from pytorch_ie.utils.span import tokens_and_tags_to_text_and_labeled_spans
 
 
-class NCBIDiseaseConfig(datasets.BuilderConfig):
-    """BuilderConfig for NCBIDisease"""
+class WNUT_17Config(datasets.BuilderConfig):
+    """The WNUT 17 Emerging Entities Dataset."""
 
     def __init__(self, **kwargs):
-        """BuilderConfig for NCBIDisease.
+        """BuilderConfig for WNUT 17.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
@@ -20,20 +21,22 @@ class NCBIDiseaseConfig(datasets.BuilderConfig):
 
 
 @dataclass
-class NCBIDiseaseDocument(TextDocument):
+class WNUT17Document(TextDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
-class NCBIDisease(pytorch_ie.data.builder.GeneratorBasedBuilder):
-    DOCUMENT_TYPE = NCBIDiseaseDocument
+class WNUT17(pytorch_ie.data.builder.GeneratorBasedBuilder):
+    """The WNUT 17 Emerging Entities Dataset."""
 
-    BASE_DATASET_PATH = "ncbi_disease"
+    DOCUMENT_TYPE = WNUT17Document
+
+    BASE_DATASET_PATH = "wnut_17"
 
     BUILDER_CONFIGS = [
-        NCBIDiseaseConfig(
-            name="ncbi_disease",
+        WNUT_17Config(
+            name="wnut_17",
             version=datasets.Version("1.0.0"),
-            description="NCBIDisease dataset",
+            description="The WNUT 17 Emerging Entities Dataset",
         ),
     ]
 
@@ -47,7 +50,7 @@ class NCBIDisease(pytorch_ie.data.builder.GeneratorBasedBuilder):
 
         text, ner_spans = tokens_and_tags_to_text_and_labeled_spans(tokens=tokens, tags=ner_tags)
 
-        document = NCBIDiseaseDocument(text=text, id=doc_id)
+        document = WNUT17Document(text=text, id=doc_id)
 
         for span in sorted(ner_spans, key=lambda span: span.start):
             document.entities.append(span)

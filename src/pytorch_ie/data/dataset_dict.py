@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, SupportsIndex, Type, Union
 
 import datasets
+
 from pytorch_ie.core import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset
 from pytorch_ie.utils.hydra import resolve_target

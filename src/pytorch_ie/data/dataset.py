@@ -2,10 +2,10 @@ from functools import wraps
 from inspect import Signature, isclass, signature
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
+import datasets
 import pandas as pd
 from datasets.formatting import _register_formatter
 
-import datasets
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
 
@@ -289,8 +289,9 @@ class IterableDataset(datasets.IterableDataset):
             ex_iterable=dataset._ex_iterable,
             info=dataset.info,
             split=dataset.split,
-            format_type=dataset._format_type,
+            formatting=dataset._formatting,
             shuffling=dataset._shuffling,
+            distributed=dataset._distributed,
             token_per_repo_id=dataset._token_per_repo_id,
         )
 

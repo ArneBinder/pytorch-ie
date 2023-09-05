@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Type
 
 import datasets
+
 import pytorch_ie.data.builder
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field

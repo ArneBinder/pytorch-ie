@@ -1,4 +1,3 @@
-import glob
 import os
 import tempfile
 
@@ -9,12 +8,13 @@ from datasets.download.download_manager import DownloadMode
 from datasets.load import dataset_module_factory, import_main_class, load_dataset
 from datasets.utils.file_utils import DownloadConfig
 
+from tests import DATASET_BUILDERS_ROOT
 from tests.data.dataset_tester import DatasetTester
 
 
 def test_datasets_dir_and_script_names():
-    for dataset_dir in glob.glob("./datasets/*/"):
-        name = dataset_dir.split(os.sep)[-2]
+    for dataset_dir in DATASET_BUILDERS_ROOT.iterdir():
+        name = dataset_dir.name
         if (
             not name.startswith("__") and len(os.listdir(dataset_dir)) > 0
         ):  # ignore __pycache__ and empty dirs
@@ -33,10 +33,11 @@ def test_datasets_dir_and_script_names():
 
 
 def get_local_dataset_names():
+    dataset_script_files = list(DATASET_BUILDERS_ROOT.absolute().glob("**/*.py"))
     datasets = [
-        dataset_dir.split(os.sep)[-2]
-        for dataset_dir in glob.glob("./datasets/*/")
-        if os.path.exists(os.path.join(dataset_dir, dataset_dir.split(os.sep)[-2] + ".py"))
+        dataset_script_file.parent.name
+        for dataset_script_file in dataset_script_files
+        if dataset_script_file.name != "__init__.py"
     ]
     return [{"testcase_name": x, "dataset_name": x} for x in datasets]
 
@@ -78,7 +79,7 @@ class LocalDatasetTest(parameterized.TestCase):
 
     @pytest.mark.slow
     def test_load_real_dataset(self, dataset_name):
-        path = "./datasets/" + dataset_name
+        path = str(DATASET_BUILDERS_ROOT / dataset_name)
         dataset_module = dataset_module_factory(
             path, download_config=DownloadConfig(local_files_only=True)
         )
@@ -97,7 +98,7 @@ class LocalDatasetTest(parameterized.TestCase):
 
     @pytest.mark.slow
     def test_load_real_dataset_all_configs(self, dataset_name):
-        path = "./datasets/" + dataset_name
+        path = str(DATASET_BUILDERS_ROOT / dataset_name)
         dataset_module = dataset_module_factory(
             path, download_config=DownloadConfig(local_files_only=True)
         )
