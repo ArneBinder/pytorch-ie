@@ -636,7 +636,7 @@ class Conll2003(pytorch_ie.data.builder.GeneratorBasedBuilder):
         return document
 ```
 
-The full script can be found here: [datasets/conll2003/conll2003.py](dataset_builders/conll2003/conll2003.py). Note, that to
+The full script can be found here: [dataset_builders/conll2003/conll2003.py](dataset_builders/conll2003/conll2003.py). Note, that to
 load the dataset with `datasets.load_dataset`, the script has to be located in a directory with the same name (as it
 is the case for standard Huggingface dataset loading scripts).
 

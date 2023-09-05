@@ -225,7 +225,7 @@ if __name__ == "__main__":
     commit_args += (f"--author={author_name} <{author_email}>",)
 
     for _tag in datasets_lib_repo.tags:
-        # Add a new tag if this is a `dataset_builders` release
+        # Add a new tag if this is a `datasets` release
         if _tag.commit == current_commit and re.match(r"^v[0-9]+\.[0-9]+\.[0-9]+$", _tag.name):
             new_tag = _tag
             break
