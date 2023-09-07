@@ -7,6 +7,7 @@ from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncod
 from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 ModelInputType: TypeAlias = BatchEncoding
 ModelOutputType: TypeAlias = Dict[str, Any]
@@ -23,7 +24,9 @@ TEST = "test"
 
 
 @PyTorchIEModel.register()
-class TransformerTokenClassificationModel(PyTorchIEModel):
+class TransformerTokenClassificationModel(
+    PyTorchIEModel, RequiresModelNameOrPath, RequiresNumClasses
+):
     def __init__(
         self,
         model_name_or_path: str,
