@@ -38,6 +38,7 @@ class TransformerTextClassificationModel(
         learning_rate: float = 1e-5,
         task_learning_rate: float = 1e-4,
         warmup_proportion: float = 0.1,
+        freeze_model: bool = False,
         multi_label: bool = False,
         t_total: Optional[int] = None,
         **kwargs,
@@ -60,6 +61,10 @@ class TransformerTextClassificationModel(
             self.model = AutoModel.from_config(config=config)
         else:
             self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
+
+        if freeze_model:
+            for param in self.model.parameters():
+                param.requires_grad = False
 
         if tokenizer_vocab_size is not None:
             self.model.resize_token_embeddings(tokenizer_vocab_size)
