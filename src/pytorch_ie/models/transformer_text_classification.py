@@ -8,6 +8,7 @@ from transformers import AutoConfig, AutoModel, get_linear_schedule_with_warmup
 from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 ModelInputType: TypeAlias = MutableMapping[str, Any]
 ModelOutputType: TypeAlias = Dict[str, Any]
@@ -25,12 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 @PyTorchIEModel.register()
-class TransformerTextClassificationModel(PyTorchIEModel):
+class TransformerTextClassificationModel(
+    PyTorchIEModel, RequiresModelNameOrPath, RequiresNumClasses
+):
     def __init__(
         self,
         model_name_or_path: str,
         num_classes: int,
-        tokenizer_vocab_size: int,
+        tokenizer_vocab_size: Optional[int] = None,
         ignore_index: Optional[int] = None,
         learning_rate: float = 1e-5,
         task_learning_rate: float = 1e-4,
@@ -58,11 +61,13 @@ class TransformerTextClassificationModel(PyTorchIEModel):
             self.model = AutoModel.from_config(config=config)
         else:
             self.model = AutoModel.from_pretrained(model_name_or_path, config=config)
-        self.model.resize_token_embeddings(tokenizer_vocab_size)
 
-        # if freeze_model:
-        #     for param in self.model.parameters():
-        #         param.requires_grad = False
+        if freeze_model:
+            for param in self.model.parameters():
+                param.requires_grad = False
+
+        if tokenizer_vocab_size is not None:
+            self.model.resize_token_embeddings(tokenizer_vocab_size)
 
         classifier_dropout = (
             config.classifier_dropout
@@ -131,19 +136,3 @@ class TransformerTextClassificationModel(PyTorchIEModel):
             return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
         else:
             return optimizer
-
-        # param_optimizer = list(self.named_parameters())
-        # # TODO: this needs fixing (does not work models other than BERT)
-        # optimizer_grouped_parameters = [
-        #     {"params": [p for n, p in param_optimizer if "bert" in n]},
-        #     {
-        #         "params": [p for n, p in param_optimizer if "bert" not in n],
-        #         "lr": self.task_learning_rate,
-        #     },
-        # ]
-        # optimizer = AdamW(optimizer_grouped_parameters, lr=self.learning_rate)
-        # scheduler = get_linear_schedule_with_warmup(
-        #     optimizer, int(self.t_total * self.warmup_proportion), self.t_total
-        # )
-        # return [optimizer], [scheduler]
-        # return torch.optim.Adam(self.parameters(), lr=self.learning_rate)

@@ -9,6 +9,7 @@ from transformers import AutoConfig, AutoModel, BatchEncoding, get_linear_schedu
 from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 from pytorch_ie.models.modules.mlp import MLP
 
 ModelInputType: TypeAlias = BatchEncoding
@@ -29,7 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 @PyTorchIEModel.register()
-class TransformerSpanClassificationModel(PyTorchIEModel):
+class TransformerSpanClassificationModel(
+    PyTorchIEModel, RequiresModelNameOrPath, RequiresNumClasses
+):
     def __init__(
         self,
         model_name_or_path: str,

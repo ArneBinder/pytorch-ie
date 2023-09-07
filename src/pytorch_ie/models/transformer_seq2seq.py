@@ -6,6 +6,7 @@ from transformers.modeling_outputs import Seq2SeqLMOutput
 from typing_extensions import TypeAlias
 
 from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.models.interface import RequiresModelNameOrPath
 
 ModelInputType: TypeAlias = BatchEncoding
 ModelOutputType: TypeAlias = Seq2SeqLMOutput
@@ -14,7 +15,7 @@ ModelStepInputType: TypeAlias = Tuple[ModelInputType]
 
 
 @PyTorchIEModel.register()
-class TransformerSeq2SeqModel(PyTorchIEModel):
+class TransformerSeq2SeqModel(PyTorchIEModel, RequiresModelNameOrPath):
     def __init__(self, model_name_or_path: str, learning_rate: float = 1e-5, **kwargs) -> None:
         super().__init__(**kwargs)
 
