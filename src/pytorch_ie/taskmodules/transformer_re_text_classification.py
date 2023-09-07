@@ -27,6 +27,7 @@ from pytorch_ie.annotations import (
 from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
+from pytorch_ie.taskmodules.interface import ChangesTokenizerVocabSize
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
 from pytorch_ie.utils.window import get_window_around_slice
 
@@ -109,7 +110,7 @@ class RelationArgument:
 
 
 @TaskModule.register()
-class TransformerRETextClassificationTaskModule(TaskModuleType):
+class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizerVocabSize):
     """Marker based relation extraction. This taskmodule prepares the input token ids in such a way
     that before and after the candidate head and tail entities special marker tokens are inserted.
     Then, the modified token ids can be simply passed into a transformer based text classifier
