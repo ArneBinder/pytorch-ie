@@ -30,12 +30,11 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+torch = ">=1.10"
 pytorch-lightning = "^2"
 torchmetrics = "^1"
 datasets = "^2.13"
 transformers = "^4.18"
-# we pin 2.0.0 because of https://github.com/pytorch/pytorch/issues/100974
-torch = ">=2.0.0, !=2.0.1"
 # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
 fsspec = "<2023.9.0"
 # required for testing, but, strangely, tests fail, if just in dev-dependencies
