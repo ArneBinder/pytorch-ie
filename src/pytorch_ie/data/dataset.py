@@ -210,7 +210,7 @@ class Dataset(datasets.Dataset):
                 new_document_type=document_type, field_mapping=document_converter, **kwargs
             )
         # remove the document converters because they are not valid anymore
-        result.document_converters = None
+        result.document_converters = {}
         return result
 
     def map(
@@ -393,7 +393,7 @@ class IterableDataset(datasets.IterableDataset):
                 new_document_type=document_type, field_mapping=document_converter, **kwargs
             )
         # remove the document converters because they are not valid anymore
-        result.document_converters = None
+        result.document_converters = {}
         return result
 
     def map(  # type: ignore
