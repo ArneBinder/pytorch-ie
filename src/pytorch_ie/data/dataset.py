@@ -193,20 +193,21 @@ class Dataset(datasets.Dataset):
 
     def convert_to(self, document_type: Type[D], **kwargs) -> "Dataset":
         document_converter = self.document_converters.get(document_type, None)
-        if document_converter is None or isinstance(document_converter, dict):
-            logger.warning(
-                f"document_type {document_type.__name__} not in document_converters: "
-                f"{[dt.__name__ for dt in self.document_converters]}. "
-                "Perform a simple cast instead of a conversion."
-            )
-            return self.cast_document_type(
-                new_document_type=document_type, field_mapping=document_converter, **kwargs
-            )
-        else:
+        if document_converter is not None and callable(document_converter):
             return self.map(
                 function=document_converter,
                 result_document_type=document_type,
                 fn_kwargs=kwargs,
+            )
+        else:
+            if document_converter is None:
+                logger.warning(
+                    f"document_type {document_type.__name__} is not in document_converters: "
+                    f"{[dt.__name__ for dt in self.document_converters]}. "
+                    "Perform a simple cast instead of a conversion."
+                )
+            return self.cast_document_type(
+                new_document_type=document_type, field_mapping=document_converter, **kwargs
             )
 
     def map(
@@ -372,20 +373,21 @@ class IterableDataset(datasets.IterableDataset):
 
     def convert_to(self, document_type: Type[D], **kwargs) -> "IterableDataset":
         document_converter = self.document_converters.get(document_type, None)
-        if document_converter is None or isinstance(document_converter, dict):
-            logger.warning(
-                f"document_type {document_type.__name__} not in document_converters: "
-                f"{[dt.__name__ for dt in self.document_converters]}. "
-                "Perform a simple cast instead of a conversion."
-            )
-            return self.cast_document_type(
-                new_document_type=document_type, field_mapping=document_converter, **kwargs
-            )
-        else:
+        if document_converter is not None and callable(document_converter):
             return self.map(
                 function=document_converter,
                 result_document_type=document_type,
                 fn_kwargs=kwargs,
+            )
+        else:
+            if document_converter is None:
+                logger.warning(
+                    f"document_type {document_type.__name__} is not in document_converters: "
+                    f"{[dt.__name__ for dt in self.document_converters]}. "
+                    "Perform a simple cast instead of a conversion."
+                )
+            return self.cast_document_type(
+                new_document_type=document_type, field_mapping=document_converter, **kwargs
             )
 
     def map(  # type: ignore
