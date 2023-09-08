@@ -9,7 +9,7 @@ workflow:
 
 import copy
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union
 
 import torch
 import torch.nn.functional as F
@@ -20,7 +20,11 @@ from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import LabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.documents import (
+    TextDocument,
+    TextDocumentWithLabeledEntities,
+    TextDocumentWithLabeledEntitiesAndLabeledPartitions,
+)
 from pytorch_ie.models.transformer_token_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.utils.span import (
     bio_tags_to_spans,
@@ -89,6 +93,13 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
         self.window_overlap = window_overlap
         self.show_statistics = show_statistics
         self.include_ill_formed_predictions = include_ill_formed_predictions
+
+    @property
+    def document_type(self) -> Type[TextDocument]:
+        if self.partition_annotation is not None:
+            return TextDocumentWithLabeledEntitiesAndLabeledPartitions
+        else:
+            return TextDocumentWithLabeledEntities
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()

@@ -18,15 +18,11 @@ from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import Label
-from pytorch_ie.core import AnnotationList, TaskEncoding, TaskModule, annotation_field
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.core import TaskEncoding, TaskModule
+from pytorch_ie.documents import TextDocumentWithLabel
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 
 logger = logging.getLogger(__name__)
-
-
-class TextDocumentWithLabel(TextDocument):
-    label: AnnotationList[Label] = annotation_field()
 
 
 class TaskOutput(TypedDict, total=False):
@@ -59,6 +55,7 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
     # If these attributes are set, the taskmodule is considered as prepared. They should be calculated
     # within _prepare() and are dumped automatically when saving the taskmodule with save_pretrained().
     PREPARED_ATTRIBUTES = ["label_to_id"]
+    DOCUMENT_TYPE = TextDocumentWithLabel
 
     def __init__(
         self,

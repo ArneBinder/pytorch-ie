@@ -20,7 +20,12 @@ from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.documents import (
+    TextDocument,
+    TextDocumentWithLabeledEntities,
+    TextDocumentWithLabeledEntitiesAndLabeledPartitions,
+    TextDocumentWithLabeledEntitiesAndSentences,
+)
 from pytorch_ie.models.transformer_span_classification import ModelOutputType, ModelStepInputType
 
 InputEncodingType: TypeAlias = BatchEncoding
@@ -83,6 +88,13 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
         self.pad_to_multiple_of = pad_to_multiple_of
         self.label_pad_token_id = label_pad_token_id
         self.multi_label = multi_label
+
+    @property
+    def document_type(self) -> TypeAlias:
+        if self.single_sentence:
+            return TextDocumentWithLabeledEntitiesAndSentences
+        else:
+            return TextDocumentWithLabeledEntities
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
