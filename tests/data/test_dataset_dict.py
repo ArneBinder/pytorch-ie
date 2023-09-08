@@ -151,8 +151,12 @@ def test_get_pie_dataset_type():
         "json", data_dir=DATA_PATH, split="train", streaming=True
     )
     assert get_pie_dataset_type(hf_ds_iterable) == IterableDataset
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError) as excinfo:
         get_pie_dataset_type("not a dataset")
+    assert (
+        str(excinfo.value)
+        == "the dataset must be of type Dataset or IterableDataset, but is of type <class 'str'>"
+    )
 
 
 def map_fn(doc):

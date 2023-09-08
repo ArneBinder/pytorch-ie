@@ -481,5 +481,5 @@ def get_pie_dataset_type(
         return IterableDataset
     else:
         raise TypeError(
-            f"the dataset must be of type Dataset or IterableDataset, but is {type(hf_dataset)}"
+            f"the dataset must be of type Dataset or IterableDataset, but is of type {type(hf_dataset)}"
         )
