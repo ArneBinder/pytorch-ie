@@ -152,6 +152,66 @@ D = TypeVar("D", bound=Document)
 DocumentTypeToConverterOrFieldMappingType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
 
 
+def get_best_dataset_converter_with_types(
+    dataset: Union["IterableDataset", "Dataset"],
+    document_type: Optional[Union[Type[Document], List[Type[Document]]]],
+    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+) -> Tuple[Union[Callable[..., Document], Dict[str, str], None], Type[Document], Type[Document]]:
+    # unravel the document_type(s)
+    document_types = None
+    single_document_type = None
+    if document_type is not None:
+        if isinstance(document_type, list):
+            document_types = document_type
+            single_document_type = document_type[0]
+        else:
+            document_types = [document_type]
+            single_document_type = document_type
+
+    if converter is not None:
+        inferred_document_type = None
+        if callable(converter):
+            inferred_document_type = _infer_document_type_from_function_return(
+                function=converter, strict=False
+            )
+        if single_document_type is None:
+            if inferred_document_type is not None:
+                return converter, inferred_document_type, inferred_document_type
+            else:
+                raise ValueError(
+                    f"no document_type was provided and could not infer it from the converter"
+                )
+        else:
+            if inferred_document_type is not None:
+                return converter, single_document_type, inferred_document_type
+            else:
+                return converter, single_document_type, single_document_type
+
+    if document_types is None:
+        raise ValueError(f"document_type and converter cannot be both None")
+    best_converter_and_type = None
+    # first try to find an exact match
+    for requested_dt in document_types:
+        if requested_dt in dataset.document_converters:
+            # return the converter, the requested type and the registered type
+            return dataset.document_converters[requested_dt], requested_dt, requested_dt
+    # then try to find a match with a subclass
+    if best_converter_and_type is None:
+        for requested_dt in document_types:
+            for registered_dt, candidate_converter in dataset.document_converters.items():
+                if issubclass(requested_dt, registered_dt):
+                    # return the converter, the requested type and the registered type
+                    return candidate_converter, requested_dt, registered_dt
+
+    # return no converter, the requested type and the registered type
+    logger.warning(
+        f"none of document_types {[dt.__name__ for dt in document_types]} is in document_converters: "
+        f"{[dt.__name__ for dt in dataset.document_converters]}. "
+        "Perform a simple cast instead of a conversion."
+    )
+    return None, document_types[0], document_types[0]
+
+
 @overload
 def convert_dataset_to(
     dataset: "Dataset",
@@ -178,63 +238,25 @@ def convert_dataset_to(
     converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
     **kwargs,
 ) -> Union["IterableDataset", "Dataset"]:
-    # if a converter is provided, that takes precedence over document_type
-    if converter is not None:
-        # try to infer the document type from the return type annotation of the converter
-        if callable(converter):
-            inferred_dt = _infer_document_type_from_function_return(
-                function=converter, strict=False
-            )
-            if inferred_dt is not None:
-                document_type = inferred_dt
-        if document_type is None:
-            raise ValueError(
-                "A converter is provided, but we could not infer its return type annotation. Please provide a "
-                "document_type."
-            )
-        if isinstance(document_type, list):
-            raise ValueError(
-                "A converter is provided, but we could not infer its return type annotation. Please provide a "
-                "single document_type instead of a list."
-            )
+    result = dataset
 
-    if document_type is None:
-        raise ValueError("either document_type or a callable converter must be provided")
-    elif isinstance(document_type, list):
-        single_document_type = None
-        for dt in document_type:
-            if dt in dataset.document_converters:
-                single_document_type = dt
-                converter = dataset.document_converters[dt]
-                break
-        if single_document_type is None:
-            raise ValueError(
-                f"none of the entries in document_type {[dt.__name__ for dt in document_type]} are in document_converters: "
-                f"{[dt.__name__ for dt in dataset.document_converters]}."
-            )
-    elif issubclass(document_type, Document):
-        single_document_type = document_type
-        if converter is None:
-            converter = dataset.document_converters.get(document_type, None)
-    else:
-        raise TypeError(f"document_type must be a subclass of Document, got {document_type}")
+    converter, requested_type, registered_type = get_best_dataset_converter_with_types(
+        dataset=result, document_type=document_type, converter=converter
+    )
 
-    if converter is not None and callable(converter):
-        result = dataset.map(
+    if callable(converter):
+        result = result.map(
             function=converter,
-            result_document_type=single_document_type,
+            result_document_type=registered_type,
             fn_kwargs=kwargs,
         )
     else:
-        if converter is None:
-            logger.warning(
-                f"document_type {single_document_type.__name__} is not in document_converters: "
-                f"{[dt.__name__ for dt in dataset.document_converters]}. "
-                "Perform a simple cast instead of a conversion."
-            )
-        result = dataset.cast_document_type(
-            new_document_type=single_document_type, field_mapping=converter, **kwargs
+        result = result.cast_document_type(
+            new_document_type=registered_type, field_mapping=converter, **kwargs
         )
+    # if the requested type is different from the registered type, try to cast (again)
+    if requested_type != registered_type:
+        result = result.cast_document_type(new_document_type=requested_type)
     # remove the document converters because they are not valid anymore
     result.document_converters = {}
     return result
