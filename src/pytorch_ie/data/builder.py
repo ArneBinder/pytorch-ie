@@ -59,9 +59,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def __init__(
         self,
         base_dataset_kwargs: Optional[Dict[str, Any]] = None,
-        target_document_type: Optional[
-            Union[Type[Document], str, List[Type[Document]], List[str]]
-        ] = None,
+        target_document_type: Optional[Union[Type[Document], str]] = None,
         document_converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
         **kwargs,
     ):
@@ -118,13 +116,11 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
-        self.target_document_type: Optional[Union[Type[Document], List[Type[Document]]]]
+        self.target_document_type: Optional[Type[Document]]
         if target_document_type is None:
             self.target_document_type = None
         elif isinstance(target_document_type, str):
             self.target_document_type = resolve_target(target_document_type)  # type: ignore
-        elif isinstance(target_document_type, list):
-            self.target_document_type = [resolve_target(t) for t in target_document_type]  # type: ignore
         elif issubclass(target_document_type, Document):
             self.target_document_type = target_document_type
         else:

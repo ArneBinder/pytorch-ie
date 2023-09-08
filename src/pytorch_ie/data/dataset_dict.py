@@ -192,9 +192,7 @@ class DatasetDict(datasets.DatasetDict):
 
     def convert_to(
         self,
-        document_type: Optional[
-            Union[Type[Document], str, List[Type[Document]], List[str]]
-        ] = None,
+        document_type: Optional[Union[Type[Document], str]] = None,
         converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
         **kwargs,
     ) -> "DatasetDict":
@@ -209,13 +207,11 @@ class DatasetDict(datasets.DatasetDict):
                 provided, this converter is used instead of the registered converters.
         """
 
-        target_document_type: Optional[Union[Type[Document], List[Type[Document]]]]
+        target_document_type: Optional[Union[Type[Document], str]]
         if document_type is None:
             target_document_type = None
         elif isinstance(document_type, str):
             target_document_type = resolve_target(document_type)  # type: ignore
-        elif isinstance(document_type, list):
-            target_document_type = [resolve_target(t) for t in document_type]  # type: ignore
         elif issubclass(document_type, Document):
             target_document_type = document_type
         else:
