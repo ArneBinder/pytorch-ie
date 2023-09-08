@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import Attribute, BinaryRelation, LabeledSpan, Span
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, Document, annotation_field
 
 
