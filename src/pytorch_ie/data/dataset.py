@@ -1,7 +1,19 @@
 import logging
 from functools import wraps
 from inspect import Signature, isclass, signature
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import datasets
 import pandas as pd
@@ -116,20 +128,115 @@ def _check_fields_for_casting(
     return removed_field_names, added_field_names
 
 
-def _infer_document_type_from_function_return(function: Callable) -> Optional[Type[Document]]:
+def _infer_document_type_from_function_return(
+    function: Callable, strict: bool = True
+) -> Optional[Type[Document]]:
     # try to infer the document type from the return type annotation of function
     return_signature = signature(function).return_annotation
     if not return_signature == Signature.empty:
         if not isclass(return_signature) or not issubclass(return_signature, Document):
-            raise TypeError(
-                f"the return type annotation of the function used with map is not a subclass of Document"
-            )
+            if strict:
+                raise TypeError(
+                    f"the return type annotation of the function used with map is not a subclass of Document"
+                )
+            else:
+                logger.warning(
+                    f"the return type annotation of the function used with map is not a subclass of Document"
+                )
         return return_signature
     return None
 
 
 D = TypeVar("D", bound=Document)
 DocumentTypeToConverterOrFieldMappingType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
+
+
+@overload
+def convert_dataset_to(
+    dataset: "Dataset",
+    document_type: Optional[Union[Type[Document], List[Type[Document]]]] = None,
+    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    **kwargs,
+) -> "Dataset":
+    ...
+
+
+@overload
+def convert_dataset_to(
+    dataset: "IterableDataset",
+    document_type: Optional[Union[Type[Document], List[Type[Document]]]] = None,
+    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    **kwargs,
+) -> "IterableDataset":
+    ...
+
+
+def convert_dataset_to(
+    dataset: Union["IterableDataset", "Dataset"],
+    document_type: Optional[Union[Type[Document], List[Type[Document]]]] = None,
+    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    **kwargs,
+) -> Union["IterableDataset", "Dataset"]:
+    # if a converter is provided, that takes precedence over document_type
+    if converter is not None:
+        # try to infer the document type from the return type annotation of the converter
+        if callable(converter):
+            inferred_dt = _infer_document_type_from_function_return(
+                function=converter, strict=False
+            )
+            if inferred_dt is not None:
+                document_type = inferred_dt
+        if document_type is None:
+            raise ValueError(
+                "A converter is provided, but we could not infer its return type annotation. Please provide a "
+                "document_type."
+            )
+        if isinstance(document_type, list):
+            raise ValueError(
+                "A converter is provided, but we could not infer its return type annotation. Please provide a "
+                "single document_type instead of a list."
+            )
+
+    if document_type is None:
+        raise ValueError("either document_type or a callable converter must be provided")
+    elif isinstance(document_type, list):
+        single_document_type = None
+        for dt in document_type:
+            if dt in dataset.document_converters:
+                single_document_type = dt
+                converter = dataset.document_converters[dt]
+                break
+        if single_document_type is None:
+            raise ValueError(
+                f"none of the entries in document_type {[dt.__name__ for dt in document_type]} are in document_converters: "
+                f"{[dt.__name__ for dt in dataset.document_converters]}."
+            )
+    elif issubclass(document_type, Document):
+        single_document_type = document_type
+        if converter is None:
+            converter = dataset.document_converters.get(document_type, None)
+    else:
+        raise TypeError(f"document_type must be a subclass of Document, got {document_type}")
+
+    if converter is not None and callable(converter):
+        result = dataset.map(
+            function=converter,
+            result_document_type=single_document_type,
+            fn_kwargs=kwargs,
+        )
+    else:
+        if converter is None:
+            logger.warning(
+                f"document_type {single_document_type.__name__} is not in document_converters: "
+                f"{[dt.__name__ for dt in dataset.document_converters]}. "
+                "Perform a simple cast instead of a conversion."
+            )
+        result = dataset.cast_document_type(
+            new_document_type=single_document_type, field_mapping=converter, **kwargs
+        )
+    # remove the document converters because they are not valid anymore
+    result.document_converters = {}
+    return result
 
 
 class Dataset(datasets.Dataset):
@@ -191,27 +298,18 @@ class Dataset(datasets.Dataset):
     ) -> None:
         self.document_converters[document_type] = converter
 
-    def convert_to(self, document_type: Type[D], **kwargs) -> "Dataset":
-        document_converter = self.document_converters.get(document_type, None)
-        if document_converter is not None and callable(document_converter):
-            result = self.map(
-                function=document_converter,
-                result_document_type=document_type,
-                fn_kwargs=kwargs,
-            )
-        else:
-            if document_converter is None:
-                logger.warning(
-                    f"document_type {document_type.__name__} is not in document_converters: "
-                    f"{[dt.__name__ for dt in self.document_converters]}. "
-                    "Perform a simple cast instead of a conversion."
-                )
-            result = self.cast_document_type(
-                new_document_type=document_type, field_mapping=document_converter, **kwargs
-            )
-        # remove the document converters because they are not valid anymore
-        result.document_converters = {}
-        return result
+    def convert_to(
+        self,
+        document_type: Optional[Union[Type[Document], List[Type[Document]]]] = None,
+        converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        **kwargs,
+    ) -> "Dataset":
+        return convert_dataset_to(
+            dataset=self,
+            document_type=document_type,
+            converter=converter,
+            **kwargs,
+        )
 
     def map(
         self,
@@ -374,27 +472,18 @@ class IterableDataset(datasets.IterableDataset):
     ) -> None:
         self.document_converters[document_type] = converter
 
-    def convert_to(self, document_type: Type[D], **kwargs) -> "IterableDataset":
-        document_converter = self.document_converters.get(document_type, None)
-        if document_converter is not None and callable(document_converter):
-            result = self.map(
-                function=document_converter,
-                result_document_type=document_type,
-                fn_kwargs=kwargs,
-            )
-        else:
-            if document_converter is None:
-                logger.warning(
-                    f"document_type {document_type.__name__} is not in document_converters: "
-                    f"{[dt.__name__ for dt in self.document_converters]}. "
-                    "Perform a simple cast instead of a conversion."
-                )
-            result = self.cast_document_type(
-                new_document_type=document_type, field_mapping=document_converter, **kwargs
-            )
-        # remove the document converters because they are not valid anymore
-        result.document_converters = {}
-        return result
+    def convert_to(
+        self,
+        document_type: Optional[Union[Type[Document], List[Type[Document]]]] = None,
+        converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        **kwargs,
+    ) -> "IterableDataset":
+        return convert_dataset_to(
+            dataset=self,
+            document_type=document_type,
+            converter=converter,
+            **kwargs,
+        )
 
     def map(  # type: ignore
         self,

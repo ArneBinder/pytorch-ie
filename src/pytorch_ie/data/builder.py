@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Sequence, Type, TypeVar, Union, overload
 
 import datasets as hf_datasets
 
@@ -25,9 +25,6 @@ def get_general_dataset_builder_parent_class(
     if len(general_dataset_builder_parent_classes) != 1:
         raise TypeError("can not determine general dataset builder parent class of the object")
     return general_dataset_builder_parent_classes[0]
-
-
-D = TypeVar("D", bound=Document)
 
 
 class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
@@ -62,8 +59,10 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def __init__(
         self,
         base_dataset_kwargs: Optional[Dict[str, Any]] = None,
-        target_document_type: Optional[Union[Type[D], str]] = None,
-        document_converter: Optional[Union[Callable[..., D], Dict[str, str]]] = None,
+        target_document_type: Optional[
+            Union[Type[Document], str, List[Type[Document]], List[str]]
+        ] = None,
+        document_converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
         **kwargs,
     ):
         self.base_builder = None
@@ -119,9 +118,20 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
-        self.target_document_type: Optional[Type[Document]] = (
-            resolve_target(target_document_type) if target_document_type is not None else None  # type: ignore
-        )
+        self.target_document_type: Optional[Union[Type[Document], List[Type[Document]]]]
+        if target_document_type is None:
+            self.target_document_type = None
+        elif isinstance(target_document_type, str):
+            self.target_document_type = resolve_target(target_document_type)  # type: ignore
+        elif isinstance(target_document_type, list):
+            self.target_document_type = [resolve_target(t) for t in target_document_type]  # type: ignore
+        elif issubclass(target_document_type, Document):
+            self.target_document_type = target_document_type
+        else:
+            raise TypeError(
+                f"target_document_type must be a document type, a string, or a list of such, "
+                f"but got {target_document_type}"
+            )
         self.document_converter = document_converter
 
     def _info(self):
@@ -167,18 +177,9 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             document_type=document_type,
             document_converters=self.DOCUMENT_CONVERTERS,
         )
-        if self.target_document_type is not None:
-            document_converter = self.document_converter or self.DOCUMENT_CONVERTERS.get(
-                self.target_document_type, None
-            )
-            if document_converter is not None:
-                result.register_document_converter(
-                    document_type=document_type, converter=document_converter
-                )
-            result = result.convert_to(document_type=self.target_document_type)
-        elif self.document_converter is not None:
-            raise ValueError(
-                "a target_document_type is required to apply a document_converter to the dataset"
+        if self.target_document_type is not None or self.document_converter is not None:
+            result = result.convert_to(
+                document_type=self.target_document_type, converter=self.document_converter
             )
 
         return result

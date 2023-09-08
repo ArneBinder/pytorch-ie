@@ -7,7 +7,12 @@ from typing import Any, Callable, Dict, List, Optional, SupportsIndex, Type, Typ
 import datasets
 
 from pytorch_ie.core import Document
-from pytorch_ie.data.dataset import Dataset, IterableDataset, get_pie_dataset_type
+from pytorch_ie.data.dataset import (
+    Dataset,
+    IterableDataset,
+    _infer_document_type_from_function_return,
+    get_pie_dataset_type,
+)
 from pytorch_ie.utils.hydra import resolve_target
 
 from .common import (
@@ -157,8 +162,8 @@ class DatasetDict(datasets.DatasetDict):
 
     def register_document_converter(
         self,
-        document_type: Union[Type[D], str],
         converter: Union[Callable[..., D], Dict[str, str]],
+        document_type: Optional[Union[Type[D], str]] = None,
     ) -> "DatasetDict":
         """Register a converter function or field mapping for a target document type.
 
@@ -171,6 +176,8 @@ class DatasetDict(datasets.DatasetDict):
         dt: Type[D]
         if isinstance(document_type, str):
             dt = resolve_target(document_type)  # type: ignore
+        elif document_type is None:
+            dt = _infer_document_type_from_function_return(converter, strict=True)  # type: ignore
         else:
             dt = document_type
         if not issubclass(dt, Document):
@@ -183,17 +190,47 @@ class DatasetDict(datasets.DatasetDict):
             ds.register_document_converter(document_type=dt, converter=converter)
         return self
 
-    def convert_to(self, document_type: Union[Type[Document], str], **kwargs) -> "DatasetDict":
-        """Converts all documents in the dataset to a new document type using the registered document converters.
+    def convert_to(
+        self,
+        document_type: Optional[
+            Union[Type[Document], str, List[Type[Document]], List[str]]
+        ] = None,
+        converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        **kwargs,
+    ) -> "DatasetDict":
+        """Converts all documents in the dataset to a new document type using the registered document converters or
+        the provided converter.
 
         Args:
-            document_type: document type to convert the documents to
+            document_type: document type to convert the documents to. Can be a list of document types or strings that
+                can be resolved to such types. If a list is provided, the first document type that is found in the
+                registered document converters is used.
+            converter: converter function or field mapping (dict[str, str]) that maps fields of the document type. If
+                provided, this converter is used instead of the registered converters.
         """
 
-        new_type = resolve_target(document_type)
+        target_document_type: Optional[Union[Type[Document], List[Type[Document]]]]
+        if document_type is None:
+            target_document_type = None
+        elif isinstance(document_type, str):
+            target_document_type = resolve_target(document_type)  # type: ignore
+        elif isinstance(document_type, list):
+            target_document_type = [resolve_target(t) for t in document_type]  # type: ignore
+        elif issubclass(document_type, Document):
+            target_document_type = document_type
+        else:
+            raise TypeError(
+                f"target_document_type must be a document type, a string, or a list of such, "
+                f"but got {document_type}"
+            )
 
         result = type(self)(
-            {name: ds.convert_to(document_type=new_type, **kwargs) for name, ds in self.items()}
+            {
+                name: ds.convert_dataset_to(
+                    document_type=target_document_type, converter=converter, **kwargs
+                )
+                for name, ds in self.items()
+            }
         )
         return result
 
