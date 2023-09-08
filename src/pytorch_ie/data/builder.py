@@ -121,7 +121,9 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
-        self.target_document_type: Optional[Type[Document]] = resolve_target(task_document_type)  # type: ignore
+        self.target_document_type: Optional[Type[Document]] = (
+            resolve_target(task_document_type) if task_document_type is not None else None  # type: ignore
+        )
         self.target_document_converter = document_converter
         if self.target_document_type is not None and document_converter is None:
             self.target_document_converter = self.DOCUMENT_CONVERTERS.get(
