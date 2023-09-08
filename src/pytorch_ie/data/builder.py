@@ -121,13 +121,25 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
-        self.target_document_type: Optional[Type[Document]] = (
+        self.task_document_type: Optional[Type[Document]] = (
             resolve_target(task_document_type) if task_document_type is not None else None  # type: ignore
         )
-        self.target_document_converter = document_converter
-        if self.target_document_type is not None and document_converter is None:
-            self.target_document_converter = self.DOCUMENT_CONVERTERS.get(
-                self.target_document_type, None
+        self.task_document_converter = document_converter
+        if self.task_document_type is not None:
+            if (
+                self.task_document_converter is None
+                and self.task_document_type in self.DOCUMENT_CONVERTERS
+            ):
+                self.task_document_converter = self.DOCUMENT_CONVERTERS[self.task_document_type]
+            else:
+                logger.warning(
+                    f"task_document_type {self.task_document_type.__name__} is not in DOCUMENT_CONVERTERS: "
+                    f"{[dt.__name__ for dt in self.DOCUMENT_CONVERTERS]}. "
+                    "Perform a simple cast instead of a conversion."
+                )
+        elif self.task_document_converter is not None:
+            raise ValueError(
+                "a task_document_type is required to apply a document_converter to the dataset"
             )
 
     def _info(self):
@@ -172,26 +184,20 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             dataset=mapped_dataset,
             document_type=document_type,
         )
-        if self.target_document_type is not None:
-            document_converter = self.target_document_converter
+        if self.task_document_type is not None:
+            document_converter = self.task_document_converter
             if document_converter is not None and callable(document_converter):
                 result = result.map(
                     function=document_converter,
-                    result_document_type=document_type,
+                    result_document_type=self.task_document_type,
                     # fn_kwargs=kwargs,
                 )
             else:
-                if document_converter is None:
-                    logger.warning(
-                        f"document_type {document_type.__name__} is not in DOCUMENT_CONVERTERS: "
-                        f"{[dt.__name__ for dt in self.DOCUMENT_CONVERTERS]}. "
-                        "Perform a simple cast instead of a conversion."
-                    )
                 result = result.cast_document_type(
-                    new_document_type=self.target_document_type,
+                    new_document_type=self.task_document_type,
                     field_mapping=document_converter,  # **kwargs
                 )
-        elif self.target_document_converter is not None:
+        elif self.task_document_converter is not None:
             raise ValueError(
                 "a target_document_type is required to apply a document_converter to the dataset"
             )
