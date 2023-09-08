@@ -64,7 +64,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     def __init__(
         self,
         base_dataset_kwargs: Optional[Dict[str, Any]] = None,
-        task_document_type: Optional[Union[Type[Document], str]] = None,
+        target_document_type: Optional[Union[Type[Document], str]] = None,
         document_converter: Optional[Union[Callable[..., D], Dict[str, str]]] = None,
         **kwargs,
     ):
@@ -121,25 +121,25 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
-        self.task_document_type: Optional[Type[Document]] = (
-            resolve_target(task_document_type) if task_document_type is not None else None  # type: ignore
+        self.target_document_type: Optional[Type[Document]] = (
+            resolve_target(target_document_type) if target_document_type is not None else None  # type: ignore
         )
-        self.task_document_converter = document_converter
-        if self.task_document_type is not None:
+        self.document_converter = document_converter
+        if self.target_document_type is not None:
             if (
-                self.task_document_converter is None
-                and self.task_document_type in self.DOCUMENT_CONVERTERS
+                self.document_converter is None
+                and self.target_document_type in self.DOCUMENT_CONVERTERS
             ):
-                self.task_document_converter = self.DOCUMENT_CONVERTERS[self.task_document_type]
+                self.document_converter = self.DOCUMENT_CONVERTERS[self.target_document_type]
             else:
                 logger.warning(
-                    f"task_document_type {self.task_document_type.__name__} is not in DOCUMENT_CONVERTERS: "
+                    f"target_document_type {self.target_document_type.__name__} is not in DOCUMENT_CONVERTERS: "
                     f"{[dt.__name__ for dt in self.DOCUMENT_CONVERTERS]}. "
                     "Perform a simple cast instead of a conversion."
                 )
-        elif self.task_document_converter is not None:
+        elif self.document_converter is not None:
             raise ValueError(
-                "a task_document_type is required to apply a document_converter to the dataset"
+                "a target_document_type is required to apply a document_converter to the dataset"
             )
 
     def _info(self):
@@ -184,20 +184,21 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
             dataset=mapped_dataset,
             document_type=document_type,
         )
-        if self.task_document_type is not None:
-            document_converter = self.task_document_converter
+        if self.target_document_type is not None:
+            document_converter = self.document_converter
             if document_converter is not None and callable(document_converter):
                 result = result.map(
                     function=document_converter,
-                    result_document_type=self.task_document_type,
+                    result_document_type=self.target_document_type,
                     # fn_kwargs=kwargs,
                 )
             else:
                 result = result.cast_document_type(
-                    new_document_type=self.task_document_type,
-                    field_mapping=document_converter,  # **kwargs
+                    new_document_type=self.target_document_type,
+                    field_mapping=document_converter,
+                    # **kwargs
                 )
-        elif self.task_document_converter is not None:
+        elif self.document_converter is not None:
             raise ValueError(
                 "a target_document_type is required to apply a document_converter to the dataset"
             )
