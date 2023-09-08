@@ -143,6 +143,7 @@ def _infer_document_type_from_function_return(
                 logger.warning(
                     f"the return type annotation of the function used with map is not a subclass of Document"
                 )
+                return None
         return return_signature
     return None
 
