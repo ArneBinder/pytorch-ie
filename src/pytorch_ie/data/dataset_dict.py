@@ -156,7 +156,9 @@ class DatasetDict(datasets.DatasetDict):
         return next(iter(dataset_types))
 
     def register_document_converter(
-        self, document_type: Type[D], converter: Union[Callable[..., D], Dict[str, str]]
+        self,
+        document_type: Union[Type[D], str],
+        converter: Union[Callable[..., D], Dict[str, str]],
     ) -> "DatasetDict":
         """Register a converter function or field mapping for a target document type.
 
@@ -166,15 +168,19 @@ class DatasetDict(datasets.DatasetDict):
                 of the target document_type, or a field mapping (dict[str, str]) that maps fields of the document type
                 of this dataset to fields of the target document_type.
         """
-
-        if not issubclass(document_type, Document):
+        dt: Type[D]
+        if isinstance(document_type, str):
+            dt = resolve_target(document_type)  # type: ignore
+        else:
+            dt = document_type
+        if not issubclass(dt, Document):
+            raise TypeError(f"document_type must be a subclass of Document, but is {dt}")
+        if not (callable(converter) or isinstance(converter, dict)):
             raise TypeError(
-                f"document_type must be a subclass of Document, but is {document_type}"
+                f"converter must be a callable or a dict, but is of type {type(converter)}"
             )
-        if not callable(converter):
-            raise TypeError(f"converter must be callable, but is {type(converter)}")
         for ds in self.values():
-            ds.register_document_converter(document_type=document_type, converter=converter)
+            ds.register_document_converter(document_type=dt, converter=converter)
         return self
 
     def convert_to(self, document_type: Union[Type[Document], str], **kwargs) -> "DatasetDict":
