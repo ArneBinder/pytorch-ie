@@ -194,7 +194,7 @@ class Dataset(datasets.Dataset):
     def convert_to(self, document_type: Type[D], **kwargs) -> "Dataset":
         document_converter = self.document_converters.get(document_type, None)
         if document_converter is not None and callable(document_converter):
-            return self.map(
+            result = self.map(
                 function=document_converter,
                 result_document_type=document_type,
                 fn_kwargs=kwargs,
@@ -206,9 +206,12 @@ class Dataset(datasets.Dataset):
                     f"{[dt.__name__ for dt in self.document_converters]}. "
                     "Perform a simple cast instead of a conversion."
                 )
-            return self.cast_document_type(
+            result = self.cast_document_type(
                 new_document_type=document_type, field_mapping=document_converter, **kwargs
             )
+        # remove the document converters because they are not valid anymore
+        result.document_converters = None
+        return result
 
     def map(
         self,
@@ -374,7 +377,7 @@ class IterableDataset(datasets.IterableDataset):
     def convert_to(self, document_type: Type[D], **kwargs) -> "IterableDataset":
         document_converter = self.document_converters.get(document_type, None)
         if document_converter is not None and callable(document_converter):
-            return self.map(
+            result = self.map(
                 function=document_converter,
                 result_document_type=document_type,
                 fn_kwargs=kwargs,
@@ -386,9 +389,12 @@ class IterableDataset(datasets.IterableDataset):
                     f"{[dt.__name__ for dt in self.document_converters]}. "
                     "Perform a simple cast instead of a conversion."
                 )
-            return self.cast_document_type(
+            result = self.cast_document_type(
                 new_document_type=document_type, field_mapping=document_converter, **kwargs
             )
+        # remove the document converters because they are not valid anymore
+        result.document_converters = None
+        return result
 
     def map(  # type: ignore
         self,
