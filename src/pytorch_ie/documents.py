@@ -3,7 +3,8 @@ from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import TypeAlias
 
-from pytorch_ie.core import Document
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.core import AnnotationList, Document, annotation_field
 
 
 @dataclasses.dataclass
@@ -34,3 +35,22 @@ class TokenBasedDocument(WithMetadata, WithTokens, Document):
 
 # backwards compatibility
 TextDocument: TypeAlias = TextBasedDocument
+
+
+@dataclasses.dataclass
+class TextDocumentWithEntitiesAndRelations(TextBasedDocument):
+    entities: AnnotationList[Span] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledEntitiesAndRelations(TextBasedDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(TextBasedDocument):
+    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+    partitions: AnnotationList[LabeledSpan] = annotation_field(target="text")

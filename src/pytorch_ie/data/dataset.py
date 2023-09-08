@@ -387,3 +387,16 @@ class IterableDataset(datasets.IterableDataset):
 
     def take(self, n) -> "IterableDataset":
         return self.apply_hf_func(datasets.IterableDataset.take, n=n)
+
+
+def get_pie_dataset_type(
+    hf_dataset: Union[datasets.Dataset, datasets.IterableDataset]
+) -> Union[Type[Dataset], Type[IterableDataset]]:
+    if isinstance(hf_dataset, datasets.Dataset):
+        return Dataset
+    elif isinstance(hf_dataset, datasets.IterableDataset):
+        return IterableDataset
+    else:
+        raise TypeError(
+            f"the dataset must be of type Dataset or IterableDataset, but is of type {type(hf_dataset)}"
+        )
