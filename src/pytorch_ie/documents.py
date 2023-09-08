@@ -38,19 +38,32 @@ TextDocument: TypeAlias = TextBasedDocument
 
 
 @dataclasses.dataclass
-class TextDocumentWithEntitiesAndRelations(TextBasedDocument):
+class TextDocumentWithEntities(TextBasedDocument):
     entities: AnnotationList[Span] = annotation_field(target="text")
+
+
+@dataclasses.dataclass
+class TextDocumentWithEntitiesAndRelations(TextDocumentWithEntities):
     relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+
+@dataclasses.dataclass
+class TextDocumentWithEntitiesRelationsAndLabeledPartitions(TextDocumentWithEntitiesAndRelations):
+    partitions: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
 @dataclasses.dataclass
 class TextDocumentWithLabeledEntitiesAndRelations(TextBasedDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledEntities(TextDocumentWithLabeledEntitiesAndRelations):
     relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(TextBasedDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(
+    TextDocumentWithLabeledEntities
+):
     partitions: AnnotationList[LabeledSpan] = annotation_field(target="text")
