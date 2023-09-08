@@ -15,7 +15,7 @@ from pytorch_ie.data.common import (
     ExitDatasetDictMixin,
     ExitDatasetMixin,
 )
-from pytorch_ie.data.dataset_dict import get_pie_dataset_type
+from pytorch_ie.data.dataset import get_pie_dataset_type
 from pytorch_ie.documents import TextBasedDocument
 from tests import FIXTURES_ROOT
 

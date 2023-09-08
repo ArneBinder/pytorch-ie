@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 from inspect import Signature, isclass, signature
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
@@ -8,6 +9,8 @@ from datasets.formatting import _register_formatter
 
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset_formatter import DocumentFormatter
+
+logger = logging.getLogger(__name__)
 
 _register_formatter(DocumentFormatter, "document")
 
@@ -113,9 +116,6 @@ def _check_fields_for_casting(
     return removed_field_names, added_field_names
 
 
-D = TypeVar("D", bound=Document)
-
-
 def _infer_document_type_from_function_return(function: Callable) -> Optional[Type[Document]]:
     # try to infer the document type from the return type annotation of function
     return_signature = signature(function).return_annotation
@@ -128,6 +128,10 @@ def _infer_document_type_from_function_return(function: Callable) -> Optional[Ty
     return None
 
 
+D = TypeVar("D", bound=Document)
+DocumentTypeToConverterOrFieldMappingType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
+
+
 class Dataset(datasets.Dataset):
     def __init__(
         self,
@@ -137,6 +141,7 @@ class Dataset(datasets.Dataset):
         split: Optional[datasets.NamedSplit] = None,
         indices_table: Optional[datasets.table.Table] = None,
         fingerprint: Optional[str] = None,
+        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
     ):
         super().__init__(
             arrow_table=arrow_table,
@@ -148,6 +153,7 @@ class Dataset(datasets.Dataset):
 
         self.document_type = document_type
         self.set_format("document", document_type=document_type)
+        self.document_converters = document_converters or {}
 
     @classmethod
     def get_base_kwargs(cls, dataset: datasets.Dataset):
@@ -161,16 +167,47 @@ class Dataset(datasets.Dataset):
 
     @classmethod
     def from_hf_dataset(
-        cls, dataset: datasets.Dataset, document_type: Type[Document]
+        cls,
+        dataset: datasets.Dataset,
+        document_type: Type[Document],
+        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
     ) -> "Dataset":
-        document_dataset = cls(document_type=document_type, **cls.get_base_kwargs(dataset))
+        document_dataset = cls(
+            document_type=document_type,
+            document_converters=document_converters,
+            **cls.get_base_kwargs(dataset),
+        )
         return document_dataset
 
     def apply_hf_func(self, func, **kwargs) -> "Dataset":
         return Dataset.from_hf_dataset(
             func(self, **kwargs),
             document_type=self.document_type,
+            document_converters=self.document_converters,
         )
+
+    def register_document_converter(
+        self, document_type: Type[D], converter: Union[Callable[..., D], Dict[str, str]]
+    ) -> None:
+        self.document_converters[document_type] = converter
+
+    def convert_to(self, document_type: Type[D], **kwargs) -> "Dataset":
+        document_converter = self.document_converters.get(document_type, None)
+        if document_converter is None or isinstance(document_converter, dict):
+            logger.warning(
+                f"document_type {document_type.__name__} not in document_converters: "
+                f"{[dt.__name__ for dt in self.document_converters]}. "
+                "Perform a simple cast instead of a conversion."
+            )
+            return self.cast_document_type(
+                new_document_type=document_type, field_mapping=document_converter, **kwargs
+            )
+        else:
+            return self.map(
+                function=document_converter,
+                result_document_type=document_type,
+                fn_kwargs=kwargs,
+            )
 
     def map(
         self,
@@ -225,7 +262,11 @@ class Dataset(datasets.Dataset):
             if result_document_type is None:
                 result_document_type = self.document_type
 
-        return Dataset.from_hf_dataset(dataset, document_type=result_document_type)
+        return Dataset.from_hf_dataset(
+            dataset,
+            document_type=result_document_type,
+            document_converters=self.document_converters,
+        )
 
     def cast_document_type(
         self,
@@ -263,14 +304,22 @@ class Dataset(datasets.Dataset):
                 new_hf_dataset = new_hf_dataset.add_column(
                     name=f_name, column=len(new_hf_dataset) * [{}]
                 )
-        new_dataset = Dataset.from_hf_dataset(new_hf_dataset, document_type=new_document_type)
+        new_dataset = Dataset.from_hf_dataset(
+            new_hf_dataset,
+            document_type=new_document_type,
+            document_converters=self.document_converters,
+        )
 
         return new_dataset
 
 
 class IterableDataset(datasets.IterableDataset):
     def __init__(
-        self, document_type: Type[Document], hidden_columns: Optional[Set[str]] = None, **kwargs
+        self,
+        document_type: Type[Document],
+        hidden_columns: Optional[Set[str]] = None,
+        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.document_type = document_type
@@ -278,6 +327,7 @@ class IterableDataset(datasets.IterableDataset):
         self.hidden_columns = set()
         if hidden_columns is not None:
             self.hidden_columns.update(hidden_columns)
+        self.document_converters = document_converters or {}
 
     @property
     def column_names(self) -> List[str]:
@@ -301,10 +351,12 @@ class IterableDataset(datasets.IterableDataset):
         dataset: datasets.IterableDataset,
         document_type: Type[Document],
         hidden_columns: Optional[Set[str]] = None,
+        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
     ) -> "IterableDataset":
         dataset = cls(
             document_type=document_type,
             hidden_columns=hidden_columns,
+            document_converters=document_converters,
             **cls.get_base_kwargs(dataset),
         )
         return dataset
@@ -312,6 +364,29 @@ class IterableDataset(datasets.IterableDataset):
     def __iter__(self):
         for example in iter(super().__iter__()):
             yield self.document_type.fromdict(example)
+
+    def register_document_converter(
+        self, document_type: Type[D], converter: Union[Callable[..., D], Dict[str, str]]
+    ) -> None:
+        self.document_converters[document_type] = converter
+
+    def convert_to(self, document_type: Type[D], **kwargs) -> "IterableDataset":
+        document_converter = self.document_converters.get(document_type, None)
+        if document_converter is None or isinstance(document_converter, dict):
+            logger.warning(
+                f"document_type {document_type.__name__} not in document_converters: "
+                f"{[dt.__name__ for dt in self.document_converters]}. "
+                "Perform a simple cast instead of a conversion."
+            )
+            return self.cast_document_type(
+                new_document_type=document_type, field_mapping=document_converter, **kwargs
+            )
+        else:
+            return self.map(
+                function=document_converter,
+                result_document_type=document_type,
+                fn_kwargs=kwargs,
+            )
 
     def map(  # type: ignore
         self,
@@ -337,13 +412,18 @@ class IterableDataset(datasets.IterableDataset):
             if result_document_type is None:
                 result_document_type = self.document_type
 
-        return IterableDataset.from_hf_dataset(dataset_mapped, document_type=result_document_type)
+        return IterableDataset.from_hf_dataset(
+            dataset_mapped,
+            document_type=result_document_type,
+            document_converters=self.document_converters,
+        )
 
     def apply_hf_func(self, func, **kwargs) -> "IterableDataset":
         return IterableDataset.from_hf_dataset(
             func(self, **kwargs),
             document_type=self.document_type,
             hidden_columns=self.hidden_columns,
+            document_converters=self.document_converters,
         )
 
     def cast_document_type(
@@ -380,10 +460,26 @@ class IterableDataset(datasets.IterableDataset):
         new_hf_dataset = new_hf_dataset.rename_columns(column_mapping=field_mapping)
 
         new_dataset = IterableDataset.from_hf_dataset(
-            new_hf_dataset, hidden_columns=hidden_columns, document_type=new_document_type
+            new_hf_dataset,
+            hidden_columns=hidden_columns,
+            document_type=new_document_type,
+            document_converters=self.document_converters,
         )
 
         return new_dataset
 
     def take(self, n) -> "IterableDataset":
         return self.apply_hf_func(datasets.IterableDataset.take, n=n)
+
+
+def get_pie_dataset_type(
+    hf_dataset: Union[datasets.Dataset, datasets.IterableDataset]
+) -> Union[Type[Dataset], Type[IterableDataset]]:
+    if isinstance(hf_dataset, datasets.Dataset):
+        return Dataset
+    elif isinstance(hf_dataset, datasets.IterableDataset):
+        return IterableDataset
+    else:
+        raise TypeError(
+            f"the dataset must be of type Dataset or IterableDataset, but is {type(hf_dataset)}"
+        )
