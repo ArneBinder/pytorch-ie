@@ -60,7 +60,7 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         self,
         base_dataset_kwargs: Optional[Dict[str, Any]] = None,
         document_converters: Optional[
-            Dict[Union[Type[Document], str], Union[Callable[..., Document], Dict[str, str]]]
+            Dict[Union[Type[Document], str], Union[Callable[..., Document], Dict[str, str], str]]
         ] = None,
         **kwargs,
     ):
@@ -119,9 +119,15 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         self.document_converters = dict(self.DOCUMENT_CONVERTERS)
         if document_converters is not None:
-            for document_type_or_str, document_converter in document_converters.items():
+            for document_type_or_str, document_converter_or_str in document_converters.items():
                 document_type = resolve_target(document_type_or_str)
                 if isinstance(document_type, type) and issubclass(document_type, Document):
+                    document_converter: Union[Callable[..., Any], dict[str, str]]
+                    if isinstance(document_converter_or_str, str):
+                        document_converter = resolve_target(document_converter_or_str)
+                    else:
+                        document_converter = document_converter_or_str
+
                     self.document_converters[document_type] = document_converter
                 else:
                     raise TypeError(

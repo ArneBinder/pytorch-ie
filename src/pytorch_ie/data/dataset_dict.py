@@ -162,7 +162,7 @@ class DatasetDict(datasets.DatasetDict):
 
     def register_document_converter(
         self,
-        converter: Union[Callable[..., D], Dict[str, str]],
+        converter: Union[Callable[..., D], Dict[str, str], str],
         document_type: Optional[Union[Type[D], str]] = None,
     ) -> "DatasetDict":
         """Register a converter function or field mapping for a target document type.
@@ -172,8 +172,9 @@ class DatasetDict(datasets.DatasetDict):
                 of Document or string that can be resolved to such a type. If `None`, the document type is tried to be
                 inferred from the converter function signature.
             converter: Either a function that converts a document of the document type of this dataset to a document
-                of the target document_type, or a field mapping (dict[str, str]) that maps fields of the document type
-                of this dataset to fields of the target document_type.
+                of the target document_type, a string that can be resolved to such a function, or a field mapping
+                (dict[str, str]) that maps fields of the document type of this dataset to fields of the target
+                document_type.
         """
         resolved_document_type: Optional[Union[Type[D], Callable]] = None
         if document_type is not None:
@@ -189,9 +190,19 @@ class DatasetDict(datasets.DatasetDict):
                     f"document_type must be or resolv to a subclass of Document, but is {document_type}"
                 )
 
+        resolved_converter: Union[Callable[..., Any], dict[str, str]]
+        if isinstance(converter, str):
+            resolved_converter = resolve_target(converter)
+        else:
+            resolved_converter = converter
+        if not (callable(resolved_converter) or isinstance(resolved_converter, dict)):
+            raise TypeError(
+                f"converter must be a callable or a dict, but is {type(resolved_converter)}"
+            )
+
         for ds in self.values():
             ds.register_document_converter(
-                document_type=resolved_document_type, converter=converter
+                document_type=resolved_document_type, converter=resolved_converter
             )
         return self
 
