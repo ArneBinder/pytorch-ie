@@ -152,34 +152,10 @@ D = TypeVar("D", bound=Document)
 DocumentConvertersType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
 
 
-def get_best_dataset_converter_with_types(
+def _get_best_dataset_converter_with_types(
     dataset: Union["IterableDataset", "Dataset"],
-    document_type: Optional[Union[Type[Document]]],
-    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    document_type: Union[Type[Document]],
 ) -> Tuple[Union[Callable[..., Document], Dict[str, str], None], Type[Document], Type[Document]]:
-
-    if converter is not None:
-        inferred_document_type = None
-        if callable(converter):
-            inferred_document_type = _infer_document_type_from_function_return(
-                function=converter, strict=False
-            )
-        if document_type is None:
-            if inferred_document_type is not None:
-                return converter, inferred_document_type, inferred_document_type
-            else:
-                raise ValueError(
-                    f"no document_type was provided and could not infer it from the converter"
-                )
-        else:
-            if inferred_document_type is not None:
-                return converter, document_type, inferred_document_type
-            else:
-                return converter, document_type, document_type
-
-    if document_type is None:
-        raise ValueError(f"document_type and converter cannot be both None")
-
     # first try to find an exact match
     if document_type in dataset.document_converters:
         return dataset.document_converters[document_type], document_type, document_type
@@ -200,8 +176,7 @@ def get_best_dataset_converter_with_types(
 @overload
 def dataset_to_document_type(
     dataset: "Dataset",
-    document_type: Optional[Type[Document]] = None,
-    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    document_type: Type[Document],
     **kwargs,
 ) -> "Dataset":
     ...
@@ -210,8 +185,7 @@ def dataset_to_document_type(
 @overload
 def dataset_to_document_type(
     dataset: "IterableDataset",
-    document_type: Optional[Type[Document]] = None,
-    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    document_type: Type[Document],
     **kwargs,
 ) -> "IterableDataset":
     ...
@@ -219,16 +193,20 @@ def dataset_to_document_type(
 
 def dataset_to_document_type(
     dataset: Union["IterableDataset", "Dataset"],
-    document_type: Optional[Type[Document]] = None,
-    converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+    document_type: Type[Document],
     **kwargs,
 ) -> Union["IterableDataset", "Dataset"]:
-    result = dataset
 
-    converter, requested_type, registered_type = get_best_dataset_converter_with_types(
-        dataset=result, document_type=document_type, converter=converter
+    # do nothing if the document type is already the requested type
+    if document_type == dataset.document_type:
+        return dataset
+
+    converter, requested_type, registered_type = _get_best_dataset_converter_with_types(
+        dataset=dataset,
+        document_type=document_type,
     )
 
+    result = dataset
     if callable(converter):
         result = result.map(
             function=converter,
@@ -242,8 +220,10 @@ def dataset_to_document_type(
     # if the requested type is different from the registered type, try to cast (again)
     if requested_type != registered_type:
         result = result.cast_document_type(new_document_type=requested_type)
+
     # remove the document converters because they are not valid anymore
     result.document_converters = {}
+
     return result
 
 
