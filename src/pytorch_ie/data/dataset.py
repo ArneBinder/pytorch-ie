@@ -199,6 +199,7 @@ def dataset_to_document_type(
 
     # do nothing if the document type is already the requested type
     if document_type == dataset.document_type:
+        logger.info(f"The dataset has already the requested document type {document_type}.")
         return dataset
 
     converter, requested_type, registered_type = _get_best_dataset_converter_with_types(
