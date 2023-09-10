@@ -222,7 +222,7 @@ class DatasetDict(datasets.DatasetDict):
 
         result = type(self)(
             {
-                name: ds.dataset_to_document_type(document_type=resolved_document_type, **kwargs)
+                name: ds.to_document_type(document_type=resolved_document_type, **kwargs)
                 for name, ds in self.items()
             }
         )
