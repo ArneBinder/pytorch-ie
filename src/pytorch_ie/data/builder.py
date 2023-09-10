@@ -6,7 +6,7 @@ import datasets as hf_datasets
 from pytorch_ie.core.document import Document
 from pytorch_ie.data.dataset import (
     Dataset,
-    DocumentTypeToConverterOrFieldMappingType,
+    DocumentConvertersType,
     IterableDataset,
     decorate_convert_to_dict_of_lists,
     get_pie_dataset_type,
@@ -51,16 +51,17 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
     # Define document converters. This should be a mapping from document types as keys to the respective
     # document converters as values. The document converters can be either callables or dicts
-    # that map from field names to field names. If a callable is provided, it will be used to
+    # that map from original field names to new field names. If a callable is provided, it will be used to
     # convert the document. If a dict is provided, it will be used to rename the fields of the
     # document (this is done by renaming the columns which is much more efficient).
-    DOCUMENT_CONVERTERS: DocumentTypeToConverterOrFieldMappingType = {}
+    DOCUMENT_CONVERTERS: DocumentConvertersType = {}
 
     def __init__(
         self,
         base_dataset_kwargs: Optional[Dict[str, Any]] = None,
-        target_document_type: Optional[Union[Type[Document], str]] = None,
-        document_converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        document_converters: Optional[
+            Dict[Union[Type[Document], str], Union[Callable[..., Document], Dict[str, str]]]
+        ] = None,
         **kwargs,
     ):
         self.base_builder = None
@@ -116,19 +117,17 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
-        self.target_document_type: Optional[Type[Document]]
-        if target_document_type is None:
-            self.target_document_type = None
-        elif isinstance(target_document_type, str):
-            self.target_document_type = resolve_target(target_document_type)  # type: ignore
-        elif issubclass(target_document_type, Document):
-            self.target_document_type = target_document_type
-        else:
-            raise TypeError(
-                f"target_document_type must be a document type, a string, or a list of such, "
-                f"but got {target_document_type}"
-            )
-        self.document_converter = document_converter
+        self.document_converters = dict(self.DOCUMENT_CONVERTERS)
+        if document_converters is not None:
+            for document_type_or_str, document_converter in document_converters.items():
+                document_type = resolve_target(document_type_or_str)
+                if isinstance(document_type, type) and issubclass(document_type, Document):
+                    self.document_converters[document_type] = document_converter
+                else:
+                    raise TypeError(
+                        f"The key '{document_type_or_str}' for one of the converters "
+                        f"can not be resolved to a document type."
+                    )
 
     def _info(self):
         return self.base_builder._info()
@@ -171,13 +170,8 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         result = dataset_type.from_hf_dataset(
             dataset=mapped_dataset,
             document_type=document_type,
-            document_converters=self.DOCUMENT_CONVERTERS,
+            document_converters=dict(self.document_converters),
         )
-        if self.target_document_type is not None or self.document_converter is not None:
-            result = result.convert_to(
-                document_type=self.target_document_type, converter=self.document_converter
-            )
-
         return result
 
     @overload  # type: ignore

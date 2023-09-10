@@ -190,41 +190,34 @@ class DatasetDict(datasets.DatasetDict):
             ds.register_document_converter(document_type=dt, converter=converter)
         return self
 
-    def convert_to(
+    def to_document_type(
         self,
-        document_type: Optional[Union[Type[Document], str]] = None,
-        converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        document_type: Union[Type[Document], str],
         **kwargs,
     ) -> "DatasetDict":
-        """Converts all documents in the dataset to a new document type using the registered document converters or
-        the provided converter.
+        """Converts all documents in the dataset to a new document type using the best registered document converter.
 
         Args:
-            document_type: document type to convert the documents to. Can be a list of document types or strings that
-                can be resolved to such types. If a list is provided, the first document type that is found in the
-                registered document converters is used.
-            converter: converter function or field mapping (dict[str, str]) that maps fields of the document type. If
-                provided, this converter is used instead of the registered converters.
+            document_type: document type to convert the documents to. Can be a subclass of Document or string that
+                can be resolved to such a type.
         """
 
-        target_document_type: Optional[Union[Type[Document], str]]
-        if document_type is None:
-            target_document_type = None
-        elif isinstance(document_type, str):
-            target_document_type = resolve_target(document_type)  # type: ignore
-        elif issubclass(document_type, Document):
-            target_document_type = document_type
+        if isinstance(document_type, str):
+            resolved_document_type = resolve_target(document_type)
         else:
+            resolved_document_type = document_type
+        if not (
+            isinstance(resolved_document_type, type)
+            and issubclass(resolved_document_type, Document)
+        ):
             raise TypeError(
-                f"target_document_type must be a document type, a string, or a list of such, "
-                f"but got {document_type}"
+                f"document_type must be a document type or a string that can be resolved to such a type, "
+                f"but got {document_type}."
             )
 
         result = type(self)(
             {
-                name: ds.convert_dataset_to(
-                    document_type=target_document_type, converter=converter, **kwargs
-                )
+                name: ds.dataset_to_document_type(document_type=resolved_document_type, **kwargs)
                 for name, ds in self.items()
             }
         )

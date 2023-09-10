@@ -149,7 +149,7 @@ def _infer_document_type_from_function_return(
 
 
 D = TypeVar("D", bound=Document)
-DocumentTypeToConverterOrFieldMappingType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
+DocumentConvertersType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
 
 
 def get_best_dataset_converter_with_types(
@@ -198,7 +198,7 @@ def get_best_dataset_converter_with_types(
 
 
 @overload
-def convert_dataset_to(
+def dataset_to_document_type(
     dataset: "Dataset",
     document_type: Optional[Type[Document]] = None,
     converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
@@ -208,7 +208,7 @@ def convert_dataset_to(
 
 
 @overload
-def convert_dataset_to(
+def dataset_to_document_type(
     dataset: "IterableDataset",
     document_type: Optional[Type[Document]] = None,
     converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
@@ -217,7 +217,7 @@ def convert_dataset_to(
     ...
 
 
-def convert_dataset_to(
+def dataset_to_document_type(
     dataset: Union["IterableDataset", "Dataset"],
     document_type: Optional[Type[Document]] = None,
     converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
@@ -256,7 +256,7 @@ class Dataset(datasets.Dataset):
         split: Optional[datasets.NamedSplit] = None,
         indices_table: Optional[datasets.table.Table] = None,
         fingerprint: Optional[str] = None,
-        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
+        document_converters: Optional[DocumentConvertersType] = None,
     ):
         super().__init__(
             arrow_table=arrow_table,
@@ -285,7 +285,7 @@ class Dataset(datasets.Dataset):
         cls,
         dataset: datasets.Dataset,
         document_type: Type[Document],
-        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
+        document_converters: Optional[DocumentConvertersType] = None,
     ) -> "Dataset":
         document_dataset = cls(
             document_type=document_type,
@@ -306,16 +306,14 @@ class Dataset(datasets.Dataset):
     ) -> None:
         self.document_converters[document_type] = converter
 
-    def convert_to(
+    def to_document_type(
         self,
-        document_type: Optional[Type[Document]] = None,
-        converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        document_type: Type[Document],
         **kwargs,
     ) -> "Dataset":
-        return convert_dataset_to(
+        return dataset_to_document_type(
             dataset=self,
             document_type=document_type,
-            converter=converter,
             **kwargs,
         )
 
@@ -428,7 +426,7 @@ class IterableDataset(datasets.IterableDataset):
         self,
         document_type: Type[Document],
         hidden_columns: Optional[Set[str]] = None,
-        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
+        document_converters: Optional[DocumentConvertersType] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -461,7 +459,7 @@ class IterableDataset(datasets.IterableDataset):
         dataset: datasets.IterableDataset,
         document_type: Type[Document],
         hidden_columns: Optional[Set[str]] = None,
-        document_converters: Optional[DocumentTypeToConverterOrFieldMappingType] = None,
+        document_converters: Optional[DocumentConvertersType] = None,
     ) -> "IterableDataset":
         dataset = cls(
             document_type=document_type,
@@ -486,7 +484,7 @@ class IterableDataset(datasets.IterableDataset):
         converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
         **kwargs,
     ) -> "IterableDataset":
-        return convert_dataset_to(
+        return dataset_to_document_type(
             dataset=self,
             document_type=document_type,
             converter=converter,
