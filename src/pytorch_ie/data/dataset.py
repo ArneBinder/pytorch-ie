@@ -227,6 +227,23 @@ def dataset_to_document_type(
     return result
 
 
+def dataset_register_document_converter(
+    dataset: Union["Dataset", "IterableDataset"],
+    converter: Union[Callable[..., D], Dict[str, str]],
+    document_type: Optional[Type[D]] = None,
+) -> None:
+    if callable(converter) and document_type is None:
+        dt = _infer_document_type_from_function_return(converter)
+    else:
+        dt = document_type
+    if not (isinstance(dt, type) and issubclass(dt, Document)):
+        raise TypeError(
+            f"the (inferred) document_type {dt} is not a subclass of Document. "
+            "Please provide a document_type or a converter with a return type annotation."
+        )
+    dataset.document_converters[dt] = converter
+
+
 class Dataset(datasets.Dataset):
     def __init__(
         self,
@@ -282,9 +299,15 @@ class Dataset(datasets.Dataset):
         )
 
     def register_document_converter(
-        self, document_type: Type[D], converter: Union[Callable[..., D], Dict[str, str]]
+        self,
+        converter: Union[Callable[..., D], Dict[str, str]],
+        document_type: Optional[Type[D]] = None,
     ) -> None:
-        self.document_converters[document_type] = converter
+        dataset_register_document_converter(
+            dataset=self,
+            converter=converter,
+            document_type=document_type,
+        )
 
     def to_document_type(
         self,
@@ -454,9 +477,15 @@ class IterableDataset(datasets.IterableDataset):
             yield self.document_type.fromdict(example)
 
     def register_document_converter(
-        self, document_type: Type[D], converter: Union[Callable[..., D], Dict[str, str]]
+        self,
+        converter: Union[Callable[..., D], Dict[str, str]],
+        document_type: Optional[Type[D]] = None,
     ) -> None:
-        self.document_converters[document_type] = converter
+        dataset_register_document_converter(
+            dataset=self,
+            converter=converter,
+            document_type=document_type,
+        )
 
     def to_document_type(
         self,

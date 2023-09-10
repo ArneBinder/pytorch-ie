@@ -168,26 +168,31 @@ class DatasetDict(datasets.DatasetDict):
         """Register a converter function or field mapping for a target document type.
 
         Args:
-            document_type: The target document type for which the converter should be registered.
+            document_type: The target document type for which the converter should be registered. Can be a subclass
+                of Document or string that can be resolved to such a type. If `None`, the document type is tried to be
+                inferred from the converter function signature.
             converter: Either a function that converts a document of the document type of this dataset to a document
                 of the target document_type, or a field mapping (dict[str, str]) that maps fields of the document type
                 of this dataset to fields of the target document_type.
         """
-        dt: Type[D]
-        if isinstance(document_type, str):
-            dt = resolve_target(document_type)  # type: ignore
-        elif document_type is None:
-            dt = _infer_document_type_from_function_return(converter, strict=True)  # type: ignore
-        else:
-            dt = document_type
-        if not issubclass(dt, Document):
-            raise TypeError(f"document_type must be a subclass of Document, but is {dt}")
-        if not (callable(converter) or isinstance(converter, dict)):
-            raise TypeError(
-                f"converter must be a callable or a dict, but is of type {type(converter)}"
-            )
+        resolved_document_type: Optional[Union[Type[D], Callable]] = None
+        if document_type is not None:
+            if isinstance(document_type, str):
+                resolved_document_type = resolve_target(document_type)
+            else:
+                resolved_document_type = document_type
+            if not (
+                isinstance(resolved_document_type, type)
+                and issubclass(resolved_document_type, Document)
+            ):
+                raise TypeError(
+                    f"document_type must be or resolv to a subclass of Document, but is {document_type}"
+                )
+
         for ds in self.values():
-            ds.register_document_converter(document_type=dt, converter=converter)
+            ds.register_document_converter(
+                document_type=resolved_document_type, converter=converter
+            )
         return self
 
     def to_document_type(
