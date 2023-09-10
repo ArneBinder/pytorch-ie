@@ -478,16 +478,14 @@ class IterableDataset(datasets.IterableDataset):
     ) -> None:
         self.document_converters[document_type] = converter
 
-    def convert_to(
+    def to_document_type(
         self,
-        document_type: Optional[Type[Document]] = None,
-        converter: Optional[Union[Callable[..., Document], Dict[str, str]]] = None,
+        document_type: Type[Document],
         **kwargs,
     ) -> "IterableDataset":
         return dataset_to_document_type(
             dataset=self,
             document_type=document_type,
-            converter=converter,
             **kwargs,
         )
 
