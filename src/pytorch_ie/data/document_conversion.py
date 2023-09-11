@@ -18,21 +18,31 @@ TeD = TypeVar("TeD", bound=TextBasedDocument)
 
 def text_based_document_to_token_based(
     doc: TextBasedDocument,
-    tokens: List[str],
     result_document_type: Type[ToD],
+    tokens: Optional[List[str]] = None,
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
 ) -> ToD:
+    if tokens is None:
+        tokens = doc.metadata.get("tokens")
+    if tokens is None:
+        raise ValueError(
+            "tokens must be provided to convert a text based document to token based, but got None"
+        )
     result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
     # save text, token_offset_mapping and char_to_token (if available) in metadata
     result.metadata["text"] = doc.text
     if token_offset_mapping is not None:
         result.metadata["token_offset_mapping"] = token_offset_mapping
+    else:
+        token_offset_mapping = doc.metadata.get("token_offset_mapping")
     if char_to_token is not None:
         result.metadata["char_to_token"] = char_to_token
+    else:
+        char_to_token = doc.metadata.get("char_to_token")
 
     # construct the char_to_token function, if not provided, from the token_offset_mapping
     if char_to_token is None:
