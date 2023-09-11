@@ -36,10 +36,22 @@ def text_based_document_to_token_based(
     # save text, token_offset_mapping and char_to_token (if available) in metadata
     result.metadata["text"] = doc.text
     if token_offset_mapping is not None:
+        if (
+            "token_offset_mapping" in doc.metadata
+            and doc.metadata["token_offset_mapping"] != token_offset_mapping
+        ):
+            logger.warning(
+                "token_offset_mapping in metadata is different from the new token_offset_mapping, "
+                "overwrite the metadata"
+            )
         result.metadata["token_offset_mapping"] = token_offset_mapping
     else:
         token_offset_mapping = doc.metadata.get("token_offset_mapping")
     if char_to_token is not None:
+        if "char_to_token" in doc.metadata and doc.metadata["char_to_token"] != char_to_token:
+            logger.warning(
+                "char_to_token in metadata is different from the new char_to_token, overwrite the metadata"
+            )
         result.metadata["char_to_token"] = char_to_token
     else:
         char_to_token = doc.metadata.get("char_to_token")
