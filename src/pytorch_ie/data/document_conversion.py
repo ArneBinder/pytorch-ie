@@ -12,26 +12,49 @@ from pytorch_ie.documents import TextBasedDocument, TokenBasedDocument
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=TokenBasedDocument)
+ToD = TypeVar("ToD", bound=TokenBasedDocument)
+TeD = TypeVar("TeD", bound=TextBasedDocument)
 
 
 def text_based_document_to_token_based(
     doc: TextBasedDocument,
-    tokens: List[str],
-    result_document_type: Type[T],
+    result_document_type: Type[ToD],
+    tokens: Optional[List[str]] = None,
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
-) -> T:
+) -> ToD:
+    if tokens is None:
+        tokens = doc.metadata.get("tokens")
+    if tokens is None:
+        raise ValueError(
+            "tokens must be provided to convert a text based document to token based, but got None"
+        )
     result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
     # save text, token_offset_mapping and char_to_token (if available) in metadata
     result.metadata["text"] = doc.text
     if token_offset_mapping is not None:
+        if (
+            "token_offset_mapping" in doc.metadata
+            and doc.metadata["token_offset_mapping"] != token_offset_mapping
+        ):
+            logger.warning(
+                "token_offset_mapping in metadata is different from the new token_offset_mapping, "
+                "overwrite the metadata"
+            )
         result.metadata["token_offset_mapping"] = token_offset_mapping
+    else:
+        token_offset_mapping = doc.metadata.get("token_offset_mapping")
     if char_to_token is not None:
+        if "char_to_token" in doc.metadata and doc.metadata["char_to_token"] != char_to_token:
+            logger.warning(
+                "char_to_token in metadata is different from the new char_to_token, overwrite the metadata"
+            )
         result.metadata["char_to_token"] = char_to_token
+    else:
+        char_to_token = doc.metadata.get("char_to_token")
 
     # construct the char_to_token function, if not provided, from the token_offset_mapping
     if char_to_token is None:
@@ -60,6 +83,11 @@ def text_based_document_to_token_based(
         override_annotations[text_span_layer_name] = {}
         char_span: Span
         for char_span in doc[text_span_layer_name]:
+            if not isinstance(char_span, Span):
+                raise ValueError(
+                    f"text span layer must contain only spans, but found {type(char_span)} in layer "
+                    f"{text_span_layer_name}"
+                )
             start_token_idx = char_to_token(char_span.start)
             end_token_idx_inclusive = char_to_token(char_span.end - 1)
             if start_token_idx is None or end_token_idx_inclusive is None:
@@ -92,15 +120,100 @@ def text_based_document_to_token_based(
     return result
 
 
+def token_based_document_to_text_based(
+    doc: TokenBasedDocument,
+    result_document_type: Type[TeD],
+    text: Optional[str] = None,
+    token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
+    join_tokens_with: Optional[str] = None,
+    strict_span_conversion: bool = True,
+    verbose: bool = True,
+) -> TeD:
+    # if a token_separator is provided, we construct the text from the tokens
+    if join_tokens_with is not None:
+        start = 0
+        token_offset_mapping = []
+        tokens = doc.tokens
+        for token in tokens:
+            end = start + len(token)
+            token_offset_mapping.append((start, end))
+            # we add the separator after each token
+            start = end + len(join_tokens_with)
+        text = join_tokens_with.join(tokens)
+    else:
+        text = doc.metadata.get("text") if text is None else text
+        if text is None:
+            raise ValueError(
+                "if join_tokens_with is None, text must be provided, but got None as well"
+            )
+        token_offset_mapping = (
+            doc.metadata.get("token_offset_mapping")
+            if token_offset_mapping is None
+            else token_offset_mapping
+        )
+        if token_offset_mapping is None:
+            raise ValueError(
+                "if join_tokens_with is None, token_offsets must be provided, but got None as well"
+            )
+
+    result = result_document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
+    if "tokens" in doc.metadata and doc.metadata["tokens"] != list(doc.tokens):
+        logger.warning("tokens in metadata are different from new tokens, overwrite the metadata")
+    result.metadata["tokens"] = list(doc.tokens)
+    if (
+        "token_offset_mapping" in doc.metadata
+        and doc.metadata["token_offset_mapping"] != token_offset_mapping
+    ):
+        logger.warning(
+            "token_offset_mapping in metadata is different from the new token_offset_mapping, "
+            "overwrite the metadata"
+        )
+    result.metadata["token_offset_mapping"] = token_offset_mapping
+
+    token_span_layers = [
+        annotation_field.name
+        for annotation_field in doc.annotation_fields()
+        if "tokens" in annotation_field.metadata["targets"]
+    ]
+
+    override_annotations: Dict[str, Dict[int, Annotation]] = {}
+    removed_annotations: Dict[str, Set[int]] = defaultdict(set)
+    for token_span_layer_name in token_span_layers:
+        override_annotations[token_span_layer_name] = {}
+        for token_span in doc[token_span_layer_name]:
+            if not isinstance(token_span, Span):
+                raise ValueError(
+                    f"token span layer must contain only spans, but found {type(token_span)} in layer "
+                    f"{token_span_layer_name}"
+                )
+            start_char_idx = token_offset_mapping[token_span.start][0]
+            end_char_idx = token_offset_mapping[token_span.end - 1][1]
+
+            char_span = token_span.copy(start=start_char_idx, end=end_char_idx)
+            override_annotations[token_span_layer_name][token_span._id] = char_span
+        valid_spans = set(override_annotations[token_span_layer_name].values())
+        result[token_span_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
+
+    result.add_all_annotations_from_other(
+        doc,
+        override_annotations=override_annotations,
+        removed_annotations=removed_annotations,
+        strict=strict_span_conversion,
+        verbose=verbose,
+    )
+
+    return result
+
+
 def tokenize_document(
     doc: TextBasedDocument,
     tokenizer: PreTrainedTokenizer,
-    result_document_type: Type[T],
+    result_document_type: Type[ToD],
     partition_layer: Optional[str] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
     **tokenize_kwargs,
-) -> List[T]:
+) -> List[ToD]:
     result = []
     partitions: Iterable[Span]
     if partition_layer is None:

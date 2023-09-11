@@ -6,7 +6,9 @@ from transformers import AutoTokenizer, PreTrainedTokenizer
 from pytorch_ie import text_based_document_to_token_based, tokenize_document
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.data.document_conversion import token_based_document_to_text_based
 from pytorch_ie.documents import TokenBasedDocument
+from tests.conftest import TestDocument
 
 
 @dataclasses.dataclass
@@ -175,6 +177,182 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
     assert len(doc.entities) == 1
     # the unaligned span is not included in the tokenized document
     assert len(tokenized_doc.entities) == 0
+
+
+@pytest.fixture
+def token_documents(documents, tokenizer):
+    result = []
+    for doc in documents:
+        tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
+        tokenized_doc = text_based_document_to_token_based(
+            doc,
+            tokens=tokenized_text.tokens(),
+            result_document_type=TokenizedTestDocument,
+            char_to_token=tokenized_text.char_to_token,
+            token_offset_mapping=tokenized_text.offset_mapping,
+        )
+        result.append(tokenized_doc)
+    return result
+
+
+def test_token_based_document_to_text_based(documents, token_documents):
+    for doc, tokenized_doc in zip(documents, token_documents):
+        reconstructed_doc = token_based_document_to_text_based(
+            tokenized_doc,
+            result_document_type=TestDocument,
+        )
+        assert reconstructed_doc is not None
+        doc_dict = doc.asdict()
+        reconstructed_doc_dict = reconstructed_doc.asdict()
+        # remove all added metadata (original text, token_offset_mapping, char_to_token, tokens)
+        reconstructed_doc_dict["metadata"] = {
+            k: reconstructed_doc_dict["metadata"][k] for k in doc_dict["metadata"]
+        }
+        assert reconstructed_doc_dict == doc_dict
+
+
+def test_token_based_document_to_text_based_with_join_tokens_with(documents):
+    for doc in documents:
+        # split the text by individual whitespace characters
+        # so that we can reconstruct the original text via " ".join(tokens)
+        tokens = []
+        token_offset_mapping = []
+        start = 0
+        for token in doc.text.split(" "):
+            tokens.append(token)
+            end = start + len(token)
+            token_offset_mapping.append((start, end))
+            start = end + 1
+
+        tokenized_doc = text_based_document_to_token_based(
+            doc,
+            tokens=tokens,
+            result_document_type=TokenizedTestDocument,
+            token_offset_mapping=token_offset_mapping,
+        )
+        reconstructed_doc = token_based_document_to_text_based(
+            tokenized_doc,
+            result_document_type=TestDocument,
+            join_tokens_with=" ",
+        )
+        assert reconstructed_doc is not None
+        assert reconstructed_doc.text == doc.text
+
+        if doc.id in ["train_doc1", "train_doc7"]:
+            doc_dict = doc.asdict()
+            reconstructed_doc_dict = reconstructed_doc.asdict()
+            # remove all added metadata (original text, token_offset_mapping, char_to_token, tokens)
+            reconstructed_doc_dict["metadata"] = {
+                k: reconstructed_doc_dict["metadata"][k] for k in doc_dict["metadata"]
+            }
+            assert reconstructed_doc_dict == doc_dict
+        elif doc.id == "train_doc2":
+            assert reconstructed_doc.sentences == doc.sentences
+            assert len(reconstructed_doc.entities) == len(doc.entities) == 2
+            assert str(reconstructed_doc.entities[0]) == str(doc.entities[0]) == "Entity A"
+            assert str(doc.entities[1]) == "B"
+            assert str(reconstructed_doc.entities[1]) == "B."
+            assert len(reconstructed_doc.relations) == len(doc.relations) == 1
+            assert (
+                reconstructed_doc.relations[0].label == doc.relations[0].label == "per:employee_of"
+            )
+            assert doc.relations[0].head == doc.entities[0]
+            assert reconstructed_doc.relations[0].head == reconstructed_doc.entities[0]
+            assert doc.relations[0].tail == doc.entities[1]
+            assert reconstructed_doc.relations[0].tail == reconstructed_doc.entities[1]
+        elif doc.id == "train_doc3":
+            assert reconstructed_doc.sentences == doc.sentences
+            assert len(reconstructed_doc.entities) == len(doc.entities) == 2
+            assert str(reconstructed_doc.entities[0]) == str(doc.entities[0]) == "Entity C"
+            assert str(doc.entities[1]) == "D"
+            assert str(reconstructed_doc.entities[1]) == "D."
+            assert len(reconstructed_doc.relations) == len(doc.relations) == 0
+        elif doc.id == "train_doc4":
+            assert reconstructed_doc.sentences == doc.sentences
+            assert len(reconstructed_doc.entities) == len(doc.entities) == 2
+            assert str(reconstructed_doc.entities[0]) == str(doc.entities[0]) == "Entity E"
+            assert str(doc.entities[1]) == "F"
+            assert str(reconstructed_doc.entities[1]) == "F."
+            assert len(reconstructed_doc.relations) == len(doc.relations) == 0
+        elif doc.id == "train_doc5":
+            assert reconstructed_doc.sentences == doc.sentences
+            assert len(reconstructed_doc.entities) == len(doc.entities) == 3
+            assert str(reconstructed_doc.entities[0]) == str(doc.entities[0]) == "Entity G"
+            assert str(doc.entities[1]) == "H"
+            assert str(reconstructed_doc.entities[1]) == "H."
+            assert str(doc.entities[2]) == "I"
+            assert str(reconstructed_doc.entities[2]) == "I."
+            assert len(reconstructed_doc.relations) == len(doc.relations) == 3
+            assert (
+                reconstructed_doc.relations[0].label == doc.relations[0].label == "per:employee_of"
+            )
+            assert doc.relations[0].head == doc.entities[0]
+            assert reconstructed_doc.relations[0].head == reconstructed_doc.entities[0]
+            assert doc.relations[0].tail == doc.entities[1]
+            assert reconstructed_doc.relations[0].tail == reconstructed_doc.entities[1]
+            assert reconstructed_doc.relations[1].label == doc.relations[1].label == "per:founder"
+            assert doc.relations[1].head == doc.entities[0]
+            assert reconstructed_doc.relations[1].head == reconstructed_doc.entities[0]
+            assert doc.relations[1].tail == doc.entities[2]
+            assert reconstructed_doc.relations[1].tail == reconstructed_doc.entities[2]
+            assert (
+                reconstructed_doc.relations[2].label == doc.relations[2].label == "org:founded_by"
+            )
+            assert doc.relations[2].head == doc.entities[2]
+            assert reconstructed_doc.relations[2].head == reconstructed_doc.entities[2]
+            assert doc.relations[2].tail == doc.entities[1]
+            assert reconstructed_doc.relations[2].tail == reconstructed_doc.entities[1]
+        elif doc.id == "train_doc6":
+            assert reconstructed_doc.sentences == doc.sentences
+            assert len(reconstructed_doc.entities) == len(doc.entities) == 3
+            assert str(doc.entities[0]) == "Entity J"
+            assert str(reconstructed_doc.entities[0]) == "Entity J,"
+            assert str(doc.entities[1]) == "K"
+            assert str(reconstructed_doc.entities[1]) == "K,"
+            assert str(doc.entities[2]) == "L"
+            assert str(reconstructed_doc.entities[2]) == "L."
+            assert len(reconstructed_doc.relations) == len(doc.relations) == 0
+        elif doc.id == "train_doc8":
+            assert len(reconstructed_doc.sentences) == len(doc.sentences) == 3
+            assert (
+                str(reconstructed_doc.sentences[0]) == str(doc.sentences[0]) == "First sentence."
+            )
+            assert (
+                str(reconstructed_doc.sentences[1])
+                == str(doc.sentences[1])
+                == "Entity M works at N."
+            )
+            assert str(doc.sentences[2]) == "And it founded O"
+            assert str(reconstructed_doc.sentences[2]) == "And it founded O."
+            assert len(reconstructed_doc.entities) == len(doc.entities) == 4
+            assert str(reconstructed_doc.entities[0]) == str(doc.entities[0]) == "Entity M"
+            assert str(doc.entities[1]) == "N"
+            assert str(reconstructed_doc.entities[1]) == "N."
+            assert str(reconstructed_doc.entities[2]) == str(doc.entities[2]) == "it"
+            assert str(doc.entities[3]) == "O"
+            assert str(reconstructed_doc.entities[3]) == "O."
+            assert len(reconstructed_doc.relations) == len(doc.relations) == 3
+            assert (
+                reconstructed_doc.relations[0].label == doc.relations[0].label == "per:employee_of"
+            )
+            assert doc.relations[0].head == doc.entities[0]
+            assert reconstructed_doc.relations[0].head == reconstructed_doc.entities[0]
+            assert doc.relations[0].tail == doc.entities[1]
+            assert reconstructed_doc.relations[0].tail == reconstructed_doc.entities[1]
+            assert reconstructed_doc.relations[1].label == doc.relations[1].label == "per:founder"
+            assert doc.relations[1].head == doc.entities[2]
+            assert reconstructed_doc.relations[1].head == reconstructed_doc.entities[2]
+            assert doc.relations[1].tail == doc.entities[3]
+            assert reconstructed_doc.relations[1].tail == reconstructed_doc.entities[3]
+            assert (
+                reconstructed_doc.relations[2].label == doc.relations[2].label == "org:founded_by"
+            )
+            assert doc.relations[2].head == doc.entities[3]
+            assert reconstructed_doc.relations[2].head == reconstructed_doc.entities[3]
+            assert doc.relations[2].tail == doc.entities[2]
+            assert reconstructed_doc.relations[2].tail == reconstructed_doc.entities[2]
+        else:
+            raise ValueError(f"Unexpected document: {doc.id}")
 
 
 def test_tokenize_document(documents, tokenizer):
