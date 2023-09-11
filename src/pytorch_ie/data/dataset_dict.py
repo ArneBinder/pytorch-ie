@@ -231,6 +231,10 @@ class DatasetDict(datasets.DatasetDict):
                 f"but got {document_type}."
             )
 
+        if resolved_document_type == self.document_type:
+            logger.info(f"The dataset has already the requested document type {document_type}.")
+            return self
+
         result = type(self)(
             {
                 name: ds.to_document_type(document_type=resolved_document_type, **kwargs)
