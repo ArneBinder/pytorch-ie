@@ -31,10 +31,7 @@ def text_based_document_to_token_based(
         document_type = resolve_target(result_document_type)  # type: ignore
     else:
         document_type = result_document_type
-    if not (
-        isinstance(document_type, type)
-        and issubclass(document_type, TokenBasedDocument)
-    ):
+    if not (isinstance(document_type, type) and issubclass(document_type, TokenBasedDocument)):
         raise TypeError(
             f"result_document_type must be a subclass of TokenBasedDocument or a string that resolves to that, "
             f"but got {result_document_type}"
@@ -85,7 +82,7 @@ def text_based_document_to_token_based(
         def char_to_token(char_idx: int) -> Optional[int]:
             return char_to_token_dict.get(char_idx)
 
-    text_span_layers = [
+    text_targeting_layers = [
         annotation_field.name
         for annotation_field in doc.annotation_fields()
         if "text" in annotation_field.metadata["targets"]
@@ -93,14 +90,14 @@ def text_based_document_to_token_based(
 
     override_annotations: Dict[str, Dict[int, Annotation]] = {}
     removed_annotations: Dict[str, Set[int]] = defaultdict(set)
-    for text_span_layer_name in text_span_layers:
-        override_annotations[text_span_layer_name] = {}
+    for text_targeting_layer_name in text_targeting_layers:
+        override_annotations[text_targeting_layer_name] = {}
         char_span: Span
-        for char_span in doc[text_span_layer_name]:
+        for char_span in doc[text_targeting_layer_name]:
             if not isinstance(char_span, Span):
                 raise ValueError(
-                    f"text span layer must contain only spans, but found {type(char_span)} in layer "
-                    f"{text_span_layer_name}"
+                    f"can not convert layers that target the text but contain non-span annotations, "
+                    f"but found {type(char_span)} in layer {text_targeting_layer_name}"
                 )
             start_token_idx = char_to_token(char_span.start)
             end_token_idx_inclusive = char_to_token(char_span.end - 1)
@@ -116,12 +113,12 @@ def text_based_document_to_token_based(
                             f'cannot find token span for character span "{char_span}", skip it (disable this '
                             f"warning with verbose=False)"
                         )
-                    removed_annotations[text_span_layer_name].add(char_span._id)
+                    removed_annotations[text_targeting_layer_name].add(char_span._id)
             else:
                 token_span = char_span.copy(start=start_token_idx, end=end_token_idx_inclusive + 1)
-                override_annotations[text_span_layer_name][char_span._id] = token_span
-        valid_spans = set(override_annotations[text_span_layer_name].values())
-        result[text_span_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
+                override_annotations[text_targeting_layer_name][char_span._id] = token_span
+        valid_spans = set(override_annotations[text_targeting_layer_name].values())
+        result[text_targeting_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
 
     result.add_all_annotations_from_other(
         doc,
@@ -148,10 +145,7 @@ def token_based_document_to_text_based(
         document_type = resolve_target(result_document_type)  # type: ignore
     else:
         document_type = result_document_type
-    if not (
-        isinstance(document_type, type)
-        and issubclass(document_type, TextBasedDocument)
-    ):
+    if not (isinstance(document_type, type) and issubclass(document_type, TextBasedDocument)):
         raise TypeError(
             f"result_document_type must be a subclass of TextBasedDocument or a string that resolves to that, "
             f"but got {result_document_type}"
@@ -197,7 +191,7 @@ def token_based_document_to_text_based(
         )
     result.metadata["token_offset_mapping"] = token_offset_mapping
 
-    token_span_layers = [
+    token_targeting_layers = [
         annotation_field.name
         for annotation_field in doc.annotation_fields()
         if "tokens" in annotation_field.metadata["targets"]
@@ -205,21 +199,21 @@ def token_based_document_to_text_based(
 
     override_annotations: Dict[str, Dict[int, Annotation]] = {}
     removed_annotations: Dict[str, Set[int]] = defaultdict(set)
-    for token_span_layer_name in token_span_layers:
-        override_annotations[token_span_layer_name] = {}
-        for token_span in doc[token_span_layer_name]:
+    for token_targeting_layer_name in token_targeting_layers:
+        override_annotations[token_targeting_layer_name] = {}
+        for token_span in doc[token_targeting_layer_name]:
             if not isinstance(token_span, Span):
                 raise ValueError(
-                    f"token span layer must contain only spans, but found {type(token_span)} in layer "
-                    f"{token_span_layer_name}"
+                    f"can not convert layers that target the tokens but contain non-span annotations, "
+                    f"but found {type(token_span)} in layer {token_targeting_layer_name}"
                 )
             start_char_idx = token_offset_mapping[token_span.start][0]
             end_char_idx = token_offset_mapping[token_span.end - 1][1]
 
             char_span = token_span.copy(start=start_char_idx, end=end_char_idx)
-            override_annotations[token_span_layer_name][token_span._id] = char_span
-        valid_spans = set(override_annotations[token_span_layer_name].values())
-        result[token_span_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
+            override_annotations[token_targeting_layer_name][token_span._id] = char_span
+        valid_spans = set(override_annotations[token_targeting_layer_name].values())
+        result[token_targeting_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
 
     result.add_all_annotations_from_other(
         doc,
