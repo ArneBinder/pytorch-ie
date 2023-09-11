@@ -68,6 +68,11 @@ class TextDocumentWithSentences(TextBasedDocument):
 
 
 @dataclasses.dataclass
+class TextDocumentWithEntities(TextBasedDocument):
+    entities: AnnotationList[Span] = annotation_field(target="text")
+
+
+@dataclasses.dataclass
 class TextDocumentWithLabeledEntities(TextBasedDocument):
     entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
@@ -94,5 +99,17 @@ class TextDocumentWithLabeledEntitiesAndRelations(TextDocumentWithLabeledEntitie
 @dataclasses.dataclass
 class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(
     TextDocumentWithLabeledEntitiesAndRelations, TextDocumentWithLabeledPartitions
+):
+    pass
+
+
+@dataclasses.dataclass
+class TextDocumentWithEntitiesAndRelations(TextDocumentWithEntities):
+    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+
+
+@dataclasses.dataclass
+class TextDocumentWithEntitiesRelationsAndLabeledPartitions(
+    TextDocumentWithEntitiesAndRelations, TextDocumentWithLabeledPartitions
 ):
     pass
