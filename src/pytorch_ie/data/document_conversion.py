@@ -60,6 +60,11 @@ def text_based_document_to_token_based(
         override_annotations[text_span_layer_name] = {}
         char_span: Span
         for char_span in doc[text_span_layer_name]:
+            if not isinstance(char_span, Span):
+                raise ValueError(
+                    f"text span layer must contain only spans, but found {type(char_span)} in layer "
+                    f"{text_span_layer_name}"
+                )
             start_token_idx = char_to_token(char_span.start)
             end_token_idx_inclusive = char_to_token(char_span.end - 1)
             if start_token_idx is None or end_token_idx_inclusive is None:
