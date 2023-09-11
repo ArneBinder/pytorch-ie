@@ -6,7 +6,9 @@ from transformers import AutoTokenizer, PreTrainedTokenizer
 from pytorch_ie import text_based_document_to_token_based, tokenize_document
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.data.document_conversion import token_based_document_to_text_based
 from pytorch_ie.documents import TokenBasedDocument
+from tests.conftest import TestDocument
 
 
 @dataclasses.dataclass
@@ -175,6 +177,40 @@ def test_text_based_document_to_token_based_unaligned_span_not_strict(documents,
     assert len(doc.entities) == 1
     # the unaligned span is not included in the tokenized document
     assert len(tokenized_doc.entities) == 0
+
+
+@pytest.fixture
+def token_documents(documents, tokenizer):
+    result = []
+    for doc in documents:
+        tokenized_text = tokenizer(doc.text, return_offsets_mapping=True)
+        tokenized_doc = text_based_document_to_token_based(
+            doc,
+            tokens=tokenized_text.tokens(),
+            result_document_type=TokenizedTestDocument,
+            char_to_token=tokenized_text.char_to_token,
+            token_offset_mapping=tokenized_text.offset_mapping,
+        )
+        result.append(tokenized_doc)
+    return result
+
+
+def test_token_based_document_to_text_based(documents, token_documents):
+    for doc, tokenized_doc in zip(documents, token_documents):
+        reconstructed_doc = token_based_document_to_text_based(
+            tokenized_doc,
+            result_document_type=TestDocument,
+            text=tokenized_doc.metadata["text"],
+            token_offset_mapping=tokenized_doc.metadata["token_offset_mapping"],
+        )
+        assert reconstructed_doc is not None
+        doc_dict = doc.asdict()
+        reconstructed_doc_dict = reconstructed_doc.asdict()
+        # remove all added metadata (original text, token_offset_mapping, char_to_token, tokens)
+        reconstructed_doc_dict["metadata"] = {
+            k: reconstructed_doc_dict["metadata"][k] for k in doc_dict["metadata"]
+        }
+        assert reconstructed_doc_dict == doc_dict
 
 
 def test_tokenize_document(documents, tokenizer):

@@ -102,7 +102,7 @@ def token_based_document_to_text_based(
     doc: TokenBasedDocument,
     result_document_type: Type[TeD],
     text: Optional[str] = None,
-    token_offsets: Optional[List[Tuple[int, int]]] = None,
+    token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     token_separator: str = " ",
     strict_span_conversion: bool = True,
     verbose: bool = True,
@@ -110,23 +110,35 @@ def token_based_document_to_text_based(
     # if no text is provided, we construct it from the tokens
     if text is None:
         start = 0
-        token_offsets = []
+        token_offset_mapping = []
         tokens = doc.tokens
         for token in tokens:
             end = start + len(token)
-            token_offsets.append((start, end))
+            token_offset_mapping.append((start, end))
             # we add the separator after each token
             start = end + len(token_separator)
         text = token_separator.join(tokens)
     else:
-        if token_offsets is None:
+        if token_offset_mapping is None:
             raise ValueError(
                 "if text is provided, token_offsets must be provided as well, but got None"
             )
 
     result = result_document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
+    if "tokens" in doc.metadata and doc.metadata["tokens"] != list(doc.tokens):
+        logger.warning(
+            "tokens in metadata are different from tokens in the document, overwrite the metadata"
+        )
     result.metadata["tokens"] = list(doc.tokens)
-    result.metadata["token_offsets"] = token_offsets
+    if (
+        "token_offset_mapping" in doc.metadata
+        and doc.metadata["token_offset_mapping"] != token_offset_mapping
+    ):
+        logger.warning(
+            "token_offset_mapping in metadata is different from the new token_offset_mapping, "
+            "overwrite the metadata"
+        )
+    result.metadata["token_offset_mapping"] = token_offset_mapping
 
     token_span_layers = [
         annotation_field.name
@@ -144,11 +156,11 @@ def token_based_document_to_text_based(
                     f"token span layer must contain only spans, but found {type(token_span)} in layer "
                     f"{token_span_layer_name}"
                 )
-            start_char_idx = token_offsets[token_span.start][0]
-            end_char_idx = token_offsets[token_span.end - 1][1]
+            start_char_idx = token_offset_mapping[token_span.start][0]
+            end_char_idx = token_offset_mapping[token_span.end - 1][1]
 
-            token_span = token_span.copy(start=start_char_idx, end=end_char_idx)
-            override_annotations[token_span_layer_name][token_span._id] = token_span
+            char_span = token_span.copy(start=start_char_idx, end=end_char_idx)
+            override_annotations[token_span_layer_name][token_span._id] = char_span
         valid_spans = set(override_annotations[token_span_layer_name].values())
         result[token_span_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
 
