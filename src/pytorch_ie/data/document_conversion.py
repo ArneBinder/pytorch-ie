@@ -12,18 +12,19 @@ from pytorch_ie.documents import TextBasedDocument, TokenBasedDocument
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=TokenBasedDocument)
+ToD = TypeVar("ToD", bound=TokenBasedDocument)
+TeD = TypeVar("TeD", bound=TextBasedDocument)
 
 
 def text_based_document_to_token_based(
     doc: TextBasedDocument,
     tokens: List[str],
-    result_document_type: Type[T],
+    result_document_type: Type[ToD],
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
-) -> T:
+) -> ToD:
     result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
     # save text, token_offset_mapping and char_to_token (if available) in metadata
@@ -97,15 +98,80 @@ def text_based_document_to_token_based(
     return result
 
 
+def token_based_document_to_text_based(
+    doc: TokenBasedDocument,
+    result_document_type: Type[TeD],
+    text: Optional[str] = None,
+    token_offsets: Optional[List[Tuple[int, int]]] = None,
+    token_separator: str = " ",
+    strict_span_conversion: bool = True,
+    verbose: bool = True,
+) -> TeD:
+    # if no text is provided, we construct it from the tokens
+    if text is None:
+        start = 0
+        token_offsets = []
+        tokens = doc.tokens
+        for token in tokens:
+            end = start + len(token)
+            token_offsets.append((start, end))
+            # we add the separator after each token
+            start = end + len(token_separator)
+        text = token_separator.join(tokens)
+    else:
+        if token_offsets is None:
+            raise ValueError(
+                "if text is provided, token_offsets must be provided as well, but got None"
+            )
+
+    result = result_document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
+    result.metadata["tokens"] = list(doc.tokens)
+    result.metadata["token_offsets"] = token_offsets
+
+    token_span_layers = [
+        annotation_field.name
+        for annotation_field in doc.annotation_fields()
+        if "tokens" in annotation_field.metadata["targets"]
+    ]
+
+    override_annotations: Dict[str, Dict[int, Annotation]] = {}
+    removed_annotations: Dict[str, Set[int]] = defaultdict(set)
+    for token_span_layer_name in token_span_layers:
+        override_annotations[token_span_layer_name] = {}
+        for token_span in doc[token_span_layer_name]:
+            if not isinstance(token_span, Span):
+                raise ValueError(
+                    f"token span layer must contain only spans, but found {type(token_span)} in layer "
+                    f"{token_span_layer_name}"
+                )
+            start_char_idx = token_offsets[token_span.start][0]
+            end_char_idx = token_offsets[token_span.end - 1][1]
+
+            token_span = token_span.copy(start=start_char_idx, end=end_char_idx)
+            override_annotations[token_span_layer_name][token_span._id] = token_span
+        valid_spans = set(override_annotations[token_span_layer_name].values())
+        result[token_span_layer_name].extend(sorted(valid_spans, key=lambda span: span.start))
+
+    result.add_all_annotations_from_other(
+        doc,
+        override_annotations=override_annotations,
+        removed_annotations=removed_annotations,
+        strict=strict_span_conversion,
+        verbose=verbose,
+    )
+
+    return result
+
+
 def tokenize_document(
     doc: TextBasedDocument,
     tokenizer: PreTrainedTokenizer,
-    result_document_type: Type[T],
+    result_document_type: Type[ToD],
     partition_layer: Optional[str] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
     **tokenize_kwargs,
-) -> List[T]:
+) -> List[ToD]:
     result = []
     partitions: Iterable[Span]
     if partition_layer is None:
