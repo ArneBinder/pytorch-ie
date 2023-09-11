@@ -125,12 +125,12 @@ def token_based_document_to_text_based(
     result_document_type: Type[TeD],
     text: Optional[str] = None,
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
-    token_separator: str = " ",
+    join_tokens_with: Optional[str] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
 ) -> TeD:
-    # if no text is provided, we construct it from the tokens
-    if text is None:
+    # if a token_separator is provided, we construct the text from the tokens
+    if join_tokens_with is not None:
         start = 0
         token_offset_mapping = []
         tokens = doc.tokens
@@ -138,19 +138,27 @@ def token_based_document_to_text_based(
             end = start + len(token)
             token_offset_mapping.append((start, end))
             # we add the separator after each token
-            start = end + len(token_separator)
-        text = token_separator.join(tokens)
+            start = end + len(join_tokens_with)
+        text = join_tokens_with.join(tokens)
     else:
+        text = doc.metadata.get("text") if text is None else text
+        if text is None:
+            raise ValueError(
+                "if join_tokens_with is None, text must be provided, but got None as well"
+            )
+        token_offset_mapping = (
+            doc.metadata.get("token_offset_mapping")
+            if token_offset_mapping is None
+            else token_offset_mapping
+        )
         if token_offset_mapping is None:
             raise ValueError(
-                "if text is provided, token_offsets must be provided as well, but got None"
+                "if join_tokens_with is None, token_offsets must be provided, but got None as well"
             )
 
     result = result_document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
     if "tokens" in doc.metadata and doc.metadata["tokens"] != list(doc.tokens):
-        logger.warning(
-            "tokens in metadata are different from tokens in the document, overwrite the metadata"
-        )
+        logger.warning("tokens in metadata are different from new tokens, overwrite the metadata")
     result.metadata["tokens"] = list(doc.tokens)
     if (
         "token_offset_mapping" in doc.metadata
