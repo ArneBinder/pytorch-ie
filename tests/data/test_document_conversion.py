@@ -200,8 +200,6 @@ def test_token_based_document_to_text_based(documents, token_documents):
         reconstructed_doc = token_based_document_to_text_based(
             tokenized_doc,
             result_document_type=TestDocument,
-            text=tokenized_doc.metadata["text"],
-            token_offset_mapping=tokenized_doc.metadata["token_offset_mapping"],
         )
         assert reconstructed_doc is not None
         doc_dict = doc.asdict()
