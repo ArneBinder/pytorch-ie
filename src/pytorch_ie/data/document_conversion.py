@@ -2,13 +2,14 @@ import functools
 import logging
 from collections import defaultdict
 from copy import copy, deepcopy
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from transformers import PreTrainedTokenizer
 
 from pytorch_ie.annotations import Span
 from pytorch_ie.core import Annotation
 from pytorch_ie.documents import TextBasedDocument, TokenBasedDocument
+from pytorch_ie.utils.hydra import resolve_target
 
 logger = logging.getLogger(__name__)
 
@@ -18,20 +19,33 @@ TeD = TypeVar("TeD", bound=TextBasedDocument)
 
 def text_based_document_to_token_based(
     doc: TextBasedDocument,
-    result_document_type: Type[ToD],
+    result_document_type: Union[Type[ToD], str],
     tokens: Optional[List[str]] = None,
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     char_to_token: Optional[Callable[[int], Optional[int]]] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
 ) -> ToD:
+    document_type: Type[ToD]
+    if isinstance(result_document_type, str):
+        document_type = resolve_target(result_document_type)  # type: ignore
+    else:
+        document_type = result_document_type
+    if not (
+        isinstance(document_type, type)
+        and issubclass(document_type, TokenBasedDocument)
+    ):
+        raise TypeError(
+            f"result_document_type must be a subclass of TokenBasedDocument or a string that resolves to that, "
+            f"but got {result_document_type}"
+        )
     if tokens is None:
         tokens = doc.metadata.get("tokens")
     if tokens is None:
         raise ValueError(
             "tokens must be provided to convert a text based document to token based, but got None"
         )
-    result = result_document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
+    result = document_type(tokens=tuple(tokens), id=doc.id, metadata=deepcopy(doc.metadata))
 
     # save text, token_offset_mapping and char_to_token (if available) in metadata
     result.metadata["text"] = doc.text
@@ -122,13 +136,26 @@ def text_based_document_to_token_based(
 
 def token_based_document_to_text_based(
     doc: TokenBasedDocument,
-    result_document_type: Type[TeD],
+    result_document_type: Union[Type[TeD], str],
     text: Optional[str] = None,
     token_offset_mapping: Optional[List[Tuple[int, int]]] = None,
     join_tokens_with: Optional[str] = None,
     strict_span_conversion: bool = True,
     verbose: bool = True,
 ) -> TeD:
+    document_type: Type[TeD]
+    if isinstance(result_document_type, str):
+        document_type = resolve_target(result_document_type)  # type: ignore
+    else:
+        document_type = result_document_type
+    if not (
+        isinstance(document_type, type)
+        and issubclass(document_type, TextBasedDocument)
+    ):
+        raise TypeError(
+            f"result_document_type must be a subclass of TextBasedDocument or a string that resolves to that, "
+            f"but got {result_document_type}"
+        )
     # if a token_separator is provided, we construct the text from the tokens
     if join_tokens_with is not None:
         start = 0
@@ -156,7 +183,7 @@ def token_based_document_to_text_based(
                 "if join_tokens_with is None, token_offsets must be provided, but got None as well"
             )
 
-    result = result_document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
+    result = document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
     if "tokens" in doc.metadata and doc.metadata["tokens"] != list(doc.tokens):
         logger.warning("tokens in metadata are different from new tokens, overwrite the metadata")
     result.metadata["tokens"] = list(doc.tokens)
