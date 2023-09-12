@@ -182,7 +182,7 @@ class DatasetDict(datasets.DatasetDict):
                 and issubclass(resolved_document_type, Document)
             ):
                 raise TypeError(
-                    f"document_type must be or resolv to a subclass of Document, but is {document_type}"
+                    f"document_type must be or resolve to a subclass of Document, but is '{document_type}'"
                 )
 
         resolved_converter: Union[Callable[..., Any], dict[str, str]]

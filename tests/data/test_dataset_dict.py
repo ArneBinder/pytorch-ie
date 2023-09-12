@@ -7,7 +7,7 @@ import datasets
 import pytest
 
 from pytorch_ie import Dataset, DatasetDict, IterableDataset
-from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.annotations import Label, LabeledSpan
 from pytorch_ie.core import AnnotationList, Document, annotation_field
 from pytorch_ie.data.common import (
     EnterDatasetDictMixin,
@@ -15,8 +15,9 @@ from pytorch_ie.data.common import (
     ExitDatasetDictMixin,
     ExitDatasetMixin,
 )
-from pytorch_ie.documents import TextBasedDocument
+from pytorch_ie.documents import TextBasedDocument, TextDocument
 from tests import FIXTURES_ROOT
+from tests.conftest import TestDocument
 
 logger = logging.getLogger(__name__)
 
@@ -426,3 +427,58 @@ def test_cast_document_type(dataset_dict):
     assert dataset_dict_cast.document_type == TextBasedDocument
     for split in dataset_dict_cast:
         assert all(isinstance(doc, TextBasedDocument) for doc in dataset_dict_cast[split])
+
+
+@dataclass
+class TestDocumentWithLabel(TextDocument):
+    label: AnnotationList[Label] = annotation_field()
+
+
+def convert_to_document_with_label(document: TestDocument) -> TestDocumentWithLabel:
+    result = TestDocumentWithLabel(text=document.text)
+    result.label.append(Label(label="label"))
+    return result
+
+
+def test_register_document_converter(dataset_dict):
+
+    dataset_dict.register_document_converter(
+        convert_to_document_with_label, document_type=TestDocumentWithLabel
+    )
+
+    for name, split in dataset_dict.items():
+        assert split.document_converters[TestDocumentWithLabel] == convert_to_document_with_label
+
+
+def test_register_document_converter_resolve(dataset_dict):
+
+    dataset_dict.register_document_converter(
+        "tests.data.test_dataset_dict.convert_to_document_with_label",
+        document_type="tests.data.test_dataset_dict.TestDocumentWithLabel",
+    )
+
+    for name, split in dataset_dict.items():
+        assert split.document_converters[TestDocumentWithLabel] == convert_to_document_with_label
+
+
+class NoDocument:
+    pass
+
+
+def test_register_document_converter_resolve_wrong_document_type(dataset_dict):
+
+    with pytest.raises(TypeError) as excinfo:
+        dataset_dict.register_document_converter(
+            convert_to_document_with_label, document_type="tests.data.test_dataset_dict.NoDocument"
+        )
+    assert (
+        str(excinfo.value)
+        == "document_type must be or resolve to a subclass of Document, but is 'tests.data.test_dataset_dict.NoDocument'"
+    )
+
+
+def test_register_document_converter_resolve_wrong_converter(dataset_dict):
+
+    with pytest.raises(TypeError) as excinfo:
+        dataset_dict.register_document_converter([1, 2, 3], document_type=TestDocumentWithLabel)
+    assert str(excinfo.value) == "converter must be a callable or a dict, but is <class 'list'>"
