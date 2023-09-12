@@ -482,3 +482,38 @@ def test_register_document_converter_resolve_wrong_converter(dataset_dict):
     with pytest.raises(TypeError) as excinfo:
         dataset_dict.register_document_converter([1, 2, 3], document_type=TestDocumentWithLabel)
     assert str(excinfo.value) == "converter must be a callable or a dict, but is <class 'list'>"
+
+
+def test_to_document_type(dataset_dict):
+    dataset_dict.register_document_converter(convert_to_document_with_label)
+    dataset_dict_converted = dataset_dict.to_document_type(TestDocumentWithLabel)
+    assert dataset_dict_converted.document_type == TestDocumentWithLabel
+    for split in dataset_dict_converted.values():
+        assert all(isinstance(doc, TestDocumentWithLabel) for doc in split)
+
+
+def test_to_document_resolve(dataset_dict):
+    dataset_dict.register_document_converter(convert_to_document_with_label)
+    dataset_dict_converted = dataset_dict.to_document_type(
+        "tests.data.test_dataset_dict.TestDocumentWithLabel"
+    )
+    assert dataset_dict_converted.document_type == TestDocumentWithLabel
+    for split in dataset_dict_converted.values():
+        assert all(isinstance(doc, TestDocumentWithLabel) for doc in split)
+
+
+def test_to_document_type_resolve_wrong_document_type(dataset_dict):
+    dataset_dict.register_document_converter(convert_to_document_with_label)
+    with pytest.raises(TypeError) as excinfo:
+        dataset_dict.to_document_type("tests.data.test_dataset_dict.NoDocument")
+    assert (
+        str(excinfo.value)
+        == "document_type must be a document type or a string that can be resolved to such a type, but got tests.data.test_dataset_dict.NoDocument."
+    )
+
+
+def test_to_document_type_noop(dataset_dict):
+    assert dataset_dict.document_type == DocumentWithEntitiesAndRelations
+    dataset_dict_converted = dataset_dict.to_document_type(DocumentWithEntitiesAndRelations)
+    assert dataset_dict_converted.document_type == DocumentWithEntitiesAndRelations
+    assert dataset_dict_converted == dataset_dict
