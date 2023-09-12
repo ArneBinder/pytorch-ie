@@ -2,12 +2,12 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, SupportsIndex, Type, Union
+from typing import Any, Callable, Dict, List, Optional, SupportsIndex, Type, TypeVar, Union
 
 import datasets
 
 from pytorch_ie.core import Document
-from pytorch_ie.data.dataset import Dataset, IterableDataset
+from pytorch_ie.data.dataset import Dataset, IterableDataset, get_pie_dataset_type
 from pytorch_ie.utils.hydra import resolve_target
 
 from .common import (
@@ -20,17 +20,7 @@ from .common import (
 logger = logging.getLogger(__name__)
 
 
-def get_pie_dataset_type(
-    hf_dataset: Union[datasets.Dataset, datasets.IterableDataset]
-) -> Union[Type[Dataset], Type[IterableDataset]]:
-    if isinstance(hf_dataset, datasets.Dataset):
-        return Dataset
-    elif isinstance(hf_dataset, datasets.IterableDataset):
-        return IterableDataset
-    else:
-        raise ValueError(
-            f"dataset_split must be of type Dataset or IterableDataset, but is {type(hf_dataset)}"
-        )
+D = TypeVar("D", bound=Document)
 
 
 class DatasetDict(datasets.DatasetDict):
@@ -164,6 +154,89 @@ class DatasetDict(datasets.DatasetDict):
                 f"dataset contains splits with different dataset types: {dataset_types}"
             )
         return next(iter(dataset_types))
+
+    def register_document_converter(
+        self,
+        converter: Union[Callable[..., D], Dict[str, str], str],
+        document_type: Optional[Union[Type[D], str]] = None,
+    ) -> "DatasetDict":
+        """Register a converter function or field mapping for a target document type.
+
+        Args:
+            document_type: The target document type for which the converter should be registered. Can be a subclass
+                of Document or string that can be resolved to such a type. If `None`, the document type is tried to be
+                inferred from the converter function signature.
+            converter: Either a function that converts a document of the document type of this dataset to a document
+                of the target document_type, a string that can be resolved to such a function, or a field mapping
+                (dict[str, str]) that maps fields of the document type of this dataset to fields of the target
+                document_type.
+        """
+        resolved_document_type: Optional[Union[Type[D], Callable]] = None
+        if document_type is not None:
+            if isinstance(document_type, str):
+                resolved_document_type = resolve_target(document_type)
+            else:
+                resolved_document_type = document_type
+            if not (
+                isinstance(resolved_document_type, type)
+                and issubclass(resolved_document_type, Document)
+            ):
+                raise TypeError(
+                    f"document_type must be or resolve to a subclass of Document, but is '{document_type}'"
+                )
+
+        resolved_converter: Union[Callable[..., Any], dict[str, str]]
+        if isinstance(converter, str):
+            resolved_converter = resolve_target(converter)
+        else:
+            resolved_converter = converter
+        if not (callable(resolved_converter) or isinstance(resolved_converter, dict)):
+            raise TypeError(
+                f"converter must be a callable or a dict, but is {type(resolved_converter)}"
+            )
+
+        for ds in self.values():
+            ds.register_document_converter(
+                document_type=resolved_document_type, converter=resolved_converter
+            )
+        return self
+
+    def to_document_type(
+        self,
+        document_type: Union[Type[Document], str],
+        **kwargs,
+    ) -> "DatasetDict":
+        """Converts all documents in the dataset to a new document type using the best registered document converter.
+
+        Args:
+            document_type: document type to convert the documents to. Can be a subclass of Document or string that
+                can be resolved to such a type.
+        """
+
+        if isinstance(document_type, str):
+            resolved_document_type = resolve_target(document_type)
+        else:
+            resolved_document_type = document_type
+        if not (
+            isinstance(resolved_document_type, type)
+            and issubclass(resolved_document_type, Document)
+        ):
+            raise TypeError(
+                f"document_type must be a document type or a string that can be resolved to such a type, "
+                f"but got {document_type}."
+            )
+
+        if resolved_document_type == self.document_type:
+            logger.info(f"The dataset has already the requested document type {document_type}.")
+            return self
+
+        result = type(self)(
+            {
+                name: ds.to_document_type(document_type=resolved_document_type, **kwargs)
+                for name, ds in self.items()
+            }
+        )
+        return result
 
     def map(  # type: ignore
         self,
@@ -315,7 +388,11 @@ class DatasetDict(datasets.DatasetDict):
         split_result_hf = pie_split.train_test_split(**kwargs)
         split_result = type(self)(
             {
-                name: Dataset.from_hf_dataset(ds, document_type=pie_split.document_type)
+                name: Dataset.from_hf_dataset(
+                    ds,
+                    document_type=pie_split.document_type,
+                    document_converters=pie_split.document_converters,
+                )
                 for name, ds in split_result_hf.items()
             }
         )
@@ -361,6 +438,12 @@ class DatasetDict(datasets.DatasetDict):
                 f"not all splits to concatenate have the same dataset type: "
                 f"{({name: type(self[name]) for name in splits})}"
             )
+        document_converters = None
+        for ds in splits_to_concat:
+            if ds.document_converters is not None:
+                if document_converters is None:
+                    document_converters = {}
+                document_converters.update(ds.document_converters)
         # TODO: why do we need to ignore the typing here?
         concatenated = datasets.concatenate_datasets(splits_to_concat)  # type: ignore
         if not issubclass(self.dataset_type, type(concatenated)):
@@ -369,7 +452,7 @@ class DatasetDict(datasets.DatasetDict):
                 f"{self.dataset_type}, {type(concatenated)}"
             )
         result[target] = self.dataset_type.from_hf_dataset(
-            concatenated, document_type=self.document_type
+            concatenated, document_type=self.document_type, document_converters=document_converters
         )
         split_sizes = {k: len(v) for k, v in result.items()}
         logger.info(f"dataset size after concatenating splits: {split_sizes}")
@@ -419,6 +502,7 @@ class DatasetDict(datasets.DatasetDict):
             target_split = type(pie_split).from_hf_dataset(
                 dataset=hf_split_filtered,  # type: ignore
                 document_type=pie_split.document_type,
+                document_converters=pie_split.document_converters,
             )
             # iterable datasets do not have a length
             if not isinstance(target_split, IterableDataset):

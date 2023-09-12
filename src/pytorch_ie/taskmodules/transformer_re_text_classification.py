@@ -8,7 +8,19 @@ workflow:
 """
 
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, TypedDict, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypedDict,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -25,7 +37,11 @@ from pytorch_ie.annotations import (
     Span,
 )
 from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.documents import (
+    TextDocument,
+    TextDocumentWithLabeledEntitiesAndRelations,
+    TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions,
+)
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.taskmodules.interface import ChangesTokenizerVocabSize
 from pytorch_ie.utils.span import get_token_slice, is_contained_in
@@ -196,6 +212,13 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
         self.argument_markers = None
 
         self._logged_examples_counter = 0
+
+    @property
+    def document_type(self) -> Optional[Type[TextDocument]]:
+        if self.partition_annotation is not None:
+            return TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions
+        else:
+            return TextDocumentWithLabeledEntitiesAndRelations
 
     def get_relation_layer(self, document: Document) -> AnnotationList[BinaryRelation]:
         return document[self.relation_annotation]

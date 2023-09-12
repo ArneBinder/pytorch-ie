@@ -1,10 +1,17 @@
 import abc
-from typing import Any, Dict, Optional, Type, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Sequence, Type, TypeVar, Union, overload
 
 import datasets as hf_datasets
 
 from pytorch_ie.core.document import Document
-from pytorch_ie.data.dataset import Dataset, IterableDataset, decorate_convert_to_dict_of_lists
+from pytorch_ie.data.dataset import (
+    Dataset,
+    DocumentConvertersType,
+    IterableDataset,
+    decorate_convert_to_dict_of_lists,
+    get_pie_dataset_type,
+)
+from pytorch_ie.utils.hydra import resolve_target
 
 
 def get_general_dataset_builder_parent_class(
@@ -42,7 +49,21 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
     # builder kwargs dicts as values.
     BASE_BUILDER_KWARGS_DICT: Optional[Dict[Optional[str], Dict[str, Any]]] = None
 
-    def __init__(self, base_dataset_kwargs: Optional[Dict[str, Any]] = None, **kwargs):
+    # Define document converters. This should be a mapping from document types as keys to the respective
+    # document converters as values. The document converters can be either callables or dicts
+    # that map from original field names to new field names. If a callable is provided, it will be used to
+    # convert the document. If a dict is provided, it will be used to rename the fields of the
+    # document (this is done by renaming the columns which is much more efficient).
+    DOCUMENT_CONVERTERS: DocumentConvertersType = {}
+
+    def __init__(
+        self,
+        base_dataset_kwargs: Optional[Dict[str, Any]] = None,
+        document_converters: Optional[
+            Dict[Union[Type[Document], str], Union[Callable[..., Document], Dict[str, str], str]]
+        ] = None,
+        **kwargs,
+    ):
         self.base_builder = None
         config_name = kwargs.get("config_name", None)
         base_dataset_path = self.BASE_DATASET_PATHS.get(config_name, self.BASE_DATASET_PATH)
@@ -96,6 +117,24 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
 
         super().__init__(**kwargs)
 
+        self.document_converters = dict(self.DOCUMENT_CONVERTERS)
+        if document_converters is not None:
+            for document_type_or_str, document_converter_or_str in document_converters.items():
+                document_type = resolve_target(document_type_or_str)
+                if isinstance(document_type, type) and issubclass(document_type, Document):
+                    document_converter: Union[Callable[..., Any], dict[str, str]]
+                    if isinstance(document_converter_or_str, str):
+                        document_converter = resolve_target(document_converter_or_str)
+                    else:
+                        document_converter = document_converter_or_str
+
+                    self.document_converters[document_type] = document_converter
+                else:
+                    raise TypeError(
+                        f"The key '{document_type_or_str}' for one of the converters "
+                        f"can not be resolved to a document type."
+                    )
+
     def _info(self):
         return self.base_builder._info()
 
@@ -133,18 +172,13 @@ class PieDatasetBuilder(hf_datasets.builder.DatasetBuilder):
         fn = decorate_convert_to_dict_of_lists(self._generate_document)
         fn_kwargs = self._generate_document_kwargs(dataset)
         mapped_dataset = dataset.map(fn, fn_kwargs=fn_kwargs)
-
-        if isinstance(mapped_dataset, hf_datasets.Dataset):
-            return Dataset.from_hf_dataset(dataset=mapped_dataset, document_type=document_type)
-        elif isinstance(mapped_dataset, hf_datasets.IterableDataset):
-            return IterableDataset.from_hf_dataset(
-                dataset=mapped_dataset, document_type=document_type
-            )
-        else:
-            raise TypeError(
-                f"huggingface dataset has unknown type: {type(mapped_dataset).__name__}. Expected: "
-                f"{hf_datasets.Dataset.__name__} or {hf_datasets.IterableDataset.__name__}"
-            )
+        dataset_type = get_pie_dataset_type(mapped_dataset)
+        result = dataset_type.from_hf_dataset(
+            dataset=mapped_dataset,
+            document_type=document_type,
+            document_converters=dict(self.document_converters),
+        )
+        return result
 
     @overload  # type: ignore
     def _convert_datasets(self, datasets: hf_datasets.DatasetDict) -> hf_datasets.DatasetDict:

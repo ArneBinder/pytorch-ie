@@ -16,9 +16,9 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.core import Annotation, TaskEncoding, TaskModule
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.documents import TextDocument, TextDocumentWithLabeledEntitiesAndRelations
 from pytorch_ie.models.transformer_seq2seq import ModelOutputType, ModelStepInputType
 
 InputEncodingType: TypeAlias = Dict[str, Sequence[int]]
@@ -41,6 +41,9 @@ logger = logging.getLogger(__name__)
 
 @TaskModule.register()
 class TransformerSeq2SeqTaskModule(TaskModuleType):
+
+    DOCUMENT_TYPE = TextDocumentWithLabeledEntitiesAndRelations
+
     def __init__(
         self,
         tokenizer_name_or_path: str,

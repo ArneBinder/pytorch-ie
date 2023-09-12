@@ -16,6 +16,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     TypedDict,
     Union,
 )
@@ -29,7 +30,7 @@ from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import Label, MultiLabel
 from pytorch_ie.core import TaskEncoding, TaskModule
-from pytorch_ie.documents import TextDocument
+from pytorch_ie.documents import TextDocument, TextDocumentWithLabel, TextDocumentWithMultiLabel
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 
 InputEncodingType: TypeAlias = MutableMapping[str, Any]
@@ -101,6 +102,13 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label
+
+    @property
+    def document_type(self) -> Type[TextDocument]:
+        if self.multi_label:
+            return TextDocumentWithMultiLabel
+        else:
+            return TextDocumentWithLabel
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()

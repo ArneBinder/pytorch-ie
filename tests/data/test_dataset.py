@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union
 
 import datasets
 import numpy
@@ -8,16 +8,18 @@ import pytest
 import torch
 
 from pytorch_ie import Dataset, IterableDataset
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.core.taskmodule import (
     IterableTaskEncodingDataset,
     TaskEncodingDataset,
     TaskEncodingSequence,
 )
+from pytorch_ie.data.dataset import get_pie_dataset_type
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 from tests import DATASET_BUILDERS_ROOT
+from tests.conftest import TestDocument
 
 
 @pytest.fixture(scope="module")
@@ -299,3 +301,159 @@ def test_load_with_hf_datasets_from_hub():
     assert len(dataset["train"]) == 14041
     assert len(dataset["validation"]) == 3250
     assert len(dataset["test"]) == 3453
+
+
+def test_get_pie_dataset_type(json_dataset, iterable_json_dataset):
+    assert get_pie_dataset_type(json_dataset["train"]) == Dataset
+    assert get_pie_dataset_type(iterable_json_dataset["train"]) == IterableDataset
+    with pytest.raises(TypeError) as excinfo:
+        get_pie_dataset_type("not a dataset")
+    assert (
+        str(excinfo.value)
+        == "the dataset must be of type Dataset or IterableDataset, but is of type <class 'str'>"
+    )
+
+
+@dataclass
+class TestDocumentWithLabel(TextDocument):
+    label: AnnotationList[Label] = annotation_field()
+
+
+def convert_to_document_with_label(document: TestDocument) -> TestDocumentWithLabel:
+    result = TestDocumentWithLabel(text=document.text)
+    result.label.append(Label(label="label"))
+    return result
+
+
+@pytest.fixture
+def dataset_with_converter_functions(maybe_iterable_dataset) -> Union[Dataset, IterableDataset]:
+    train_dataset: Union[Dataset, IterableDataset] = maybe_iterable_dataset["train"]
+    assert len(train_dataset.document_converters) == 0
+
+    train_dataset.register_document_converter(convert_to_document_with_label)
+    return train_dataset
+
+
+def test_register_document_converter_function(dataset_with_converter_functions):
+
+    assert len(dataset_with_converter_functions.document_converters) == 1
+    assert TestDocumentWithLabel in dataset_with_converter_functions.document_converters
+    assert (
+        dataset_with_converter_functions.document_converters[TestDocumentWithLabel]
+        == convert_to_document_with_label
+    )
+
+
+@dataclass
+class TestDocumentWithLabeledSpans(TextDocument):
+    spans: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+
+@pytest.fixture
+def dataset_with_converter_mapping(maybe_iterable_dataset) -> Union[Dataset, IterableDataset]:
+    train_dataset: Union[Dataset, IterableDataset] = maybe_iterable_dataset["train"]
+    assert len(train_dataset.document_converters) == 0
+
+    field_mapping = {"entities": "spans"}
+    train_dataset.register_document_converter(
+        converter=field_mapping, document_type=TestDocumentWithLabeledSpans
+    )
+    return train_dataset
+
+
+def test_register_document_converter_mapping(dataset_with_converter_mapping):
+    assert len(dataset_with_converter_mapping.document_converters) == 1
+    assert TestDocumentWithLabeledSpans in dataset_with_converter_mapping.document_converters
+    assert dataset_with_converter_mapping.document_converters[TestDocumentWithLabeledSpans] == {
+        "entities": "spans"
+    }
+
+
+def test_to_document_type_function(dataset_with_converter_functions):
+    assert dataset_with_converter_functions.document_type == TestDocument
+    converted_dataset = dataset_with_converter_functions.to_document_type(TestDocumentWithLabel)
+    assert converted_dataset.document_type == TestDocumentWithLabel
+
+    assert len(converted_dataset.document_converters) == 0
+    for doc in converted_dataset:
+        assert isinstance(doc, TestDocumentWithLabel)
+        assert len(doc.label) == 1
+        assert doc.label[0].label == "label"
+
+
+def test_to_document_type_mapping(dataset_with_converter_mapping):
+    assert dataset_with_converter_mapping.document_type == TestDocument
+    converted_dataset = dataset_with_converter_mapping.to_document_type(
+        TestDocumentWithLabeledSpans
+    )
+    assert converted_dataset.document_type == TestDocumentWithLabeledSpans
+
+    assert len(converted_dataset.document_converters) == 0
+    for doc_converted, doc in zip(converted_dataset, dataset_with_converter_mapping):
+        assert isinstance(doc, TestDocument)
+        assert isinstance(doc_converted, TestDocumentWithLabeledSpans)
+        assert "spans" in doc_converted
+        assert doc_converted.spans == doc.entities
+        original_annotation_field_names = {f.name for f in doc.annotation_fields()}
+        assert original_annotation_field_names == {"sentences", "entities", "relations"}
+        for annotation_field_name in original_annotation_field_names:
+            assert annotation_field_name not in doc_converted
+
+
+def test_to_document_type_noop(maybe_iterable_dataset):
+    train_dataset: Union[Dataset, IterableDataset] = maybe_iterable_dataset["train"]
+    assert len(train_dataset.document_converters) == 0
+    train_dataset.register_document_converter(
+        convert_to_document_with_label, document_type=TestDocument
+    )
+    assert train_dataset.document_type == TestDocument
+    converted_dataset = train_dataset.to_document_type(TestDocument)
+    # the conversion should be a noop
+    assert converted_dataset.document_type == TestDocument
+    assert converted_dataset == train_dataset
+    assert len(converted_dataset.document_converters) == 1
+    assert TestDocument in converted_dataset.document_converters
+    assert converted_dataset.document_converters[TestDocument] == convert_to_document_with_label
+
+
+def test_to_document_type_convert_and_cast(dataset_with_converter_functions):
+    @dataclass
+    class TestDocumentWithLabelAndSpans(TestDocumentWithLabel):
+        label: AnnotationList[Label] = annotation_field()
+        spans: AnnotationList[Span] = annotation_field(target="text")
+
+    assert dataset_with_converter_functions.document_type == TestDocument
+    # The only converter is registered for TestDocumentWithLabel, but we request a conversion to
+    # TestDocumentWithLabelAndSpans which is a *subclass* of TestDocumentWithLabel. This is a valid type
+    # and the conversion is performed by first converting to TestDocumentWithLabel and then casting
+    # to TestDocumentWithLabelAndSpans.
+    converted_dataset = dataset_with_converter_functions.to_document_type(
+        TestDocumentWithLabelAndSpans
+    )
+    assert converted_dataset.document_type == TestDocumentWithLabelAndSpans
+
+    assert len(converted_dataset.document_converters) == 0
+    for converted_doc, doc in zip(converted_dataset, dataset_with_converter_functions):
+        assert isinstance(doc, TestDocument)
+        assert isinstance(converted_doc, TestDocumentWithLabelAndSpans)
+        assert converted_doc.text == doc.text
+        assert len(converted_doc.label) == 1
+        assert converted_doc.label[0].label == "label"
+        assert len(converted_doc.spans) == 0
+
+
+def test_to_document_type_not_found(dataset_with_converter_functions):
+    assert dataset_with_converter_functions.document_type == TestDocument
+    # The only converter is registered for TestDocumentWithLabel, but we request a conversion to
+    # TextDocument which is a *superclass* of TestDocumentWithLabel. This is not a valid type,
+    # so just a simple cast is performed.
+    converted_dataset = dataset_with_converter_functions.to_document_type(TextDocument)
+    assert converted_dataset.document_type == TextDocument
+
+    assert len(converted_dataset.document_converters) == 0
+    for converted_doc, doc in zip(converted_dataset, dataset_with_converter_functions):
+        assert isinstance(doc, TestDocument)
+        assert isinstance(converted_doc, TextDocument)
+        assert converted_doc.text == doc.text
+        annotation_filed_names = {f.name for f in converted_doc.annotation_fields()}
+        assert annotation_filed_names == set()

@@ -7,7 +7,7 @@ import datasets
 import pytest
 
 from pytorch_ie import Dataset, DatasetDict, IterableDataset
-from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.annotations import Label, LabeledSpan
 from pytorch_ie.core import AnnotationList, Document, annotation_field
 from pytorch_ie.data.common import (
     EnterDatasetDictMixin,
@@ -15,9 +15,9 @@ from pytorch_ie.data.common import (
     ExitDatasetDictMixin,
     ExitDatasetMixin,
 )
-from pytorch_ie.data.dataset_dict import get_pie_dataset_type
-from pytorch_ie.documents import TextBasedDocument
+from pytorch_ie.documents import TextBasedDocument, TextDocument
 from tests import FIXTURES_ROOT
+from tests.conftest import TestDocument
 
 logger = logging.getLogger(__name__)
 
@@ -142,17 +142,6 @@ def test_dataset_type_different_type(dataset_dict, iterable_dataset_dict):
     with pytest.raises(ValueError) as excinfo:
         dataset_dict_different_type.dataset_type
     assert str(excinfo.value).startswith("dataset contains splits with different dataset types:")
-
-
-def test_get_pie_dataset_type():
-    hf_ds = datasets.load_dataset("json", data_dir=DATA_PATH, split="train")
-    assert get_pie_dataset_type(hf_ds) == Dataset
-    hf_ds_iterable = datasets.load_dataset(
-        "json", data_dir=DATA_PATH, split="train", streaming=True
-    )
-    assert get_pie_dataset_type(hf_ds_iterable) == IterableDataset
-    with pytest.raises(ValueError):
-        get_pie_dataset_type("not a dataset")
 
 
 def map_fn(doc):
@@ -438,3 +427,93 @@ def test_cast_document_type(dataset_dict):
     assert dataset_dict_cast.document_type == TextBasedDocument
     for split in dataset_dict_cast:
         assert all(isinstance(doc, TextBasedDocument) for doc in dataset_dict_cast[split])
+
+
+@dataclass
+class TestDocumentWithLabel(TextDocument):
+    label: AnnotationList[Label] = annotation_field()
+
+
+def convert_to_document_with_label(document: TestDocument) -> TestDocumentWithLabel:
+    result = TestDocumentWithLabel(text=document.text)
+    result.label.append(Label(label="label"))
+    return result
+
+
+def test_register_document_converter(dataset_dict):
+
+    dataset_dict.register_document_converter(
+        convert_to_document_with_label, document_type=TestDocumentWithLabel
+    )
+
+    for name, split in dataset_dict.items():
+        assert split.document_converters[TestDocumentWithLabel] == convert_to_document_with_label
+
+
+def test_register_document_converter_resolve(dataset_dict):
+
+    dataset_dict.register_document_converter(
+        "tests.data.test_dataset_dict.convert_to_document_with_label",
+        document_type="tests.data.test_dataset_dict.TestDocumentWithLabel",
+    )
+
+    for name, split in dataset_dict.items():
+        assert split.document_converters[TestDocumentWithLabel] == convert_to_document_with_label
+
+
+class NoDocument:
+    pass
+
+
+def test_register_document_converter_resolve_wrong_document_type(dataset_dict):
+
+    with pytest.raises(TypeError) as excinfo:
+        dataset_dict.register_document_converter(
+            convert_to_document_with_label, document_type="tests.data.test_dataset_dict.NoDocument"
+        )
+    assert (
+        str(excinfo.value)
+        == "document_type must be or resolve to a subclass of Document, but is 'tests.data.test_dataset_dict.NoDocument'"
+    )
+
+
+def test_register_document_converter_resolve_wrong_converter(dataset_dict):
+
+    with pytest.raises(TypeError) as excinfo:
+        dataset_dict.register_document_converter([1, 2, 3], document_type=TestDocumentWithLabel)
+    assert str(excinfo.value) == "converter must be a callable or a dict, but is <class 'list'>"
+
+
+def test_to_document_type(dataset_dict):
+    dataset_dict.register_document_converter(convert_to_document_with_label)
+    dataset_dict_converted = dataset_dict.to_document_type(TestDocumentWithLabel)
+    assert dataset_dict_converted.document_type == TestDocumentWithLabel
+    for split in dataset_dict_converted.values():
+        assert all(isinstance(doc, TestDocumentWithLabel) for doc in split)
+
+
+def test_to_document_resolve(dataset_dict):
+    dataset_dict.register_document_converter(convert_to_document_with_label)
+    dataset_dict_converted = dataset_dict.to_document_type(
+        "tests.data.test_dataset_dict.TestDocumentWithLabel"
+    )
+    assert dataset_dict_converted.document_type == TestDocumentWithLabel
+    for split in dataset_dict_converted.values():
+        assert all(isinstance(doc, TestDocumentWithLabel) for doc in split)
+
+
+def test_to_document_type_resolve_wrong_document_type(dataset_dict):
+    dataset_dict.register_document_converter(convert_to_document_with_label)
+    with pytest.raises(TypeError) as excinfo:
+        dataset_dict.to_document_type("tests.data.test_dataset_dict.NoDocument")
+    assert (
+        str(excinfo.value)
+        == "document_type must be a document type or a string that can be resolved to such a type, but got tests.data.test_dataset_dict.NoDocument."
+    )
+
+
+def test_to_document_type_noop(dataset_dict):
+    assert dataset_dict.document_type == DocumentWithEntitiesAndRelations
+    dataset_dict_converted = dataset_dict.to_document_type(DocumentWithEntitiesAndRelations)
+    assert dataset_dict_converted.document_type == DocumentWithEntitiesAndRelations
+    assert dataset_dict_converted == dataset_dict
