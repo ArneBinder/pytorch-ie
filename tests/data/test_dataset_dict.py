@@ -15,7 +15,6 @@ from pytorch_ie.data.common import (
     ExitDatasetDictMixin,
     ExitDatasetMixin,
 )
-from pytorch_ie.data.dataset import get_pie_dataset_type
 from pytorch_ie.documents import TextBasedDocument
 from tests import FIXTURES_ROOT
 
@@ -142,21 +141,6 @@ def test_dataset_type_different_type(dataset_dict, iterable_dataset_dict):
     with pytest.raises(ValueError) as excinfo:
         dataset_dict_different_type.dataset_type
     assert str(excinfo.value).startswith("dataset contains splits with different dataset types:")
-
-
-def test_get_pie_dataset_type():
-    hf_ds = datasets.load_dataset("json", data_dir=DATA_PATH, split="train")
-    assert get_pie_dataset_type(hf_ds) == Dataset
-    hf_ds_iterable = datasets.load_dataset(
-        "json", data_dir=DATA_PATH, split="train", streaming=True
-    )
-    assert get_pie_dataset_type(hf_ds_iterable) == IterableDataset
-    with pytest.raises(TypeError) as excinfo:
-        get_pie_dataset_type("not a dataset")
-    assert (
-        str(excinfo.value)
-        == "the dataset must be of type Dataset or IterableDataset, but is of type <class 'str'>"
-    )
 
 
 def map_fn(doc):

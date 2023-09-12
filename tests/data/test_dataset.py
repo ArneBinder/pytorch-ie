@@ -15,6 +15,7 @@ from pytorch_ie.core.taskmodule import (
     TaskEncodingDataset,
     TaskEncodingSequence,
 )
+from pytorch_ie.data.dataset import get_pie_dataset_type
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 from tests import DATASET_BUILDERS_ROOT
@@ -299,3 +300,14 @@ def test_load_with_hf_datasets_from_hub():
     assert len(dataset["train"]) == 14041
     assert len(dataset["validation"]) == 3250
     assert len(dataset["test"]) == 3453
+
+
+def test_get_pie_dataset_type(json_dataset, iterable_json_dataset):
+    assert get_pie_dataset_type(json_dataset["train"]) == Dataset
+    assert get_pie_dataset_type(iterable_json_dataset["train"]) == IterableDataset
+    with pytest.raises(TypeError) as excinfo:
+        get_pie_dataset_type("not a dataset")
+    assert (
+        str(excinfo.value)
+        == "the dataset must be of type Dataset or IterableDataset, but is of type <class 'str'>"
+    )

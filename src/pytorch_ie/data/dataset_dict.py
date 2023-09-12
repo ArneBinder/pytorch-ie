@@ -7,12 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, SupportsIndex, Type, Typ
 import datasets
 
 from pytorch_ie.core import Document
-from pytorch_ie.data.dataset import (
-    Dataset,
-    IterableDataset,
-    _infer_document_type_from_function_return,
-    get_pie_dataset_type,
-)
+from pytorch_ie.data.dataset import Dataset, IterableDataset, get_pie_dataset_type
 from pytorch_ie.utils.hydra import resolve_target
 
 from .common import (
