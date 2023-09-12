@@ -1,10 +1,16 @@
 import re
 import tempfile
+from dataclasses import dataclass
+from typing import Type
 
 import pytest
 from datasets import DatasetBuilder, Version
 from datasets.load import dataset_module_factory, import_main_class
 
+from pytorch_ie.annotations import LabeledSpan, Span
+from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.data.builder import PieDatasetBuilder
+from pytorch_ie.documents import TextBasedDocument, TextDocumentWithEntities
 from tests import FIXTURES_ROOT
 
 DATASETS_ROOT = FIXTURES_ROOT / "builder" / "datasets"
@@ -140,3 +146,79 @@ def test_wrong_builder_class_config():
             ),
         ):
             builder_cls(cache_dir=tmp_cache_dir)
+
+
+def test_builder_with_document_converters_rename():
+    @dataclass
+    class RenamedExampleDocument(TextBasedDocument):
+        spans: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    dataset_module = dataset_module_factory(str(DATASETS_ROOT / "single_config"))
+    builder_cls: Type[PieDatasetBuilder] = import_main_class(dataset_module.module_path)
+    with tempfile.TemporaryDirectory() as tmp_cache_dir:
+        builder = builder_cls(
+            cache_dir=tmp_cache_dir,
+            document_converters={
+                RenamedExampleDocument: {"entities": "spans"},
+            },
+        )
+    assert isinstance(builder, PieDatasetBuilder)
+    assert builder.document_converters == {
+        RenamedExampleDocument: {"entities": "spans"},
+    }
+
+
+@dataclass
+class ExampleDocumentWithSimpleSpans(TextBasedDocument):
+    spans: AnnotationList[Span] = annotation_field(target="text")
+
+
+def convert_example_document_to_example_document_with_simple_spans(
+    document: TextDocumentWithEntities,
+) -> ExampleDocumentWithSimpleSpans:
+    result = ExampleDocumentWithSimpleSpans(text=document.text, spans=document.entities)
+    for entity in document.entities:
+        result.spans.append(Span(start=entity.start, end=entity.end))
+    return result
+
+
+def test_builder_with_document_converters_resolve_document_type_and_converter():
+    @dataclass
+    class RenamedExampleDocument(TextBasedDocument):
+        spans: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    dataset_module = dataset_module_factory(str(DATASETS_ROOT / "single_config"))
+    builder_cls: Type[PieDatasetBuilder] = import_main_class(dataset_module.module_path)
+    with tempfile.TemporaryDirectory() as tmp_cache_dir:
+        builder = builder_cls(
+            cache_dir=tmp_cache_dir,
+            document_converters={
+                "tests.data.test_builder.ExampleDocumentWithSimpleSpans": "tests.data.test_builder.convert_example_document_to_example_document_with_simple_spans",
+            },
+        )
+    assert isinstance(builder, PieDatasetBuilder)
+    assert builder.document_converters == {
+        ExampleDocumentWithSimpleSpans: convert_example_document_to_example_document_with_simple_spans,
+    }
+
+
+class NoDocumentType:
+    pass
+
+
+def test_builder_with_document_converters_resolve_wrong_document_type():
+    dataset_module = dataset_module_factory(str(DATASETS_ROOT / "single_config"))
+    builder_cls: Type[PieDatasetBuilder] = import_main_class(dataset_module.module_path)
+    with tempfile.TemporaryDirectory() as tmp_cache_dir:
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "The key 'tests.data.test_builder.NoDocumentType' for one of the converters can not be resolved to a document type."
+            ),
+        ):
+            builder = builder_cls(
+                cache_dir=tmp_cache_dir,
+                document_converters={
+                    "tests.data.test_builder.NoDocumentType": convert_example_document_to_example_document_with_simple_spans,
+                },
+            )
