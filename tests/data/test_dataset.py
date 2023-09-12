@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union
 
 import datasets
 import numpy
@@ -8,7 +8,7 @@ import pytest
 import torch
 
 from pytorch_ie import Dataset, IterableDataset
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
+from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.core.taskmodule import (
     IterableTaskEncodingDataset,
@@ -19,6 +19,7 @@ from pytorch_ie.data.dataset import get_pie_dataset_type
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 from tests import DATASET_BUILDERS_ROOT
+from tests.conftest import TestDocument
 
 
 @pytest.fixture(scope="module")
@@ -311,3 +312,38 @@ def test_get_pie_dataset_type(json_dataset, iterable_json_dataset):
         str(excinfo.value)
         == "the dataset must be of type Dataset or IterableDataset, but is of type <class 'str'>"
     )
+
+
+def test_register_document_converter_function(maybe_iterable_dataset):
+    train_dataset: Union[Dataset, IterableDataset] = maybe_iterable_dataset["train"]
+    assert len(train_dataset.document_converters) == 0
+
+    class TestDocumentWithLabel(TextDocument):
+        label: AnnotationList[Label] = annotation_field()
+
+    def convert_to_text_document(document: TestDocument) -> TestDocumentWithLabel:
+        result = TestDocumentWithLabel(text=document.text)
+        result.label.append(Label(label="label"))
+        return result
+
+    train_dataset.register_document_converter(convert_to_text_document)
+
+    assert len(train_dataset.document_converters) == 1
+    assert TestDocumentWithLabel in train_dataset.document_converters
+    assert train_dataset.document_converters[TestDocumentWithLabel] == convert_to_text_document
+
+
+def test_register_document_converter_mapping(maybe_iterable_dataset):
+    train_dataset: Union[Dataset, IterableDataset] = maybe_iterable_dataset["train"]
+    assert len(train_dataset.document_converters) == 0
+
+    class TestDocumentWithLabeledSpans(TextDocument):
+        spans: AnnotationList[LabeledSpan] = annotation_field(target="text")
+
+    train_dataset.register_document_converter(
+        converter={"entities": "spans"}, document_type=TestDocumentWithLabeledSpans
+    )
+
+    assert len(train_dataset.document_converters) == 1
+    assert TestDocumentWithLabeledSpans in train_dataset.document_converters
+    assert train_dataset.document_converters[TestDocumentWithLabeledSpans] == {"entities": "spans"}
