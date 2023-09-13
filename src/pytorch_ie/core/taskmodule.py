@@ -23,7 +23,7 @@ from pytorch_lightning.core.mixins import HyperparametersMixin
 from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
-from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
 from pytorch_ie.core.registrable import Registrable
 from pytorch_ie.data import Dataset, IterableDataset
 
@@ -146,7 +146,7 @@ class TaskEncodingSequence(
 
 class TaskModule(
     ABC,
-    PyTorchIETaskmoduleModelHubMixin,
+    PieTaskModuleHFHubMixin,
     HyperparametersMixin,
     Registrable,
     Generic[
@@ -205,6 +205,10 @@ class TaskModule(
             raise Exception(
                 f"{msg or ''} Required attributes that are not set: {str(attributes_not_prepared)}"
             )
+
+    def post_prepare(self):
+        self._assert_is_prepared()
+        self._post_prepare()
 
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         if self.is_prepared:
