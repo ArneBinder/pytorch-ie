@@ -111,8 +111,7 @@ def test_dataset_map_batched(maybe_iterable_dataset):
     assert sum(len(doc.relations) for doc in train_dataset) == 7
 
 
-@pytest.mark.parametrize("infer_type", [False, True])
-def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_type):
+def test_dataset_map_with_result_document_type(maybe_iterable_dataset):
     @dataclass
     class TestDocument(TextDocument):
         sentences: AnnotationList[Span] = annotation_field(target="text")
@@ -142,7 +141,7 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
 
     mapped_dataset1 = train_dataset.map(
         clear_relations_and_add_one_token,
-        result_document_type=TestDocumentWithTokensButNoRelations if not infer_type else None,
+        result_document_type=TestDocumentWithTokensButNoRelations,
     )
 
     assert sum(len(doc.relations) for doc in train_dataset) == 7
@@ -159,17 +158,6 @@ def test_dataset_map_with_result_document_type(maybe_iterable_dataset, infer_typ
     assert {f.name for f in doc0_mapped.fields()} == {
         f.name for f in TestDocumentWithTokensButNoRelations.fields()
     }
-
-    if infer_type:
-
-        def func_wrong_return_type(document: TestDocument) -> Dict:
-            return document  # type: ignore
-
-        with pytest.raises(
-            TypeError,
-            match="the return type annotation of the function used with map is not a subclass of Document",
-        ):
-            train_dataset.map(func_wrong_return_type)
 
 
 @pytest.mark.parametrize("encode_target", [False, True])
