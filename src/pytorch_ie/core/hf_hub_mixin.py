@@ -177,6 +177,10 @@ class PieBaseHFHubMixin:
                 config = json.load(f)
             model_kwargs.update({"config": config})
 
+        # The value of is_from_pretrained is set to True when the model is loaded from pretrained.
+        # Note that the value may be already available in model_kwargs.
+        model_kwargs["is_from_pretrained"] = True  # @ArneBinder
+
         return cls._from_pretrained(
             model_id=str(model_id),
             revision=revision,
