@@ -367,8 +367,9 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         token: Union[str, bool, None],
         map_location: str = "cpu",
         strict: bool = False,
+        config: Optional[dict] = None,
         **model_kwargs,
-    ):
+    ) -> "PieModelHFHubMixin":
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
             print("Loading weights from local directory")
@@ -385,9 +386,12 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
                 token=token,
                 local_files_only=local_files_only,
             )
+
+        config = (config or {}).copy()
+        config.update(model_kwargs)
         if cls.config_type_key is not None:
-            model_kwargs.pop(cls.config_type_key)
-        model = cls(**model_kwargs)
+            config.pop(cls.config_type_key)
+        model = cls(**config)
 
         state_dict = torch.load(model_file, map_location=torch.device(map_location))
         model.load_state_dict(state_dict, strict=strict)  # type: ignore
@@ -406,10 +410,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
     def _save_pretrained(self, save_directory):
         return None
 
-    def _post_prepare(self):
-        """
-        Any code to do further one-time setup, but that requires the prepared attributes.
-        """
+    def post_prepare(self) -> None:
         pass
 
     @classmethod
@@ -426,11 +427,15 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         token: Union[str, bool, None],
         map_location: str = "cpu",
         strict: bool = False,
-        **model_kwargs,
-    ):
+        config: Optional[dict] = None,
+        **taskmodule_kwargs,
+    ) -> "PieTaskModuleHFHubMixin":
+        config = (config or {}).copy()
+        config.update(taskmodule_kwargs)
         if cls.config_type_key is not None:
-            model_kwargs.pop(cls.config_type_key)
-        taskmodule = cls(**model_kwargs)
-        taskmodule._post_prepare()
+            config.pop(cls.config_type_key)
+
+        taskmodule = cls(**config)
+        taskmodule.post_prepare()
 
         return taskmodule

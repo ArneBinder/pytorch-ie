@@ -26,6 +26,7 @@ class AutoModel(PieModelHFHubMixin):
         token: Union[str, bool, None],
         map_location: str = "cpu",
         strict: bool = False,
+        config: Optional[dict] = None,
         **model_kwargs,
     ) -> PyTorchIEModel:
         """
@@ -49,9 +50,11 @@ class AutoModel(PieModelHFHubMixin):
                 local_files_only=local_files_only,
             )
 
-        class_name = model_kwargs.pop(cls.config_type_key)
+        config = (config or {}).copy()
+        config.update(model_kwargs)
+        class_name = config.pop(cls.config_type_key)
         clazz = PyTorchIEModel.by_name(class_name)
-        model = clazz(**model_kwargs)
+        model = clazz(**config)
 
         state_dict = torch.load(model_file, map_location=torch.device(map_location))
         model.load_state_dict(state_dict, strict=strict)  # type: ignore
@@ -75,12 +78,15 @@ class AutoTaskModule(PieTaskModuleHFHubMixin):
         token: Union[str, bool, None],
         map_location: str = "cpu",
         strict: bool = False,
-        **model_kwargs,
+        config: Optional[dict] = None,
+        **taskmodule_kwargs,
     ) -> TaskModule:
-        class_name = model_kwargs.pop(cls.config_type_key)
+        config = (config or {}).copy()
+        config.update(taskmodule_kwargs)
+        class_name = config.pop(cls.config_type_key)
         clazz: Type[TaskModule] = TaskModule.by_name(class_name)
-        taskmodule = clazz(**model_kwargs)
-        taskmodule._post_prepare()
+        taskmodule = clazz(**config)
+        taskmodule.post_prepare()
         return taskmodule
 
 

@@ -206,6 +206,10 @@ class TaskModule(
                 f"{msg or ''} Required attributes that are not set: {str(attributes_not_prepared)}"
             )
 
+    def post_prepare(self):
+        self._assert_is_prepared()
+        self._post_prepare()
+
     def prepare(self, documents: Sequence[DocumentType]) -> None:
         if self.is_prepared:
             if len(self.PREPARED_ATTRIBUTES) > 0:
