@@ -83,7 +83,7 @@ class PieBaseHFHubMixin:
         # saving config
         config = self._config()  # @ArneBinder
         if isinstance(config, dict):
-            (save_directory / self.config_name).write_text(json.dumps(config))
+            (save_directory / self.config_name).write_text(json.dumps(config, indent=2))
 
         if push_to_hub:
             kwargs = kwargs.copy()  # soft-copy to avoid mutating input
