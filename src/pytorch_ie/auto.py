@@ -1,57 +1,38 @@
 import os
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional, Type, Union
 
 import torch
 from huggingface_hub.constants import PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
 
 from pytorch_ie.core import PyTorchIEModel, TaskModule
-from pytorch_ie.core.hf_hub_mixin import PyTorchIEModelHubMixin, PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.core.hf_hub_mixin import PieModelHFHubMixin, PieTaskModuleHFHubMixin
 from pytorch_ie.pipeline import Pipeline
 
 
-class AutoTaskModule(PyTorchIETaskmoduleModelHubMixin):
+class AutoModel(PieModelHFHubMixin):
     @classmethod
     def _from_pretrained(
         cls,
-        model_id,
-        revision,
-        cache_dir,
-        force_download,
-        proxies,
-        resume_download,
-        local_files_only,
-        use_auth_token,
-        **module_kwargs,
-    ) -> TaskModule:
-        class_name = module_kwargs.pop(cls.config_type_key)
-        clazz = TaskModule.by_name(class_name)  # type: ignore
-        taskmodule: TaskModule = clazz(**module_kwargs)
-        taskmodule._post_prepare()
-        return taskmodule
-
-
-class AutoModel(PyTorchIEModelHubMixin):
-    @classmethod
-    def _from_pretrained(
-        cls,
-        model_id,
-        revision,
-        cache_dir,
-        force_download,
-        proxies,
-        resume_download,
-        local_files_only,
-        use_auth_token,
-        map_location="cpu",
-        strict=False,
+        *,
+        model_id: str,
+        revision: Optional[str],
+        cache_dir: Optional[Union[str, Path]],
+        force_download: bool,
+        proxies: Optional[Dict],
+        resume_download: bool,
+        local_files_only: bool,
+        token: Union[str, bool, None],
+        map_location: str = "cpu",
+        strict: bool = False,
         **model_kwargs,
     ) -> PyTorchIEModel:
         """
         Overwrite this method in case you wish to initialize your model in a different way.
         """
-        map_location = torch.device(map_location)
 
+        """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
             print("Loading weights from local directory")
             model_file = os.path.join(model_id, PYTORCH_WEIGHTS_NAME)
@@ -64,7 +45,7 @@ class AutoModel(PyTorchIEModelHubMixin):
                 force_download=force_download,
                 proxies=proxies,
                 resume_download=resume_download,
-                use_auth_token=use_auth_token,
+                token=token,
                 local_files_only=local_files_only,
             )
 
@@ -72,11 +53,35 @@ class AutoModel(PyTorchIEModelHubMixin):
         clazz = PyTorchIEModel.by_name(class_name)
         model = clazz(**model_kwargs)
 
-        state_dict = torch.load(model_file, map_location=map_location)
-        model.load_state_dict(state_dict, strict=strict)
-        model.eval()
+        state_dict = torch.load(model_file, map_location=torch.device(map_location))
+        model.load_state_dict(state_dict, strict=strict)  # type: ignore
+        model.eval()  # type: ignore
 
         return model
+
+
+class AutoTaskModule(PieTaskModuleHFHubMixin):
+    @classmethod
+    def _from_pretrained(  # type: ignore
+        cls,
+        *,
+        model_id: str,
+        revision: Optional[str],
+        cache_dir: Optional[Union[str, Path]],
+        force_download: bool,
+        proxies: Optional[Dict],
+        resume_download: bool,
+        local_files_only: bool,
+        token: Union[str, bool, None],
+        map_location: str = "cpu",
+        strict: bool = False,
+        **model_kwargs,
+    ) -> TaskModule:
+        class_name = model_kwargs.pop(cls.config_type_key)
+        clazz: Type[TaskModule] = TaskModule.by_name(class_name)
+        taskmodule = clazz(**model_kwargs)
+        taskmodule._post_prepare()
+        return taskmodule
 
 
 class AutoPipeline:

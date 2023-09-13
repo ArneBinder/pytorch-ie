@@ -23,7 +23,7 @@ from pytorch_lightning.core.mixins import HyperparametersMixin
 from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
-from pytorch_ie.core.hf_hub_mixin import PyTorchIETaskmoduleModelHubMixin
+from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
 from pytorch_ie.core.registrable import Registrable
 from pytorch_ie.data import Dataset, IterableDataset
 
@@ -146,7 +146,7 @@ class TaskEncodingSequence(
 
 class TaskModule(
     ABC,
-    PyTorchIETaskmoduleModelHubMixin,
+    PieTaskModuleHFHubMixin,
     HyperparametersMixin,
     Registrable,
     Generic[
