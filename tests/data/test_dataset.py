@@ -18,7 +18,7 @@ from pytorch_ie.core.taskmodule import (
 from pytorch_ie.data.dataset import get_pie_dataset_type
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
-from tests import DATASET_BUILDERS_ROOT
+from tests import _HF_CONLL2003_IS_AVAILABLE, DATASET_BUILDERS_ROOT
 from tests.conftest import TestDocument
 
 
@@ -265,6 +265,10 @@ def test_dataset_with_taskmodule(
         assert not document["entities"].predictions
 
 
+@pytest.mark.skipif(
+    not _HF_CONLL2003_IS_AVAILABLE,
+    reason="the Huggingface conll2003 dataset is not reachable and the local PIE-variant depends on it",
+)
 def test_load_with_hf_datasets():
     dataset_path = DATASET_BUILDERS_ROOT / "conll2003"
 
@@ -279,6 +283,10 @@ def test_load_with_hf_datasets():
     assert len(dataset["test"]) == 3453
 
 
+@pytest.mark.skipif(
+    not _HF_CONLL2003_IS_AVAILABLE,
+    reason="the Huggingface conll2003 dataset is not reachable and the remote PIE-variant depends on it",
+)
 def test_load_with_hf_datasets_from_hub():
     dataset = datasets.load_dataset(
         path="pie/conll2003",
