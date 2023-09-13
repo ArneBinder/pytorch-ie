@@ -369,10 +369,7 @@ class Dataset(datasets.Dataset):
         )
 
         if result_document_type is None:
-            if function is not None and as_documents:
-                result_document_type = _infer_document_type_from_function_return(function=function)
-            if result_document_type is None:
-                result_document_type = self.document_type
+            result_document_type = self.document_type
 
         return Dataset.from_hf_dataset(
             dataset,
@@ -518,10 +515,7 @@ class IterableDataset(datasets.IterableDataset):
         )
 
         if result_document_type is None:
-            if function is not None and as_documents:
-                result_document_type = _infer_document_type_from_function_return(function=function)
-            if result_document_type is None:
-                result_document_type = self.document_type
+            result_document_type = self.document_type
 
         return IterableDataset.from_hf_dataset(
             dataset_mapped,
