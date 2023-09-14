@@ -2,11 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, Generic, Iterable, Optional, TypeVar, Union
 
 from pytorch_ie.core.document import Document
+from pytorch_ie.core.module_mixins import RequiresDocumentTypeMixin
 
 T = TypeVar("T")
 
 
-class DocumentMetric(ABC, Generic[T]):
+class DocumentMetric(ABC, RequiresDocumentTypeMixin, Generic[T]):
     """This defines the interface for a document metric."""
 
     def __init__(self):

@@ -1,25 +1,29 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from transformers import AutoTokenizer, PreTrainedTokenizer
 
 from pytorch_ie.core import Document, DocumentStatistic
+from pytorch_ie.documents import TextBasedDocument
 
 
 class TokenCountCollector(DocumentStatistic):
     """Collects the token count of a field when tokenizing its content with a Huggingface tokenizer.
 
-    The field should be a string.
+    The content of the field should be a string.
     """
 
     def __init__(
         self,
         tokenizer: Union[str, PreTrainedTokenizer],
-        text_field: str,
+        text_field: str = "text",
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        document_type: Optional[Type[Document]] = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        if document_type is None and text_field == "text":
+            document_type = TextBasedDocument
+        super().__init__(document_type=document_type, **kwargs)
         self.tokenizer = (
             AutoTokenizer.from_pretrained(tokenizer) if isinstance(tokenizer, str) else tokenizer
         )

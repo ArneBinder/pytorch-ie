@@ -440,16 +440,26 @@ def test_to_document_type_convert_and_cast(dataset_with_converter_functions):
 
 def test_to_document_type_not_found(dataset_with_converter_functions):
     assert dataset_with_converter_functions.document_type == TestDocument
+
+    @dataclass
+    class TestDocumentWithSpans(TestDocument):
+        spans: AnnotationList[Span] = annotation_field(target="text")
+
     # The only converter is registered for TestDocumentWithLabel, but we request a conversion to
-    # TextDocument which is a *superclass* of TestDocumentWithLabel. This is not a valid type,
-    # so just a simple cast is performed.
-    converted_dataset = dataset_with_converter_functions.to_document_type(TextDocument)
-    assert converted_dataset.document_type == TextDocument
+    # TestDocumentWithSpans. This is not a valid type because it is neither a subclass nor a superclass of
+    # TestDocumentWithLabel, so just a simple cast is performed.
+    converted_dataset = dataset_with_converter_functions.to_document_type(TestDocumentWithSpans)
+    assert converted_dataset.document_type == TestDocumentWithSpans
 
     assert len(converted_dataset.document_converters) == 0
     for converted_doc, doc in zip(converted_dataset, dataset_with_converter_functions):
         assert isinstance(doc, TestDocument)
-        assert isinstance(converted_doc, TextDocument)
+        assert isinstance(converted_doc, TestDocumentWithSpans)
         assert converted_doc.text == doc.text
-        annotation_filed_names = {f.name for f in converted_doc.annotation_fields()}
-        assert annotation_filed_names == set()
+        annotation_field_names = {f.name for f in doc.annotation_fields()}
+        assert annotation_field_names == {"sentences", "entities", "relations"}
+        converted_annotation_filed_names = {f.name for f in converted_doc.annotation_fields()}
+        assert converted_annotation_filed_names == {"sentences", "spans", "entities", "relations"}
+        common_annotation_field_names = annotation_field_names & converted_annotation_filed_names
+        for afn in common_annotation_field_names:
+            assert converted_doc[afn] == doc[afn]
