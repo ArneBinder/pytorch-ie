@@ -159,6 +159,12 @@ def _get_best_dataset_converter_with_types(
     # first try to find an exact match
     if document_type in dataset.document_converters:
         return dataset.document_converters[document_type], document_type, document_type
+
+    # then try to find a match with a superclass
+    for registered_dt, candidate_converter in dataset.document_converters.items():
+        if issubclass(registered_dt, document_type):
+            return candidate_converter, document_type, registered_dt
+
     # then try to find a match with a subclass
     for registered_dt, candidate_converter in dataset.document_converters.items():
         if issubclass(document_type, registered_dt):
@@ -218,8 +224,8 @@ def dataset_to_document_type(
         result = result.cast_document_type(
             new_document_type=registered_type, field_mapping=converter, **kwargs
         )
-    # if the requested type is different from the registered type, try to cast (again)
-    if requested_type != registered_type:
+    # if the type is not the same or a subclass of the requested type, try to cast (again)
+    if not issubclass(registered_type, requested_type):
         result = result.cast_document_type(new_document_type=requested_type)
 
     # remove the document converters because they are not valid anymore
