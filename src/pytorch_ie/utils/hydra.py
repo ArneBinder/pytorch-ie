@@ -1,5 +1,7 @@
 # taken from hydra/_internal/instantiate/_instantiate2.py
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Type, Union
+
+from pytorch_ie.core import Document
 
 
 class HydraException(Exception):
@@ -86,3 +88,17 @@ def resolve_target(
             msg += f"\nfull_key: {full_key}"
         raise InstantiationException(msg)
     return target
+
+
+def resolve_document_type(document_type: Optional[Union[str, Type[Document]]]) -> Type[Document]:
+    if document_type is None:
+        return Document
+    if isinstance(document_type, str):
+        dt = resolve_target(document_type)
+    else:
+        dt = document_type
+    if not (isinstance(dt, type) and issubclass(dt, Document)):
+        raise TypeError(
+            f"(resolved) document_type must be a subclass of Document, but it is: {dt}"
+        )
+    return dt

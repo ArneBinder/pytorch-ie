@@ -2,7 +2,9 @@ from importlib import import_module
 
 import pytest
 
-from pytorch_ie.utils.hydra import InstantiationException, resolve_target
+from pytorch_ie.core import Document
+from pytorch_ie.documents import TextBasedDocument
+from pytorch_ie.utils.hydra import InstantiationException, resolve_document_type, resolve_target
 
 
 def test_resolve_target_string():
@@ -60,3 +62,36 @@ def test_resolve_target_not_loadable(monkeypatch):
 def test_resolve_target_not_callable_with_full_key():
     with pytest.raises(InstantiationException):
         resolve_target("pie_utils.hydra", full_key="full_key")
+
+
+def test_resolve_document_type():
+
+    assert resolve_document_type(Document) == Document
+    assert resolve_document_type("pytorch_ie.core.Document") == Document
+
+    assert resolve_document_type(TextBasedDocument) == TextBasedDocument
+    assert resolve_document_type("pytorch_ie.documents.TextBasedDocument") == TextBasedDocument
+
+
+def test_resolve_document_none():
+    assert resolve_document_type(None) is None
+
+
+class NoDocument:
+    pass
+
+
+def test_resolve_document_type_no_document():
+    with pytest.raises(TypeError) as excinfo:
+        resolve_document_type(NoDocument)
+    assert (
+        str(excinfo.value)
+        == "(resolved) document_type must be a subclass of Document, but it is: <class 'tests.utils.test_hydra.NoDocument'>"
+    )
+
+    with pytest.raises(TypeError) as excinfo:
+        resolve_document_type("tests.utils.test_hydra.NoDocument")
+    assert (
+        str(excinfo.value)
+        == "(resolved) document_type must be a subclass of Document, but it is: <class 'tests.utils.test_hydra.NoDocument'>"
+    )
