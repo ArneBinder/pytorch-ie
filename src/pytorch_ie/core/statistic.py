@@ -5,7 +5,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.metric import DocumentMetric
-from pytorch_ie.utils.hydra import InstantiationException, resolve_target
+from pytorch_ie.utils.hydra import InstantiationException, resolve_document_type, resolve_target
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +152,7 @@ class DocumentStatistic(DocumentMetric):
         show_as_markdown: bool = False,
         aggregation_functions: Optional[List[str]] = None,
         title: Optional[str] = None,
-        document_type: Optional[Type[Document]] = None,
+        document_type: Optional[Union[Type[Document], str]] = None,
     ) -> None:
         super().__init__()
         self.aggregation_functions = {
@@ -162,7 +162,7 @@ class DocumentStatistic(DocumentMetric):
         self.show_histogram = show_histogram
         self.show_as_markdown = show_as_markdown
         self.title = title or self.__class__.__name__
-        self._document_type = document_type
+        self._document_type = resolve_document_type(document_type)
 
     @property
     def document_type(self) -> Optional[Type[Document]]:
