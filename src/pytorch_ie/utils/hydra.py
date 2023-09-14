@@ -90,7 +90,9 @@ def resolve_target(
     return target
 
 
-def resolve_document_type(document_type: Optional[Union[str, Type[Document]]]) -> Type[Document]:
+def resolve_optional_document_type(
+    document_type: Optional[Union[str, Type[Document]]]
+) -> Optional[Type[Document]]:
     if document_type is None:
         return Document
     if isinstance(document_type, str):
