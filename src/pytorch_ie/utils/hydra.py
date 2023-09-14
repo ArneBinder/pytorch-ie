@@ -1,7 +1,7 @@
 # taken from hydra/_internal/instantiate/_instantiate2.py
 from typing import Any, Callable, Optional, Type, Union
 
-from pytorch_ie.core import Document
+from pytorch_ie.core.document import Document
 
 
 class HydraException(Exception):
