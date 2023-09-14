@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.metric import DocumentMetric
@@ -152,6 +152,7 @@ class DocumentStatistic(DocumentMetric):
         show_as_markdown: bool = False,
         aggregation_functions: Optional[List[str]] = None,
         title: Optional[str] = None,
+        document_type: Optional[Type[Document]] = None,
     ) -> None:
         super().__init__()
         self.aggregation_functions = {
@@ -161,6 +162,11 @@ class DocumentStatistic(DocumentMetric):
         self.show_histogram = show_histogram
         self.show_as_markdown = show_as_markdown
         self.title = title or self.__class__.__name__
+        self._document_type = document_type
+
+    @property
+    def document_type(self) -> Optional[Type[Document]]:
+        return self._document_type or self.DOCUMENT_TYPE
 
     def reset(self) -> None:
         self._values: List[Any] = []
