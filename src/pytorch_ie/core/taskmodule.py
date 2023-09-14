@@ -12,7 +12,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
     TypeVar,
     Union,
     overload,
@@ -24,6 +23,7 @@ from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
+from pytorch_ie.core.module_mixins import RequiresDocumentTypeMixin
 from pytorch_ie.core.registrable import Registrable
 from pytorch_ie.data import Dataset, IterableDataset
 
@@ -149,6 +149,7 @@ class TaskModule(
     PieTaskModuleHFHubMixin,
     HyperparametersMixin,
     Registrable,
+    RequiresDocumentTypeMixin,
     Generic[
         DocumentType,
         InputEncoding,
@@ -159,15 +160,10 @@ class TaskModule(
     ],
 ):
     PREPARED_ATTRIBUTES: List[str] = []
-    DOCUMENT_TYPE: Optional[Type[DocumentType]] = None
 
     def __init__(self, encode_document_batch_size: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
         self.encode_document_batch_size = encode_document_batch_size
-
-    @property
-    def document_type(self) -> Optional[Type[DocumentType]]:
-        return self.DOCUMENT_TYPE
 
     @property
     def is_prepared(self):

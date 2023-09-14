@@ -1,27 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Iterable, Optional, Type, TypeVar, Union
+from typing import Dict, Generic, Iterable, Optional, TypeVar, Union
 
 from pytorch_ie.core.document import Document
+from pytorch_ie.core.module_mixins import RequiresDocumentTypeMixin
 
 T = TypeVar("T")
 
 
-class DocumentMetric(ABC, Generic[T]):
+class DocumentMetric(ABC, RequiresDocumentTypeMixin, Generic[T]):
     """This defines the interface for a document metric."""
-
-    # The document type that this metric can process. Will be used for auto-conversion, if available.
-    # Overwrite this if the metric requires a specific document type, e.g. a TextBasedDocument.
-    DOCUMENT_TYPE: Optional[Type[Document]] = None
 
     def __init__(self):
         self.reset()
         self._current_split: Optional[str] = None
-
-    @property
-    def document_type(self) -> Optional[Type[Document]]:
-        """The document type that this metric can process. Will be used for auto-conversion, if available.
-        Overwrite this if the document type depends on some parameters of the metric."""
-        return self.DOCUMENT_TYPE
 
     @abstractmethod
     def reset(self) -> None:
