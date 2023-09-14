@@ -166,7 +166,7 @@ class DocumentStatistic(DocumentMetric):
 
     @property
     def document_type(self) -> Optional[Type[Document]]:
-        return self._document_type or self.DOCUMENT_TYPE
+        return self._document_type or super().document_type
 
     def reset(self) -> None:
         self._values: List[Any] = []
