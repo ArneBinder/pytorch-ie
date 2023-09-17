@@ -75,17 +75,40 @@ class DatasetDict(datasets.DatasetDict):
     @classmethod
     def from_json(  # type: ignore
         cls,
-        document_type: Union[Type[Document], str],
+        document_type: Optional[Union[Type[Document], str]] = None,
+        metadata_path: Optional[Union[str, Path]] = None,
+        data_dir: Optional[str] = None,
         **kwargs,
     ) -> "DatasetDict":
         """Creates a PIE DatasetDict from JSONLINE files. Uses `datasets.load_dataset("json")` under the hood.
+        Requires a document type to be provided. If the document type is not provided, we try to load it from the
+        metadata file.
 
         Args:
             document_type: document type of the dataset
+            data_dir: Defining the `data_dir` of the dataset configuration. See datasets.load_dataset() for more
+                information.
+            metadata_path: path to the metadata file. Should point to a directory containing the metadata file
+                `metadata.json`. Defaults to the value of the `data_dir` parameter.
             **kwargs: additional keyword arguments for `datasets.load_dataset()`
         """
 
-        hf_dataset = datasets.load_dataset("json", **kwargs)
+        # try to load metadata
+        if metadata_path is None:
+            metadata_path = data_dir
+        if metadata_path is not None:
+            metadata_file_name = Path(metadata_path) / METADATA_FILE_NAME
+            if os.path.exists(metadata_file_name):
+                with open(metadata_file_name) as f:
+                    metadata = json.load(f)
+                document_type = document_type or metadata.get("document_type", None)
+
+        if document_type is None:
+            raise ValueError(
+                f"document_type must be provided if it cannot be loaded from the metadata file"
+            )
+
+        hf_dataset = datasets.load_dataset("json", data_dir=data_dir, **kwargs)
         if isinstance(
             hf_dataset,
             (
