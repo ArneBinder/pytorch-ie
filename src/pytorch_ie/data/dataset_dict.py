@@ -8,7 +8,7 @@ import datasets
 
 from pytorch_ie.core import Document
 from pytorch_ie.data.dataset import Dataset, IterableDataset, get_pie_dataset_type
-from pytorch_ie.utils.hydra import resolve_target
+from pytorch_ie.utils.hydra import resolve_target, serialize_document_type
 
 from .common import (
     EnterDatasetDictMixin,
@@ -18,6 +18,8 @@ from .common import (
 )
 
 logger = logging.getLogger(__name__)
+
+METADATA_FILE_NAME = "metadata.json"
 
 
 D = TypeVar("D", bound=Document)
@@ -110,6 +112,18 @@ class DatasetDict(datasets.DatasetDict):
         """
 
         path = Path(path)
+
+        # save the metadata
+        metadata = {"document_type": serialize_document_type(self.document_type)}
+        os.makedirs(path, exist_ok=True)
+        if os.path.exists(path / METADATA_FILE_NAME):
+            logger.warning(
+                f"metadata file '{path / METADATA_FILE_NAME}' already exists, overwriting it"
+            )
+        with open(path / METADATA_FILE_NAME, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+        # save the splits
         for split, dataset in self.items():
             split_path = path / split
             logger.info(f'serialize documents to "{split_path}" ...')
