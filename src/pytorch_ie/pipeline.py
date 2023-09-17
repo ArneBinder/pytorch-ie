@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import tqdm
+from datasets import disable_caching, enable_caching, is_caching_enabled
 from packaging import version
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -200,7 +201,12 @@ class Pipeline:
             if p_name in pipeline_parameters:
                 postprocess_parameters[p_name] = pipeline_parameters[p_name]
 
-        return preprocess_parameters, dataloader_params, forward_parameters, postprocess_parameters
+        return (
+            preprocess_parameters,
+            dataloader_params,
+            forward_parameters,
+            postprocess_parameters,
+        )
 
     def preprocess(
         self,
@@ -292,51 +298,14 @@ class Pipeline:
 
         return dataloader
 
-    def __call__(
+    def _process_documents(
         self,
-        documents: Union[Document, Sequence[Document], Dataset],
-        *args,
-        **kwargs,
-    ) -> Union[Document, Sequence[Document]]:
-        if args:
-            logger.warning(f"Ignoring args : {args}")
-        (
-            preprocess_params,
-            dataloader_params,
-            forward_params,
-            postprocess_params,
-        ) = self._sanitize_parameters(**kwargs)
-
-        in_place: bool = postprocess_params.get("inplace", True)
-        if in_place and isinstance(documents, Dataset):
-            raise InplaceNotSupportedException(
-                "Datasets can't be modified in place. Please set inplace=False."
-            )
-
-        if "TOKENIZERS_PARALLELISM" not in os.environ:
-            logger.info(
-                "Disabling tokenizer parallelism, we're using DataLoader multithreading already"
-            )
-            os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-        # Fuse __init__ params and __call__ params without modifying the __init__ ones.
-        preprocess_params = {**self._preprocess_params, **preprocess_params}
-        dataloader_params = {**self._dataloader_params, **dataloader_params}
-        forward_params = {**self._forward_params, **forward_params}
-        postprocess_params = {**self._postprocess_params, **postprocess_params}
-
-        self.call_count += 1
-        if self.call_count > 10 and self.device.type == "cuda":
-            warnings.warn(
-                "You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset",
-                UserWarning,
-            )
-
-        single_document = False
-        if not isinstance(documents, (Sequence, Dataset)):
-            single_document = True
-            documents = [documents]
-
+        documents: Sequence[Document],
+        preprocess_params: Dict[str, Any],
+        dataloader_params: Dict[str, Any],
+        forward_params: Dict[str, Any],
+        postprocess_params: Dict[str, Any],
+    ) -> Sequence[Document]:
         # This creates encodings from the documents. It modifies the documents and may produce multiple entries per
         # document.
         model_inputs = self.preprocess(documents, **preprocess_params)
@@ -365,7 +334,89 @@ class Pipeline:
             model_outputs=model_outputs,
             **postprocess_params,
         )
-        if single_document:
-            return documents[0]
+        return documents
+
+    def __call__(
+        self,
+        documents: Union[Document, Sequence[Document], Dataset],
+        *args,
+        **kwargs,
+    ) -> Union[Document, Sequence[Document], Dataset]:
+        if args:
+            logger.warning(f"Ignoring args : {args}")
+        (
+            preprocess_params,
+            dataloader_params,
+            forward_params,
+            postprocess_params,
+        ) = self._sanitize_parameters(**kwargs)
+
+        if "TOKENIZERS_PARALLELISM" not in os.environ:
+            logger.info(
+                "Disabling tokenizer parallelism, we're using DataLoader multithreading already"
+            )
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+        # Fuse __init__ params and __call__ params without modifying the __init__ ones.
+        preprocess_params = {**self._preprocess_params, **preprocess_params}
+        dataloader_params = {**self._dataloader_params, **dataloader_params}
+        forward_params = {**self._forward_params, **forward_params}
+        postprocess_params = {**self._postprocess_params, **postprocess_params}
+
+        self.call_count += 1
+        if self.call_count > 10 and self.device.type == "cuda":
+            warnings.warn(
+                "You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a dataset",
+                UserWarning,
+            )
+
+        single_document = False
+        if not isinstance(documents, (Sequence, Dataset)):
+            single_document = True
+            documents = [documents]
+
+        processed_documents: Union[Sequence[Document], Dataset]
+        if isinstance(documents, Dataset):
+            in_place: bool = postprocess_params.get("inplace", True)
+            if in_place:
+                raise InplaceNotSupportedException(
+                    "Datasets can't be modified in place. Please set inplace=False."
+                )
+            # do not show inner progress bar
+            forward_params["show_progress_bar"] = False
+
+            # For now, we do not allow caching for pipeline results since fingerprinting may be incorrect
+            # TODO: elaborate why it may be incorrect, see https://huggingface.co/docs/datasets/about_cache
+            was_caching_enabled = is_caching_enabled()
+            disable_caching()
+            try:
+                processed_documents = documents.map(
+                    self._process_documents,
+                    fn_kwargs=dict(
+                        preprocess_params=preprocess_params,
+                        dataloader_params=dataloader_params,
+                        forward_params=forward_params,
+                        postprocess_params=postprocess_params,
+                    ),
+                    result_document_type=documents.document_type,
+                    batched=True,
+                )
+            finally:
+                if was_caching_enabled:
+                    enable_caching()
+
         else:
-            return documents
+            processed_documents = self._process_documents(
+                documents=documents,
+                preprocess_params=preprocess_params,
+                dataloader_params=dataloader_params,
+                forward_params=forward_params,
+                postprocess_params=postprocess_params,
+            )
+
+        if single_document:
+            # TODO: fix "type: ignore" (if processed_documents is a Dataset, mypy assumes the result is Dict[Any, Any])
+            processed_document: Document = processed_documents[0]  # type: ignore
+            return processed_document
+        else:
+            return processed_documents
