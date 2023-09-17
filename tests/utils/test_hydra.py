@@ -8,7 +8,9 @@ from pytorch_ie.utils.hydra import (
     InstantiationException,
     resolve_optional_document_type,
     resolve_target,
+    serialize_document_type,
 )
+from tests.conftest import TestDocument
 
 
 def test_resolve_target_string():
@@ -102,3 +104,10 @@ def test_resolve_optional_document_type_no_document():
         str(excinfo.value)
         == "(resolved) document_type must be a subclass of Document, but it is: <class 'tests.utils.test_hydra.NoDocument'>"
     )
+
+
+def test_serialize_document_type():
+    serialized_dt = serialize_document_type(TestDocument)
+    assert serialized_dt == "tests.conftest.TestDocument"
+    resolved_dt = resolve_optional_document_type(serialized_dt)
+    assert resolved_dt == TestDocument

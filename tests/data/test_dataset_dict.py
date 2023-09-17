@@ -52,6 +52,15 @@ def test_from_json(dataset_dict):
     assert len(dataset_dict["validation"]) == 3
 
 
+def test_from_json_no_serialized_document_type(dataset_dict):
+    with pytest.raises(ValueError) as excinfo:
+        DatasetDict.from_json(data_dir=DATA_PATH)
+    assert (
+        str(excinfo.value)
+        == "document_type must be provided if it cannot be loaded from the metadata file"
+    )
+
+
 def test_load_dataset():
     dataset_dict = DatasetDict.load_dataset(
         "pie/brat", base_dataset_kwargs=dict(data_dir=FIXTURES_ROOT / "datasets" / "brat")
@@ -82,6 +91,19 @@ def test_to_json_and_back(dataset_dict, tmp_path):
     dataset_dict_from_json = DatasetDict.from_json(
         data_dir=path,
         document_type=dataset_dict.document_type,
+    )
+    assert set(dataset_dict_from_json) == set(dataset_dict)
+    for split in dataset_dict:
+        assert len(dataset_dict_from_json[split]) == len(dataset_dict[split])
+        for doc1, doc2 in zip(dataset_dict_from_json[split], dataset_dict[split]):
+            assert doc1 == doc2
+
+
+def test_to_json_and_back_serialize_document_type(dataset_dict, tmp_path):
+    path = Path(tmp_path) / "dataset_dict"
+    dataset_dict.to_json(path)
+    dataset_dict_from_json = DatasetDict.from_json(
+        data_dir=path,
     )
     assert set(dataset_dict_from_json) == set(dataset_dict)
     for split in dataset_dict:
