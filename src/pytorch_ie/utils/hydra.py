@@ -104,3 +104,7 @@ def resolve_optional_document_type(
             f"(resolved) document_type must be a subclass of Document, but it is: {dt}"
         )
     return dt
+
+
+def serialize_document_type(document_type: Type[Document]) -> str:
+    return f"{document_type.__module__}.{document_type.__name__}"
