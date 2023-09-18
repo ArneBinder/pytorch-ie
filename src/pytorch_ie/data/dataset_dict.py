@@ -66,12 +66,12 @@ class DatasetDict(datasets.DatasetDict):
         hf_dataset: Union[
             datasets.DatasetDict,
             datasets.IterableDatasetDict,
-            datasets.Dataset,
-            datasets.IterableDataset,
+            Dict[str, datasets.Dataset],
+            Dict[str, datasets.IterableDataset],
         ],
         document_type: Union[str, Type[Document]],
     ) -> "DatasetDict":
-        """Creates a PIE DatasetDict from a HuggingFace DatasetDict, IterableDatasetDict, Dataset, or IterableDataset.
+        """Creates a PIE DatasetDict from a HuggingFace DatasetDict, or IterableDatasetDict.
         If the input is a Dataset or IterableDataset, we create a DatasetDict with one split named "train".
 
         Args:
@@ -83,8 +83,7 @@ class DatasetDict(datasets.DatasetDict):
         doc_type = resolve_target(document_type)
         if not isinstance(doc_type, type) or not issubclass(doc_type, Document):
             raise TypeError(f"document_type must be a subclass of Document, but is {doc_type}")
-        if isinstance(hf_dataset, (datasets.Dataset, datasets.IterableDataset)):
-            hf_dataset = datasets.DatasetDict({"train": hf_dataset})
+
         res = cls(
             {
                 k: get_pie_dataset_type(v).from_hf_dataset(v, document_type=doc_type)
@@ -99,6 +98,7 @@ class DatasetDict(datasets.DatasetDict):
         document_type: Optional[Union[Type[Document], str]] = None,
         metadata_path: Optional[Union[str, Path]] = None,
         data_dir: Optional[str] = None,
+        split: Optional[str] = None,
         **kwargs,
     ) -> "DatasetDict":
         """Creates a PIE DatasetDict from JSONLINE files. Uses `datasets.load_dataset("json")` under the hood.
@@ -111,6 +111,7 @@ class DatasetDict(datasets.DatasetDict):
                 information.
             metadata_path: path to the metadata file. Should point to a directory containing the metadata file
                 `metadata.json`. Defaults to the value of the `data_dir` parameter.
+            split: if provided, only the specified split is loaded. see `datasets.load_dataset()` for more information.
             **kwargs: additional keyword arguments for `datasets.load_dataset()`
         """
 
@@ -129,22 +130,15 @@ class DatasetDict(datasets.DatasetDict):
                 f"document_type must be provided if it cannot be loaded from the metadata file"
             )
 
-        hf_dataset = datasets.load_dataset("json", data_dir=data_dir, **kwargs)
-        if isinstance(
-            hf_dataset,
-            (
-                datasets.DatasetDict,
-                datasets.IterableDatasetDict,
-                datasets.Dataset,
-                datasets.IterableDataset,
-            ),
-        ):
-            return cls.from_hf(hf_dataset, document_type=document_type)
-        else:
-            raise TypeError(
-                f"expected datasets.DatasetDict, datasets.IterableDatasetDict, datasets.Dataset, "
-                f"or datasets.IterableDataset, but got {type(hf_dataset)}"
-            )
+        hf_dataset = datasets.load_dataset("json", data_dir=data_dir, split=split, **kwargs)
+        if isinstance(hf_dataset, (datasets.Dataset, datasets.IterableDataset)):
+            if split is None:
+                raise ValueError(
+                    f"split must be provided if the loaded dataset is not a (Iterable)DatasetDict, "
+                    f"but is {type(hf_dataset)}"
+                )
+            hf_dataset = {split: hf_dataset}
+        return cls.from_hf(hf_dataset, document_type=document_type)
 
     def to_json(self, path: Union[str, Path], **kwargs) -> None:
         """Serializes the DatasetDict. We convert all documents with `.asdict()`
