@@ -36,8 +36,29 @@ class DatasetDict(datasets.DatasetDict):
             raise TypeError(f"dataset must be of type Dataset, but is {type(dataset)}")
 
     @classmethod
-    def load_dataset(cls, *args, **kwargs) -> "DatasetDict":
-        return cls(datasets.load_dataset(*args, **kwargs))
+    def load_dataset(cls, *args, split=None, **kwargs) -> "DatasetDict":
+        dataset_or_dataset_dict = datasets.load_dataset(*args, split=split, **kwargs)
+        if isinstance(dataset_or_dataset_dict, (Dataset, IterableDataset)):
+            if split is None:
+                raise ValueError(
+                    f"split must be provided if the loaded dataset is not a (Iterable)DatasetDict, "
+                    f"but is {type(dataset_or_dataset_dict)}"
+                )
+            return cls({split: dataset_or_dataset_dict})
+        elif isinstance(
+            dataset_or_dataset_dict, (datasets.DatasetDict, datasets.IterableDatasetDict)
+        ):
+            for dataset in dataset_or_dataset_dict.values():
+                if not isinstance(dataset, (Dataset, IterableDataset)):
+                    raise TypeError(
+                        f"expected pytorch_ie.Dataset or pytorch_ie.IterableDataset, but got {type(dataset)}"
+                    )
+            return cls(dataset_or_dataset_dict)
+        else:
+            raise TypeError(
+                f"expected datasets.DatasetDict, datasets.IterableDatasetDict, pytorch_ie.Dataset, "
+                f"or pytorch_ie.IterableDataset, but got {type(dataset_or_dataset_dict)}"
+            )
 
     @classmethod
     def from_hf(
