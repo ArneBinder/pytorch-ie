@@ -98,7 +98,9 @@ class TextDocumentWithLabeledEntitiesAndRelations(TextDocumentWithLabeledEntitie
 
 @dataclasses.dataclass
 class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(
-    TextDocumentWithLabeledEntitiesAndRelations, TextDocumentWithLabeledPartitions
+    TextDocumentWithLabeledEntitiesAndLabeledPartitions,
+    TextDocumentWithLabeledEntitiesAndRelations,
+    TextDocumentWithLabeledPartitions,
 ):
     pass
 
