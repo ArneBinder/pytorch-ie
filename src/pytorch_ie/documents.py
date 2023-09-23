@@ -98,7 +98,9 @@ class TextDocumentWithLabeledEntitiesAndRelations(TextDocumentWithLabeledEntitie
 
 @dataclasses.dataclass
 class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(
-    TextDocumentWithLabeledEntitiesAndRelations, TextDocumentWithLabeledPartitions
+    TextDocumentWithLabeledEntitiesAndLabeledPartitions,
+    TextDocumentWithLabeledEntitiesAndRelations,
+    TextDocumentWithLabeledPartitions,
 ):
     pass
 
@@ -109,7 +111,16 @@ class TextDocumentWithEntitiesAndRelations(TextDocumentWithEntities):
 
 
 @dataclasses.dataclass
+class TextDocumentWithEntitiesAndLabeledPartitions(
+    TextDocumentWithEntities, TextDocumentWithLabeledPartitions
+):
+    pass
+
+
+@dataclasses.dataclass
 class TextDocumentWithEntitiesRelationsAndLabeledPartitions(
-    TextDocumentWithEntitiesAndRelations, TextDocumentWithLabeledPartitions
+    TextDocumentWithEntitiesAndLabeledPartitions,
+    TextDocumentWithEntitiesAndRelations,
+    TextDocumentWithLabeledPartitions,
 ):
     pass
