@@ -112,14 +112,24 @@ class LabelCountCollector(DocumentStatistic):
 
     DEFAULT_AGGREGATION_FUNCTIONS = ["mean", "std", "min", "max", "len"]
 
-    def __init__(self, field: str, labels: List[str], **kwargs):
+    def __init__(
+        self, field: str, labels: Union[List[str], str], label_attribute: str = "label", **kwargs
+    ):
         super().__init__(**kwargs)
         self.field = field
+        self.label_attribute = label_attribute
+        if not (isinstance(labels, list) or labels == "INFERRED"):
+            raise ValueError("labels must be a list of strings or 'INFERRED'")
         self.labels = labels
 
     def _collect(self, doc: Document) -> Dict[str, int]:
         field_obj = getattr(doc, self.field)
-        counts: Dict[str, int] = {label: 0 for label in self.labels}
+        counts: Dict[str, int]
+        if self.labels == "INFERRED":
+            counts = defaultdict(int)
+        else:
+            counts = {label: 0 for label in self.labels}
         for elem in field_obj:
-            counts[elem.label] += 1
+            label = getattr(elem, self.label_attribute)
+            counts[label] += 1
         return dict(counts)
