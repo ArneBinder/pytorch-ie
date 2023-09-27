@@ -12,8 +12,6 @@ from pytorch_ie.utils.hydra import resolve_optional_document_type
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 
 class TokenCountCollector(DocumentStatistic):
     """Collects the token count of a field when tokenizing its content with a Huggingface tokenizer.
