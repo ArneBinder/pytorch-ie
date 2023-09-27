@@ -205,7 +205,7 @@ class LabelCountCollector(DocumentStatistic):
         {("ORG",): [2, 3], ("LOC",): [2]} -> {("ORG",): [2, 3], ("LOC",): [2, 0]}
     """
 
-    DEFAULT_AGGREGATION_FUNCTIONS = ["mean", "std", "min", "max", "len"]
+    DEFAULT_AGGREGATION_FUNCTIONS = ["mean", "std", "min", "max", "len", "sum"]
 
     def __init__(
         self, field: str, labels: Union[List[str], str], label_attribute: str = "label", **kwargs
