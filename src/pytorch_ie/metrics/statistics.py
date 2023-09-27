@@ -131,9 +131,9 @@ class LabelCountCollector(DocumentStatistic):
                 f"this collector, but be aware that the results may be wrong for your own aggregation "
                 f"functions that rely on zero values."
             )
-            self.aggregation_functions = [
-                func for func in self.aggregation_functions if func not in ["mean", "std", "min"]
-            ]
+            self.aggregation_functions = {
+                name: func for name, func in self.aggregation_functions.items() if name not in ["mean", "std", "min"]
+            }
 
         self.labels = labels
 
