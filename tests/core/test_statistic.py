@@ -131,49 +131,23 @@ def test_statistics(dataset):
     values = statistic(dataset)
     assert values == {
         "train": {
-            "ORG": {"mean": 2.0, "std": 0.0, "min": 2, "max": 2, "len": 1},
-            "MISC": {"mean": 6.5, "std": 0.5, "min": 6, "max": 7, "len": 2},
-            "PER": {"mean": 15.0, "std": 0.0, "min": 15, "max": 15, "len": 1},
-            "LOC": {"mean": 8.0, "std": 0.0, "min": 8, "max": 8, "len": 1},
+            "ORG": {"max": 2, "len": 1},
+            "MISC": {"max": 7, "len": 2},
+            "PER": {"max": 15, "len": 1},
+            "LOC": {"max": 8, "len": 1},
         },
         "test": {
             "LOC": {
-                "mean": 10.333333333333334,
-                "std": 6.847546194724712,
-                "min": 5,
                 "max": 20,
                 "len": 3,
             },
-            "PER": {"mean": 8.0, "std": 3.0, "min": 5, "max": 11, "len": 2},
+            "PER": {"max": 11, "len": 2},
         },
         "validation": {
-            "ORG": {"mean": 12.0, "std": 2.8284271247461903, "min": 8, "max": 14, "len": 3},
-            "LOC": {"mean": 6.0, "std": 0.0, "min": 6, "max": 6, "len": 1},
-            "MISC": {"mean": 11.0, "std": 0.0, "min": 11, "max": 11, "len": 1},
-            "PER": {"mean": 12.0, "std": 0.0, "min": 12, "max": 12, "len": 1},
-        },
-    }
-
-    @dataclasses.dataclass
-    class TokenDocumentWithLabeledEntities(TokenBasedDocument):
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
-
-    statistic = SpanLengthCollector(
-        layer="entities",
-        tokenize=True,
-        tokenizer="bert-base-uncased",
-        tokenized_document_type=TokenDocumentWithLabeledEntities,
-    )
-    values = statistic(dataset)
-    assert values == {
-        "test": {"len": 5, "max": 4, "mean": 2.4, "min": 1, "std": 1.2000000000000002},
-        "train": {"len": 5, "max": 2, "mean": 1.2, "min": 1, "std": 0.4},
-        "validation": {
-            "len": 6,
-            "max": 2,
-            "mean": 1.3333333333333333,
-            "min": 1,
-            "std": 0.4714045207910317,
+            "ORG": {"max": 14, "len": 3},
+            "LOC": {"max": 6, "len": 1},
+            "MISC": {"max": 11, "len": 1},
+            "PER": {"max": 12, "len": 1},
         },
     }
 
@@ -199,4 +173,27 @@ def test_statistics_with_tokenize(dataset):
         "test": {"max": 12, "mean": 9.333333333333334, "min": 4, "std": 3.7712361663282534},
         "train": {"max": 9, "mean": 5.666666666666667, "min": 2, "std": 2.8674417556808756},
         "validation": {"max": 38, "mean": 18.333333333333332, "min": 6, "std": 14.055445761538678},
+    }
+
+    @dataclasses.dataclass
+    class TokenDocumentWithLabeledEntities(TokenBasedDocument):
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
+
+    statistic = SpanLengthCollector(
+        layer="entities",
+        tokenize=True,
+        tokenizer="bert-base-uncased",
+        tokenized_document_type=TokenDocumentWithLabeledEntities,
+    )
+    values = statistic(dataset)
+    assert values == {
+        "test": {"len": 5, "max": 4, "mean": 2.4, "min": 1, "std": 1.2000000000000002},
+        "train": {"len": 5, "max": 2, "mean": 1.2, "min": 1, "std": 0.4},
+        "validation": {
+            "len": 6,
+            "max": 2,
+            "mean": 1.3333333333333333,
+            "min": 1,
+            "std": 0.4714045207910317,
+        },
     }
