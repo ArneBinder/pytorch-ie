@@ -5,12 +5,12 @@ import pytest
 from pytorch_ie import DatasetDict
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationList, annotation_field
-from pytorch_ie.documents import TextBasedDocument
+from pytorch_ie.documents import TextBasedDocument, TokenBasedDocument
 from pytorch_ie.metrics.statistics import (
     DummyCollector,
     FieldLengthCollector,
     LabelCountCollector,
-    LabeledSpanLengthCollector,
+    SpanLengthCollector,
     SubFieldLengthCollector,
     TokenCountCollector,
 )
@@ -113,7 +113,21 @@ def test_statistics(dataset):
         "validation": {"max": 187, "mean": 89.66666666666667, "min": 17, "std": 71.5603863103665},
     }
 
-    statistic = LabeledSpanLengthCollector(field="entities")
+    statistic = SpanLengthCollector(layer="entities")
+    values = statistic(dataset)
+    assert values == {
+        "train": {"len": 5, "mean": 7.6, "std": 4.223742416388575, "min": 2, "max": 15},
+        "validation": {
+            "len": 6,
+            "mean": 10.833333333333334,
+            "std": 2.9674156357941426,
+            "min": 6,
+            "max": 14,
+        },
+        "test": {"len": 5, "mean": 9.4, "std": 5.748043145279966, "min": 5, "max": 20},
+    }
+
+    statistic = SpanLengthCollector(layer="entities", labels="INFERRED")
     values = statistic(dataset)
     assert values == {
         "train": {
@@ -137,6 +151,29 @@ def test_statistics(dataset):
             "LOC": {"mean": 6.0, "std": 0.0, "min": 6, "max": 6, "len": 1},
             "MISC": {"mean": 11.0, "std": 0.0, "min": 11, "max": 11, "len": 1},
             "PER": {"mean": 12.0, "std": 0.0, "min": 12, "max": 12, "len": 1},
+        },
+    }
+
+    @dataclasses.dataclass
+    class TokenDocumentWithLabeledEntities(TokenBasedDocument):
+        entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
+
+    statistic = SpanLengthCollector(
+        layer="entities",
+        tokenize=True,
+        tokenizer="bert-base-uncased",
+        tokenized_document_type=TokenDocumentWithLabeledEntities,
+    )
+    values = statistic(dataset)
+    assert values == {
+        "test": {"len": 5, "max": 4, "mean": 2.4, "min": 1, "std": 1.2000000000000002},
+        "train": {"len": 5, "max": 2, "mean": 1.2, "min": 1, "std": 0.4},
+        "validation": {
+            "len": 6,
+            "max": 2,
+            "mean": 1.3333333333333333,
+            "min": 1,
+            "std": 0.4714045207910317,
         },
     }
 
