@@ -46,18 +46,24 @@ def text_based_document_to_token_based(
 
     # save text, token_offset_mapping and char_to_token (if available) in metadata
     result.metadata["text"] = doc.text
+    token_offset_mapping_lists: Optional[List[List[int]]]
     if token_offset_mapping is not None:
+        # convert offset tuples to lists because serialization and deserialization again
+        # will produce lists in any way (json does not know tuples)
+        token_offset_mapping_lists = [list(offsets) for offsets in token_offset_mapping]
         if (
             "token_offset_mapping" in doc.metadata
-            and doc.metadata["token_offset_mapping"] != token_offset_mapping
+            and doc.metadata["token_offset_mapping"] != token_offset_mapping_lists
         ):
             logger.warning(
                 "token_offset_mapping in metadata is different from the new token_offset_mapping, "
                 "overwrite the metadata"
             )
-        result.metadata["token_offset_mapping"] = token_offset_mapping
+        result.metadata["token_offset_mapping"] = token_offset_mapping_lists
     else:
-        token_offset_mapping = doc.metadata.get("token_offset_mapping")
+        token_offset_mapping_lists = doc.metadata.get("token_offset_mapping")
+        if token_offset_mapping_lists is not None:
+            token_offset_mapping = [tuple(offsets) for offsets in token_offset_mapping_lists] # type: ignore
     if char_to_token is not None:
         if "char_to_token" in doc.metadata and doc.metadata["char_to_token"] != char_to_token:
             logger.warning(
@@ -167,29 +173,34 @@ def token_based_document_to_text_based(
             raise ValueError(
                 "if join_tokens_with is None, text must be provided, but got None as well"
             )
-        token_offset_mapping = (
+        token_offset_mapping_lists = (
             doc.metadata.get("token_offset_mapping")
             if token_offset_mapping is None
             else token_offset_mapping
         )
-        if token_offset_mapping is None:
+        if token_offset_mapping_lists is None:
             raise ValueError(
                 "if join_tokens_with is None, token_offsets must be provided, but got None as well"
             )
+        else:
+            token_offset_mapping = [tuple(offsets) for offsets in token_offset_mapping_lists] # type: ignore
 
     result = document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
     if "tokens" in doc.metadata and doc.metadata["tokens"] != list(doc.tokens):
         logger.warning("tokens in metadata are different from new tokens, overwrite the metadata")
     result.metadata["tokens"] = list(doc.tokens)
+    # convert offset tuples to lists because serialization and deserialization again
+    # will produce lists in any way (json does not know tuples)
+    token_offset_mapping_lists = [list(offsets) for offsets in token_offset_mapping]
     if (
         "token_offset_mapping" in doc.metadata
-        and doc.metadata["token_offset_mapping"] != token_offset_mapping
+        and doc.metadata["token_offset_mapping"] != token_offset_mapping_lists
     ):
         logger.warning(
             "token_offset_mapping in metadata is different from the new token_offset_mapping, "
             "overwrite the metadata"
         )
-    result.metadata["token_offset_mapping"] = token_offset_mapping
+    result.metadata["token_offset_mapping"] = token_offset_mapping_lists
 
     token_targeting_layers = [
         annotation_field.name

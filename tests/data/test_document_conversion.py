@@ -44,10 +44,11 @@ def test_text_based_document_to_token_based(documents, tokenizer):
         # check (de-)serialization
         tokenized_doc.copy()
 
+        offset_mapping_lists = [list(offsets) for offsets in tokenized_text.offset_mapping]
         if i == 0:
             assert doc.id == "train_doc1"
             assert tokenized_doc.metadata["text"] == doc.text == "A single sentence."
-            assert tokenized_doc.metadata["token_offset_mapping"] == tokenized_text.offset_mapping
+            assert tokenized_doc.metadata["token_offset_mapping"] == offset_mapping_lists
             assert tokenized_doc.metadata.get("char_to_token") is None
             assert tokenized_doc.tokens == ("[CLS]", "A", "single", "sentence", ".", "[SEP]")
             assert len(tokenized_doc.sentences) == len(doc.sentences) == 1
@@ -91,7 +92,7 @@ def test_text_based_document_to_token_based(documents, tokenizer):
         elif i == 2:
             assert doc.id == "train_doc3"
             assert tokenized_doc.metadata["text"] == doc.text == "Entity C and D."
-            assert tokenized_doc.metadata["token_offset_mapping"] == tokenized_text.offset_mapping
+            assert tokenized_doc.metadata["token_offset_mapping"] == offset_mapping_lists
             assert tokenized_doc.metadata["char_to_token"] == tokenized_text.char_to_token
             assert tokenized_doc.tokens == (
                 "[CLS]",
