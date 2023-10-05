@@ -63,7 +63,7 @@ def text_based_document_to_token_based(
     else:
         token_offset_mapping_lists = doc.metadata.get("token_offset_mapping")
         if token_offset_mapping_lists is not None:
-            token_offset_mapping = [tuple(offsets) for offsets in token_offset_mapping_lists] # type: ignore
+            token_offset_mapping = [tuple(offsets) for offsets in token_offset_mapping_lists]  # type: ignore
     if char_to_token is not None:
         if "char_to_token" in doc.metadata and doc.metadata["char_to_token"] != char_to_token:
             logger.warning(
@@ -183,7 +183,7 @@ def token_based_document_to_text_based(
                 "if join_tokens_with is None, token_offsets must be provided, but got None as well"
             )
         else:
-            token_offset_mapping = [tuple(offsets) for offsets in token_offset_mapping_lists] # type: ignore
+            token_offset_mapping = [tuple(offsets) for offsets in token_offset_mapping_lists]  # type: ignore
 
     result = document_type(text=text, id=doc.id, metadata=deepcopy(doc.metadata))
     if "tokens" in doc.metadata and doc.metadata["tokens"] != list(doc.tokens):
