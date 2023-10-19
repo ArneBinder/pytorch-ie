@@ -155,7 +155,7 @@ DocumentConvertersType = Dict[Type[D], Union[Callable[..., D], Dict[str, str]]]
 def _get_best_dataset_converter_with_types(
     dataset: Union["IterableDataset", "Dataset"],
     document_type: Union[Type[Document]],
-) -> Tuple[Union[Callable[..., Document], Dict[str, str], None], Type[Document], Type[Document]]:
+) -> Tuple[Union[Callable[..., Document], Dict[str, str]], Type[Document], Type[Document]]:
     # first try to find an exact match
     if document_type in dataset.document_converters:
         return dataset.document_converters[document_type], document_type, document_type
@@ -170,13 +170,13 @@ def _get_best_dataset_converter_with_types(
         if issubclass(document_type, registered_dt):
             return candidate_converter, document_type, registered_dt
 
-    # return no converter, the requested type and the registered type
-    logger.warning(
-        f"document_type {document_type} is not in document_converters: "
-        f"{[dt.__name__ for dt in dataset.document_converters]}. "
-        "Perform a simple cast instead of a conversion."
+    raise ValueError(
+        f"No valid key (either subclass or superclass) was found for the document type '{document_type}' "
+        f"in the document_converters of the dataset. Available keys: {set(dataset.document_converters)}. "
+        f"Consider adding a respective converter to the dataset with "
+        f"dataset.register_document_converter(my_converter_method) where my_converter_method should accept "
+        f"{dataset.document_type} as input and return '{document_type}'."
     )
-    return None, document_type, document_type
 
 
 @overload

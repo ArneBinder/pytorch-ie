@@ -448,19 +448,16 @@ def test_to_document_type_not_found(dataset_with_converter_functions):
 
     # The only converter is registered for TestDocumentWithLabel, but we request a conversion to
     # TestDocumentWithSpans. This is not a valid type because it is neither a subclass nor a superclass of
-    # TestDocumentWithLabel, so just a simple cast is performed.
-    converted_dataset = dataset_with_converter_functions.to_document_type(TestDocumentWithSpans)
-    assert converted_dataset.document_type == TestDocumentWithSpans
-
-    assert len(converted_dataset.document_converters) == 0
-    for converted_doc, doc in zip(converted_dataset, dataset_with_converter_functions):
-        assert isinstance(doc, TestDocument)
-        assert isinstance(converted_doc, TestDocumentWithSpans)
-        assert converted_doc.text == doc.text
-        annotation_field_names = {f.name for f in doc.annotation_fields()}
-        assert annotation_field_names == {"sentences", "entities", "relations"}
-        converted_annotation_filed_names = {f.name for f in converted_doc.annotation_fields()}
-        assert converted_annotation_filed_names == {"sentences", "spans", "entities", "relations"}
-        common_annotation_field_names = annotation_field_names & converted_annotation_filed_names
-        for afn in common_annotation_field_names:
-            assert converted_doc[afn] == doc[afn]
+    # TestDocumentWithLabel, so an error is raised.
+    with pytest.raises(ValueError) as excinfo:
+        dataset_with_converter_functions.to_document_type(TestDocumentWithSpans)
+    assert (
+        str(excinfo.value)
+        == "No valid key (either subclass or superclass) was found for the document type "
+        "'<class 'tests.data.test_dataset.test_to_document_type_not_found.<locals>.TestDocumentWithSpans'>' "
+        "in the document_converters of the dataset. Available keys: "
+        "{<class 'tests.data.test_dataset.TestDocumentWithLabel'>}. Consider adding a respective converter "
+        "to the dataset with dataset.register_document_converter(my_converter_method) where "
+        "my_converter_method should accept <class 'tests.conftest.TestDocument'> as input and return "
+        "'<class 'tests.data.test_dataset.test_to_document_type_not_found.<locals>.TestDocumentWithSpans'>'."
+    )
