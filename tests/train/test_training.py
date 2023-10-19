@@ -12,6 +12,7 @@ MODEL_NAME = "bert-base-cased"
 def prepared_taskmodule(documents):
     taskmodule = TransformerTokenClassificationTaskModule(
         tokenizer_name_or_path=MODEL_NAME,
+        entity_annotation="entities",
         max_length=128,
     )
     taskmodule.prepare(documents)

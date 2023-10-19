@@ -27,6 +27,7 @@ def main():
 
     task_module = TransformerSpanClassificationTaskModule(
         tokenizer_name_or_path=model_name,
+        entity_annotation="entities",
         max_length=128,
     )
 

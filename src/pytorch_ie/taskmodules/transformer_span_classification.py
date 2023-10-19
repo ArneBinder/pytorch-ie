@@ -22,9 +22,9 @@ from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
 from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import (
     TextDocument,
-    TextDocumentWithLabeledEntities,
-    TextDocumentWithLabeledEntitiesAndLabeledPartitions,
-    TextDocumentWithLabeledEntitiesAndSentences,
+    TextDocumentWithLabeledSpans,
+    TextDocumentWithLabeledSpansAndLabeledPartitions,
+    TextDocumentWithLabeledSpansAndSentences,
 )
 from pytorch_ie.models.transformer_span_classification import ModelOutputType, ModelStepInputType
 
@@ -56,7 +56,7 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        entity_annotation: str = "entities",
+        entity_annotation: str = "labeled_spans",
         single_sentence: bool = False,
         sentence_annotation: str = "sentences",
         padding: Union[bool, str, PaddingStrategy] = True,
@@ -92,9 +92,9 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
     @property
     def document_type(self) -> TypeAlias:
         if self.single_sentence:
-            return TextDocumentWithLabeledEntitiesAndSentences
+            return TextDocumentWithLabeledSpansAndSentences
         else:
-            return TextDocumentWithLabeledEntities
+            return TextDocumentWithLabeledSpans
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()

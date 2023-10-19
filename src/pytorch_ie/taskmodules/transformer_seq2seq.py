@@ -18,7 +18,7 @@ from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.core import Annotation, TaskEncoding, TaskModule
-from pytorch_ie.documents import TextDocument, TextDocumentWithLabeledEntitiesAndRelations
+from pytorch_ie.documents import TextDocument, TextDocumentWithLabeledSpansAndBinaryRelations
 from pytorch_ie.models.transformer_seq2seq import ModelOutputType, ModelStepInputType
 
 InputEncodingType: TypeAlias = Dict[str, Sequence[int]]
@@ -42,13 +42,13 @@ logger = logging.getLogger(__name__)
 @TaskModule.register()
 class TransformerSeq2SeqTaskModule(TaskModuleType):
 
-    DOCUMENT_TYPE = TextDocumentWithLabeledEntitiesAndRelations
+    DOCUMENT_TYPE = TextDocumentWithLabeledSpansAndBinaryRelations
 
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        entity_annotation: str = "entities",
-        relation_annotation: str = "relations",
+        entity_annotation: str = "labeled_spans",
+        relation_annotation: str = "binary_relations",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_input_length: Optional[int] = None,

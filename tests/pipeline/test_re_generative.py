@@ -22,6 +22,8 @@ def test_re_generative():
 
     taskmodule = TransformerSeq2SeqTaskModule(
         tokenizer_name_or_path=model_name_or_path,
+        entity_annotation="entities",
+        relation_annotation="relations",
         max_input_length=128,
         max_target_length=128,
     )

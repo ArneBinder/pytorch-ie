@@ -59,7 +59,7 @@ class TextDocumentWithMultiLabel(DocumentWithMultiLabel, TextBasedDocument):
 
 @dataclasses.dataclass
 class TextDocumentWithLabeledPartitions(TextBasedDocument):
-    partitions: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    labeled_partitions: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
 @dataclasses.dataclass
@@ -68,59 +68,59 @@ class TextDocumentWithSentences(TextBasedDocument):
 
 
 @dataclasses.dataclass
-class TextDocumentWithEntities(TextBasedDocument):
-    entities: AnnotationList[Span] = annotation_field(target="text")
+class TextDocumentWithSpans(TextBasedDocument):
+    spans: AnnotationList[Span] = annotation_field(target="text")
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledEntities(TextBasedDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+class TextDocumentWithLabeledSpans(TextBasedDocument):
+    labeled_spans: AnnotationList[LabeledSpan] = annotation_field(target="text")
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledEntitiesAndLabeledPartitions(
-    TextDocumentWithLabeledEntities, TextDocumentWithLabeledPartitions
+class TextDocumentWithLabeledSpansAndLabeledPartitions(
+    TextDocumentWithLabeledSpans, TextDocumentWithLabeledPartitions
 ):
     pass
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledEntitiesAndSentences(
-    TextDocumentWithLabeledEntities, TextDocumentWithSentences
+class TextDocumentWithLabeledSpansAndSentences(
+    TextDocumentWithLabeledSpans, TextDocumentWithSentences
 ):
     pass
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledEntitiesAndRelations(TextDocumentWithLabeledEntities):
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+class TextDocumentWithLabeledSpansAndBinaryRelations(TextDocumentWithLabeledSpans):
+    binary_relations: AnnotationList[BinaryRelation] = annotation_field(target="labeled_spans")
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledEntitiesRelationsAndLabeledPartitions(
-    TextDocumentWithLabeledEntitiesAndLabeledPartitions,
-    TextDocumentWithLabeledEntitiesAndRelations,
+class TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions(
+    TextDocumentWithLabeledSpansAndLabeledPartitions,
+    TextDocumentWithLabeledSpansAndBinaryRelations,
     TextDocumentWithLabeledPartitions,
 ):
     pass
 
 
 @dataclasses.dataclass
-class TextDocumentWithEntitiesAndRelations(TextDocumentWithEntities):
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+class TextDocumentWithSpansAndBinaryRelations(TextDocumentWithSpans):
+    binary_relations: AnnotationList[BinaryRelation] = annotation_field(target="spans")
 
 
 @dataclasses.dataclass
-class TextDocumentWithEntitiesAndLabeledPartitions(
-    TextDocumentWithEntities, TextDocumentWithLabeledPartitions
+class TextDocumentWithSpansAndLabeledPartitions(
+    TextDocumentWithSpans, TextDocumentWithLabeledPartitions
 ):
     pass
 
 
 @dataclasses.dataclass
-class TextDocumentWithEntitiesRelationsAndLabeledPartitions(
-    TextDocumentWithEntitiesAndLabeledPartitions,
-    TextDocumentWithEntitiesAndRelations,
+class TextDocumentWithSpansBinaryRelationsAndLabeledPartitions(
+    TextDocumentWithSpansAndLabeledPartitions,
+    TextDocumentWithSpansAndBinaryRelations,
     TextDocumentWithLabeledPartitions,
 ):
     pass

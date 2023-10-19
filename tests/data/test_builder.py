@@ -10,7 +10,7 @@ from datasets.load import dataset_module_factory, import_main_class
 from pytorch_ie.annotations import LabeledSpan, Span
 from pytorch_ie.core import AnnotationList, annotation_field
 from pytorch_ie.data.builder import PieDatasetBuilder
-from pytorch_ie.documents import TextBasedDocument, TextDocumentWithEntities
+from pytorch_ie.documents import TextBasedDocument, TextDocumentWithSpans
 from tests import FIXTURES_ROOT
 
 DATASETS_ROOT = FIXTURES_ROOT / "builder" / "datasets"
@@ -174,10 +174,10 @@ class ExampleDocumentWithSimpleSpans(TextBasedDocument):
 
 
 def convert_example_document_to_example_document_with_simple_spans(
-    document: TextDocumentWithEntities,
+    document: TextDocumentWithSpans,
 ) -> ExampleDocumentWithSimpleSpans:
-    result = ExampleDocumentWithSimpleSpans(text=document.text, spans=document.entities)
-    for entity in document.entities:
+    result = ExampleDocumentWithSimpleSpans(text=document.text, spans=document.spans)
+    for entity in document.spans:
         result.spans.append(Span(start=entity.start, end=entity.end))
     return result
 

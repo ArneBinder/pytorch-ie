@@ -51,7 +51,7 @@ def unprepared_taskmodule(config):
 
     """
     return TransformerTokenClassificationTaskModule(
-        tokenizer_name_or_path="bert-base-uncased", **config
+        tokenizer_name_or_path="bert-base-uncased", entity_annotation="entities", **config
     )
 
 

@@ -13,7 +13,8 @@ from pytorch_ie.taskmodules.transformer_span_classification import (
 def taskmodule():
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerSpanClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path
+        tokenizer_name_or_path=tokenizer_name_or_path,
+        entity_annotation="entities",
     )
     return taskmodule
 
