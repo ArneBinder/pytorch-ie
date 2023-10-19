@@ -40,7 +40,7 @@ from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import (
     TextDocument,
     TextDocumentWithLabeledSpansAndBinaryRelations,
-    TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitionsBinary,
+    TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions,
 )
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.taskmodules.interface import ChangesTokenizerVocabSize
@@ -216,7 +216,7 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
     @property
     def document_type(self) -> Optional[Type[TextDocument]]:
         if self.partition_annotation is not None:
-            return TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitionsBinary
+            return TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions
         else:
             return TextDocumentWithLabeledSpansAndBinaryRelations
 

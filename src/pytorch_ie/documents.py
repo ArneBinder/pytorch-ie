@@ -97,7 +97,7 @@ class TextDocumentWithLabeledSpansAndBinaryRelations(TextDocumentWithLabeledSpan
 
 
 @dataclasses.dataclass
-class TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitionsBinary(
+class TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions(
     TextDocumentWithLabeledSpansAndLabeledPartitions,
     TextDocumentWithLabeledSpansAndBinaryRelations,
     TextDocumentWithLabeledPartitions,
