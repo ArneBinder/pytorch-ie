@@ -154,7 +154,7 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
         tokenizer_name_or_path: str,
         # this is deprecated, the target of the relation layer already specifies the entity layer
         entity_annotation: Optional[str] = None,
-        relation_annotation: str = "relations",
+        relation_annotation: str = "binary_relations",
         create_relation_candidates: bool = False,
         partition_annotation: Optional[str] = None,
         none_label: str = "no_relation",

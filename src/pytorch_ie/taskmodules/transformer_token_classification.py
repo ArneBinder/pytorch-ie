@@ -62,7 +62,7 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        entity_annotation: str = "entities",
+        entity_annotation: str = "labeled_spans",
         partition_annotation: Optional[str] = None,
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = False,

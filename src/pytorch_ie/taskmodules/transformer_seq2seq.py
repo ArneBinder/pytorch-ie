@@ -47,8 +47,8 @@ class TransformerSeq2SeqTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        entity_annotation: str = "entities",
-        relation_annotation: str = "relations",
+        entity_annotation: str = "labeled_spans",
+        relation_annotation: str = "binary_relations",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_input_length: Optional[int] = None,

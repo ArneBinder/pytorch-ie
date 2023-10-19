@@ -31,7 +31,7 @@ def cfg(request):
 def taskmodule(cfg):
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerRETextClassificationTaskModule(
-        tokenizer_name_or_path=tokenizer_name_or_path, **cfg
+        tokenizer_name_or_path=tokenizer_name_or_path, relation_annotation="relations", **cfg
     )
     assert not taskmodule.is_from_pretrained
 
@@ -605,6 +605,7 @@ def test_encode_with_partition(documents):
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerRETextClassificationTaskModule(
         tokenizer_name_or_path=tokenizer_name_or_path,
+        relation_annotation="relations",
         partition_annotation="sentences",
     )
     assert not taskmodule.is_from_pretrained
@@ -700,6 +701,7 @@ def test_encode_with_windowing(documents):
     tokenizer_name_or_path = "bert-base-cased"
     taskmodule = TransformerRETextClassificationTaskModule(
         tokenizer_name_or_path=tokenizer_name_or_path,
+        relation_annotation="relations",
         max_window=12,
     )
     assert not taskmodule.is_from_pretrained

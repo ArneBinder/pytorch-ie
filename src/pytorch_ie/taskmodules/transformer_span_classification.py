@@ -56,7 +56,7 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
     def __init__(
         self,
         tokenizer_name_or_path: str,
-        entity_annotation: str = "entities",
+        entity_annotation: str = "labeled_spans",
         single_sentence: bool = False,
         sentence_annotation: str = "sentences",
         padding: Union[bool, str, PaddingStrategy] = True,

@@ -14,7 +14,11 @@ from pytorch_ie.documents import TextDocument
 @pytest.fixture(scope="module")
 def taskmodule():
     transformer_model = "Babelscape/rebel-large"
-    taskmodule = TransformerSeq2SeqTaskModule(tokenizer_name_or_path=transformer_model)
+    taskmodule = TransformerSeq2SeqTaskModule(
+        tokenizer_name_or_path=transformer_model,
+        entity_annotation="entities",
+        relation_annotation="relations",
+    )
     assert not taskmodule.is_from_pretrained
 
     return taskmodule

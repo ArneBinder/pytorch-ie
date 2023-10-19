@@ -462,6 +462,7 @@ print("val docs: ", len(val_docs))
 # Create a PIE taskmodule.
 task_module = TransformerSpanClassificationTaskModule(
     tokenizer_name_or_path=model_name,
+    entity_annotation="entities",
     max_length=128,
 )
 
