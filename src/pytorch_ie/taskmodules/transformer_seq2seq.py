@@ -9,7 +9,7 @@ workflow:
 
 import logging
 import re
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union
 
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
@@ -68,6 +68,23 @@ class TransformerSeq2SeqTaskModule(TaskModuleType):
         self.pad_to_multiple_of = pad_to_multiple_of
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
+
+    @property
+    def document_type(self) -> Optional[Type[TextDocument]]:
+        dt: Type[TextDocument] = self.DOCUMENT_TYPE
+        if (
+            self.entity_annotation == "labeled_spans"
+            and self.relation_annotation == "binary_relations"
+        ):
+            return dt
+        else:
+            logger.warning(
+                f"entity_annotation={self.entity_annotation} and relation_annotation={self.relation_annotation} are "
+                f"not the default values ('labeled_spans' and 'binary_relations'), so the taskmodule "
+                f"{type(self).__name__} can not request the usual document type ({dt.__name__}) for auto-conversion "
+                f"because this has the bespoken default values as layer names instead of the provided ones."
+            )
+            return None
 
     def encode_text(self, text: str) -> InputEncodingType:
         return self.tokenizer(

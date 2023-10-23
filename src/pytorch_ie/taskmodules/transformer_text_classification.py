@@ -6,7 +6,7 @@ workflow:
         -> task_output
     -> document
 """
-
+import logging
 from typing import (
     Any,
     Dict,
@@ -32,6 +32,8 @@ from pytorch_ie.annotations import Label, MultiLabel
 from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument, TextDocumentWithLabel, TextDocumentWithMultiLabel
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
+
+logger = logging.getLogger(__name__)
 
 InputEncodingType: TypeAlias = MutableMapping[str, Any]
 TargetEncodingType: TypeAlias = Sequence[int]
@@ -74,7 +76,7 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
         self,
         tokenizer_name_or_path: str,
         label_to_verbalizer: Dict[str, str],
-        annotation: str = "labels",
+        annotation: str = "label",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_length: Optional[int] = None,
@@ -104,11 +106,22 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
         self.multi_label = multi_label
 
     @property
-    def document_type(self) -> Type[TextDocument]:
+    def document_type(self) -> Optional[Type[TextDocument]]:
+        dt: Type[TextDocument]
         if self.multi_label:
-            return TextDocumentWithMultiLabel
+            dt = TextDocumentWithMultiLabel
         else:
-            return TextDocumentWithLabel
+            dt = TextDocumentWithLabel
+        if self.annotation == "label":
+            return dt
+        else:
+            logger.warning(
+                f"annotation={self.annotation} is "
+                f"not the default value ('label'), so the taskmodule {type(self).__name__} can not request "
+                f"the usual document type ({dt.__name__}) for auto-conversion because this has the bespoken "
+                f"default value as layer name instead of the provided one."
+            )
+            return None
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()

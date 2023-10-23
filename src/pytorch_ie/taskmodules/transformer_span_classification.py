@@ -8,7 +8,7 @@ workflow:
 """
 
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -90,11 +90,23 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
         self.multi_label = multi_label
 
     @property
-    def document_type(self) -> TypeAlias:
+    def document_type(self) -> Optional[Type[TextDocument]]:
+        dt: Type[TextDocument]
         if self.single_sentence:
-            return TextDocumentWithLabeledSpansAndSentences
+            dt = TextDocumentWithLabeledSpansAndSentences
         else:
-            return TextDocumentWithLabeledSpans
+            dt = TextDocumentWithLabeledSpans
+
+        if self.entity_annotation == "labeled_spans":
+            return dt
+        else:
+            logger.warning(
+                f"entity_annotation={self.entity_annotation} is "
+                f"not the default value ('labeled_spans'), so the taskmodule {type(self).__name__} can not request "
+                f"the usual document type ({dt.__name__}) for auto-conversion because this has the bespoken default "
+                f"value as layer name instead of the provided one."
+            )
+            return None
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config()
