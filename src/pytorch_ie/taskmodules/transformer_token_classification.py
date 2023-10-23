@@ -96,6 +96,7 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
 
     @property
     def document_type(self) -> Optional[Type[TextDocument]]:
+        dt: Type[TextDocument]
         if self.partition_annotation is not None:
             dt = TextDocumentWithLabeledSpansAndLabeledPartitions
         else:

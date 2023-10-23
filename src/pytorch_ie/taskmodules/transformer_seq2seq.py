@@ -71,7 +71,7 @@ class TransformerSeq2SeqTaskModule(TaskModuleType):
 
     @property
     def document_type(self) -> Optional[Type[TextDocument]]:
-        dt = self.DOCUMENT_TYPE
+        dt: Type[TextDocument] = self.DOCUMENT_TYPE
         if (
             self.entity_annotation == "labeled_spans"
             and self.relation_annotation == "binary_relations"

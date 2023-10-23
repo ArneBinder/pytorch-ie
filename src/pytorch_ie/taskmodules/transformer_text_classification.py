@@ -107,6 +107,7 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
 
     @property
     def document_type(self) -> Optional[Type[TextDocument]]:
+        dt: Type[TextDocument]
         if self.multi_label:
             dt = TextDocumentWithMultiLabel
         else:
