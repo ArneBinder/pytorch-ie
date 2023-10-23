@@ -74,7 +74,7 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
         self,
         tokenizer_name_or_path: str,
         label_to_verbalizer: Dict[str, str],
-        annotation: str = "labels",
+        annotation: str = "label",
         padding: Union[bool, str, PaddingStrategy] = True,
         truncation: Union[bool, str, TruncationStrategy] = True,
         max_length: Optional[int] = None,
