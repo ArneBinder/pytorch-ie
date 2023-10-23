@@ -216,9 +216,20 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
     @property
     def document_type(self) -> Optional[Type[TextDocument]]:
         if self.partition_annotation is not None:
-            return TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions
+            dt = TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions
         else:
-            return TextDocumentWithLabeledSpansAndBinaryRelations
+            dt = TextDocumentWithLabeledSpansAndBinaryRelations
+
+        if self.relation_annotation == "binary_relations":
+            return dt
+        else:
+            logger.warning(
+                f"relation_annotation={self.relation_annotation} is "
+                f"not the default value ('binary_relations'), so the taskmodule {type(self).__name__} can not request "
+                f"the usual document type for auto-conversion ({dt.__name__}) because this has the bespoken default "
+                f"value as layer name instead of the provided one."
+            )
+            return None
 
     def get_relation_layer(self, document: Document) -> AnnotationList[BinaryRelation]:
         return document[self.relation_annotation]
