@@ -227,7 +227,7 @@ class Pipeline:
         self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
     ) -> Dict:
         """
-        _forward will receive the prepared dictionary from `preprocess` and run it on the model. This method might
+        _forward will receive the prepared dictionnary from `preprocess` and run it on the model. This method might
         involve the GPU or the CPU and should be agnostic to it. Isolating this function is the reason for `preprocess`
         and `postprocess` to exist, so that the hot path, this method generally can run as fast as possible.
 
