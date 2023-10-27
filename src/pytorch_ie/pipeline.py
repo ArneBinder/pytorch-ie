@@ -224,10 +224,13 @@ class Pipeline:
         return encodings
 
     def _forward(
-        self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
+        self,
+        input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any],
+        batch_idx: int,
+        dataloader_idx: int = 0,
     ) -> Dict:
         """
-        _forward will receive the prepared dictionnary from `preprocess` and run it on the model. This method might
+        _forward will receive the prepared dictionary from `preprocess` and run it on the model. This method might
         involve the GPU or the CPU and should be agnostic to it. Isolating this function is the reason for `preprocess`
         and `postprocess` to exist, so that the hot path, this method generally can run as fast as possible.
 
@@ -236,7 +239,7 @@ class Pipeline:
         of the code (leading to faster inference).
         """
         inputs = input_tensors[0]
-        return self.model.predict(inputs, **forward_parameters)
+        return self.model.predict_step(inputs, batch_idx=batch_idx, dataloader_idx=dataloader_idx)
 
     def postprocess(
         self,
@@ -351,8 +354,10 @@ class Pipeline:
         show_progress_bar = forward_params.pop("show_progress_bar", False)
         model_outputs: List = []
         with torch.no_grad():
-            for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
-                output = self.forward(batch, **forward_params)
+            for idx, batch in enumerate(
+                tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar)
+            ):
+                output = self.forward(batch, batch_idx=idx, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
 
