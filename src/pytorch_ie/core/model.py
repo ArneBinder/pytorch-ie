@@ -13,3 +13,10 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable):
         # add all hparams
         config.update(self.hparams)
         return config
+
+    def predict(
+        self,
+        inputs: Any,
+        **kwargs,
+    ) -> Any:
+        return self.predict_step(inputs, batch_idx=0)

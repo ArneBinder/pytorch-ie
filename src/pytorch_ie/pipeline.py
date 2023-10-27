@@ -224,10 +224,7 @@ class Pipeline:
         return encodings
 
     def _forward(
-        self,
-        input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any],
-        batch_idx: int,
-        dataloader_idx: int = 0,
+        self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
     ) -> Dict:
         """
         _forward will receive the prepared dictionary from `preprocess` and run it on the model. This method might
@@ -239,7 +236,7 @@ class Pipeline:
         of the code (leading to faster inference).
         """
         inputs = input_tensors[0]
-        return self.model.predict_step(inputs, batch_idx=batch_idx, dataloader_idx=dataloader_idx)
+        return self.model.predict(inputs, **forward_parameters)
 
     def postprocess(
         self,
@@ -354,10 +351,8 @@ class Pipeline:
         show_progress_bar = forward_params.pop("show_progress_bar", False)
         model_outputs: List = []
         with torch.no_grad():
-            for idx, batch in enumerate(
-                tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar)
-            ):
-                output = self.forward(batch, batch_idx=idx, **forward_params)
+            for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
+                output = self.forward(batch, **forward_params)
                 processed_output = self.taskmodule.unbatch_output(output)
                 model_outputs.extend(processed_output)
 
