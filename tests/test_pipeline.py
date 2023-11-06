@@ -134,7 +134,9 @@ def test_pipeline_with_dataset(dataset, prepared_taskmodule, mock_model, inplace
     if inplace:
         with pytest.raises(
             InplaceNotSupportedException,
-            match=re.escape("Datasets can't be modified in place. Please set inplace=False."),
+            match=re.escape(
+                "Immutable sequences of Documents (such as Datasets) can't be modified in place. Please set inplace=False."
+            ),
         ):
             returned_documents = pipeline(train_dataset, inplace=inplace)
     else:

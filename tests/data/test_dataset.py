@@ -1,6 +1,6 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from typing import Dict, Sequence, Union
+from typing import Union
 
 import datasets
 import numpy

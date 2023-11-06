@@ -1,19 +1,8 @@
 import logging
+from collections.abc import Iterable, Sequence
 from functools import wraps
 from inspect import Signature, isclass, signature
-from typing import (
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, overload
 
 import datasets
 import pandas as pd
@@ -251,10 +240,10 @@ def dataset_register_document_converter(
     dataset.document_converters[dt] = converter
 
 
-class Dataset(datasets.Dataset):
+class Dataset(datasets.Dataset, Sequence[D]):
     def __init__(
         self,
-        document_type: Type[Document],
+        document_type: Type[D],
         arrow_table: datasets.table.Table,
         info: Optional[datasets.DatasetInfo] = None,
         split: Optional[datasets.NamedSplit] = None,
@@ -288,7 +277,7 @@ class Dataset(datasets.Dataset):
     def from_hf_dataset(
         cls,
         dataset: datasets.Dataset,
-        document_type: Type[Document],
+        document_type: Type[D],
         document_converters: Optional[DocumentConvertersType] = None,
     ) -> "Dataset":
         document_dataset = cls(

@@ -3,7 +3,7 @@ import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, Union
 
 import torch
 import tqdm
@@ -21,7 +21,6 @@ from pytorch_ie.core.taskmodule import (
     TaskModule,
     TaskOutput,
 )
-from pytorch_ie.data import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +203,7 @@ class Pipeline:
 
     def preprocess(
         self,
-        documents: Union[Sequence[Document], Dataset],
+        documents: Sequence[Document],
         document_batch_size: Optional[int] = None,
         **preprocess_parameters: Dict,
     ) -> Sequence[TaskEncoding]:
@@ -294,7 +293,7 @@ class Pipeline:
 
     def __call__(
         self,
-        documents: Union[Document, Sequence[Document], Dataset],
+        documents: Union[Document, Sequence[Document]],
         *args,
         **kwargs,
     ) -> Union[Document, Sequence[Document]]:
@@ -308,9 +307,9 @@ class Pipeline:
         ) = self._sanitize_parameters(**kwargs)
 
         in_place: bool = postprocess_params.get("inplace", True)
-        if in_place and isinstance(documents, Dataset):
+        if in_place and not isinstance(documents, (MutableSequence, Document)):
             raise InplaceNotSupportedException(
-                "Datasets can't be modified in place. Please set inplace=False."
+                "Immutable sequences of Documents (such as Datasets) can't be modified in place. Please set inplace=False."
             )
 
         if "TOKENIZERS_PARALLELISM" not in os.environ:
@@ -333,7 +332,7 @@ class Pipeline:
             )
 
         single_document = False
-        if not isinstance(documents, (Sequence, Dataset)):
+        if isinstance(documents, Document):
             single_document = True
             documents = [documents]
 
