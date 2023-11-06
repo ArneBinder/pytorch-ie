@@ -1,21 +1,8 @@
-import collections.abc
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from collections.abc import Iterable, Iterator, Sequence
+from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar, Union, overload
 
 import torch.utils.data.dataset as torch_dataset
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -25,7 +12,6 @@ from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
 from pytorch_ie.core.module_mixins import RequiresDocumentTypeMixin
 from pytorch_ie.core.registrable import Registrable
-from pytorch_ie.data import Dataset, IterableDataset
 
 """
 workflow:
@@ -116,9 +102,7 @@ class IterableTaskEncodingDataset(torch_dataset.IterableDataset[TaskEncodingType
         self._encodings = encodings
 
 
-class TaskEncodingSequence(
-    collections.abc.Sequence[TaskEncodingType], Generic[TaskEncodingType, DocumentType]
-):
+class TaskEncodingSequence(Sequence[TaskEncodingType], Generic[TaskEncodingType, DocumentType]):
     def __init__(
         self,
         task_encodings: Sequence[TaskEncodingType],
@@ -242,7 +226,7 @@ class TaskModule(
 
     def batch_encode(
         self,
-        documents: Union[Sequence[DocumentType], Dataset],
+        documents: Sequence[DocumentType],
         encode_target: bool,
         show_progress: bool = False,
     ) -> Tuple[
@@ -290,7 +274,7 @@ class TaskModule(
 
     def encode(
         self,
-        documents: Union[DocumentType, Sequence[DocumentType], Dataset, IterableDataset],
+        documents: Union[DocumentType, Iterable[DocumentType]],
         encode_target: bool = False,
         document_batch_size: Optional[int] = None,
         as_task_encoding_sequence: Optional[bool] = None,
@@ -310,11 +294,11 @@ class TaskModule(
         if as_task_encoding_sequence is None:
             as_task_encoding_sequence = not encode_target
 
-        if not isinstance(documents, (Sequence, Dataset, IterableDataset)):
-            documents = [documents]
+        if isinstance(documents, Document):
+            documents = [documents]  # type: ignore
 
         if as_iterator is None:
-            as_iterator = isinstance(documents, (IterableDataset, Iterator))
+            as_iterator = not isinstance(documents, Sequence)
 
         if document_batch_size is None:
             document_batch_size = self.encode_document_batch_size
@@ -368,7 +352,7 @@ class TaskModule(
 
     def encode_inputs(
         self,
-        documents: Union[Sequence[DocumentType], Dataset, IterableDataset],
+        documents: Sequence[DocumentType],
         is_training: bool = False,
         show_progress: bool = False,
     ) -> Tuple[
@@ -451,12 +435,7 @@ class TaskModule(
 
     def decode(
         self,
-        task_encodings: Union[
-            Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
-            TaskEncodingSequence[
-                TaskEncoding[DocumentType, InputEncoding, TargetEncoding], DocumentType
-            ],
-        ],
+        task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         task_outputs: Sequence[TaskOutput],
         inplace: bool = True,
     ) -> Sequence[DocumentType]:
