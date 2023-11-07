@@ -177,48 +177,6 @@ def tests_not_slow(session: Session) -> None:
             session.notify("coverage", posargs=[])
 
 
-@session(python=python_versions)
-def tests_no_local_datasets(session: Session) -> None:
-    """Run the test suite."""
-    session.install(".")
-    session.install("coverage[toml]", "pytest", "pygments", "sh")
-    try:
-        session.run(
-            "coverage",
-            "run",
-            "--parallel",
-            "-m",
-            "pytest",
-            "-k",
-            "not LocalDatasetTest",
-            *session.posargs,
-        )
-    finally:
-        if session.interactive:
-            session.notify("coverage", posargs=[])
-
-
-@session(python=python_versions)
-def tests_only_local_datasets(session: Session) -> None:
-    """Run the test suite."""
-    session.install(".")
-    session.install("coverage[toml]", "pytest", "pygments", "sh")
-    try:
-        session.run(
-            "coverage",
-            "run",
-            "--parallel",
-            "-m",
-            "pytest",
-            "-k",
-            "LocalDatasetTest",
-            *session.posargs,
-        )
-    finally:
-        if session.interactive:
-            session.notify("coverage", posargs=[])
-
-
 @session(python=python_versions[0])
 def coverage(session: Session) -> None:
     """Produce the coverage report."""
