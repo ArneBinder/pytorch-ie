@@ -1,4 +1,5 @@
 import dataclasses
+import json
 
 import datasets
 import pytest
@@ -102,8 +103,23 @@ def dataset(json_dataset):
 
 
 @pytest.fixture
-def documents(dataset):
-    return list(dataset["train"])
+def document_dataset():
+    result = {}
+    for path in (FIXTURES_ROOT / "datasets" / "json").iterdir():
+        loaded_data = json.load(open(path, "r"))["data"]
+        docs = [TestDocument.fromdict(example_to_doc_dict(ex)) for ex in loaded_data]
+        result[path.stem] = docs
+    return result
+
+
+@pytest.fixture
+def documents(document_dataset):
+    return document_dataset["train"]
+
+
+def test_documents(documents):
+    assert len(documents) == 8
+    assert all(isinstance(doc, TestDocument) for doc in documents)
 
 
 @pytest.fixture
