@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
-from pytorch_ie.core.module_mixins import RequiresDocumentTypeMixin
+from pytorch_ie.core.module_mixins import WithDocumentTypeMixin
 from pytorch_ie.core.registrable import Registrable
 
 """
@@ -133,7 +133,7 @@ class TaskModule(
     PieTaskModuleHFHubMixin,
     HyperparametersMixin,
     Registrable,
-    RequiresDocumentTypeMixin,
+    WithDocumentTypeMixin,
     Generic[
         DocumentType,
         InputEncoding,
