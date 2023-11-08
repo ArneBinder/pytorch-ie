@@ -4,16 +4,16 @@ import json
 import pytest
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from tests import FIXTURES_ROOT
 
 
 @dataclasses.dataclass
 class TestDocument(TextDocument):
-    sentences: AnnotationList[Span] = annotation_field(target="text")
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+    sentences: AnnotationLayer[Span] = annotation_field(target="text")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
 
 
 def example_to_doc_dict(example):

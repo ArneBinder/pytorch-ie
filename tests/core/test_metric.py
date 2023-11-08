@@ -4,7 +4,7 @@ from typing import Optional
 import pytest
 
 from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.core import AnnotationList, Document, DocumentMetric, annotation_field
+from pytorch_ie.core import AnnotationLayer, Document, DocumentMetric, annotation_field
 from pytorch_ie.documents import TextBasedDocument
 
 
@@ -12,7 +12,7 @@ from pytorch_ie.documents import TextBasedDocument
 def documents():
     @dataclass
     class TextDocumentWithEntities(TextBasedDocument):
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
     # a test sentence with two entities
     doc1 = TextDocumentWithEntities(

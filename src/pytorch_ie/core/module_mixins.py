@@ -6,7 +6,7 @@ from pytorch_ie.core.document import Document
 logger = logging.getLogger(__name__)
 
 
-class RequiresDocumentTypeMixin:
+class WithDocumentTypeMixin:
 
     DOCUMENT_TYPE: Optional[Type[Document]] = None
 

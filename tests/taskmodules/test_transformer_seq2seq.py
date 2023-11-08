@@ -7,7 +7,7 @@ from transformers import BatchEncoding
 
 from pytorch_ie import TransformerSeq2SeqTaskModule
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 
 
@@ -30,8 +30,8 @@ def test_taskmodule(taskmodule):
 
 @dataclass
 class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
 
 
 @pytest.fixture(scope="module")

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSeq2SeqModel
 from pytorch_ie.pipeline import Pipeline
@@ -12,8 +12,8 @@ from pytorch_ie.taskmodules import TransformerSeq2SeqTaskModule
 
 @dataclass
 class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
 
 
 @pytest.mark.slow

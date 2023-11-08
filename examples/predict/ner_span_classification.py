@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.pipeline import Pipeline
@@ -10,7 +10,7 @@ from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 @dataclass
 class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
 
 def main():
