@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
-from pytorch_ie.core.module_mixins import WithDocumentTypeMixin
+from pytorch_ie.core.module_mixins import WithDocumentTypeMixin, RequiresDocumentTypeMixin
 from pytorch_ie.core.registrable import Registrable
 
 """
@@ -134,6 +134,7 @@ class TaskModule(
     HyperparametersMixin,
     Registrable,
     WithDocumentTypeMixin,
+    PreparableMixin,
     Generic[
         DocumentType,
         InputEncoding,
@@ -148,62 +149,6 @@ class TaskModule(
     def __init__(self, encode_document_batch_size: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
         self.encode_document_batch_size = encode_document_batch_size
-
-    @property
-    def is_prepared(self):
-        """
-        Returns True, iff all attributes listed in PREPARED_ATTRIBUTES are set.
-        Note: Attributes set to None are not considered to be prepared!
-        """
-        return all(
-            getattr(self, attribute, None) is not None for attribute in self.PREPARED_ATTRIBUTES
-        )
-
-    @property
-    def prepared_attributes(self):
-        if not self.is_prepared:
-            raise Exception("The taskmodule is not prepared.")
-        return {param: getattr(self, param) for param in self.PREPARED_ATTRIBUTES}
-
-    def _prepare(self, documents: Sequence[DocumentType]):
-        """
-        This method needs to set all attributes listed in PREPARED_ATTRIBUTES.
-        """
-        pass
-
-    def _post_prepare(self):
-        """
-        Any code to do further one-time setup, but that requires the prepared attributes.
-        """
-        pass
-
-    def _assert_is_prepared(self, msg: Optional[str] = None):
-        if not self.is_prepared:
-            attributes_not_prepared = [
-                param for param in self.PREPARED_ATTRIBUTES if getattr(self, param, None) is None
-            ]
-            raise Exception(
-                f"{msg or ''} Required attributes that are not set: {str(attributes_not_prepared)}"
-            )
-
-    def post_prepare(self):
-        self._assert_is_prepared()
-        self._post_prepare()
-
-    def prepare(self, documents: Sequence[DocumentType]) -> None:
-        if self.is_prepared:
-            if len(self.PREPARED_ATTRIBUTES) > 0:
-                msg = "The taskmodule is already prepared, do not prepare again."
-                for k, v in self.prepared_attributes.items():
-                    msg += f"\n{k} = {str(v)}"
-                logger.warning(msg)
-        else:
-            self._prepare(documents)
-            self._assert_is_prepared(
-                msg="_prepare() was called, but the taskmodule is not prepared."
-            )
-        self._post_prepare()
-        return None
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config() or {}
@@ -220,7 +165,7 @@ class TaskModule(
         *args,
         **kwargs,
     ):
-        taskmodule = super()._from_pretrained(*args, **kwargs)
+        taskmodule: TaskModule = super()._from_pretrained(*args, **kwargs)
         taskmodule._post_prepare()
         return taskmodule
 
