@@ -148,7 +148,7 @@ The content of `self.target` is lazily assigned as soon as the annotation is add
 Note that this now expects a single `collections.abc.Sequence` as `target`, e.g.:
 
 ```python
-my_spans: AnnotationList[Span] = annotation_field(target="<NAME_OF_THE_SEQUENCE_FIELD>")
+my_spans: AnnotationLayer[Span] = annotation_field(target="<NAME_OF_THE_SEQUENCE_FIELD>")
 ```
 
 If we have multiple targets, we need to define target names to access them. For this, we need to set the special
@@ -179,7 +179,7 @@ class MyDocumentWithAlignment(Document):
     text_a: str
     text_b: str
     # `named_targets` defines the mapping from `TARGET_NAMES` to data fields
-    my_alignments: AnnotationList[Alignment] = annotation_field(named_targets={"text1": "text_a", "text2": "text_b"})
+    my_alignments: AnnotationLayer[Alignment] = annotation_field(named_targets={"text1": "text_a", "text2": "text_b"})
 ```
 
 Note that `text1` and `text2` can also target the same field.
@@ -554,7 +554,7 @@ print(dataset["train"][0])
 # >>> CoNLL2003Document(text='EU rejects German call to boycott British lamb .', id='0', metadata={})
 
 dataset["train"][0].entities
-# >>> AnnotationList([LabeledSpan(start=0, end=2, label='ORG', score=1.0), LabeledSpan(start=11, end=17, label='MISC', score=1.0), LabeledSpan(start=34, end=41, label='MISC', score=1.0)])
+# >>> AnnotationLayer([LabeledSpan(start=0, end=2, label='ORG', score=1.0), LabeledSpan(start=11, end=17, label='MISC', score=1.0), LabeledSpan(start=34, end=41, label='MISC', score=1.0)])
 
 entity = dataset["train"][0].entities[1]
 
@@ -575,12 +575,12 @@ dataset from that, you have to implement:
 ```python
 @dataclass
 class CoNLL2003Document(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 ```
 
 Here we derive from `TextDocument` that has a simple `text` string as base annotation target. The `CoNLL2003Document`
 adds one single annotation list called `entities` that consists of `LabeledSpan`s which reference the `text` field of
-the document. You can add further annotation types by adding `AnnotationList` fields that may also reference (i.e.
+the document. You can add further annotation types by adding `AnnotationLayer` fields that may also reference (i.e.
 `target`) other annotations as you like. See ['pytorch_ie.annotations`](src/pytorch_ie/annotations.py) for predefined
 annotation types.
 
