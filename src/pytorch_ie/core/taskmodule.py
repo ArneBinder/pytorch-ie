@@ -233,6 +233,8 @@ class TaskModule(
         TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
         IterableTaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
     ]:
+        self.assert_is_prepared()
+
         # backwards compatibility
         if as_task_encoding_sequence is None:
             as_task_encoding_sequence = not encode_target
