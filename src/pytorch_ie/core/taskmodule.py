@@ -134,6 +134,7 @@ class TaskModule(
     HyperparametersMixin,
     Registrable,
     WithDocumentTypeMixin,
+    PreparableMixin,
     Generic[
         DocumentType,
         InputEncoding,
@@ -155,6 +156,16 @@ class TaskModule(
         # add all prepared attributes
         config.update(self.prepared_attributes)
         return config
+
+    @classmethod
+    def _from_pretrained(
+        cls,
+        *args,
+        **kwargs,
+    ):
+        taskmodule: TaskModule = super()._from_pretrained(*args, **kwargs)
+        taskmodule.post_prepare()
+        return taskmodule
 
     def batch_encode(
         self,

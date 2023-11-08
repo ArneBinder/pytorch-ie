@@ -11,8 +11,6 @@ from huggingface_hub.file_download import hf_hub_download
 from huggingface_hub.hf_api import HfApi
 from huggingface_hub.utils import SoftTemporaryDirectory, validate_hf_hub_args
 
-from pytorch_ie.core.module_mixins import PreparableMixin
-
 logger = logging.getLogger(__name__)
 
 MODEL_CONFIG_NAME = CONFIG_NAME
@@ -399,7 +397,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         return model
 
 
-class PieTaskModuleHFHubMixin(PieBaseHFHubMixin, PreparableMixin):
+class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
     config_name = TASKMODULE_CONFIG_NAME
     config_type_key = TASKMODULE_CONFIG_TYPE_KEY
 
@@ -432,6 +430,4 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin, PreparableMixin):
             config.pop(cls.config_type_key)
 
         taskmodule = cls(**config)
-        taskmodule.post_prepare()
-
         return taskmodule
