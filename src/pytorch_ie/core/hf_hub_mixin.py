@@ -407,9 +407,6 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
     def _save_pretrained(self, save_directory):
         return None
 
-    def post_prepare(self) -> None:
-        pass
-
     @classmethod
     def _from_pretrained(
         cls,
@@ -433,6 +430,4 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
             config.pop(cls.config_type_key)
 
         taskmodule = cls(**config)
-        taskmodule.post_prepare()
-
         return taskmodule
