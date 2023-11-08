@@ -175,10 +175,8 @@ class TaskModule(
     ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]], Sequence[DocumentType]
     ]:
-        ## TODO: revisit the assumption that encode_target=True always implies that
-        ## is_training=True
         task_encodings, documents_in_order = self.encode_inputs(
-            documents, is_training=encode_target, show_progress=show_progress
+            documents, show_progress=show_progress
         )
 
         if encode_target:
@@ -298,7 +296,6 @@ class TaskModule(
     def encode_inputs(
         self,
         documents: Sequence[DocumentType],
-        is_training: bool = False,
         show_progress: bool = False,
     ) -> Tuple[
         Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
@@ -310,7 +307,7 @@ class TaskModule(
             # a document might be generated on the fly (e.g. with a Dataset), so we add it here
             documents_in_order.append(document)
 
-            possible_task_encodings = self.encode_input(document, is_training)
+            possible_task_encodings = self.encode_input(document)
 
             # encode_input returns None or an empty list
             if possible_task_encodings is None or not possible_task_encodings:
@@ -328,7 +325,6 @@ class TaskModule(
     def encode_input(
         self,
         document: DocumentType,
-        is_training: bool = False,
     ) -> Optional[
         Union[
             TaskEncoding[DocumentType, InputEncoding, TargetEncoding],
