@@ -33,12 +33,12 @@ python = "^3.9"
 torch = ">=1.10"
 pytorch-lightning = "^2"
 torchmetrics = "^1"
-datasets = "^2.13"
 transformers = "^4.18"
 # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
 fsspec = "<2023.9.0"
 # required for testing, but, strangely, tests fail, if just in dev-dependencies
 absl-py = "^1.0.0"
+pandas = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"

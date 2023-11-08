@@ -2,7 +2,6 @@ import logging
 from typing import Optional, Type
 
 from pytorch_ie.core.document import Document
-from pytorch_ie.data.dataset_dict import DatasetDict
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,7 @@ class RequiresDocumentTypeMixin:
     def document_type(self) -> Optional[Type[Document]]:
         return self.DOCUMENT_TYPE
 
-    def convert_dataset(self, dataset: DatasetDict) -> DatasetDict:
+    def convert_dataset(self, dataset: "pie_datasets.DatasetDict") -> "pie_datasets.DatasetDict":  # type: ignore
         name = type(self).__name__
         # auto-convert the dataset if a document type is specified
         if self.document_type is not None:

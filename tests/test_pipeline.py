@@ -1,12 +1,9 @@
-import re
-
 import pytest
 import torch
 import transformers
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 import pytorch_ie.models.modules.mlp
-from pytorch_ie.core.taskmodule import InplaceNotSupportedException
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.pipeline import Pipeline
 from pytorch_ie.taskmodules.transformer_span_classification import (
@@ -119,32 +116,6 @@ def test_pipeline_with_documents(documents, prepared_taskmodule, mock_model, inp
             assert document.entities.predictions
             assert returned_document.entities.predictions
         else:
-            assert not (id(returned_document) == id(document))
-            assert not document.entities.predictions
-            assert returned_document.entities.predictions
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("inplace", [False, True])
-def test_pipeline_with_dataset(dataset, prepared_taskmodule, mock_model, inplace):
-    train_dataset = dataset["train"]
-
-    pipeline = Pipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
-
-    if inplace:
-        with pytest.raises(
-            InplaceNotSupportedException,
-            match=re.escape(
-                "Immutable sequences of Documents (such as Datasets) can't be modified in place. Please set inplace=False."
-            ),
-        ):
-            returned_documents = pipeline(train_dataset, inplace=inplace)
-    else:
-        returned_documents = pipeline(train_dataset, inplace=inplace)
-
-        assert len(train_dataset) == len(returned_documents)
-
-        for returned_document, document in zip(returned_documents, train_dataset):
             assert not (id(returned_document) == id(document))
             assert not document.entities.predictions
             assert returned_document.entities.predictions
