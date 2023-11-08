@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
 from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
-from pytorch_ie.core.module_mixins import WithDocumentTypeMixin, RequiresDocumentTypeMixin
+from pytorch_ie.core.module_mixins import PreparableMixin, WithDocumentTypeMixin
 from pytorch_ie.core.registrable import Registrable
 
 """
