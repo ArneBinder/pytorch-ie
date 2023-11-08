@@ -5,7 +5,7 @@ from typing import Optional
 import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
 from pytorch_ie.documents import TextDocument, TokenBasedDocument
 
@@ -42,15 +42,15 @@ def test_text_document():
 def test_document_with_annotations():
     @dataclasses.dataclass
     class TestDocument(TextDocument):
-        sentences: AnnotationList[Span] = annotation_field(target="text")
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
-        label: AnnotationList[Label] = annotation_field()
+        sentences: AnnotationLayer[Span] = annotation_field(target="text")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
+        label: AnnotationLayer[Label] = annotation_field()
 
     document1 = TestDocument(text="test1")
-    assert isinstance(document1.sentences, AnnotationList)
-    assert isinstance(document1.entities, AnnotationList)
-    assert isinstance(document1.relations, AnnotationList)
+    assert isinstance(document1.sentences, AnnotationLayer)
+    assert isinstance(document1.entities, AnnotationLayer)
+    assert isinstance(document1.relations, AnnotationLayer)
     assert len(document1.sentences) == 0
     assert len(document1.entities) == 0
     assert len(document1.relations) == 0
@@ -141,10 +141,10 @@ def test_document_with_same_annotations():
         text: str
         text2: str
         text3: str
-        tokens0: AnnotationList[Span] = annotation_field(target="text")
-        tokens1: AnnotationList[Span] = annotation_field(target="text")
-        tokens2: AnnotationList[Span] = annotation_field(target="text2")
-        tokens3: AnnotationList[Span] = annotation_field(target="text3")
+        tokens0: AnnotationLayer[Span] = annotation_field(target="text")
+        tokens1: AnnotationLayer[Span] = annotation_field(target="text")
+        tokens2: AnnotationLayer[Span] = annotation_field(target="text2")
+        tokens3: AnnotationLayer[Span] = annotation_field(target="text3")
 
     doc = TestDocument(text="test1", text2="test1", text3="test2")
     start = 0
@@ -175,18 +175,18 @@ def test_document_with_same_annotations():
 def test_as_type():
     @dataclasses.dataclass
     class TestDocument1(TextDocument):
-        sentences: AnnotationList[Span] = annotation_field(target="text")
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        sentences: AnnotationLayer[Span] = annotation_field(target="text")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
     @dataclasses.dataclass
     class TestDocument2(TextDocument):
-        sentences: AnnotationList[Span] = annotation_field(target="text")
-        ents: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        sentences: AnnotationLayer[Span] = annotation_field(target="text")
+        ents: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
     @dataclasses.dataclass
     class TestDocument3(TextDocument):
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
 
     # create input document with "sentences" and "relations"
     document1 = TestDocument1(text="test1")
@@ -238,7 +238,7 @@ def test_enumerate_dependencies_with_circle():
 def test_annotation_list_wrong_target():
     @dataclasses.dataclass
     class TestDocument(TextDocument):
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="does_not_exist")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="does_not_exist")
 
     with pytest.raises(
         TypeError,
@@ -252,7 +252,7 @@ def test_annotation_list_wrong_target():
 def test_annotation_list():
     @dataclasses.dataclass
     class TestDocument(TextDocument):
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
     document = TestDocument(text="Entity A works at B.")
 
@@ -272,7 +272,7 @@ def test_annotation_list():
     document.entities.predictions.append(entity3)
     document.entities.predictions.append(entity4)
 
-    assert isinstance(document.entities, AnnotationList)
+    assert isinstance(document.entities, AnnotationLayer)
     assert len(document.entities) == 2
     assert document.entities[0] == entity1
     assert document.entities[1] == entity2
@@ -307,12 +307,12 @@ def test_annotation_list():
 def test_annotation_list_with_multiple_targets():
     @dataclasses.dataclass
     class TestDocument(TextDocument):
-        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        relations: AnnotationList[BinaryRelation] = annotation_field(
+        entities1: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationLayer[BinaryRelation] = annotation_field(
             targets=["entities1", "entities2"]
         )
-        label: AnnotationList[Label] = annotation_field()
+        label: AnnotationLayer[Label] = annotation_field()
 
     doc = TestDocument(text="test1")
 
@@ -386,10 +386,10 @@ def test_annotation_list_with_named_targets():
     class TestDocument(Document):
         texta: str
         textb: str
-        entities1: AnnotationList[LabeledSpan] = annotation_field(target="texta")
-        entities2: AnnotationList[LabeledSpan] = annotation_field(target="textb")
+        entities1: AnnotationLayer[LabeledSpan] = annotation_field(target="texta")
+        entities2: AnnotationLayer[LabeledSpan] = annotation_field(target="textb")
         # note that the entries in targets do not follow the order of DoubleTextSpan.TARGET_NAMES
-        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(
+        crossrefs: AnnotationLayer[DoubleTextSpan] = annotation_field(
             named_targets={"text2": "textb", "text1": "texta"}
         )
 
@@ -446,7 +446,7 @@ def test_annotation_list_with_named_targets_mismatch_error():
     @dataclasses.dataclass
     class TestDocument(Document):
         text: str
-        entities1: AnnotationList[TextSpan] = annotation_field(named_targets={"textx": "text"})
+        entities1: AnnotationLayer[TextSpan] = annotation_field(named_targets={"textx": "text"})
 
     with pytest.raises(
         TypeError,
@@ -461,17 +461,15 @@ def test_annotation_list_with_missing_target_names():
         texta: str
         textb: str
         # note that the entries in targets do not follow the order of DoubleTextSpan.TARGET_NAMES
-        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(targets=["textb", "texta"])
+        crossrefs: AnnotationLayer[DoubleTextSpan] = annotation_field(targets=["textb", "texta"])
 
-    with pytest.raises(
-        TypeError,
-        match=re.escape(
-            "A target name mapping is required for AnnotationLists containing Annotations with TARGET_NAMES, but "
-            'AnnotationList "crossrefs" has no target_names. You should pass the named_targets dict containing the '
-            "following keys (see Annotation \"DoubleTextSpan\") to annotation_field: ('text1', 'text2')"
-        ),
-    ):
+    with pytest.raises(TypeError) as excinfo:
         doc = TestDocument(texta="text1", textb="text2")
+    assert str(excinfo.value) == (
+        "A target name mapping is required for AnnotationLayers containing Annotations with TARGET_NAMES, but "
+        'AnnotationLayer "crossrefs" has no target_names. You should pass the named_targets dict containing the '
+        "following keys (see Annotation \"DoubleTextSpan\") to annotation_field: ('text1', 'text2')"
+    )
 
 
 def test_annotation_list_number_of_targets_mismatch_error():
@@ -479,7 +477,7 @@ def test_annotation_list_number_of_targets_mismatch_error():
     class TestDocument(Document):
         texta: str
         textb: str
-        crossrefs: AnnotationList[DoubleTextSpan] = annotation_field(target="texta")
+        crossrefs: AnnotationLayer[DoubleTextSpan] = annotation_field(target="texta")
 
     with pytest.raises(
         TypeError,
@@ -495,13 +493,13 @@ def test_annotation_list_artificial_root_error():
     @dataclasses.dataclass
     class TestDocument(Document):
         text: str
-        _artificial_root: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        _artificial_root: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
     with pytest.raises(
         ValueError,
         match=re.escape(
             'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note '
-            "that AnnotationList entries with that name are not allowed."
+            "that AnnotationLayer entries with that name are not allowed."
         ),
     ):
         doc = TestDocument(text="text1")
@@ -511,10 +509,10 @@ def test_annotation_list_targets():
     @dataclasses.dataclass
     class TestDocument(Document):
         text: str
-        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        relations1: AnnotationList[BinaryRelation] = annotation_field(target="entities1")
-        relations2: AnnotationList[BinaryRelation] = annotation_field(
+        entities1: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        relations1: AnnotationLayer[BinaryRelation] = annotation_field(target="entities1")
+        relations2: AnnotationLayer[BinaryRelation] = annotation_field(
             targets=["entities1", "entities2"]
         )
 
@@ -584,7 +582,7 @@ def test_annotation_compare():
     # assert that nothing changes when adding the annotation to a document
     @dataclasses.dataclass
     class TestDocument(TextDocument):
-        annotations: AnnotationList[TestAnnotation] = annotation_field(target="text")
+        annotations: AnnotationLayer[TestAnnotation] = annotation_field(target="text")
 
     id0 = annotation0._id
     hash0 = hash(annotation0)
@@ -619,13 +617,13 @@ class Attribute(Annotation):
 def text_document():
     @dataclasses.dataclass
     class TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(TextDocument):
-        entities1: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        entities2: AnnotationList[LabeledSpan] = annotation_field(target="text")
-        relations: AnnotationList[BinaryRelation] = annotation_field(
+        entities1: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        entities2: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+        relations: AnnotationLayer[BinaryRelation] = annotation_field(
             targets=["entities1", "entities2"]
         )
-        labels: AnnotationList[Label] = annotation_field()
-        relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+        labels: AnnotationLayer[Label] = annotation_field()
+        relation_attributes: AnnotationLayer[Attribute] = annotation_field(target="relations")
 
     doc1 = TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(text="Hello World!")
     e1 = LabeledSpan(0, 5, "word1")
@@ -660,13 +658,13 @@ def test_document_extend_from_other_wrong_override_annotation_mapping(text_docum
 def test_document_extend_from_other_override(text_document):
     @dataclasses.dataclass
     class TestDocument2(TokenBasedDocument):
-        entities1: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
-        entities2: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
-        relations: AnnotationList[BinaryRelation] = annotation_field(
+        entities1: AnnotationLayer[LabeledSpan] = annotation_field(target="tokens")
+        entities2: AnnotationLayer[LabeledSpan] = annotation_field(target="tokens")
+        relations: AnnotationLayer[BinaryRelation] = annotation_field(
             targets=["entities1", "entities2"]
         )
-        labels: AnnotationList[Label] = annotation_field()
-        relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+        labels: AnnotationLayer[Label] = annotation_field()
+        relation_attributes: AnnotationLayer[Attribute] = annotation_field(target="relations")
 
     token_document = TestDocument2(tokens=("Hello", "World", "!"))
     # create new entities

@@ -36,7 +36,7 @@ from pytorch_ie.annotations import (
     NaryRelation,
     Span,
 )
-from pytorch_ie.core import AnnotationList, Document, TaskEncoding, TaskModule
+from pytorch_ie.core import AnnotationLayer, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import (
     TextDocument,
     TextDocumentWithLabeledSpansAndBinaryRelations,
@@ -232,11 +232,11 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
             )
             return None
 
-    def get_relation_layer(self, document: Document) -> AnnotationList[BinaryRelation]:
+    def get_relation_layer(self, document: Document) -> AnnotationLayer[BinaryRelation]:
         return document[self.relation_annotation]
 
-    def get_entity_layer(self, document: Document) -> AnnotationList[LabeledSpan]:
-        relations: AnnotationList[BinaryRelation] = self.get_relation_layer(document)
+    def get_entity_layer(self, document: Document) -> AnnotationLayer[LabeledSpan]:
+        relations: AnnotationLayer[BinaryRelation] = self.get_relation_layer(document)
         if len(relations._targets) != 1:
             raise Exception(
                 f"the relation layer is expected to target exactly one entity layer, but it has "
@@ -249,8 +249,8 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
         entity_labels: Set[str] = set()
         relation_labels: Set[str] = set()
         for document in documents:
-            relations: AnnotationList[BinaryRelation] = self.get_relation_layer(document)
-            entities: AnnotationList[LabeledSpan] = self.get_entity_layer(document)
+            relations: AnnotationLayer[BinaryRelation] = self.get_relation_layer(document)
+            entities: AnnotationLayer[LabeledSpan] = self.get_entity_layer(document)
 
             for entity in entities:
                 entity_labels.add(entity.label)
@@ -303,8 +303,8 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
         document: Document,
     ) -> List[BinaryRelation]:
         relation_candidates: List[BinaryRelation] = []
-        relations: AnnotationList[BinaryRelation] = self.get_relation_layer(document)
-        entities: AnnotationList[LabeledSpan] = self.get_entity_layer(document)
+        relations: AnnotationLayer[BinaryRelation] = self.get_relation_layer(document)
+        entities: AnnotationLayer[LabeledSpan] = self.get_entity_layer(document)
         arguments_to_relation = {(rel.head, rel.tail): rel for rel in relations}
         # iterate over all possible argument candidates
         for head in entities:

@@ -8,7 +8,7 @@ from transformers import BatchEncoding
 
 from pytorch_ie import SimpleTransformerTextClassificationTaskModule
 from pytorch_ie.annotations import Label
-from pytorch_ie.core import AnnotationList, Document, annotation_field
+from pytorch_ie.core import AnnotationLayer, Document, annotation_field
 
 
 def _config_to_str(cfg: Dict[str, Any]) -> str:
@@ -55,7 +55,7 @@ def test_taskmodule(unprepared_taskmodule):
 @dataclass
 class ExampleDocument(Document):
     text: str
-    label: AnnotationList[Label] = annotation_field()
+    label: AnnotationLayer[Label] = annotation_field()
 
 
 @pytest.fixture(scope="module")

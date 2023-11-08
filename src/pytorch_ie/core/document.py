@@ -118,7 +118,7 @@ def _get_reference_fields_and_container_types(
 
 
 def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.Field]:
-    return {field for field in fields if typing.get_origin(field.type) is AnnotationList}
+    return {field for field in fields if typing.get_origin(field.type) is AnnotationLayer}
 
 
 def annotation_field(
@@ -157,7 +157,7 @@ def annotation_field(
 
 
 # for now, we only have annotation lists and texts
-TARGET_TYPE = Union["AnnotationList", str]
+TARGET_TYPE = Union["AnnotationLayer", str]
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -426,15 +426,15 @@ class BaseAnnotationList(Sequence[T]):
         return list(tgts.values())[0]
 
     @property
-    def target_layers(self) -> dict[str, "AnnotationList"]:
+    def target_layers(self) -> dict[str, "AnnotationLayer"]:
         return {
             target_name: target
             for target_name, target in self.targets.items()
-            if isinstance(target, AnnotationList)
+            if isinstance(target, AnnotationLayer)
         }
 
     @property
-    def target_layer(self) -> "AnnotationList":
+    def target_layer(self) -> "AnnotationLayer":
         tgt_layers = self.target_layers
         if len(tgt_layers) != 1:
             raise ValueError(
@@ -443,7 +443,7 @@ class BaseAnnotationList(Sequence[T]):
         return list(tgt_layers.values())[0]
 
 
-class AnnotationList(BaseAnnotationList[T]):
+class AnnotationLayer(BaseAnnotationList[T]):
     def __init__(self, document: "Document", targets: List["str"]):
         super().__init__(document=document, targets=targets)
         self._predictions: BaseAnnotationList[T] = BaseAnnotationList(document, targets=targets)
@@ -453,13 +453,13 @@ class AnnotationList(BaseAnnotationList[T]):
         return self._predictions
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, AnnotationList):
+        if not isinstance(other, AnnotationLayer):
             return NotImplemented
 
         return super().__eq__(other) and self.predictions == other.predictions
 
     def __repr__(self) -> str:
-        return f"AnnotationList({str(self._annotations)})"
+        return f"AnnotationLayer({str(self._annotations)})"
 
 
 D = TypeVar("D", bound="Document")
@@ -485,7 +485,7 @@ class Document(Mapping[str, Any]):
     def annotation_fields(cls):
         return _get_annotation_fields(list(dataclasses.fields(cls)))
 
-    def __getitem__(self, key: str) -> AnnotationList:
+    def __getitem__(self, key: str) -> AnnotationLayer:
         if key not in self._annotation_fields:
             raise KeyError(f"Document has no attribute '{key}'.")
         return getattr(self, key)
@@ -505,7 +505,7 @@ class Document(Mapping[str, Any]):
 
             field_origin = typing.get_origin(field.type)
 
-            if field_origin is AnnotationList:
+            if field_origin is AnnotationLayer:
                 self._annotation_fields.add(field.name)
 
                 targets = field.metadata.get("targets")
@@ -519,7 +519,7 @@ class Document(Mapping[str, Any]):
                             f'annotation target "{target}" is not in field names of the document: {field_names}'
                         )
 
-                # check annotation target names and use them together with target names from the AnnotationList
+                # check annotation target names and use them together with target names from the AnnotationLayer
                 # to reorder targets, if available
                 target_names = field.metadata.get("target_names")
                 annotation_type = typing.get_args(field.type)[0]
@@ -547,8 +547,8 @@ class Document(Mapping[str, Any]):
                         # disallow multiple targets when target names are specified in the definition of the Annotation
                         if len(annotation_target_names) > 1:
                             raise TypeError(
-                                f"A target name mapping is required for AnnotationLists containing Annotations with "
-                                f'TARGET_NAMES, but AnnotationList "{field.name}" has no target_names. You should '
+                                f"A target name mapping is required for AnnotationLayers containing Annotations with "
+                                f'TARGET_NAMES, but AnnotationLayer "{field.name}" has no target_names. You should '
                                 f"pass the named_targets dict containing the following keys (see Annotation "
                                 f'"{annotation_type.__name__}") to annotation_field: {annotation_target_names}'
                             )
@@ -559,7 +559,7 @@ class Document(Mapping[str, Any]):
         if "_artificial_root" in self._annotation_graph:
             raise ValueError(
                 'Failed to add the "_artificial_root" node to the annotation graph because it already exists. Note '
-                "that AnnotationList entries with that name are not allowed."
+                "that AnnotationLayer entries with that name are not allowed."
             )
         self._annotation_graph["_artificial_root"] = list(self._annotation_fields - targeted)
 
@@ -568,7 +568,7 @@ class Document(Mapping[str, Any]):
         for field in self.fields():
             value = getattr(self, field.name)
 
-            if isinstance(value, AnnotationList):
+            if isinstance(value, AnnotationLayer):
                 dct[field.name] = {
                     "annotations": [v.asdict() for v in value],
                     "predictions": [v.asdict() for v in value.predictions],
@@ -621,7 +621,7 @@ class Document(Mapping[str, Any]):
                 continue
 
             # TODO: handle single annotations, e.g. a document-level label
-            if typing.get_origin(field.type) is AnnotationList:
+            if typing.get_origin(field.type) is AnnotationLayer:
                 annotation_class = typing.get_args(field.type)[0]
                 # build annotations
                 for annotation_data in value["annotations"]:
@@ -718,15 +718,15 @@ class Document(Mapping[str, Any]):
 
                 @dataclasses.dataclass
                 class TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(TextBasedDocument):
-                    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-                    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
-                    relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+                    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+                    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
+                    relation_attributes: AnnotationLayer[Attribute] = annotation_field(target="relations")
 
                 @dataclasses.dataclass
                 class TokenBasedDocumentWithEntitiesRelationsAndRelationAttributes(TokenBasedDocument):
-                    entities: AnnotationList[LabeledSpan] = annotation_field(target="tokens")
-                    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
-                    relation_attributes: AnnotationList[Attribute] = annotation_field(target="relations")
+                    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="tokens")
+                    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
+                    relation_attributes: AnnotationLayer[Attribute] = annotation_field(target="relations")
 
 
                 doc_text = TextBasedDocumentWithEntitiesRelationsAndRelationAttributes(text="Hello World!")

@@ -8,7 +8,7 @@ from transformers import BatchEncoding
 
 from pytorch_ie import TransformerTokenClassificationTaskModule
 from pytorch_ie.annotations import LabeledSpan, Span
-from pytorch_ie.core import AnnotationList, Document, annotation_field
+from pytorch_ie.core import AnnotationLayer, Document, annotation_field
 
 
 def _config_to_str(cfg: Dict[str, Any]) -> str:
@@ -58,8 +58,8 @@ def unprepared_taskmodule(config):
 @dataclass
 class ExampleDocument(Document):
     text: str
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    sentences: AnnotationList[Span] = annotation_field(target="text")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+    sentences: AnnotationLayer[Span] = annotation_field(target="text")
 
 
 @pytest.fixture(scope="module")

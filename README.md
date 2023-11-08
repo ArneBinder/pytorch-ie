@@ -85,16 +85,17 @@ elements:
 
 ```python
 from typing import Optional
-from pytorch_ie.core import Document, AnnotationList, annotation_field
+from pytorch_ie.core import Document, AnnotationLayer, annotation_field
 from pytorch_ie.annotations import LabeledSpan, BinaryRelation, Label
+
 
 class MyDocument(Document):
     # data fields (any field that is targeted by an annotation fields)
     text: str
     # annotation fields
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
-    label: AnnotationList[Label] = annotation_field()
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
+    label: AnnotationLayer[Label] = annotation_field()
     # other fields
     doc_id: Optional[str] = None
 ```
@@ -319,12 +320,14 @@ from dataclasses import dataclass
 
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.auto import AutoPipeline
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
+
 
 @dataclass
 class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+
 
 document = ExampleDocument(
     "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
@@ -390,14 +393,15 @@ from dataclasses import dataclass
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.auto import AutoPipeline
-from pytorch_ie.core import AnnotationList, annotation_field
+from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 
 
 @dataclass
 class ExampleDocument(TextDocument):
-    entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
-    relations: AnnotationList[BinaryRelation] = annotation_field(target="entities")
+    entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+    relations: AnnotationLayer[BinaryRelation] = annotation_field(target="entities")
+
 
 document = ExampleDocument(
     "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."

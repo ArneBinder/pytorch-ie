@@ -6,7 +6,7 @@ import pytest
 
 from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
-    AnnotationList,
+    AnnotationLayer,
     Document,
     _contains_annotation_type,
     _get_reference_fields_and_container_types,
@@ -269,7 +269,7 @@ def test_annotation_is_attached():
     @dataclasses.dataclass
     class MyDocument(Document):
         text: str
-        words: AnnotationList[Span] = annotation_field(target="text")
+        words: AnnotationLayer[Span] = annotation_field(target="text")
 
     document = MyDocument(text="Hello world!")
     word = Span(start=0, end=5)
@@ -292,8 +292,8 @@ def test_annotation_copy():
     @dataclasses.dataclass
     class MyDocument(Document):
         text: str
-        words: AnnotationList[Span] = annotation_field(target="text")
-        attributes: AnnotationList[Attribute] = annotation_field(target="words")
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+        attributes: AnnotationLayer[Attribute] = annotation_field(target="words")
 
     document = MyDocument(text="Hello world!")
     word = Span(start=0, end=5)

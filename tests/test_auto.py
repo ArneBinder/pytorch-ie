@@ -4,7 +4,7 @@ import pytest
 
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.auto import AutoModel, AutoPipeline, AutoTaskModule
-from pytorch_ie.core import AnnotationList, TaskModule, annotation_field
+from pytorch_ie.core import AnnotationLayer, TaskModule, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
@@ -61,7 +61,7 @@ def test_auto_model():
 def test_auto_pipeline():
     @dataclass
     class ExampleDocument(TextDocument):
-        entities: AnnotationList[LabeledSpan] = annotation_field(target="text")
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
     pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
 
