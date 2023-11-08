@@ -92,8 +92,6 @@ class PreparableMixin:
                 logger.warning(msg)
         else:
             self._prepare(*args, **kwargs)
-            self._assert_is_prepared(
-                msg="_prepare() was called, but the module is not prepared."
-            )
+            self._assert_is_prepared(msg="_prepare() was called, but the module is not prepared.")
         self._post_prepare()
         return None
