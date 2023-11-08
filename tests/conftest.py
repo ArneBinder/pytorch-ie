@@ -42,6 +42,7 @@ def example_to_doc_dict(example):
     return doc.asdict()
 
 
+@pytest.fixture
 def document_dataset():
     result = {}
     for path in (FIXTURES_ROOT / "datasets" / "json").iterdir():
