@@ -543,25 +543,9 @@ trainer.fit(model, train_dataloader, val_dataloader)
 
 ## 📚 Datasets
 
-We parse all datasets into a common format that can be loaded directly from the model hub via Huggingface datasets. The documents are cached in an arrow table and serialized / deserialized on the fly. Any changes or preprocessing applied to the documents will be cached as well.
-TODO: name that the `pie-datasets` package is required
-
-```python
-import datasets
-
-dataset = datasets.load_dataset("pie/conll2003")
-
-print(dataset["train"][0])
-# >>> CoNLL2003Document(text='EU rejects German call to boycott British lamb .', id='0', metadata={})
-
-dataset["train"][0].entities
-# >>> AnnotationLayer([LabeledSpan(start=0, end=2, label='ORG', score=1.0), LabeledSpan(start=11, end=17, label='MISC', score=1.0), LabeledSpan(start=34, end=41, label='MISC', score=1.0)])
-
-entity = dataset["train"][0].entities[1]
-
-print(f"[{entity.start}, {entity.end}] {entity}")
-# >>> [11, 17] German
-```
+PyTorch-IE works quite well together with Huggingface datasets. Have a look at
+[pie-datasets](https://github.com/ArneBinder/pie-datasets) for helpful tooling and a collection of datasets
+that are already converted to the PIE format.
 
 <!-- github-only -->
 
