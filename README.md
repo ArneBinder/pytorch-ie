@@ -455,6 +455,8 @@ num_epochs = 10
 batch_size = 32
 
 # Get the PIE dataset consisting of PIE Documents that will be used for training (and evaluation).
+# IMPORTANT: This requires pie-datasets >=0.3.0 to be installed! See here for further information:
+# https://github.com/ArneBinder/pie-datasets
 dataset = datasets.load_dataset(
     path="pie/conll2003",
 )
