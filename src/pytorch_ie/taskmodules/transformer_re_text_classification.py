@@ -328,7 +328,6 @@ class TransformerRETextClassificationTaskModule(TaskModuleType, ChangesTokenizer
     def encode_input(
         self,
         document: TextDocument,
-        is_training: bool = False,
     ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
         relations: Sequence[BinaryRelation]
         if self.create_relation_candidates:

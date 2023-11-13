@@ -112,7 +112,6 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
     def encode_input(
         self,
         document: DocumentType,
-        is_training: bool = False,
     ) -> TaskEncodingType:
         """
         Create one or multiple task encodings for the given document.
