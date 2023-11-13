@@ -98,7 +98,6 @@ class TransformerSeq2SeqTaskModule(TaskModuleType):
     def encode_input(
         self,
         document: TextDocument,
-        is_training: bool = False,
     ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
         return TaskEncoding(
             document=document,
