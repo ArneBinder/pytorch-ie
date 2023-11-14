@@ -5,10 +5,10 @@ import pytest
 import torch
 from transformers import BatchEncoding
 
-from pytorch_ie import TransformerSeq2SeqTaskModule
+from pytorch_ie import AnnotationLayer, annotation_field
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
-from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
+from pytorch_ie.taskmodules import TransformerSeq2SeqTaskModule
 
 
 @pytest.fixture(scope="module")

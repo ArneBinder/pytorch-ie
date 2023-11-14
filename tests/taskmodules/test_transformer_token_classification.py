@@ -6,9 +6,9 @@ import pytest
 import torch
 from transformers import BatchEncoding
 
-from pytorch_ie import TransformerTokenClassificationTaskModule
+from pytorch_ie import AnnotationLayer, Document, annotation_field
 from pytorch_ie.annotations import LabeledSpan, Span
-from pytorch_ie.core import AnnotationLayer, Document, annotation_field
+from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 
 
 def _config_to_str(cfg: Dict[str, Any]) -> str:

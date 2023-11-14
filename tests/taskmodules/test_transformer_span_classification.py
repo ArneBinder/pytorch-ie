@@ -2,10 +2,8 @@ import numpy
 import pytest
 import torch
 
-from pytorch_ie.core import TaskModule
-from pytorch_ie.taskmodules.transformer_span_classification import (
-    TransformerSpanClassificationTaskModule,
-)
+from pytorch_ie import TaskModule
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
 @pytest.fixture(scope="module")

@@ -3,10 +3,8 @@ import torch
 import transformers
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
-from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
-from pytorch_ie.taskmodules.transformer_span_classification import (
-    TransformerSpanClassificationTaskModule,
-)
+from pytorch_ie.models import TransformerSpanClassificationModel
+from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
 @pytest.fixture(scope="module")
