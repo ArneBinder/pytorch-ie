@@ -4,7 +4,7 @@ import transformers
 from transformers import BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
-from pytorch_ie import TransformerSeq2SeqModel
+from pytorch_ie.models import TransformerSeq2SeqModel
 
 LOSS = torch.rand(1).to(dtype=torch.float)
 # a batch with one entry: 10 tokens from a 100-token vocabulary

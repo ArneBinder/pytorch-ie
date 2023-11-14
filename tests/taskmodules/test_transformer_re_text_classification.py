@@ -5,7 +5,7 @@ import numpy
 import pytest
 import torch
 
-from pytorch_ie import TransformerRETextClassificationTaskModule
+from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 
 
 def _config_to_str(cfg: Dict[str, Any]) -> str:
