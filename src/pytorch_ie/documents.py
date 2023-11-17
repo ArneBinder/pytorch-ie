@@ -30,7 +30,18 @@ class TextBasedDocument(WithMetadata, WithText, Document):
 
 @dataclasses.dataclass
 class TokenBasedDocument(WithMetadata, WithTokens, Document):
-    pass
+    def __post_init__(self) -> None:
+
+        # When used in a dataset, the document gets serialized to json like structure which does not know tuples,
+        # so they get converted to lists. This is a workaround to automatically convert the "tokens" back to tuples
+        # when the document is created from a dataset.
+        if isinstance(self.tokens, list):
+            object.__setattr__(self, "tokens", tuple(self.tokens))
+        elif not isinstance(self.tokens, tuple):
+            raise ValueError("tokens must be a tuple.")
+
+        # Call the default document construction code
+        super().__post_init__()
 
 
 # backwards compatibility
