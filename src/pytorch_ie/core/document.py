@@ -421,13 +421,21 @@ class BaseAnnotationList(Sequence[T]):
         }
 
     @property
-    def target(self) -> Any:
-        tgts = self.targets
-        if len(tgts) != 1:
+    def target_names(self) -> List[str]:
+        return self._targets
+
+    @property
+    def target_name(self) -> str:
+        if len(self._targets) != 1:
             raise ValueError(
-                f"The annotation layer has more or less than one target: {self._targets}"
+                f"The annotation layer has more or less than one target, can not return a single target name: "
+                f"{self._targets}"
             )
-        return list(tgts.values())[0]
+        return self._targets[0]
+
+    @property
+    def target(self) -> Any:
+        return self.targets[self.target_name]
 
     @property
     def target_layers(self) -> dict[str, "AnnotationLayer"]:
