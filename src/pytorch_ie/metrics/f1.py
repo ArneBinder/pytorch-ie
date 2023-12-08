@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Callable, Collection, Dict, Hashable, Optional, Tuple
+from typing import Callable, Collection, Dict, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -32,7 +32,7 @@ class F1Metric(DocumentMetric):
     def __init__(
         self,
         layer: str,
-        labels: Optional[Collection[str]] = None,
+        labels: Optional[Union[Collection[str], str]] = None,
         label_field: str = "label",
         show_as_markdown: bool = False,
     ):
@@ -42,14 +42,27 @@ class F1Metric(DocumentMetric):
         self.show_as_markdown = show_as_markdown
 
         self.per_label = labels is not None
-        self.labels = labels or []
+        self.infer_labels = False
         if self.per_label:
-            if "MICRO" in self.labels or "MACRO" in self.labels:
-                raise ValueError(
-                    "labels cannot contain 'MICRO' or 'MACRO' because they are used to capture aggregated metrics"
-                )
-            if len(self.labels) == 0:
-                raise ValueError("labels cannot be empty")
+            if isinstance(labels, str):
+                if labels != "INFERRED":
+                    raise ValueError(
+                        "labels can only be 'INFERRED' if per_label is True and labels is a string"
+                    )
+                self.labels = []
+                self.infer_labels = True
+            elif isinstance(labels, Collection):
+                if not all(isinstance(label, str) for label in labels):
+                    raise ValueError("labels must be a collection of strings")
+                if "MICRO" in labels or "MACRO" in labels:
+                    raise ValueError(
+                        "labels cannot contain 'MICRO' or 'MACRO' because they are used to capture aggregated metrics"
+                    )
+                if len(labels) == 0:
+                    raise ValueError("labels cannot be empty")
+                self.labels = list(labels)
+            else:
+                raise ValueError("labels must be a string or a collection of strings")
 
     def reset(self):
         self.counts = defaultdict(lambda: (0, 0, 0))
@@ -82,18 +95,24 @@ class F1Metric(DocumentMetric):
             annotation_filter=partial(
                 has_one_of_the_labels, label_field=self.label_field, labels=self.labels
             )
-            if self.per_label
+            if self.per_label and not self.infer_labels
             else None,
         )
         self.add_counts(new_counts, label="MICRO")
-        for label in self.labels:
-            new_counts = self.calculate_counts(
-                document=document,
-                annotation_filter=partial(
-                    has_this_label, label_field=self.label_field, label=label
-                ),
-            )
-            self.add_counts(new_counts, label=label)
+        if self.infer_labels:
+            for ann in document[self.layer]:
+                label = getattr(ann, self.label_field)
+                if label not in self.labels:
+                    self.labels.append(label)
+        if self.per_label:
+            for label in self.labels:
+                new_counts = self.calculate_counts(
+                    document=document,
+                    annotation_filter=partial(
+                        has_this_label, label_field=self.label_field, label=label
+                    ),
+                )
+                self.add_counts(new_counts, label=label)
 
     def _compute(self) -> Dict[str, Dict[str, float]]:
         res = dict()
@@ -108,7 +127,7 @@ class F1Metric(DocumentMetric):
                 r = tp / (tp + fn)
                 f1 = 2 * p * r / (p + r)
             res[label] = {"f1": f1, "p": p, "r": r}
-            if label in self.labels:
+            if self.per_label and label in self.labels:
                 res["MACRO"]["f1"] += f1 / len(self.labels)
                 res["MACRO"]["p"] += p / len(self.labels)
                 res["MACRO"]["r"] += r / len(self.labels)
