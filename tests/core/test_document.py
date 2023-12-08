@@ -334,3 +334,14 @@ def test_annotation_copy():
     assert (
         str(document.attributes[1]) == "Attribute(annotation=Span(start=6, end=11), label=label)"
     )
+
+
+def test_document_annotation_fields():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+
+    annotation_fields = MyDocument.annotation_fields()
+    annotation_field_names = {field.name for field in annotation_fields}
+    assert annotation_field_names == {"words"}

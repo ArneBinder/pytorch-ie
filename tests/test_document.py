@@ -1,13 +1,17 @@
 import dataclasses
 import re
-from typing import Optional
+from typing import Any, Dict, List, Optional, Set
 
 import pytest
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
-from pytorch_ie.documents import TextDocument, TokenBasedDocument
+from pytorch_ie.documents import (
+    TextDocument,
+    TextDocumentWithSpansBinaryRelationsAndLabeledPartitions,
+    TokenBasedDocument,
+)
 
 
 def test_text_document():
@@ -716,3 +720,31 @@ def test_document_extend_from_other_remove(text_document):
     assert len(doc_new.relations) == 0
     assert len(doc_new.labels) == 1
     assert len(doc_new.relation_attributes) == 0
+
+
+def test_document_field_types():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+
+    annotation_fields = MyDocument.annotation_fields()
+    annotation_field_names = {field.name for field in annotation_fields}
+    assert annotation_field_names == {"words"}
+
+    field_types = MyDocument.field_types()
+    assert field_types == {"text": str, "words": AnnotationLayer[Span]}
+
+    # this requires to resolve the field types with typing.get_type_hints() because field.type is
+    # a string at this point (externally defined document class)
+    field_types = TextDocumentWithSpansBinaryRelationsAndLabeledPartitions.field_types()
+    assert field_types == {
+        "_annotation_fields": Set[str],
+        "_annotation_graph": Dict[str, List[str]],
+        "binary_relations": AnnotationLayer[BinaryRelation],
+        "id": Optional[str],
+        "labeled_partitions": AnnotationLayer[LabeledSpan],
+        "metadata": Dict[str, Any],
+        "spans": AnnotationLayer[Span],
+        "text": str,
+    }
