@@ -345,3 +345,27 @@ def test_document_annotation_fields():
     annotation_fields = MyDocument.annotation_fields()
     annotation_field_names = {field.name for field in annotation_fields}
     assert annotation_field_names == {"words"}
+
+
+def test_document_copy():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+
+    document = MyDocument(text="Hello world!")
+    word = Span(start=0, end=5)
+    document.words.append(word)
+    document_copy = document.copy()
+    assert document_copy == document
+
+    # copy without annotations
+    document_copy = document.copy(with_annotations=False)
+    assert document_copy != document
+    annotation_fields = document_copy.annotation_fields()
+    assert len(annotation_fields) > 0
+    for field in dataclasses.fields(document):
+        if field in annotation_fields:
+            assert getattr(document_copy, field.name) != getattr(document, field.name)
+        else:
+            assert getattr(document_copy, field.name) == getattr(document, field.name)
