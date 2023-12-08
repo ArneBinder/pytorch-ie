@@ -369,3 +369,45 @@ def test_document_copy():
             assert getattr(document_copy, field.name) != getattr(document, field.name)
         else:
             assert getattr(document_copy, field.name) == getattr(document, field.name)
+
+
+def test_document_target_name_and_target():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+
+    document = MyDocument(text="Hello world!")
+    assert document.words.target_name == "text"
+    assert document.words.target == document.text == "Hello world!"
+
+    class DoubleSpan(Annotation):
+        start1: int
+        end1: int
+        start2: int
+        end2: int
+
+    @dataclasses.dataclass
+    class MyDocumentTwoTargets(Document):
+        text1: str
+        text2: str
+        words: AnnotationLayer[DoubleSpan] = annotation_field(targets=["text1", "text2"])
+
+    document = MyDocumentTwoTargets(text1="Hello world!", text2="Hello world again!")
+    with pytest.raises(ValueError) as excinfo:
+        document.words.target_name
+    assert (
+        str(excinfo.value)
+        == "The annotation layer has more or less than one target, can not return a single target name: "
+        "['text1', 'text2']"
+    )
+    with pytest.raises(ValueError) as excinfo:
+        document.words.target
+    assert (
+        str(excinfo.value)
+        == "The annotation layer has more or less than one target, can not return a single target name: "
+        "['text1', 'text2']"
+    )
+
+    assert document.words.target_names == ["text1", "text2"]
+    assert document.words.targets == {"text1": "Hello world!", "text2": "Hello world again!"}

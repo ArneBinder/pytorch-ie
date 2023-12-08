@@ -537,7 +537,8 @@ def test_annotation_list_targets():
         doc.relations2.target
     assert (
         str(excinfo.value)
-        == "The annotation layer has more or less than one target: ['entities1', 'entities2']"
+        == "The annotation layer has more or less than one target, can not return a single target name: "
+        "['entities1', 'entities2']"
     )
 
     # test getting all target layers
