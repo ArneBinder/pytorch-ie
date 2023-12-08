@@ -688,8 +688,12 @@ class Document(Mapping[str, Any]):
         )
         return new_doc
 
-    def copy(self) -> "Document":
-        return type(self).fromdict(self.asdict())
+    def copy(self, with_annotations: bool = True) -> "Document":
+        doc_dict = self.asdict()
+        if not with_annotations:
+            for field in self.annotation_fields():
+                doc_dict.pop(field.name)
+        return type(self).fromdict(doc_dict)
 
     def add_all_annotations_from_other(
         self,
