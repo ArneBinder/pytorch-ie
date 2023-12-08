@@ -118,7 +118,11 @@ def _get_reference_fields_and_container_types(
 
 
 def _get_annotation_fields(fields: List[dataclasses.Field]) -> Set[dataclasses.Field]:
-    return {field for field in fields if typing.get_origin(field.type) is AnnotationLayer}
+    # this was broken, so we raise an exception for now
+    # return {f for f in fields if typing.get_origin(f.type) is AnnotationLayer}
+    raise Exception(
+        "_get_annotation_fields() is broken, please use Document.annotation_fields() instead"
+    )
 
 
 def annotation_field(
@@ -482,8 +486,24 @@ class Document(Mapping[str, Any]):
         ]
 
     @classmethod
-    def annotation_fields(cls):
-        return _get_annotation_fields(list(dataclasses.fields(cls)))
+    def field_types(cls) -> Dict[str, typing.Type]:
+        result = {}
+        for f in cls.fields():
+            # If we got just the string representation of the type, we resolve the whole class.
+            # But this may be slow, so we only do it if necessary.
+            if not isinstance(f.type, type):
+                return typing.get_type_hints(cls)
+            result[f.name] = f.type
+        return result
+
+    @classmethod
+    def annotation_fields(cls) -> Set[dataclasses.Field]:
+        ann_field_types = cls.field_types()
+        return {
+            f
+            for f in cls.fields()
+            if typing.get_origin(ann_field_types[f.name]) is AnnotationLayer
+        }
 
     def __getitem__(self, key: str) -> AnnotationLayer:
         if key not in self._annotation_fields:
@@ -583,7 +603,7 @@ class Document(Mapping[str, Any]):
     @classmethod
     def fromdict(cls, dct):
         fields = dataclasses.fields(cls)
-        annotation_fields = _get_annotation_fields(fields)
+        annotation_fields = cls.annotation_fields()
 
         cls_kwargs = {}
         for field in fields:
