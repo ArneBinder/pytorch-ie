@@ -644,9 +644,20 @@ def text_document():
 
 def test_document_extend_from_other_full_copy(text_document):
     doc_new = type(text_document)(text=text_document.text)
-    doc_new.add_all_annotations_from_other(text_document)
+    added_annotations = doc_new.add_all_annotations_from_other(text_document)
 
     assert text_document.asdict() == doc_new.asdict()
+    assert set(added_annotations) == {
+        "entities1",
+        "entities2",
+        "relations",
+        "relation_attributes",
+        "labels",
+    }
+    for layer_name, annotation_set in added_annotations.items():
+        assert len(annotation_set) > 0
+        available_annotations = text_document[layer_name]
+        assert annotation_set == list(available_annotations)
 
 
 def test_document_extend_from_other_wrong_override_annotation_mapping(text_document):
@@ -683,9 +694,15 @@ def test_document_extend_from_other_override(text_document):
     token_document.entities1.append(e1_new)
     token_document.entities2.append(e2_new)
     # ... and the remaining annotations
-    token_document.add_all_annotations_from_other(
+    added_annotations = token_document.add_all_annotations_from_other(
         text_document, override_annotations=annotation_mapping
     )
+    # check that the added annotations are as expected (the entity annotations are already there)
+    assert added_annotations == {
+        "relations": list(text_document.relations),
+        "relation_attributes": list(text_document.relation_attributes),
+        "labels": list(text_document.labels),
+    }
 
     assert (
         len(token_document.entities1)
@@ -710,11 +727,17 @@ def test_document_extend_from_other_override(text_document):
 
 def test_document_extend_from_other_remove(text_document):
     doc_new = type(text_document)(text=text_document.text)
-    doc_new.add_all_annotations_from_other(
+    added_annotations = doc_new.add_all_annotations_from_other(
         text_document,
         removed_annotations={"entities1": {text_document.entities1[0]._id}},
         strict=False,
     )
+
+    # the only entity in entities1 is removed and since the relation has it as head, the relation is removed as well
+    assert added_annotations == {
+        "entities2": list(text_document.entities2),
+        "labels": list(text_document.labels),
+    }
 
     assert len(doc_new.entities1) == 0
     assert len(doc_new.entities2) == 1
