@@ -6,6 +6,7 @@ from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar, Union, ov
 
 import torch.utils.data.dataset as torch_dataset
 from pytorch_lightning.core.mixins import HyperparametersMixin
+from torchmetrics import Metric
 from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
@@ -447,3 +448,10 @@ class TaskModule(
         self, task_encodings: Sequence[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]
     ) -> TaskBatchEncoding:
         pass
+
+    def configure_model_metric(self, stage: str) -> Optional[Metric]:
+        logger.warning(
+            f"TaskModule {self.__class__.__name__} does not implement a model metric. "
+            f"Override configure_model_metric(stage) to configure a metric for stage '{stage}'."
+        )
+        return None
