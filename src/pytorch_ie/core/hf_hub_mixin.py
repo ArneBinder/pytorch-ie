@@ -45,6 +45,10 @@ class PieBaseHFHubMixin:
     def _config(self) -> Optional[Dict[str, Any]]:
         return None
 
+    @property
+    def config(self) -> Dict[str, Any]:
+        return self._config() or {}
+
     def save_pretrained(
         self,
         save_directory: Union[str, Path],
