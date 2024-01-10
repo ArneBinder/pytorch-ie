@@ -306,6 +306,37 @@ class PieBaseHFHubMixin:
                 delete_patterns=delete_patterns,
             )
 
+    @classmethod
+    def from_config(cls, config: dict, **kwargs) -> "PieBaseHFHubMixin":
+        """
+        Instantiate from a configuration object.
+
+        Args:
+            config (`dict`):
+                The configuration object to instantiate.
+            kwargs:
+                Additional keyword arguments passed along to the specific model class.
+        """
+        config = config.copy()
+        # remove config_type_key entry, e.g. model_type, from config
+        config.pop(cls.config_type_key, None)
+        return cls._from_config(config=config, **kwargs)
+
+    @classmethod
+    def _from_config(cls: Type[T], config: dict, **kwargs) -> T:
+        """
+        Instantiate from a configuration object.
+
+        Args:
+            config (`dict`):
+                The configuration object to instantiate.
+            kwargs:
+                Additional keyword arguments passed along to the specific model class.
+        """
+        config = config.copy()
+        config.update(kwargs)
+        return cls(**config)
+
 
 class PieModelHFHubMixin(PieBaseHFHubMixin):
     config_name = MODEL_CONFIG_NAME

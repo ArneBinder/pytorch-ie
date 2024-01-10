@@ -2,12 +2,23 @@ from dataclasses import dataclass
 
 import pytest
 
+from pytorch_ie import PyTorchIEModel
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.auto import AutoModel, AutoPipeline, AutoTaskModule
 from pytorch_ie.core import AnnotationLayer, TaskModule, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
+
+
+@TaskModule.register()
+class MyTransformerSpanClassificationTaskModule(TransformerSpanClassificationTaskModule):
+    pass
+
+
+@PyTorchIEModel.register()
+class MyTransformerSpanClassificationModel(TransformerSpanClassificationModel):
+    pass
 
 
 @pytest.mark.slow
@@ -19,9 +30,6 @@ def test_auto_taskmodule():
 
 @pytest.mark.slow
 def test_auto_taskmodule_full_cycle(tmp_path):
-    @TaskModule.register()
-    class MyTransformerSpanClassificationTaskModule(TransformerSpanClassificationTaskModule):
-        pass
 
     taskmodule = MyTransformerSpanClassificationTaskModule(
         tokenizer_name_or_path="bert-base-uncased"
@@ -51,10 +59,30 @@ def test_auto_taskmodule_full_cycle_with_name(tmp_path):
     assert isinstance(taskmodule_loaded, MyTransformerSpanClassificationTaskModule)
 
 
+def test_auto_taskmodule_from_config():
+
+    config = {
+        "taskmodule_type": "MyTransformerSpanClassificationTaskModule",
+        "tokenizer_name_or_path": "bert-base-uncased",
+    }
+    taskmodule = AutoTaskModule.from_config(config)
+    assert isinstance(taskmodule, MyTransformerSpanClassificationTaskModule)
+
+
 @pytest.mark.slow
 def test_auto_model():
     model = AutoModel.from_pretrained("pie/example-ner-spanclf-conll03")
     assert isinstance(model, TransformerSpanClassificationModel)
+
+
+def test_auto_model_from_config():
+    config = {
+        "model_type": "MyTransformerSpanClassificationModel",
+        "model_name_or_path": "prajjwal1/bert-tiny",
+        "num_classes": 5,
+    }
+    model = AutoModel.from_config(config)
+    assert isinstance(model, MyTransformerSpanClassificationModel)
 
 
 @pytest.mark.slow
