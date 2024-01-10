@@ -45,6 +45,14 @@ class PieBaseHFHubMixin:
     def _config(self) -> Optional[Dict[str, Any]]:
         return None
 
+    @property
+    def has_config(self) -> bool:
+        return self._config() is not None
+
+    @property
+    def config(self) -> Dict[str, Any]:
+        return dict(self._config() or {})  # soft-copy to avoid mutating input
+
     def save_pretrained(
         self,
         save_directory: Union[str, Path],
@@ -74,14 +82,13 @@ class PieBaseHFHubMixin:
         self._save_pretrained(save_directory)
 
         # saving config
-        config = self._config()
-        if isinstance(config, dict):
-            (save_directory / self.config_name).write_text(json.dumps(config, indent=2))
+        if self.has_config:
+            (save_directory / self.config_name).write_text(json.dumps(self.config, indent=2))
 
         if push_to_hub:
             kwargs = kwargs.copy()  # soft-copy to avoid mutating input
-            if config is not None:  # kwarg for `push_to_hub`
-                kwargs["config"] = config
+            if self.has_config:  # kwarg for `push_to_hub`
+                kwargs["config"] = self.config
             if repo_id is None:
                 repo_id = save_directory.name  # Defaults to `save_directory` name
             return self.push_to_hub(repo_id=repo_id, **kwargs)
