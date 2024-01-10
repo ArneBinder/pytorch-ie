@@ -62,6 +62,14 @@ class AutoModel(PieModelHFHubMixin):
 
         return model
 
+    @classmethod
+    def from_config(cls, config: dict, **kwargs) -> PyTorchIEModel:
+        """Build a model from a config dict."""
+        config = config.copy()
+        class_name = config.pop(cls.config_type_key)
+        clazz = PyTorchIEModel.by_name(class_name)
+        return clazz._from_config(config, **kwargs)
+
 
 class AutoTaskModule(PieTaskModuleHFHubMixin):
     @classmethod
@@ -88,6 +96,14 @@ class AutoTaskModule(PieTaskModuleHFHubMixin):
         taskmodule = clazz(**config)
         taskmodule.post_prepare()
         return taskmodule
+
+    @classmethod
+    def from_config(cls, config: dict, **kwargs) -> TaskModule:
+        """Build a task module from a config dict."""
+        config = config.copy()
+        class_name = config.pop(cls.config_type_key)
+        clazz = TaskModule.by_name(class_name)
+        return clazz._from_config(config, **kwargs)
 
 
 class AutoPipeline:
