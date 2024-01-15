@@ -168,6 +168,12 @@ class TaskModule(
         taskmodule.post_prepare()
         return taskmodule
 
+    @classmethod
+    def _from_config(cls: Type["TaskModule"], config: Dict[str, Any], **kwargs) -> "TaskModule":
+        taskmodule: TaskModule = super()._from_config(config, **kwargs)
+        taskmodule.post_prepare()
+        return taskmodule
+
     def batch_encode(
         self,
         documents: Sequence[DocumentType],
