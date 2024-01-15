@@ -198,30 +198,30 @@ class Annotation:
         return hash((self, self.non_comparison_fields_and_values))
 
     @property
-    def target(self) -> Optional[TARGET_TYPE]:
-        if self._targets is None:
-            return None
-        if len(self._targets) == 0:
+    def target(self) -> TARGET_TYPE:
+        targets = self.targets
+        if len(targets) == 0:
             raise ValueError(f"annotation has no target")
-        if len(self._targets) > 1:
+        if len(targets) > 1:
             raise ValueError(
                 f"annotation has multiple targets, target is not defined in this case"
             )
-        return self._targets[0]
+        return targets[0]
 
     @property
-    def targets(self) -> Optional[Tuple[TARGET_TYPE, ...]]:
-        return self._targets
-
-    @property
-    def named_targets(self) -> Dict[str, TARGET_TYPE]:
+    def targets(self) -> Tuple[TARGET_TYPE, ...]:
         if self._targets is None:
             raise ValueError(
                 f"targets is not set (this annotation may be not yet attached to a document)"
             )
+        return self._targets
+
+    @property
+    def named_targets(self) -> Dict[str, TARGET_TYPE]:
+        targets = self.targets
         if self.TARGET_NAMES is None:
             raise TypeError(f"no TARGET_NAMES defined")
-        return {name: self._targets[i] for i, name in enumerate(self.TARGET_NAMES)}
+        return {name: targets[i] for i, name in enumerate(self.TARGET_NAMES)}
 
     def _asdict(
         self,
@@ -610,7 +610,7 @@ class Document(Mapping[str, Any]):
         return dct
 
     @classmethod
-    def fromdict(cls, dct):
+    def fromdict(cls: typing.Type[D], dct) -> D:
         fields = dataclasses.fields(cls)
         annotation_fields = cls.annotation_fields()
         field_types = cls.field_types()
@@ -634,8 +634,8 @@ class Document(Mapping[str, Any]):
             nodes=doc._annotation_graph["_artificial_root"],
         )
 
-        annotations = {}
-        predictions = {}
+        annotations: Dict[int, Annotation] = {}
+        predictions: Dict[int, Annotation] = {}
         annotations_per_field = defaultdict(list)
         predictions_per_field = defaultdict(list)
         for field_name in dependency_ordered_fields:
