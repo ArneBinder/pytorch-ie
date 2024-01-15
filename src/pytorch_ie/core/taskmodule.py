@@ -2,7 +2,7 @@ import copy
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Sequence
-from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar, Union, overload
+from typing import Any, Dict, Generic, List, Optional, Tuple, Type, TypeVar, Union, overload
 
 import torch.utils.data.dataset as torch_dataset
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -160,11 +160,17 @@ class TaskModule(
 
     @classmethod
     def _from_pretrained(
-        cls,
+        cls: Type["TaskModule"],
         *args,
         **kwargs,
-    ):
+    ) -> "TaskModule":
         taskmodule: TaskModule = super()._from_pretrained(*args, **kwargs)
+        taskmodule.post_prepare()
+        return taskmodule
+
+    @classmethod
+    def _from_config(cls: Type["TaskModule"], config: Dict[str, Any], **kwargs) -> "TaskModule":
+        taskmodule: TaskModule = super()._from_config(config, **kwargs)
         taskmodule.post_prepare()
         return taskmodule
 

@@ -390,7 +390,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
 
     @classmethod
     def _from_pretrained(
-        cls,
+        cls: Type[T],
         *,
         model_id: str,
         revision: Optional[str],
@@ -404,7 +404,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         strict: bool = False,
         config: Optional[dict] = None,
         **model_kwargs,
-    ) -> "PieModelHFHubMixin":
+    ) -> T:
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
             logger.info("Loading weights from local directory")
@@ -447,7 +447,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
 
     @classmethod
     def _from_pretrained(
-        cls,
+        cls: Type[T],
         *,
         model_id: str,
         revision: Optional[str],
@@ -461,7 +461,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         strict: bool = False,
         config: Optional[dict] = None,
         **taskmodule_kwargs,
-    ) -> "PieTaskModuleHFHubMixin":
+    ) -> T:
         config = (config or {}).copy()
         config.update(taskmodule_kwargs)
         if cls.config_type_key is not None:

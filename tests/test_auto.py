@@ -26,6 +26,7 @@ def test_auto_taskmodule():
     taskmodule = AutoTaskModule.from_pretrained("pie/example-ner-spanclf-conll03")
     assert isinstance(taskmodule, TransformerSpanClassificationTaskModule)
     assert taskmodule.label_to_id == {"O": 0, "MISC": 1, "ORG": 2, "PER": 3, "LOC": 4}
+    assert taskmodule.is_prepared
 
 
 @pytest.mark.slow
@@ -67,6 +68,7 @@ def test_auto_taskmodule_from_config():
     }
     taskmodule = AutoTaskModule.from_config(config)
     assert isinstance(taskmodule, MyTransformerSpanClassificationTaskModule)
+    assert taskmodule.is_prepared
 
 
 @pytest.mark.slow
