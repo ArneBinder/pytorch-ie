@@ -70,7 +70,7 @@ class Span(Annotation):
 
     def __str__(self) -> str:
         if not self.is_attached:
-            return ""
+            return super().__str__()
         return str(self.target[self.start : self.end])
 
 
