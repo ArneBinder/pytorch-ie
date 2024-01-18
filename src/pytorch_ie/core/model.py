@@ -14,9 +14,10 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable):
         config.update(self.hparams)
         return config
 
-    def predict(
-        self,
-        inputs: Any,
-        **kwargs,
-    ) -> Any:
-        return self(inputs, **kwargs)
+    def decode(self, inputs: Any, outputs: Any) -> Any:
+        return outputs
+
+    def predict(self, inputs: Any, **kwargs) -> Any:
+        outputs = self(inputs, **kwargs)
+        decoded_outputs = self.decode(inputs=inputs, outputs=outputs)
+        return decoded_outputs
