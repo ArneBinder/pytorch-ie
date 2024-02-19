@@ -29,11 +29,6 @@ def _post_init_multi_label(self):
         )
 
 
-def _post_init_multi_span(self):
-    if isinstance(self.slices, list):
-        object.__setattr__(self, "slices", tuple(tuple(s) for s in self.slices))
-
-
 def _post_init_arguments_and_roles(self):
     if len(self.arguments) != len(self.roles):
         raise ValueError(
@@ -89,28 +84,6 @@ class MultiLabeledSpan(Span):
     score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
-        _post_init_multi_label(self)
-
-
-@dataclass(eq=True, frozen=True)
-class LabeledMultiSpan(Annotation):
-    slices: Tuple[Tuple[int, int], ...]
-    label: str
-    score: float = field(default=1.0, compare=False)
-
-    def __post_init__(self) -> None:
-        _post_init_multi_span(self)
-        _post_init_single_label(self)
-
-
-@dataclass(eq=True, frozen=True)
-class MultiLabeledMultiSpan(Annotation):
-    slices: Tuple[Tuple[int, int], ...]
-    label: Tuple[str, ...]
-    score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
-
-    def __post_init__(self) -> None:
-        _post_init_multi_span(self)
         _post_init_multi_label(self)
 
 
