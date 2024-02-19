@@ -8,7 +8,6 @@ from pytorch_ie.annotations import (
     LabeledSpan,
     MultiLabel,
     MultiLabeledBinaryRelation,
-    MultiLabeledMultiSpan,
     MultiLabeledSpan,
     Span,
 )
@@ -123,38 +122,6 @@ def test_multilabeled_span():
         ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
     ):
         MultiLabeledSpan(start=5, end=6, label=("label5", "label6"), score=(0.1, 0.2, 0.3))
-
-
-def test_multilabeled_multi_span():
-    multilabeled_multi_span1 = MultiLabeledMultiSpan(
-        slices=((1, 2), (3, 4)), label=("label1", "label2")
-    )
-    assert multilabeled_multi_span1.slices == ((1, 2), (3, 4))
-    assert multilabeled_multi_span1.label == ("label1", "label2")
-    assert multilabeled_multi_span1.score == pytest.approx((1.0, 1.0))
-
-    multilabeled_multi_span2 = MultiLabeledMultiSpan(
-        slices=((5, 6), (7, 8)), label=("label3", "label4"), score=(0.4, 0.5)
-    )
-    assert multilabeled_multi_span2.slices == ((5, 6), (7, 8))
-    assert multilabeled_multi_span2.label == ("label3", "label4")
-    assert multilabeled_multi_span2.score == pytest.approx((0.4, 0.5))
-
-    assert multilabeled_multi_span2.asdict() == {
-        "_id": multilabeled_multi_span2._id,
-        "slices": ((5, 6), (7, 8)),
-        "label": ("label3", "label4"),
-        "score": (0.4, 0.5),
-    }
-
-    _test_annotation_reconstruction(multilabeled_multi_span2)
-
-    with pytest.raises(
-        ValueError, match=re.escape("Number of labels (2) and scores (3) must be equal.")
-    ):
-        MultiLabeledMultiSpan(
-            slices=((9, 10), (11, 12)), label=("label5", "label6"), score=(0.1, 0.2, 0.3)
-        )
 
 
 def test_binary_relation():

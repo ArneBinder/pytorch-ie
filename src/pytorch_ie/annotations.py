@@ -93,17 +93,6 @@ class MultiLabeledSpan(Span):
 
 
 @dataclass(eq=True, frozen=True)
-class MultiLabeledMultiSpan(Annotation):
-    slices: Tuple[Tuple[int, int], ...]
-    label: Tuple[str, ...]
-    score: Optional[Tuple[float, ...]] = field(default=None, compare=False)
-
-    def __post_init__(self) -> None:
-        _post_init_multi_span(self)
-        _post_init_multi_label(self)
-
-
-@dataclass(eq=True, frozen=True)
 class BinaryRelation(Annotation):
     head: Annotation
     tail: Annotation
