@@ -13,6 +13,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     overload,
@@ -47,13 +48,13 @@ def _enumerate_dependencies(
                 resolved.append(node)
 
 
-def _is_optional_type(t: typing.Type) -> bool:
+def _is_optional_type(t: Type) -> bool:
     type_origin = typing.get_origin(t)
     type_args = typing.get_args(t)
     return type_origin is typing.Union and len(type_args) == 2 and type(None) in type_args
 
 
-def _is_optional_annotation_type(t: typing.Type) -> bool:
+def _is_optional_annotation_type(t: Type) -> bool:
     is_optional = _is_optional_type(t)
     if not is_optional:
         return False
@@ -87,7 +88,7 @@ def _is_tuple_of_annotation_types(t: Any) -> bool:
 
 
 def _get_reference_fields_and_container_types(
-    annotation_class: typing.Type["Annotation"],
+    annotation_class: Type["Annotation"],
 ) -> Dict[str, Any]:
     containers: Dict[str, Any] = {}
     for field in dataclasses.fields(annotation_class):
@@ -498,7 +499,7 @@ class Document(Mapping[str, Any]):
         ]
 
     @classmethod
-    def field_types(cls) -> Dict[str, typing.Type]:
+    def field_types(cls) -> Dict[str, Type]:
         result = {}
         for f in cls.fields():
             # If we got just the string representation of the type, we resolve the whole class.
@@ -610,7 +611,7 @@ class Document(Mapping[str, Any]):
         return dct
 
     @classmethod
-    def fromdict(cls: typing.Type[D], dct) -> D:
+    def fromdict(cls: Type[D], dct: Dict) -> D:
         fields = dataclasses.fields(cls)
         annotation_fields = cls.annotation_fields()
         field_types = cls.field_types()
@@ -685,7 +686,7 @@ class Document(Mapping[str, Any]):
 
     def as_type(
         self,
-        new_type: typing.Type[D],
+        new_type: Type[D],
         field_mapping: Optional[Dict[str, str]] = None,
         keep_remaining: bool = True,
     ) -> D:
