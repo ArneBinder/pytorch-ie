@@ -29,11 +29,6 @@ def _post_init_multi_label(self):
         )
 
 
-def _post_init_multi_span(self):
-    if isinstance(self.slices, list):
-        object.__setattr__(self, "slices", tuple(tuple(s) for s in self.slices))
-
-
 def _post_init_arguments_and_roles(self):
     if len(self.arguments) != len(self.roles):
         raise ValueError(
