@@ -262,16 +262,16 @@ def test_annotation_list():
 
     entity1 = LabeledSpan(start=0, end=8, label="PER")
     entity2 = LabeledSpan(start=18, end=19, label="ORG")
-    assert entity1.target is None
-    assert entity2.target is None
+    assert not entity1.is_attached
+    assert not entity2.is_attached
 
     document.entities.append(entity1)
     document.entities.append(entity2)
 
     entity3 = LabeledSpan(start=18, end=19, label="PRED-ORG")
     entity4 = LabeledSpan(start=0, end=8, label="PRED-PER")
-    assert entity3.target is None
-    assert entity4.target is None
+    assert not entity3.is_attached
+    assert not entity4.is_attached
 
     document.entities.predictions.append(entity3)
     document.entities.predictions.append(entity4)
@@ -299,13 +299,13 @@ def test_annotation_list():
 
     document.entities.clear()
     assert len(document.entities) == 0
-    assert entity1.target is None
-    assert entity2.target is None
+    assert not entity1.is_attached
+    assert not entity2.is_attached
 
     document.entities.predictions.clear()
     assert len(document.entities.predictions) == 0
-    assert entity3.target is None
-    assert entity4.target is None
+    assert not entity3.is_attached
+    assert not entity4.is_attached
 
 
 def test_annotation_list_with_multiple_targets():
@@ -335,19 +335,19 @@ def test_annotation_list_with_multiple_targets():
     }
 
     span1 = LabeledSpan(0, 2, label="a")
-    assert span1.targets is None
+    assert not span1.is_attached
     doc.entities1.append(span1)
     assert doc.entities1[0] == span1
     assert span1.target == doc.text
 
     span2 = LabeledSpan(2, 4, label="b")
-    assert span2.targets is None
+    assert not span2.is_attached
     doc.entities2.append(span2)
     assert doc.entities2[0] == span2
     assert span2.target == doc.text
 
     relation = BinaryRelation(head=span1, tail=span2, label="relation")
-    assert relation.targets is None
+    assert not relation.is_attached
     doc.relations.append(relation)
     assert doc.relations[0] == relation
     with pytest.raises(
@@ -358,7 +358,7 @@ def test_annotation_list_with_multiple_targets():
     assert relation.targets == (doc.entities1, doc.entities2)
 
     label = Label("label")
-    assert label.target is None
+    assert not label.is_attached
     doc.label.append(label)
     assert doc.label[0] == label
     with pytest.raises(ValueError, match=re.escape("annotation has no target")):
@@ -378,7 +378,7 @@ class DoubleTextSpan(Annotation):
     end2: int
 
     def __str__(self) -> str:
-        if self.targets is None:
+        if not self.is_attached:
             return ""
         text1: str = self.named_targets["text1"]  # type: ignore
         text2: str = self.named_targets["text2"]  # type: ignore
@@ -415,19 +415,19 @@ def test_annotation_list_with_named_targets():
     }
 
     span1 = LabeledSpan(0, 2, label="a")
-    assert span1.targets is None
+    assert not span1.is_attached
     doc.entities1.append(span1)
     assert doc.entities1[0] == span1
     assert span1.target == doc.texta
 
     span2 = LabeledSpan(2, 4, label="b")
-    assert span2.targets is None
+    assert not span2.is_attached
     doc.entities2.append(span2)
     assert doc.entities2[0] == span2
     assert span2.target == doc.textb
 
     doublespan = DoubleTextSpan(0, 2, 1, 5)
-    assert doublespan.targets is None
+    assert not doublespan.is_attached
     doc.crossrefs.append(doublespan)
     assert doc.crossrefs[0] == doublespan
     assert doublespan.named_targets == {"text1": doc.texta, "text2": doc.textb}
@@ -442,7 +442,7 @@ def test_annotation_list_with_named_targets_mismatch_error():
         end: int
 
         def __str__(self) -> str:
-            if self.targets is None:
+            if not self.is_attached:
                 return ""
             text: str = self.named_targets["text"]  # type: ignore
             return str(text[self.start : self.end])

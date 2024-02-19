@@ -69,8 +69,8 @@ class Span(Annotation):
     end: int
 
     def __str__(self) -> str:
-        if self.target is None:
-            return ""
+        if not self.is_attached:
+            return super().__str__()
         return str(self.target[self.start : self.end])
 
 
