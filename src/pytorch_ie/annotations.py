@@ -90,7 +90,7 @@ class LabeledSpan(Span):
         _post_init_single_label(self)
 
     def resolve(self) -> Any:
-        return super().resolve(), self.label
+        return self.label, super().resolve()
 
 
 @dataclass(eq=True, frozen=True)
@@ -102,7 +102,7 @@ class MultiLabeledSpan(Span):
         _post_init_multi_label(self)
 
     def resolve(self) -> Any:
-        return super().resolve(), self.label
+        return self.label, super().resolve()
 
 
 @dataclass(eq=True, frozen=True)
@@ -116,7 +116,7 @@ class BinaryRelation(Annotation):
         _post_init_single_label(self)
 
     def resolve(self) -> Any:
-        return self.head.resolve(), self.tail.resolve(), self.label
+        return self.label, (self.head.resolve(), self.tail.resolve())
 
 
 @dataclass(eq=True, frozen=True)
@@ -130,7 +130,7 @@ class MultiLabeledBinaryRelation(Annotation):
         _post_init_multi_label(self)
 
     def resolve(self) -> Any:
-        return self.head.resolve(), self.tail.resolve(), self.label
+        return self.label, (self.head.resolve(), self.tail.resolve())
 
 
 @dataclass(eq=True, frozen=True)
@@ -146,6 +146,6 @@ class NaryRelation(Annotation):
 
     def resolve(self) -> Any:
         return (
-            tuple((role, arg.resolve()) for arg, role in zip(self.arguments, self.roles)),
             self.label,
+            tuple((role, arg.resolve()) for arg, role in zip(self.arguments, self.roles)),
         )

@@ -125,7 +125,7 @@ def test_labeled_span():
     doc = TestDocument(text="Hello, world!")
     labeled_span = LabeledSpan(start=7, end=12, label="LOC")
     doc.spans.append(labeled_span)
-    assert labeled_span.resolve() == ("world", "LOC")
+    assert labeled_span.resolve() == ("LOC", "world")
 
 
 def test_multilabeled_span():
@@ -172,7 +172,7 @@ def test_multilabeled_span():
     doc = TestDocument(text="Hello, world!")
     multilabeled_span = MultiLabeledSpan(start=7, end=12, label=("LOC", "ORG"))
     doc.spans.append(multilabeled_span)
-    assert multilabeled_span.resolve() == ("world", ("LOC", "ORG"))
+    assert multilabeled_span.resolve() == (("LOC", "ORG"), "world")
 
 
 def test_binary_relation():
@@ -224,9 +224,9 @@ def test_binary_relation():
     head = Span(start=0, end=5)
     tail = Span(start=7, end=12)
     doc.spans.extend([head, tail])
-    relation = BinaryRelation(head=head, tail=tail, label="RELATION")
+    relation = BinaryRelation(head=head, tail=tail, label="LABEL")
     doc.relations.append(relation)
-    assert relation.resolve() == ("Hello", "world", "RELATION")
+    assert relation.resolve() == ("LABEL", ("Hello", "world"))
 
 
 def test_multilabeled_binary_relation():
@@ -287,9 +287,9 @@ def test_multilabeled_binary_relation():
     head = Span(start=0, end=5)
     tail = Span(start=7, end=12)
     doc.spans.extend([head, tail])
-    relation = MultiLabeledBinaryRelation(head=head, tail=tail, label=("RELATION1", "RELATION2"))
+    relation = MultiLabeledBinaryRelation(head=head, tail=tail, label=("LABEL1", "LABEL2"))
     doc.relations.append(relation)
-    assert relation.resolve() == ("Hello", "world", ("RELATION1", "RELATION2"))
+    assert relation.resolve() == (("LABEL1", "LABEL2"), ("Hello", "world"))
 
 
 def test_nary_relation():
@@ -342,10 +342,10 @@ def test_nary_relation():
     arg3 = Span(start=19, end=20)
     doc.spans.extend([arg1, arg2, arg3])
     relation = NaryRelation(
-        arguments=(arg1, arg2, arg3), roles=("ARG1", "ARG2", "ARG3"), label="RELATION"
+        arguments=(arg1, arg2, arg3), roles=("ARG1", "ARG2", "ARG3"), label="LABEL"
     )
     doc.relations.append(relation)
     assert relation.resolve() == (
+        "LABEL",
         (("ARG1", "Hello"), ("ARG2", "world A"), ("ARG3", "B")),
-        "RELATION",
     )
