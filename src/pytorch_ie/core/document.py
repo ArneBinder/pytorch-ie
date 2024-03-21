@@ -195,7 +195,9 @@ class Annotation:
     def comparison_fields_and_values(self) -> Tuple[Tuple[str, Any], ...]:
         # note that we exclude the special _targets field here
         return tuple(
-            (f.name, getattr(self, f.name)) for f in dataclasses.fields(self) if f.compare and f.name != "_targets"
+            (f.name, getattr(self, f.name))
+            for f in dataclasses.fields(self)
+            if f.compare and f.name != "_targets"
         )
 
     @property

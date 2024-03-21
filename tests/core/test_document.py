@@ -300,8 +300,7 @@ def test_annotation_sort():
     with pytest.raises(ValueError) as excinfo:
         sorted([dummy1, dummy_nested1])
     assert (
-        str(excinfo.value)
-        == "comparison field names do not match: ['a', 'n'] != ['a', 'b', 'c']"
+        str(excinfo.value) == "comparison field names do not match: ['a', 'n'] != ['a', 'b', 'c']"
     )
 
 
