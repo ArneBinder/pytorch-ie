@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 
 import pytest
 
+from pytorch_ie.annotations import BinaryRelation
 from pytorch_ie.core import Annotation
 from pytorch_ie.core.document import (
     AnnotationLayer,
@@ -345,6 +346,35 @@ def test_document_annotation_fields():
     annotation_fields = MyDocument.annotation_fields()
     annotation_field_names = {field.name for field in annotation_fields}
     assert annotation_field_names == {"words"}
+
+
+def test_document_target_names():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+        sentences: AnnotationLayer[Span] = annotation_field(target="text")
+        belongs_to: AnnotationLayer[BinaryRelation] = annotation_field(
+            targets=["words", "sentences"]
+        )
+
+    # request target names for annotation field
+    assert MyDocument.target_names("words") == {"text"}
+    assert MyDocument.target_name("words") == "text"
+
+    # requested field is not an annotation field
+    with pytest.raises(ValueError) as excinfo:
+        MyDocument.target_names("text")
+    assert str(excinfo.value) == f"'text' is not an annotation field of {MyDocument.__name__}."
+
+    # requested field has two targets
+    assert MyDocument.target_names("belongs_to") == {"words", "sentences"}
+    with pytest.raises(ValueError) as excinfo:
+        MyDocument.target_name("belongs_to")
+    assert (
+        str(excinfo.value)
+        == f"The annotation field 'belongs_to' has more or less than one target, can not return a single target name: ['sentences', 'words']"
+    )
 
 
 def test_document_copy():

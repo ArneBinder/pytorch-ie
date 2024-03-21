@@ -518,6 +518,32 @@ class Document(Mapping[str, Any]):
             if typing.get_origin(ann_field_types[f.name]) is AnnotationLayer
         }
 
+    @classmethod
+    def target_names(cls, field_name: str) -> Set[str]:
+        """
+        Return the target names of an annotation field.
+        """
+        a_field = next((f for f in cls.annotation_fields() if f.name == field_name), None)
+        if a_field is None:
+            raise ValueError(f"'{field_name}' is not an annotation field of {cls.__name__}.")
+        result = a_field.metadata.get("targets")
+        if result is None:
+            raise ValueError(f"Annotation field '{field_name}' has no targets.")
+        return set(result)
+
+    @classmethod
+    def target_name(cls, field_name: str) -> str:
+        """
+        Return the single target name of an annotation field. Raise an error if there is not exactly one target.
+        """
+        target_names = cls.target_names(field_name)
+        if len(target_names) != 1:
+            raise ValueError(
+                f"The annotation field '{field_name}' has more or less than one target, "
+                f"can not return a single target name: {sorted(target_names)}"
+            )
+        return list(target_names)[0]
+
     def __getitem__(self, key: str) -> AnnotationLayer:
         if key not in self._annotation_fields:
             raise KeyError(f"Document has no attribute '{key}'.")
