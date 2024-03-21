@@ -194,9 +194,7 @@ class Annotation:
     @property
     def comparison_fields_and_values(self) -> Tuple[Tuple[str, Any], ...]:
         return tuple(
-            (f.name, getattr(self, f.name))
-            for f in dataclasses.fields(self)
-            if f.compare  # and f.repr
+            (f.name, getattr(self, f.name)) for f in dataclasses.fields(self) if f.compare
         )
 
     @property
