@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
-from pytorch_ie.core.document import Annotation
+from pytorch_ie.core import Annotation, Comparable
 
 
 def _post_init_single_label(self):
@@ -48,6 +48,9 @@ class Label(Annotation):
     def __post_init__(self) -> None:
         _post_init_single_label(self)
 
+    def resolve(self) -> Comparable:
+        return self.label
+
 
 @dataclass(eq=True, frozen=True)
 class MultiLabel(Annotation):
@@ -56,6 +59,9 @@ class MultiLabel(Annotation):
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
+
+    def resolve(self) -> Comparable:
+        return self.label
 
 
 @dataclass(eq=True, frozen=True)
@@ -68,6 +74,9 @@ class Span(Annotation):
             return super().__str__()
         return str(self.target[self.start : self.end])
 
+    def resolve(self) -> Comparable:
+        return self.start, self.end
+
 
 @dataclass(eq=True, frozen=True)
 class LabeledSpan(Span):
@@ -77,6 +86,9 @@ class LabeledSpan(Span):
     def __post_init__(self) -> None:
         _post_init_single_label(self)
 
+    def resolve(self) -> Comparable:
+        return self.start, self.end, self.label
+
 
 @dataclass(eq=True, frozen=True)
 class MultiLabeledSpan(Span):
@@ -85,6 +97,9 @@ class MultiLabeledSpan(Span):
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
+
+    def resolve(self) -> Comparable:
+        return self.start, self.end, self.label
 
 
 @dataclass(eq=True, frozen=True)
@@ -97,6 +112,9 @@ class BinaryRelation(Annotation):
     def __post_init__(self) -> None:
         _post_init_single_label(self)
 
+    def resolve(self) -> Comparable:
+        return self.head.resolve(), self.tail.resolve(), self.label
+
 
 @dataclass(eq=True, frozen=True)
 class MultiLabeledBinaryRelation(Annotation):
@@ -107,6 +125,9 @@ class MultiLabeledBinaryRelation(Annotation):
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
+
+    def resolve(self) -> Comparable:
+        return self.head.resolve(), self.tail.resolve(), self.label
 
 
 @dataclass(eq=True, frozen=True)
@@ -119,3 +140,6 @@ class NaryRelation(Annotation):
     def __post_init__(self) -> None:
         _post_init_arguments_and_roles(self)
         _post_init_single_label(self)
+
+    def resolve(self) -> Comparable:
+        return tuple(arg.resolve() for arg in self.arguments), self.roles, self.label
