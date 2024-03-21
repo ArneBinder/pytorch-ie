@@ -1,4 +1,4 @@
-from .document import Annotation, AnnotationLayer, Document, annotation_field, Comparable
+from .document import Annotation, AnnotationLayer, Comparable, Document, annotation_field
 from .metric import DocumentMetric
 from .model import PyTorchIEModel
 from .module_mixins import (
