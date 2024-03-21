@@ -1,7 +1,6 @@
 import dataclasses
 import logging
 import typing
-from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import _asdict_inner  # type: ignore
@@ -12,7 +11,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Protocol,
     Set,
     Tuple,
     Type,
@@ -22,17 +20,6 @@ from typing import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-CT = TypeVar("CT", bound="Comparable")
-
-
-class Comparable(Protocol):
-    """Protocol for annotating comparable types."""
-
-    @abstractmethod
-    def __lt__(self: CT, other: CT) -> bool:
-        ...
 
 
 def _enumerate_dependencies(
@@ -205,6 +192,14 @@ class Annotation:
         )
 
     @property
+    def comparison_fields_and_values(self) -> Tuple[Tuple[str, Any], ...]:
+        return tuple(
+            (f.name, getattr(self, f.name))
+            for f in dataclasses.fields(self)
+            if f.compare  # and f.repr
+        )
+
+    @property
     def _id(self) -> int:
         # also calculate the hash over the non-comparison fields for id creation because otherwise
         # these fields would not be considered (per default, hash=false for non-comparison fields)
@@ -374,11 +369,20 @@ class Annotation:
 
         return self.copy(**overrides)
 
-    def resolve(self) -> Comparable:
-        raise NotImplementedError(f"{type(self)} does not implement resolve()")
-
     def __lt__(self, other: "Annotation") -> bool:
-        return self.resolve() < other.resolve()
+        # sort only by comparison fields
+        for (name, value), (other_name, other_value) in zip(
+            self.comparison_fields_and_values, other.comparison_fields_and_values
+        ):
+            if name != other_name:
+                comparison_fields = [n for n, v in self.comparison_fields_and_values]
+                other_comparison_fields = [n for n, v in other.comparison_fields_and_values]
+                raise ValueError(
+                    f"comparison field names do not match: {comparison_fields} != {other_comparison_fields}"
+                )
+            if value != other_value:
+                return value < other_value
+        return False
 
 
 T = TypeVar("T", covariant=False, bound="Annotation")
