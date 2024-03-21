@@ -192,6 +192,15 @@ class Annotation:
         )
 
     @property
+    def comparison_fields_and_values(self) -> Tuple[Tuple[str, Any], ...]:
+        # note that we exclude the special _targets field here
+        return tuple(
+            (f.name, getattr(self, f.name))
+            for f in dataclasses.fields(self)
+            if f.compare and f.name != "_targets"
+        )
+
+    @property
     def _id(self) -> int:
         # also calculate the hash over the non-comparison fields for id creation because otherwise
         # these fields would not be considered (per default, hash=false for non-comparison fields)
@@ -360,6 +369,21 @@ class Annotation:
                 raise Exception(f"unknown annotation field type: {type(field_value)}")
 
         return self.copy(**overrides)
+
+    def __lt__(self, other: "Annotation") -> bool:
+        # sort only by comparison fields
+        for (name, value), (other_name, other_value) in zip(
+            self.comparison_fields_and_values, other.comparison_fields_and_values
+        ):
+            if name != other_name:
+                comparison_fields = [n for n, v in self.comparison_fields_and_values]
+                other_comparison_fields = [n for n, v in other.comparison_fields_and_values]
+                raise ValueError(
+                    f"comparison field names do not match: {comparison_fields} != {other_comparison_fields}"
+                )
+            if value != other_value:
+                return value < other_value
+        return False
 
 
 T = TypeVar("T", covariant=False, bound="Annotation")
