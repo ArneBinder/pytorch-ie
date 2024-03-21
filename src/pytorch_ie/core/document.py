@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 import typing
+from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import _asdict_inner  # type: ignore
@@ -11,6 +12,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Protocol,
     Set,
     Tuple,
     Type,
@@ -20,6 +22,17 @@ from typing import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+CT = TypeVar("CT", bound="Comparable")
+
+
+class Comparable(Protocol):
+    """Protocol for annotating comparable types."""
+
+    @abstractmethod
+    def __lt__(self: CT, other: CT) -> bool:
+        ...
 
 
 def _enumerate_dependencies(
@@ -360,6 +373,12 @@ class Annotation:
                 raise Exception(f"unknown annotation field type: {type(field_value)}")
 
         return self.copy(**overrides)
+
+    def resolve(self) -> Comparable:
+        raise NotImplementedError(f"{type(self)} does not implement resolve()")
+
+    def __lt__(self, other: "Annotation") -> bool:
+        return self.resolve() < other.resolve()
 
 
 T = TypeVar("T", covariant=False, bound="Annotation")
