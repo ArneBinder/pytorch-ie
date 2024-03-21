@@ -520,6 +520,9 @@ class Document(Mapping[str, Any]):
 
     @classmethod
     def target_names(cls, field_name: str) -> Set[str]:
+        """
+        Return the target names of an annotation field.
+        """
         a_field = next((f for f in cls.annotation_fields() if f.name == field_name), None)
         if a_field is None:
             raise ValueError(f"'{field_name}' is not an annotation field of {cls.__name__}.")
@@ -530,6 +533,9 @@ class Document(Mapping[str, Any]):
 
     @classmethod
     def target_name(cls, field_name: str) -> str:
+        """
+        Return the single target name of an annotation field. Raise an error if there is not exactly one target.
+        """
         target_names = cls.target_names(field_name)
         if len(target_names) != 1:
             raise ValueError(
