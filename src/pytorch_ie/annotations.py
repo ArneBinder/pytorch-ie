@@ -78,7 +78,7 @@ class Span(Annotation):
         if self.is_attached:
             return self.target[self.start : self.end]
         else:
-            raise ValueError("Span is not attached to a target.")
+            raise ValueError(f"{self} is not attached to a target.")
 
 
 @dataclass(eq=True, frozen=True)
@@ -145,4 +145,7 @@ class NaryRelation(Annotation):
         _post_init_single_label(self)
 
     def resolve(self) -> Any:
-        return tuple((role, arg) for arg, role in zip(self.arguments, self.roles)), self.label
+        return (
+            tuple((role, arg.resolve()) for arg, role in zip(self.arguments, self.roles)),
+            self.label,
+        )
