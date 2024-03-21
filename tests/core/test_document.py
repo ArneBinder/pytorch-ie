@@ -301,7 +301,7 @@ def test_annotation_sort():
         sorted([dummy1, dummy_nested1])
     assert (
         str(excinfo.value)
-        == "comparison field names do not match: ['_targets', 'a', 'n'] != ['_targets', 'a', 'c', 'b']"
+        == "comparison field names do not match: ['a', 'n'] != ['a', 'b', 'c']"
     )
 
 
