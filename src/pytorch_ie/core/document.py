@@ -385,6 +385,9 @@ class Annotation:
                 return value < other_value
         return False
 
+    def resolve(self) -> Any:
+        raise NotImplementedError(f"resolve() is not implemented for {self.__class__}")
+
 
 T = TypeVar("T", covariant=False, bound="Annotation")
 
