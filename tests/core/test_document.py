@@ -304,6 +304,17 @@ def test_annotation_sort():
     )
 
 
+def test_annotation_resolve():
+    @dataclasses.dataclass(eq=True, frozen=True)
+    class Dummy(Annotation):
+        a: int
+
+    dummy = Dummy(a=1)
+    with pytest.raises(NotImplementedError) as excinfo:
+        dummy.resolve()
+    assert str(excinfo.value) == f"resolve() is not implemented for {Dummy}"
+
+
 def test_annotation_is_attached():
     @dataclasses.dataclass
     class MyDocument(Document):
