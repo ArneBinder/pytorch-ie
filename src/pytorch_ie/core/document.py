@@ -486,6 +486,9 @@ class BaseAnnotationList(Sequence[T]):
             )
         return list(tgt_layers.values())[0]
 
+    def resolve(self) -> List[Any]:
+        return [annotation.resolve() for annotation in self]
+
 
 class AnnotationLayer(BaseAnnotationList[T]):
     def __init__(self, document: "Document", targets: List["str"]):
