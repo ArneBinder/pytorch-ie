@@ -31,10 +31,10 @@ jobs:
 
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v2.4.0
+              uses: actions/checkout@v4
 
             - name: Set up Python ${{ matrix.python }}
-              uses: actions/setup-python@v2.3.2
+              uses: actions/setup-python@v5
               with:
                   python-version: ${{ matrix.python }}
                   #   cache: pip
