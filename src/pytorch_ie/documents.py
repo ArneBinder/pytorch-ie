@@ -3,7 +3,14 @@ from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, MultiLabel, Span
+from pytorch_ie.annotations import (
+    BinaryRelation,
+    Label,
+    LabeledMultiSpan,
+    LabeledSpan,
+    MultiLabel,
+    Span,
+)
 from pytorch_ie.core import AnnotationLayer, Document, annotation_field
 
 
@@ -133,5 +140,32 @@ class TextDocumentWithSpansBinaryRelationsAndLabeledPartitions(
     TextDocumentWithSpansAndLabeledPartitions,
     TextDocumentWithSpansAndBinaryRelations,
     TextDocumentWithLabeledPartitions,
+):
+    pass
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledMultiSpans(TextBasedDocument):
+    labeled_multi_spans: AnnotationLayer[LabeledMultiSpan] = annotation_field(target="text")
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledMultiSpansAndLabeledPartitions(
+    TextDocumentWithLabeledMultiSpans, TextDocumentWithLabeledPartitions
+):
+    pass
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledMultiSpansAndBinaryRelations(TextDocumentWithLabeledMultiSpans):
+    binary_relations: AnnotationLayer[BinaryRelation] = annotation_field(
+        target="labeled_multi_spans"
+    )
+
+
+@dataclasses.dataclass
+class TextDocumentWithLabeledMultiSpansBinaryRelationsAndLabeledPartitions(
+    TextDocumentWithLabeledMultiSpansAndLabeledPartitions,
+    TextDocumentWithLabeledMultiSpansAndBinaryRelations,
 ):
     pass
