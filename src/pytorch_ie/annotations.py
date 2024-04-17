@@ -29,6 +29,11 @@ def _post_init_multi_label(self):
         )
 
 
+def _post_init_multi_span(self):
+    if isinstance(self.slices, list):
+        object.__setattr__(self, "slices", tuple(tuple(s) for s in self.slices))
+
+
 def _post_init_arguments_and_roles(self):
     if len(self.arguments) != len(self.roles):
         raise ValueError(
@@ -100,6 +105,38 @@ class MultiLabeledSpan(Span):
 
     def __post_init__(self) -> None:
         _post_init_multi_label(self)
+
+    def resolve(self) -> Any:
+        return self.label, super().resolve()
+
+
+@dataclass(eq=True, frozen=True)
+class MultiSpan(Annotation):
+    slices: Tuple[Tuple[int, int], ...]
+
+    def __post_init__(self) -> None:
+        _post_init_multi_span(self)
+
+    def __str__(self) -> str:
+        if not self.is_attached:
+            return super().__str__()
+        return str(tuple(self.target[start:end] for start, end in self.slices))
+
+    def resolve(self) -> Any:
+        if self.is_attached:
+            return tuple(self.target[start:end] for start, end in self.slices)
+        else:
+            raise ValueError(f"{self} is not attached to a target.")
+
+
+@dataclass(eq=True, frozen=True)
+class LabeledMultiSpan(MultiSpan):
+    label: str
+    score: float = field(default=1.0, compare=False)
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        _post_init_single_label(self)
 
     def resolve(self) -> Any:
         return self.label, super().resolve()
