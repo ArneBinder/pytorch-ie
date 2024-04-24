@@ -71,7 +71,7 @@ class TransformerTextClassificationModel(
 
         classifier_dropout = (
             config.classifier_dropout
-            if config.classifier_dropout is not None
+            if hasattr(config, "classifier_dropout") and config.classifier_dropout is not None
             else config.hidden_dropout_prob
         )
         self.dropout = nn.Dropout(classifier_dropout)
