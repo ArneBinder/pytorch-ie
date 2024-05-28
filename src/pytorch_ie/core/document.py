@@ -854,7 +854,7 @@ class Document(Mapping[str, Any]):
                 ```
         """
         removed_annotations = defaultdict(set, removed_annotations or dict())
-        added_annotations = defaultdict(dict)
+        added_annotations: Dict[str, Dict[Annotation, Annotation]] = defaultdict(dict)
 
         annotation_store: Dict[str, Dict[int, Annotation]] = defaultdict(dict)
         named_annotation_fields = {field.name: field for field in self.annotation_fields()}
