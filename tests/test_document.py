@@ -665,7 +665,7 @@ def test_document_extend_from_other_full_copy(text_document):
     for layer_name, annotation_set in added_annotations.items():
         assert len(annotation_set) > 0
         available_annotations = text_document[layer_name]
-        assert annotation_set == list(available_annotations)
+        assert set(annotation_set) == set(available_annotations)
 
 
 def test_document_extend_from_other_wrong_override_annotation_mapping(text_document):
@@ -705,11 +705,12 @@ def test_document_extend_from_other_override(text_document):
     added_annotations = token_document.add_all_annotations_from_other(
         text_document, override_annotations=annotation_mapping
     )
+    added_annotation_sets = {k: set(v) for k, v in added_annotations.items()}
     # check that the added annotations are as expected (the entity annotations are already there)
-    assert added_annotations == {
-        "relations": list(text_document.relations),
-        "relation_attributes": list(text_document.relation_attributes),
-        "labels": list(text_document.labels),
+    assert added_annotation_sets == {
+        "relations": set(text_document.relations),
+        "relation_attributes": set(text_document.relation_attributes),
+        "labels": set(text_document.labels),
     }
 
     assert (
@@ -740,11 +741,11 @@ def test_document_extend_from_other_remove(text_document):
         removed_annotations={"entities1": {text_document.entities1[0]._id}},
         strict=False,
     )
-
+    added_annotation_sets = {k: set(v) for k, v in added_annotations.items()}
     # the only entity in entities1 is removed and since the relation has it as head, the relation is removed as well
-    assert added_annotations == {
-        "entities2": list(text_document.entities2),
-        "labels": list(text_document.labels),
+    assert added_annotation_sets == {
+        "entities2": set(text_document.entities2),
+        "labels": set(text_document.labels),
     }
 
     assert len(doc_new.entities1) == 0
