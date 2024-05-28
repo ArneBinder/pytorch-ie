@@ -771,7 +771,7 @@ class Document(Mapping[str, Any]):
         process_predictions: bool = True,
         strict: bool = True,
         verbose: bool = True,
-    ) -> Dict[str, List[Annotation]]:
+    ) -> Dict[str, Dict[Annotation, Annotation]]:
         """Adds all annotations from another document to this document. It allows to blacklist annotations
         and also to override annotations. It returns the original annotations for which a new annotation was
         added to the current document.
@@ -854,7 +854,7 @@ class Document(Mapping[str, Any]):
                 ```
         """
         removed_annotations = defaultdict(set, removed_annotations or dict())
-        added_annotations = defaultdict(list)
+        added_annotations: Dict[str, Dict[Annotation, Annotation]] = defaultdict(dict)
 
         annotation_store: Dict[str, Dict[int, Annotation]] = defaultdict(dict)
         named_annotation_fields = {field.name: field for field in self.annotation_fields()}
@@ -897,7 +897,7 @@ class Document(Mapping[str, Any]):
                         if ann._id != new_ann._id:
                             annotation_store[field_name][ann._id] = new_ann
                         self[field_name].append(new_ann)
-                        added_annotations[field_name].append(ann)
+                        added_annotations[field_name][ann] = new_ann
                     else:
                         if strict:
                             raise ValueError(
@@ -922,7 +922,7 @@ class Document(Mapping[str, Any]):
                             if ann._id != new_ann._id:
                                 annotation_store[field_name][ann._id] = new_ann
                             self[field_name].predictions.append(new_ann)
-                            added_annotations[field_name].append(ann)
+                            added_annotations[field_name][ann] = new_ann
                         else:
                             if strict:
                                 raise ValueError(
