@@ -358,9 +358,11 @@ class Annotation:
                 ):
                     return None
                 overrides[f.name] = tuple(
-                    override_annotation_store.get(maybe_anno._id, maybe_anno)
-                    if isinstance(maybe_anno, Annotation)
-                    else maybe_anno
+                    (
+                        override_annotation_store.get(maybe_anno._id, maybe_anno)
+                        if isinstance(maybe_anno, Annotation)
+                        else maybe_anno
+                    )
                     for maybe_anno in field_value
                 )
             elif isinstance(field_value, (int, float, str, bool, type(None))):
@@ -405,12 +407,10 @@ class BaseAnnotationList(Sequence[T]):
         return self._targets == other._targets and self._annotations == other._annotations
 
     @overload
-    def __getitem__(self, index: int) -> T:
-        ...
+    def __getitem__(self, index: int) -> T: ...
 
     @overload
-    def __getitem__(self, s: slice) -> List[T]:
-        ...
+    def __getitem__(self, s: slice) -> List[T]: ...
 
     def __getitem__(self, index: Union[int, slice]) -> Union[T, List[T]]:
         return self._annotations[index]

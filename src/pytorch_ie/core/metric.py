@@ -10,7 +10,7 @@ T = TypeVar("T")
 class DocumentMetric(ABC, WithDocumentTypeMixin, Generic[T]):
     """This defines the interface for a document metric."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
         self._current_split: Optional[str] = None
 

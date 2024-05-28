@@ -12,4 +12,4 @@ def run_command(command: List[str]):
     except sh.ErrorReturnCode as e:
         msg = e.stderr.decode()
     if msg:
-        pytest.fail(msg=msg)
+        pytest.fail(reason=msg)

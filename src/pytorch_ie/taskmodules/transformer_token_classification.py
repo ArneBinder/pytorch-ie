@@ -156,7 +156,7 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
     def encode_input(
         self,
         document: TextDocument,
-    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
+    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType]]]:
         partitions: Sequence[Optional[Span]]
         if self.partition_annotation is not None:
             partitions = document[self.partition_annotation]

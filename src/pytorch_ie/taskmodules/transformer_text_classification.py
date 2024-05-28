@@ -6,6 +6,7 @@ workflow:
         -> task_output
     -> document
 """
+
 import logging
 from typing import (
     Any,
@@ -147,7 +148,7 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
     def encode_input(
         self,
         document: TextDocument,
-    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
+    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType]]]:
         inputs = self.tokenizer(
             document.text,
             padding=False,
