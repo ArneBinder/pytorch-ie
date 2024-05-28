@@ -143,7 +143,7 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
     def encode_input(
         self,
         document: TextDocument,
-    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType],]]:
+    ) -> Optional[Union[TaskEncodingType, Sequence[TaskEncodingType]]]:
         partitions: Sequence[Span]
         if self.single_sentence:
             partitions = document[self.sentence_annotation]

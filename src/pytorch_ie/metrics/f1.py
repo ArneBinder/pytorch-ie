@@ -103,11 +103,11 @@ class F1Metric(DocumentMetric):
     def _update(self, document: Document):
         new_counts = self.calculate_counts(
             document=document,
-            annotation_filter=partial(
-                has_one_of_the_labels, label_field=self.label_field, labels=self.labels
-            )
-            if self.per_label and not self.infer_labels
-            else None,
+            annotation_filter=(
+                partial(has_one_of_the_labels, label_field=self.label_field, labels=self.labels)
+                if self.per_label and not self.infer_labels
+                else None
+            ),
             annotation_processor=self.annotation_processor,
         )
         self.add_counts(new_counts, label="MICRO")

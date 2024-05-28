@@ -79,12 +79,10 @@ class TaskEncodingDataset(torch_dataset.Dataset[TaskEncodingType]):
         self._encodings = encodings
 
     @overload
-    def __getitem__(self, index: int) -> TaskEncodingType:
-        ...
+    def __getitem__(self, index: int) -> TaskEncodingType: ...
 
     @overload
-    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]:
-        ...
+    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]: ...
 
     def __getitem__(
         self, index: Union[int, slice]
@@ -113,12 +111,10 @@ class TaskEncodingSequence(Sequence[TaskEncodingType], Generic[TaskEncodingType,
         self.documents_in_order = documents_in_order
 
     @overload
-    def __getitem__(self, index: int) -> TaskEncodingType:
-        ...
+    def __getitem__(self, index: int) -> TaskEncodingType: ...
 
     @overload
-    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]:
-        ...
+    def __getitem__(self, s: slice) -> Sequence[TaskEncodingType]: ...
 
     def __getitem__(
         self, index: Union[int, slice]

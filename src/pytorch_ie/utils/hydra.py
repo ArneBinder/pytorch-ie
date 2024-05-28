@@ -4,16 +4,13 @@ from typing import Any, Callable, Optional, Type, Union
 from pytorch_ie.core.document import Document
 
 
-class HydraException(Exception):
-    ...
+class HydraException(Exception): ...
 
 
-class CompactHydraException(HydraException):
-    ...
+class CompactHydraException(HydraException): ...
 
 
-class InstantiationException(CompactHydraException):
-    ...
+class InstantiationException(CompactHydraException): ...
 
 
 def _locate(path: str) -> Any:
