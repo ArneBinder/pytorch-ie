@@ -649,13 +649,13 @@ Since this project is based on the [Cookiecutter template](https://cookiecutter-
 If you find the framework useful please consider citing it:
 
 ```bibtex
-@misc{alt2022pytorchie,
-    author={Christoph Alt, Arne Binder},
-    title = {PyTorch-IE: State-of-the-art Information Extraction in PyTorch},
-    year = {2022},
-    publisher = {GitHub},
-    journal = {GitHub repository},
-    howpublished = {\url{https://github.com/ChristophAlt/pytorch-ie}}
+@misc{binder2024pytorchie,
+      title={PyTorch-IE: Fast and Reproducible Prototyping for Information Extraction},
+      author={Arne Binder and Leonhard Hennig and Christoph Alt},
+      year={2024},
+      eprint={2406.00007},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR}
 }
 ```
 
