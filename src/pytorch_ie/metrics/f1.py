@@ -112,7 +112,9 @@ class F1Metric(DocumentMetric):
         )
         self.add_counts(new_counts, label="MICRO")
         if self.infer_labels:
-            for ann in document[self.layer]:
+            layer = document[self.layer]
+            # collect labels from gold data and predictions
+            for ann in list(layer) + list(layer.predictions):
                 label = getattr(ann, self.label_field)
                 if label not in self.labels:
                     self.labels.append(label)
