@@ -794,3 +794,20 @@ def test_document_field_types():
         "spans": AnnotationLayer[Span],
         "text": str,
     }
+
+
+def test_annotation_types():
+    @dataclasses.dataclass
+    class MyDocument(Document):
+        text: str
+        words: AnnotationLayer[Span] = annotation_field(target="text")
+
+    annotation_types = MyDocument.annotation_types()
+    assert annotation_types == {"words": Span}
+
+    annotation_types = TextDocumentWithSpansBinaryRelationsAndLabeledPartitions.annotation_types()
+    assert annotation_types == {
+        "spans": Span,
+        "labeled_partitions": LabeledSpan,
+        "binary_relations": BinaryRelation,
+    }
