@@ -540,6 +540,14 @@ class Document(Mapping[str, Any]):
         return result
 
     @classmethod
+    def annotation_types(cls) -> Dict[str, Type[Annotation]]:
+        return {
+            name: typing.get_args(field_type)[0]
+            for name, field_type in cls.field_types().items()
+            if typing.get_origin(field_type) is AnnotationLayer
+        }
+
+    @classmethod
     def annotation_fields(cls) -> Set[dataclasses.Field]:
         ann_field_types = cls.field_types()
         return {
