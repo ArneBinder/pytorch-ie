@@ -31,10 +31,10 @@ jobs:
 
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v4.2.1
 
             - name: Set up Python ${{ matrix.python }}
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v5.2.0
               with:
                   python-version: ${{ matrix.python }}
                   #   cache: pip
@@ -74,7 +74,7 @@ jobs:
                   result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
                   print("::set-output name=result::{}".format(result))
             - name: Restore pre-commit cache
-              uses: actions/cache@v2.1.7
+              uses: actions/cache@v4.1.0
               if: matrix.session == 'pre-commit'
               with:
                   path: ~/.cache/pre-commit
@@ -104,10 +104,10 @@ jobs:
         needs: tests
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v2.4.0
+              uses: actions/checkout@v4.2.1
 
             - name: Set up Python
-              uses: actions/setup-python@v2.3.2
+              uses: actions/setup-python@v5.2.0
               with:
                   python-version: "3.9"
 
