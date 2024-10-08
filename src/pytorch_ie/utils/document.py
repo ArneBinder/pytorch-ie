@@ -87,8 +87,11 @@ def merge_annotations_from_documents(
     metadata_key_source_annotations: Optional[str] = None,
     metadata_key_source_predictions: Optional[str] = None,
 ) -> D:
-    """Merge annotations from multiple documents into a single document. Note that this will remove
-    any annotation duplicates.
+    """Merge annotations from multiple documents into a single document. Optionally, store the source
+    names for all annotations / predictions in the metadata at key metadata_key_source_annotations
+    / metadata_key_source_predictions, respectively.
+
+    Note that this will remove any annotation duplicates.
 
     Args:
         documents: A dictionary mapping document source (e.g. dataset names) to documents.
@@ -98,8 +101,7 @@ def merge_annotations_from_documents(
             for the predictions are stored.
 
     Returns:
-        The merged document with the source names and annotation scores stored in the metadata at key
-        metadata_key, for each layer in the order of the predictions.
+        The document with merged annotations.
     """
     if len(documents) == 0:
         raise ValueError("No documents provided.")
