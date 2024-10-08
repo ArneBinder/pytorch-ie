@@ -368,5 +368,3 @@ class Pipeline:
             return documents[0]
         else:
             return documents
-
-        print("REMOVE THIS LINE")
