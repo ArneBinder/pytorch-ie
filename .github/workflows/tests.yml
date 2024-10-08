@@ -84,6 +84,9 @@ jobs:
             - name: Run Nox
               run: |
                   nox --python=${{ matrix.python }}
+            - name: show files
+              run: |
+                  ls -la
             - name: Upload coverage data
               if: always() && matrix.session == 'tests_not_slow'
               uses: actions/upload-artifact@v4.4.1
