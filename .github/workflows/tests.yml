@@ -86,14 +86,14 @@ jobs:
                   nox --python=${{ matrix.python }}
             - name: Upload coverage data
               if: always() && matrix.session == 'tests_not_slow'
-              uses: actions/upload-artifact@v2.3.1
+              uses: actions/upload-artifact@v4.4.1
               with:
                   name: coverage-data
                   path: ".coverage.*"
 
             - name: Upload documentation
               if: matrix.session == 'docs-build'
-              uses: actions/upload-artifact@v2.3.1
+              uses: actions/upload-artifact@v4.4.1
               with:
                   name: docs
                   path: docs/_build
@@ -124,7 +124,7 @@ jobs:
                   pipx inject --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox nox-poetry
                   nox --version
             - name: Download coverage data
-              uses: actions/download-artifact@v2.1.0
+              uses: actions/download-artifact@v4.1.8
               with:
                   name: coverage-data
 
