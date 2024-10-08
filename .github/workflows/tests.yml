@@ -98,7 +98,7 @@ jobs:
               uses: actions/upload-artifact@v4.4.1
               with:
                   name: coverage-data
-                  path: ".coverage.*"
+                  path: "/home/runner/work/pytorch-ie/pytorch-ie/.coverage.*"
 
             - name: Upload documentation
               if: matrix.session == 'docs-build'
