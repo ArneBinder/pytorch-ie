@@ -764,7 +764,7 @@ class Document(Mapping[str, Any]):
         )
         return new_doc
 
-    def copy(self, with_annotations: bool = True) -> "Document":
+    def copy(self: D, with_annotations: bool = True) -> D:
         doc_dict = self.asdict()
         if not with_annotations:
             for field in self.annotation_fields():
