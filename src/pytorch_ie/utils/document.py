@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Dict, Hashable, List, Optional, TypeVar
 
-from pytorch_ie.core.document import Document
+from pytorch_ie.core.document import BaseAnnotationList, Document
 from pytorch_ie.documents import WithMetadata
 
 
@@ -74,9 +74,11 @@ def save_annotation_sources_to_metadata(
     for annotation_field in document.annotation_fields():
         layer_name = annotation_field.name
         document.metadata[metadata_key][layer_name] = []
-        layer = document[layer_name]
+        layer: BaseAnnotationList
         if use_predictions:
-            layer = layer.predictions
+            layer = document[layer_name].predictions
+        else:
+            layer = document[layer_name]
         for ann in layer:
             document.metadata[metadata_key][layer_name].append(annotation_id2source[ann._id])
     document.metadata[metadata_key] = dict(document.metadata[metadata_key])
