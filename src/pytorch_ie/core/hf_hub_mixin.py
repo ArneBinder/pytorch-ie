@@ -396,8 +396,8 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         self, model_file: str, map_location: str = "cpu", strict: bool = False
     ) -> None:
         state_dict = torch.load(model_file, map_location=torch.device(map_location))
-        model.load_state_dict(state_dict, strict=strict)  # type: ignore
-        model.eval()  # type: ignore
+        self.load_state_dict(state_dict, strict=strict)  # type: ignore
+        self.eval()  # type: ignore
 
     @classmethod
     def _from_pretrained(
