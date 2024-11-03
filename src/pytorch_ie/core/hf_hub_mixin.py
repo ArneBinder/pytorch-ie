@@ -387,10 +387,10 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
     ```
     """
 
-    def _save_pretrained(self, save_directory: Path) -> None:
+    def save_model_file(self, model_file: str) -> None:
         """Save weights from a Pytorch model to a local directory."""
         model_to_save = self.module if hasattr(self, "module") else self  # type: ignore
-        torch.save(model_to_save.state_dict(), save_directory / self.weights_file_name)
+        torch.save(model_to_save.state_dict(), model_file)
 
     def load_model_file(
         self, model_file: str, map_location: str = "cpu", strict: bool = False
@@ -398,6 +398,10 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         state_dict = torch.load(model_file, map_location=torch.device(map_location))
         self.load_state_dict(state_dict, strict=strict)  # type: ignore
         self.eval()  # type: ignore
+
+    def _save_pretrained(self, save_directory: Path) -> None:
+        """Save weights from a Pytorch model to a local directory."""
+        self.save_model_file(str(save_directory / self.weights_file_name))
 
     @classmethod
     def _from_pretrained(
