@@ -388,6 +388,13 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         model_to_save = self.module if hasattr(self, "module") else self  # type: ignore
         torch.save(model_to_save.state_dict(), save_directory / PYTORCH_WEIGHTS_NAME)
 
+    def load_weights(
+        self, model_file: str, map_location: str = "cpu", strict: bool = False
+    ) -> None:
+        state_dict = torch.load(model_file, map_location=torch.device(map_location))
+        model.load_state_dict(state_dict, strict=strict)  # type: ignore
+        model.eval()  # type: ignore
+
     @classmethod
     def _from_pretrained(
         cls: Type[T],
@@ -428,9 +435,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
             config.pop(cls.config_type_key)
         model = cls(**config)
 
-        state_dict = torch.load(model_file, map_location=torch.device(map_location))
-        model.load_state_dict(state_dict, strict=strict)  # type: ignore
-        model.eval()  # type: ignore
+        model.load_weights(model_file, map_location=map_location, strict=strict)
 
         return model
 
