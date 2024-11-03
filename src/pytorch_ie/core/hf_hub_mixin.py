@@ -392,7 +392,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         model_to_save = self.module if hasattr(self, "module") else self  # type: ignore
         torch.save(model_to_save.state_dict(), save_directory / self.weights_file_name)
 
-    def load_weights(
+    def load_model_file(
         self, model_file: str, map_location: str = "cpu", strict: bool = False
     ) -> None:
         state_dict = torch.load(model_file, map_location=torch.device(map_location))
@@ -440,7 +440,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
                 local_files_only=local_files_only,
             )
 
-        model.load_weights(model_file, map_location=map_location, strict=strict)
+        model.load_model_file(model_file, map_location=map_location, strict=strict)
 
         return model
 

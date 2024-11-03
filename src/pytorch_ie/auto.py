@@ -55,7 +55,7 @@ class AutoModel(PieModelHFHubMixin):
                 local_files_only=local_files_only,
             )
 
-        model.load_weights(model_file, map_location=map_location, strict=strict)
+        model.load_model_file(model_file, map_location=map_location, strict=strict)
 
         return model
 
