@@ -351,6 +351,7 @@ TModel = TypeVar("TModel", bound="PieModelHFHubMixin")
 class PieModelHFHubMixin(PieBaseHFHubMixin):
     config_name = MODEL_CONFIG_NAME
     config_type_key = MODEL_CONFIG_TYPE_KEY
+    weights_file_name = PYTORCH_WEIGHTS_NAME
 
     """
     Implementation of [`ModelHubMixin`] to provide model Hub upload/download capabilities to PyTorch models. The model
@@ -389,7 +390,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
     def _save_pretrained(self, save_directory: Path) -> None:
         """Save weights from a Pytorch model to a local directory."""
         model_to_save = self.module if hasattr(self, "module") else self  # type: ignore
-        torch.save(model_to_save.state_dict(), save_directory / PYTORCH_WEIGHTS_NAME)
+        torch.save(model_to_save.state_dict(), save_directory / self.weights_file_name)
 
     def load_weights(
         self, model_file: str, map_location: str = "cpu", strict: bool = False
@@ -418,11 +419,11 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
             logger.info("Loading weights from local directory")
-            model_file = os.path.join(model_id, PYTORCH_WEIGHTS_NAME)
+            model_file = os.path.join(model_id, cls.weights_file_name)
         else:
             model_file = hf_hub_download(
                 repo_id=model_id,
-                filename=PYTORCH_WEIGHTS_NAME,
+                filename=cls.weights_file_name,
                 revision=revision,
                 cache_dir=cache_dir,
                 force_download=force_download,
