@@ -345,9 +345,13 @@ class PieBaseHFHubMixin:
         return cls(**config)
 
 
+TModel = TypeVar("TModel", bound="PieModelHFHubMixin")
+
+
 class PieModelHFHubMixin(PieBaseHFHubMixin):
     config_name = MODEL_CONFIG_NAME
     config_type_key = MODEL_CONFIG_TYPE_KEY
+    weights_file_name = PYTORCH_WEIGHTS_NAME
 
     """
     Implementation of [`ModelHubMixin`] to provide model Hub upload/download capabilities to PyTorch models. The model
@@ -383,14 +387,25 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
     ```
     """
 
-    def _save_pretrained(self, save_directory: Path) -> None:
+    def save_model_file(self, model_file: str) -> None:
         """Save weights from a Pytorch model to a local directory."""
         model_to_save = self.module if hasattr(self, "module") else self  # type: ignore
-        torch.save(model_to_save.state_dict(), save_directory / PYTORCH_WEIGHTS_NAME)
+        torch.save(model_to_save.state_dict(), model_file)
+
+    def load_model_file(
+        self, model_file: str, map_location: str = "cpu", strict: bool = False
+    ) -> None:
+        state_dict = torch.load(model_file, map_location=torch.device(map_location))
+        self.load_state_dict(state_dict, strict=strict)  # type: ignore
+        self.eval()  # type: ignore
+
+    def _save_pretrained(self, save_directory: Path) -> None:
+        """Save weights from a Pytorch model to a local directory."""
+        self.save_model_file(str(save_directory / self.weights_file_name))
 
     @classmethod
     def _from_pretrained(
-        cls: Type[T],
+        cls: Type[TModel],
         *,
         model_id: str,
         revision: Optional[str],
@@ -404,15 +419,22 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         strict: bool = False,
         config: Optional[dict] = None,
         **model_kwargs,
-    ) -> T:
+    ) -> TModel:
+
+        config = (config or {}).copy()
+        config.update(model_kwargs)
+        if cls.config_type_key is not None:
+            config.pop(cls.config_type_key)
+        model = cls(**config)
+
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
             logger.info("Loading weights from local directory")
-            model_file = os.path.join(model_id, PYTORCH_WEIGHTS_NAME)
+            model_file = os.path.join(model_id, model.weights_file_name)
         else:
             model_file = hf_hub_download(
                 repo_id=model_id,
-                filename=PYTORCH_WEIGHTS_NAME,
+                filename=model.weights_file_name,
                 revision=revision,
                 cache_dir=cache_dir,
                 force_download=force_download,
@@ -422,17 +444,12 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
                 local_files_only=local_files_only,
             )
 
-        config = (config or {}).copy()
-        config.update(model_kwargs)
-        if cls.config_type_key is not None:
-            config.pop(cls.config_type_key)
-        model = cls(**config)
-
-        state_dict = torch.load(model_file, map_location=torch.device(map_location))
-        model.load_state_dict(state_dict, strict=strict)  # type: ignore
-        model.eval()  # type: ignore
+        model.load_model_file(model_file, map_location=map_location, strict=strict)
 
         return model
+
+
+TTaskModule = TypeVar("TTaskModule", bound="PieTaskModuleHFHubMixin")
 
 
 class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
@@ -447,7 +464,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
 
     @classmethod
     def _from_pretrained(
-        cls: Type[T],
+        cls: Type[TTaskModule],
         *,
         model_id: str,
         revision: Optional[str],
@@ -461,7 +478,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         strict: bool = False,
         config: Optional[dict] = None,
         **taskmodule_kwargs,
-    ) -> T:
+    ) -> TTaskModule:
         config = (config or {}).copy()
         config.update(taskmodule_kwargs)
         if cls.config_type_key is not None:
