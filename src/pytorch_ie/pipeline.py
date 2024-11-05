@@ -54,7 +54,9 @@ class Pipeline:
         **kwargs,
     ):
         self.taskmodule = taskmodule
-        device_str = ("cpu" if device < 0 else f"cuda:{device}") if isinstance(device, int) else device
+        device_str = (
+            ("cpu" if device < 0 else f"cuda:{device}") if isinstance(device, int) else device
+        )
         self.device = torch.device(device_str)
         self.binary_output = binary_output
 
