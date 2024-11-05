@@ -49,13 +49,17 @@ class Pipeline:
         self,
         model: PyTorchIEModel,
         taskmodule: TaskModule,
-        # args_parser: ArgumentHandler = None,
-        device: int = -1,
+        device: Union[int, str] = "cpu",
         binary_output: bool = False,
         **kwargs,
     ):
         self.taskmodule = taskmodule
-        self.device = torch.device("cpu" if device < 0 else f"cuda:{device}")
+        device_str = (
+            torch.device("cpu" if device < 0 else f"cuda:{device}")
+            if isinstance(device, int)
+            else device
+        )
+        self.device = torch.device(device_str)
         self.binary_output = binary_output
 
         # Module.to() returns just self, but moved to the device. This is not correctly
