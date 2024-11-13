@@ -180,6 +180,7 @@ class DocumentStatistic(DocumentMetric):
         """Collect any values from a document."""
 
     def _update(self, document: Document) -> None:
+        document = document.deduplicate_annotations()
         values = self._collect(document)
         self._values.append(values)
 
