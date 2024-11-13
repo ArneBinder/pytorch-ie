@@ -948,6 +948,57 @@ class Document(Mapping[str, Any]):
 
         return dict(added_annotations)
 
+    def deduplicate_annotations(
+        self: D,
+    ) -> D:
+        """
+        Deduplicates annotations in the document. The method is useful, for instance, if annotations
+        are added by window-based processing with overlaps which may lead to duplicated annotations.
+        """
+
+        dependency_ordered_fields: List[str] = []
+        _enumerate_dependencies(
+            dependency_ordered_fields,
+            dependency_graph=self._annotation_graph,
+            nodes=self._annotation_graph["_artificial_root"],
+        )
+
+        def get_score(annotation: Annotation) -> float:
+            score = getattr(annotation, "score", None)
+            return 1.0 if score is None else score
+
+        result = self.copy(with_annotations=False)
+        store: Dict[int, Annotation] = {}
+        store_predictions: Dict[int, Annotation] = {}
+        for field_name in dependency_ordered_fields:
+            if field_name in self._annotation_fields:
+                layer = self[field_name]
+                for is_prediction, anns in [(False, layer), (True, layer.predictions)]:
+                    current_store = dict(store)
+                    if is_prediction:
+                        current_store.update(store_predictions)
+                    ann2duplicates = defaultdict(list)
+                    for ann in anns:
+                        ann2duplicates[ann].append(ann)
+                    for duplicates in ann2duplicates.values():
+                        duplicates_sorted = sorted(duplicates, key=get_score, reverse=True)
+                        best_duplicate = duplicates_sorted[0]
+                        new_ann = best_duplicate.copy_with_store(
+                            override_annotation_store=current_store,
+                            invalid_annotation_ids={},
+                        )
+
+                        target_layer = result[field_name]
+                        if is_prediction:
+                            for ann in duplicates:
+                                store_predictions[ann._id] = new_ann
+                            target_layer.predictions.append(new_ann)
+                        else:
+                            for ann in duplicates:
+                                store[ann._id] = new_ann
+                            target_layer.append(new_ann)
+        return result
+
 
 def resolve_annotation(
     id_or_annotation: Union[int, Annotation],
