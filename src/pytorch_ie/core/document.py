@@ -969,14 +969,11 @@ class Document(Mapping[str, Any]):
 
         result = self.copy(with_annotations=False)
         store: Dict[int, Annotation] = {}
-        store_predictions: Dict[int, Annotation] = {}
         for field_name in dependency_ordered_fields:
             if field_name in self._annotation_fields:
                 layer = self[field_name]
+                new_mapping: Dict[int, Annotation] = {}
                 for is_prediction, anns in [(False, layer), (True, layer.predictions)]:
-                    current_store = dict(store)
-                    if is_prediction:
-                        current_store.update(store_predictions)
                     ann2duplicates = defaultdict(list)
                     for ann in anns:
                         ann2duplicates[ann].append(ann)
@@ -984,19 +981,17 @@ class Document(Mapping[str, Any]):
                         duplicates_sorted = sorted(duplicates, key=get_score, reverse=True)
                         best_duplicate = duplicates_sorted[0]
                         new_ann = best_duplicate.copy_with_store(
-                            override_annotation_store=current_store,
+                            override_annotation_store=store,
                             invalid_annotation_ids={},
                         )
-
+                        for ann in duplicates:
+                            new_mapping[ann._id] = new_ann
                         target_layer = result[field_name]
                         if is_prediction:
-                            for ann in duplicates:
-                                store_predictions[ann._id] = new_ann
                             target_layer.predictions.append(new_ann)
                         else:
-                            for ann in duplicates:
-                                store[ann._id] = new_ann
                             target_layer.append(new_ann)
+                store.update(new_mapping)
         return result
 
 
