@@ -101,7 +101,6 @@ class F1Metric(DocumentMetric):
         )
 
     def _update(self, document: Document):
-        document = document.deduplicate_annotations()
         new_counts = self.calculate_counts(
             document=document,
             annotation_filter=(
