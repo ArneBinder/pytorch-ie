@@ -141,7 +141,7 @@ class F1Metric(DocumentMetric):
                 p = tp / (tp + fp)
                 r = tp / (tp + fn)
                 f1 = 2 * p * r / (p + r)
-            res[label] = {"f1": f1, "p": p, "r": r}
+            res[label] = {"f1": f1, "p": p, "r": r, "s": tp + fn}
             if self.per_label and label in self.labels:
                 res["MACRO"]["f1"] += f1 / len(self.labels)
                 res["MACRO"]["p"] += p / len(self.labels)
