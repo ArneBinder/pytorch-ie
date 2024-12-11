@@ -52,7 +52,7 @@ def test_f1(documents):
     metric(documents)
     # tp, fp, fn for micro
     assert dict(metric.counts) == {"MICRO": (3, 2, 0)}
-    assert metric.compute() == {"MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0}}
+    assert metric.compute() == {"MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0, "s": 3}}
 
 
 def test_f1_per_label(documents):
@@ -67,10 +67,10 @@ def test_f1_per_label(documents):
     }
     assert metric.compute() == {
         "MACRO": {"f1": 0.5555555555555556, "p": 0.5, "r": 0.6666666666666666},
-        "MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0},
-        "cat": {"f1": 0.0, "p": 0.0, "r": 0.0},
-        "company": {"f1": 0.6666666666666666, "p": 0.5, "r": 1.0},
-        "animal": {"f1": 1.0, "p": 1.0, "r": 1.0},
+        "MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0, "s": 3},
+        "animal": {"f1": 1.0, "p": 1.0, "r": 1.0, "s": 2},
+        "cat": {"f1": 0.0, "p": 0.0, "r": 0.0, "s": 0},
+        "company": {"f1": 0.6666666666666666, "p": 0.5, "r": 1.0, "s": 1},
     }
 
 
@@ -86,10 +86,10 @@ def test_f1_per_label_inferred(documents):
     }
     assert metric.compute() == {
         "MACRO": {"f1": 0.5555555555555556, "p": 0.5, "r": 0.6666666666666666},
-        "MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0},
-        "animal": {"f1": 1.0, "p": 1.0, "r": 1.0},
-        "cat": {"f1": 0.0, "p": 0.0, "r": 0.0},
-        "company": {"f1": 0.6666666666666666, "p": 0.5, "r": 1.0},
+        "MICRO": {"f1": 0.7499999999999999, "p": 0.6, "r": 1.0, "s": 3},
+        "animal": {"f1": 1.0, "p": 1.0, "r": 1.0, "s": 2},
+        "cat": {"f1": 0.0, "p": 0.0, "r": 0.0, "s": 0},
+        "company": {"f1": 0.6666666666666666, "p": 0.5, "r": 1.0, "s": 1},
     }
 
 
