@@ -103,8 +103,6 @@ def merge_annotations_from_documents(
                     f"Document IDs do not match: {document.id} and {merged_document.id}"
                 )
 
-        # TODO: add_all_annotations_from_other needs to be fixed! it should return a mapping from
-        #   original annotation *IDs* to new annotations!
         # Note: this does not check for duplicates!
         added_annotations = merged_document.add_all_annotations_from_other(
             other=document, strict=True
@@ -114,7 +112,7 @@ def merge_annotations_from_documents(
             for orig_id, new_annotation in orig_id2new_annotation.items():
                 added_annotation_id2source_names[new_annotation._id].append(source_name)
 
-    # merged_document = deduplicate_annotations(merged_document)
+    # this will remove duplicates. If duplicates have different scores, the one with the highest score will be kept
     merged_document = merged_document.deduplicate_annotations()
 
     # save source names in metadata (at key metadata_key_source_annotations / metadata_key_source_predictions
