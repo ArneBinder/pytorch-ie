@@ -29,27 +29,6 @@ def deduplicate_annotation_dicts(
 D = TypeVar("D", bound=Document)
 
 
-def deduplicate_annotations(document: D) -> D:
-    """Remove duplicate annotations from a document.
-
-    Args:
-        document: The document to remove duplicate annotations from.
-
-    Returns:
-        The document with duplicate annotations removed.
-    """
-    annotation_field_names = [field.name for field in document.annotation_fields()]
-    doc_dict = document.asdict()
-    for annotation_field_name in annotation_field_names:
-        doc_dict[annotation_field_name]["annotations"] = deduplicate_annotation_dicts(
-            doc_dict[annotation_field_name]["annotations"]
-        )
-        doc_dict[annotation_field_name]["predictions"] = deduplicate_annotation_dicts(
-            doc_dict[annotation_field_name]["predictions"]
-        )
-    return type(document).fromdict(doc_dict)
-
-
 def save_annotation_sources_to_metadata(
     document: D,
     annotation_id2source: Dict[int, List[str]],
@@ -124,8 +103,6 @@ def merge_annotations_from_documents(
                     f"Document IDs do not match: {document.id} and {merged_document.id}"
                 )
 
-        # TODO: add_all_annotations_from_other needs to be fixed! it should return a mapping from
-        #   original annotation *IDs* to new annotations!
         # Note: this does not check for duplicates!
         added_annotations = merged_document.add_all_annotations_from_other(
             other=document, strict=True
@@ -135,7 +112,8 @@ def merge_annotations_from_documents(
             for orig_id, new_annotation in orig_id2new_annotation.items():
                 added_annotation_id2source_names[new_annotation._id].append(source_name)
 
-    merged_document = deduplicate_annotations(merged_document)
+    # this will remove duplicates. If duplicates have different scores, the one with the highest score will be kept
+    merged_document = merged_document.deduplicate_annotations()
 
     # save source names in metadata (at key metadata_key_source_annotations / metadata_key_source_predictions
     #   for each layer in the order of the annotations / predictions)

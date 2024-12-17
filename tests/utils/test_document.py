@@ -32,11 +32,9 @@ def test_document_merge_annotations():
     assert result.id == "doc1"
     assert set(result.labeled_spans) == set(base_doc.labeled_spans)
     assert len(result.labeled_spans) == len(base_doc.labeled_spans) == 2
-    assert len(result.labeled_spans.predictions) == 4
     assert result.labeled_spans.predictions.resolve() == [
         ("label1", "This"),
         ("label2", "is"),
-        ("label1", "This"),
         ("label3", "is"),
     ]
     annotations_with_sources = [
@@ -59,6 +57,5 @@ def test_document_merge_annotations():
     assert predictions_with_scores == [
         (LabeledSpan(start=0, end=4, label="label1", score=0.9), ["doc1"]),
         (LabeledSpan(start=5, end=7, label="label2", score=0.7), ["doc1", "doc2"]),
-        (LabeledSpan(start=0, end=4, label="label1", score=0.8), ["doc2"]),
         (LabeledSpan(start=5, end=7, label="label3", score=0.6), ["doc2"]),
     ]
