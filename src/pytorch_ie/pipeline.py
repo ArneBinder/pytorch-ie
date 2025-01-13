@@ -72,6 +72,7 @@ class Pipeline:
         # reflected in typing of PyTorch.
         self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
         if half_precision_model:
+            # TODO: use torch.get_autocast_dtype(self.device.type) when available
             self.model = self.model.to(dtype=self.get_autocast_dtype())
 
         self.call_count = 0
