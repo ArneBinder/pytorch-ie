@@ -46,6 +46,10 @@ class Pipeline:
             The device to run the pipeline on. This can be a CPU device (:obj:`"cpu"`), a GPU
             device (:obj:`"cuda"`) or a specific GPU device (:obj:`"cuda:X"`, where :obj:`X`
             is the index of the GPU).
+        half_precision_model (:obj:`bool`, `optional`, defaults to :obj:`False`):
+            Whether or not to use half precision model. This can be set to :obj:`True` to reduce
+            the memory usage of the model. If set to :obj:`True`, the model will be cast to
+            :obj:`torch.float16` on supported devices.
     """
 
     default_input_names = None
@@ -333,6 +337,11 @@ class Pipeline:
                 during inference.
             fast_dev_run (:obj:`bool`, `optional`, defaults to :obj:`False`): Whether or not to run a fast development
                 run. If set to :obj:`True`, only the first two model inputs will be processed.
+            half_precision_model (:obj:`bool`, `optional`, defaults to :obj:`False`):
+                Whether or not to use half precision model. If set to :obj:`True`, the model
+                will be cast to :obj:`torch.float16` on supported devices. This can reduce the
+                memory consumption and improve the inference speed, but may lead to numerical
+                instability.
             batch_size (:obj:`int`, `optional`, defaults to :obj:`1`): The batch size to use for the dataloader. If not
                 provided, a batch size of 1 will be used.
             num_workers (:obj:`int`, `optional`, defaults to :obj:`8`): The number of workers to use for the dataloader.
