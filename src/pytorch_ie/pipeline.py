@@ -37,11 +37,6 @@ class Pipeline:
 
     Pipeline supports running on CPU or GPU through the device argument (see below).
 
-    Some pipeline, like for instance :class:`~transformers.FeatureExtractionPipeline` (:obj:`'feature-extraction'` )
-    output large tensor object as nested-lists. In order to avoid dumping such large structure as textual data we
-    provide the :obj:`binary_output` constructor argument. If set to :obj:`True`, the output will be stored in the
-    pickle format.
-
     Args:
         model (:class:`~pytorch_ie.PyTorchIEModel`):
             The deep learning model to use for the pipeline.
@@ -60,7 +55,6 @@ class Pipeline:
         model: PyTorchIEModel,
         taskmodule: TaskModule,
         device: Union[int, str] = "cpu",
-        binary_output: bool = False,
         **kwargs,
     ):
         self.taskmodule = taskmodule
@@ -68,7 +62,6 @@ class Pipeline:
             ("cpu" if device < 0 else f"cuda:{device}") if isinstance(device, int) else device
         )
         self.device = torch.device(device_str)
-        self.binary_output = binary_output
 
         # Module.to() returns just self, but moved to the device. This is not correctly
         # reflected in typing of PyTorch.
