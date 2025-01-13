@@ -230,7 +230,7 @@ class Pipeline:
         **preprocess_parameters: Dict,
     ) -> Sequence[TaskEncoding]:
         """
-        Preprocess will take the `input_` of a specific pipeline and return a dictionnary of everything necessary for
+        Preprocess will take the `input_` of a specific pipeline and return a dictionary of everything necessary for
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
         """
 
@@ -248,7 +248,7 @@ class Pipeline:
         self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
     ) -> Dict:
         """
-        _forward will receive the prepared dictionnary from `preprocess` and run it on the model. This method might
+        _forward will receive the prepared dictionary from `preprocess` and run it on the model. This method might
         involve the GPU or the CPU and should be agnostic to it. Isolating this function is the reason for `preprocess`
         and `postprocess` to exist, so that the hot path, this method generally can run as fast as possible.
 
@@ -325,7 +325,7 @@ class Pipeline:
 
                 1. Encode the documents
                 2. Run the model forward pass(es) on the encodings
-                3. Combine the model outputs with the inputs encodings and integrate them back into the documents
+                3. Combine the model outputs with the input encodings and integrate them back into the documents
 
         Args:
             documents (:obj:`Union[Document, Sequence[Document]]`): The documents to process. If a single document is
