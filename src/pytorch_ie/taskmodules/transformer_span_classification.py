@@ -227,7 +227,7 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
 
     def unbatch_output(self, model_output: ModelOutputType) -> Sequence[TaskOutputType]:
         logits = model_output["logits"]
-        probs = F.softmax(logits, dim=-1).detach().cpu().numpy()
+        probs = F.softmax(logits, dim=-1).detach().cpu().float().numpy()
         label_ids = torch.argmax(logits, dim=-1).detach().cpu().numpy()
 
         start_indices = model_output["start_indices"].detach().cpu().numpy()

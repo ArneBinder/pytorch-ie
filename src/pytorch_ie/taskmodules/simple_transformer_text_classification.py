@@ -182,7 +182,7 @@ class SimpleTransformerTextClassificationTaskModule(TaskModuleType):
         logits = model_output["logits"]
 
         # convert the logits to "probabilities"
-        probabilities = logits.softmax(dim=-1).detach().cpu().numpy()
+        probabilities = logits.softmax(dim=-1).detach().cpu().float().numpy()
 
         # get the max class index per example
         max_label_ids = np.argmax(probabilities, axis=-1)

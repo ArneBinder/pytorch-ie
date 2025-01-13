@@ -290,7 +290,7 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
 
     def unbatch_output(self, model_output: ModelOutputType) -> Sequence[TaskOutputType]:
         logits = model_output["logits"]
-        probabilities = F.softmax(logits, dim=-1).detach().cpu().numpy()
+        probabilities = F.softmax(logits, dim=-1).detach().cpu().float().numpy()
         indices = torch.argmax(logits, dim=-1).detach().cpu().numpy()
         tags = [[self.id_to_label[e] for e in b] for b in indices]
         return [{"tags": t, "probabilities": p} for t, p in zip(tags, probabilities)]
