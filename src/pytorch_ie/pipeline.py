@@ -55,6 +55,7 @@ class Pipeline:
         model: PyTorchIEModel,
         taskmodule: TaskModule,
         device: Union[int, str] = "cpu",
+        half_precision_model: bool = False,
         **kwargs,
     ):
         self.taskmodule = taskmodule
@@ -66,6 +67,8 @@ class Pipeline:
         # Module.to() returns just self, but moved to the device. This is not correctly
         # reflected in typing of PyTorch.
         self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
+        if half_precision_model:
+            self.model = self.model.to(dtype=self.get_autocast_dtype())
 
         self.call_count = 0
         (
@@ -74,6 +77,16 @@ class Pipeline:
             self._forward_params,
             self._postprocess_params,
         ) = self._sanitize_parameters(**kwargs)
+
+    def get_autocast_dtype(self):
+        if self.device.type == "cuda":
+            return torch.float16
+        elif self.device.type == "cpu":
+            return torch.bfloat16
+        else:
+            raise ValueError(
+                f"Unsupported device type for half precision autocast: {self.device.type}"
+            )
 
     def save_pretrained(self, save_directory: str):
         """
@@ -190,7 +203,7 @@ class Pipeline:
                 preprocess_parameters[p_name] = pipeline_parameters[p_name]
 
         # set forward parameters
-        for p_name in ["show_progress_bar", "fast_dev_run"]:
+        for p_name in ["show_progress_bar", "fast_dev_run", "half_precision_ops"]:
             if p_name in pipeline_parameters:
                 forward_parameters[p_name] = pipeline_parameters[p_name]
 
@@ -378,12 +391,16 @@ class Pipeline:
         dataloader = self.get_dataloader(model_inputs=model_inputs, **dataloader_params)
 
         show_progress_bar = forward_params.pop("show_progress_bar", False)
+        half_precision_ops = forward_params.pop("half_precision_ops", False)
         model_outputs: List = []
         with torch.no_grad():
-            for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
-                output = self.forward(batch, **forward_params)
-                processed_output = self.taskmodule.unbatch_output(output)
-                model_outputs.extend(processed_output)
+            with torch.autocast(device_type=self.device.type, enabled=half_precision_ops):
+                for batch in tqdm.tqdm(
+                    dataloader, desc="inference", disable=not show_progress_bar
+                ):
+                    output = self.forward(batch, **forward_params)
+                    processed_output = self.taskmodule.unbatch_output(output)
+                    model_outputs.extend(processed_output)
 
         assert len(model_inputs) == len(
             model_outputs
