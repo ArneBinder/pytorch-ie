@@ -195,7 +195,7 @@ class Pipeline:
                 forward_parameters[p_name] = pipeline_parameters[p_name]
 
         # set dataloader parameters
-        for p_name in ["batch_size", "num_workers", "shuffle"]:
+        for p_name in ["batch_size", "num_workers"]:
             if p_name in pipeline_parameters:
                 dataloader_params[p_name] = pipeline_parameters[p_name]
 
