@@ -25,6 +25,16 @@ from pytorch_ie.core.taskmodule import (
 logger = logging.getLogger(__name__)
 
 
+# TODO: use torch.get_autocast_dtype when available
+def get_autocast_dtype(device_type: str):
+    if device_type == "cuda":
+        return torch.float16
+    elif device_type == "cpu":
+        return torch.bfloat16
+    else:
+        raise ValueError(f"Unsupported device type for half precision autocast: {device_type}")
+
+
 class Pipeline:
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
@@ -72,8 +82,7 @@ class Pipeline:
         # reflected in typing of PyTorch.
         self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
         if half_precision_model:
-            # TODO: use torch.get_autocast_dtype(self.device.type) when available
-            self.model = self.model.to(dtype=self.get_autocast_dtype())
+            self.model = self.model.to(dtype=get_autocast_dtype(self.device.type))
 
         self.call_count = 0
         (
@@ -82,16 +91,6 @@ class Pipeline:
             self._forward_params,
             self._postprocess_params,
         ) = self._sanitize_parameters(**kwargs)
-
-    def get_autocast_dtype(self):
-        if self.device.type == "cuda":
-            return torch.float16
-        elif self.device.type == "cpu":
-            return torch.bfloat16
-        else:
-            raise ValueError(
-                f"Unsupported device type for half precision autocast: {self.device.type}"
-            )
 
     def save_pretrained(self, save_directory: str):
         """
