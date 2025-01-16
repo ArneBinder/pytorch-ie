@@ -25,6 +25,16 @@ from pytorch_ie.core.taskmodule import (
 logger = logging.getLogger(__name__)
 
 
+# TODO: use torch.get_autocast_dtype when available
+def get_autocast_dtype(device_type: str):
+    if device_type == "cuda":
+        return torch.float16
+    elif device_type == "cpu":
+        return torch.bfloat16
+    else:
+        raise ValueError(f"Unsupported device type for half precision autocast: {device_type}")
+
+
 class Pipeline:
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
@@ -46,6 +56,10 @@ class Pipeline:
             The device to run the pipeline on. This can be a CPU device (:obj:`"cpu"`), a GPU
             device (:obj:`"cuda"`) or a specific GPU device (:obj:`"cuda:X"`, where :obj:`X`
             is the index of the GPU).
+        half_precision_model (:obj:`bool`, `optional`, defaults to :obj:`False`):
+            Whether or not to use half precision model. This can be set to :obj:`True` to reduce
+            the memory usage of the model. If set to :obj:`True`, the model will be cast to
+            :obj:`torch.float16` on supported devices.
     """
 
     default_input_names = None
@@ -55,6 +69,7 @@ class Pipeline:
         model: PyTorchIEModel,
         taskmodule: TaskModule,
         device: Union[int, str] = "cpu",
+        half_precision_model: bool = False,
         **kwargs,
     ):
         self.taskmodule = taskmodule
@@ -66,6 +81,8 @@ class Pipeline:
         # Module.to() returns just self, but moved to the device. This is not correctly
         # reflected in typing of PyTorch.
         self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
+        if half_precision_model:
+            self.model = self.model.to(dtype=get_autocast_dtype(self.device.type))
 
         self.call_count = 0
         (
@@ -190,7 +207,7 @@ class Pipeline:
                 preprocess_parameters[p_name] = pipeline_parameters[p_name]
 
         # set forward parameters
-        for p_name in ["show_progress_bar", "fast_dev_run"]:
+        for p_name in ["show_progress_bar", "fast_dev_run", "half_precision_ops"]:
             if p_name in pipeline_parameters:
                 forward_parameters[p_name] = pipeline_parameters[p_name]
 
@@ -213,7 +230,7 @@ class Pipeline:
         **preprocess_parameters: Dict,
     ) -> Sequence[TaskEncoding]:
         """
-        Preprocess will take the `input_` of a specific pipeline and return a dictionnary of everything necessary for
+        Preprocess will take the `input_` of a specific pipeline and return a dictionary of everything necessary for
         `_forward` to run properly. It should contain at least one tensor, but might have arbitrary other items.
         """
 
@@ -231,7 +248,7 @@ class Pipeline:
         self, input_tensors: Tuple[Dict[str, Tensor], Any, Any, Any], **forward_parameters: Dict
     ) -> Dict:
         """
-        _forward will receive the prepared dictionnary from `preprocess` and run it on the model. This method might
+        _forward will receive the prepared dictionary from `preprocess` and run it on the model. This method might
         involve the GPU or the CPU and should be agnostic to it. Isolating this function is the reason for `preprocess`
         and `postprocess` to exist, so that the hot path, this method generally can run as fast as possible.
 
@@ -308,7 +325,7 @@ class Pipeline:
 
                 1. Encode the documents
                 2. Run the model forward pass(es) on the encodings
-                3. Combine the model outputs with the inputs encodings and integrate them back into the documents
+                3. Combine the model outputs with the input encodings and integrate them back into the documents
 
         Args:
             documents (:obj:`Union[Document, Sequence[Document]]`): The documents to process. If a single document is
@@ -320,6 +337,9 @@ class Pipeline:
                 during inference.
             fast_dev_run (:obj:`bool`, `optional`, defaults to :obj:`False`): Whether or not to run a fast development
                 run. If set to :obj:`True`, only the first two model inputs will be processed.
+            half_precision_ops (:obj:`bool`, `optional`, defaults to :obj:`False`): Whether or not to use half
+                precision operations. If set to :obj:`True`, the model will be run with half precision operations
+                via :obj:`torch.autocast`.
             batch_size (:obj:`int`, `optional`, defaults to :obj:`1`): The batch size to use for the dataloader. If not
                 provided, a batch size of 1 will be used.
             num_workers (:obj:`int`, `optional`, defaults to :obj:`8`): The number of workers to use for the dataloader.
@@ -378,12 +398,16 @@ class Pipeline:
         dataloader = self.get_dataloader(model_inputs=model_inputs, **dataloader_params)
 
         show_progress_bar = forward_params.pop("show_progress_bar", False)
+        half_precision_ops = forward_params.pop("half_precision_ops", False)
         model_outputs: List = []
         with torch.no_grad():
-            for batch in tqdm.tqdm(dataloader, desc="inference", disable=not show_progress_bar):
-                output = self.forward(batch, **forward_params)
-                processed_output = self.taskmodule.unbatch_output(output)
-                model_outputs.extend(processed_output)
+            with torch.autocast(device_type=self.device.type, enabled=half_precision_ops):
+                for batch in tqdm.tqdm(
+                    dataloader, desc="inference", disable=not show_progress_bar
+                ):
+                    output = self.forward(batch, **forward_params)
+                    processed_output = self.taskmodule.unbatch_output(output)
+                    model_outputs.extend(processed_output)
 
         assert len(model_inputs) == len(
             model_outputs

@@ -196,7 +196,7 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
         logits = model_output["logits"]
 
         output_label_probs = logits.sigmoid() if self.multi_label else logits.softmax(dim=-1)
-        output_label_probs = output_label_probs.detach().cpu().numpy()
+        output_label_probs = output_label_probs.detach().cpu().float().numpy()
 
         if self.multi_label:
             raise NotImplementedError()
