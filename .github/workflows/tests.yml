@@ -31,10 +31,10 @@ jobs:
 
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v4.2.1
+              uses: actions/checkout@v4
 
             - name: Set up Python ${{ matrix.python }}
-              uses: actions/setup-python@v5.2.0
+              uses: actions/setup-python@v5
               with:
                   python-version: ${{ matrix.python }}
                   #   cache: pip
@@ -74,7 +74,7 @@ jobs:
                   result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
                   print("::set-output name=result::{}".format(result))
             - name: Restore pre-commit cache
-              uses: actions/cache@v4.1.0
+              uses: actions/cache@v4
               if: matrix.session == 'pre-commit'
               with:
                   path: ~/.cache/pre-commit
@@ -86,7 +86,7 @@ jobs:
                   nox --python=${{ matrix.python }}
             - name: Upload coverage data
               if: always() && matrix.session == 'tests_not_slow'
-              uses: actions/upload-artifact@v4.4.1
+              uses: actions/upload-artifact@v4
               with:
                   name: coverage-data
                   include-hidden-files: true
@@ -94,7 +94,7 @@ jobs:
 
             - name: Upload documentation
               if: matrix.session == 'docs-build'
-              uses: actions/upload-artifact@v4.4.1
+              uses: actions/upload-artifact@v4
               with:
                   name: docs
                   path: docs/_build
@@ -104,10 +104,10 @@ jobs:
         needs: tests
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v4.2.1
+              uses: actions/checkout@v4
 
             - name: Set up Python
-              uses: actions/setup-python@v5.2.0
+              uses: actions/setup-python@v5
               with:
                   python-version: "3.9"
 
@@ -125,7 +125,7 @@ jobs:
                   pipx inject --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox nox-poetry
                   nox --version
             - name: Download coverage data
-              uses: actions/download-artifact@v4.1.8
+              uses: actions/download-artifact@v4
               with:
                   name: coverage-data
 
