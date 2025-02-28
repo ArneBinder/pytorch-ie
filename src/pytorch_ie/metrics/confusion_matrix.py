@@ -128,17 +128,26 @@ class ConfusionMatrix(DocumentMetric):
             res[gold_label][pred_label] = self.counts[(gold_label, pred_label)]
 
         if self.show_as_markdown:
-            # index is prediction, columns is gold TODO: really, is this correct?
             res_df = pd.DataFrame(res).fillna(0)
-            # sort index and columns
-            gold_labels_sorted = sorted([col for col in res_df.columns if col != self.fp_label])
-            if self.fn_label in res_df.columns:
+            # index is prediction, columns is gold TODO: really, is this correct?
+            gold_labels = res_df.columns
+            pred_labels = res_df.index
+
+            # re-arrange index and columns: sort and put fp_label and fn_label at the end
+            gold_labels_sorted = sorted(
+                [gold_label for gold_label in gold_labels if gold_label != self.fp_label]
+            )
+            # re-add fp_label at the end, if it was in the gold labels
+            if self.fp_label in gold_labels:
                 gold_labels_sorted = gold_labels_sorted + [self.fp_label]
-            pred_labels_sorted = sorted([idx for idx in res_df.index if idx != self.fn_label])
-            if self.fn_label in res_df.index:
+            pred_labels_sorted = sorted(
+                [pred_label for pred_label in pred_labels if pred_label != self.fn_label]
+            )
+            # re-add fn_label at the end, if it was in the pred labels
+            if self.fn_label in pred_labels:
                 pred_labels_sorted = pred_labels_sorted + [self.fn_label]
             res_df_sorted = res_df.loc[pred_labels_sorted, gold_labels_sorted]
 
-            # transpose and show as markdown: index is gold, columns is prediction
+            # transpose and show as markdown: index is now gold, columns is prediction
             logger.info(f"\n{self.layer}:\n{res_df_sorted.T.to_markdown()}")
         return res
