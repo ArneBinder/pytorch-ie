@@ -73,6 +73,15 @@ class ConfusionMatrix(DocumentMetric):
             gold_labels = [getattr(ann, self.label_field) for ann in base2gold[base_ann]]
             pred_labels = [getattr(ann, self.label_field) for ann in base2pred[base_ann]]
 
+            if self.na_label in gold_labels:
+                raise ValueError(
+                    f"The gold annotation has the na_label='{self.na_label}' as label. Set a different na_label."
+                )
+            if self.na_label in pred_labels:
+                raise ValueError(
+                    f"The predicted annotation has the na_label='{self.na_label}' as label. Set a different na_label."
+                )
+
             # TODO: is this logic correct?
             if len(gold_labels) == 0:
                 gold_labels.append(self.na_label)
