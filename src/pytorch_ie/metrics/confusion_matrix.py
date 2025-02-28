@@ -16,6 +16,8 @@ class ConfusionMatrix(DocumentMetric):
     Args:
         layer: The layer to compute the confusion matrix for.
         label_field: The field to use for the label. Defaults to "label".
+        missed_label: The label to use for missed annotations. Defaults to "MISSED".
+        strict: If True, raises an error if a base annotation has multiple gold labels. If False, logs a warning.
         show_as_markdown: If True, logs the confusion matrix as markdown on the console when calling compute().
         annotation_processor: A callable that processes the annotations before calculating the confusion matrix.
     """
@@ -25,13 +27,15 @@ class ConfusionMatrix(DocumentMetric):
         layer: str,
         label_field: str = "label",
         show_as_markdown: bool = False,
-        na_label: str = "NA",
+        missed_label: str = "MISSED",
+        strict: bool = True,
         annotation_processor: Optional[Union[Callable[[Annotation], Annotation], str]] = None,
     ):
         super().__init__()
         self.layer = layer
         self.label_field = label_field
-        self.na_label = na_label
+        self.missed_label = missed_label
+        self.strict = strict
         self.show_as_markdown = show_as_markdown
         if isinstance(annotation_processor, str):
             annotation_processor = resolve_target(annotation_processor)
@@ -73,24 +77,30 @@ class ConfusionMatrix(DocumentMetric):
             gold_labels = [getattr(ann, self.label_field) for ann in base2gold[base_ann]]
             pred_labels = [getattr(ann, self.label_field) for ann in base2pred[base_ann]]
 
-            if self.na_label in gold_labels:
+            if self.missed_label in gold_labels:
                 raise ValueError(
-                    f"The gold annotation has the na_label='{self.na_label}' as label. Set a different na_label."
+                    f"The gold annotation has the na_label='{self.missed_label}' as label. "
+                    f"Set a different na_label."
                 )
-            if self.na_label in pred_labels:
+            if self.missed_label in pred_labels:
                 raise ValueError(
-                    f"The predicted annotation has the na_label='{self.na_label}' as label. Set a different na_label."
+                    f"The predicted annotation has the na_label='{self.missed_label}' as label. "
+                    f"Set a different na_label."
                 )
+
+            if len(gold_labels) > 1:
+                msg = f"The base annotation {base_ann} has multiple gold labels: {gold_labels}."
+                if self.strict:
+                    raise ValueError(msg)
+                else:
+                    logger.warning(msg + " Skip this base annotation.")
+                    continue
 
             # TODO: is this logic correct?
             if len(gold_labels) == 0:
-                gold_labels.append(self.na_label)
+                gold_labels.append(self.missed_label)
             if len(pred_labels) == 0:
-                pred_labels.append(self.na_label)
-
-            if len(gold_labels) > 1:
-                raise ValueError("The base annotation has multiple gold labels.")
-
+                pred_labels.append(self.missed_label)
             for gold_label in gold_labels:
                 for pred_label in pred_labels:
                     counts[(gold_label, pred_label)] += 1
@@ -117,12 +127,12 @@ class ConfusionMatrix(DocumentMetric):
         if self.show_as_markdown:
             res_df = pd.DataFrame(res).fillna(0)
             # sort index and columns
-            columns_sorted = sorted([col for col in res_df.columns if col != self.na_label])
-            if self.na_label in res_df.columns:
-                columns_sorted = columns_sorted + [self.na_label]
-            index_sorted = sorted([idx for idx in res_df.index if idx != self.na_label])
-            if self.na_label in res_df.index:
-                index_sorted = index_sorted + [self.na_label]
+            columns_sorted = sorted([col for col in res_df.columns if col != self.missed_label])
+            if self.missed_label in res_df.columns:
+                columns_sorted = columns_sorted + [self.missed_label]
+            index_sorted = sorted([idx for idx in res_df.index if idx != self.missed_label])
+            if self.missed_label in res_df.index:
+                index_sorted = index_sorted + [self.missed_label]
             res_df_sorted = res_df.loc[index_sorted, columns_sorted]
 
             # show as markdown: index is gold, columns is prediction
