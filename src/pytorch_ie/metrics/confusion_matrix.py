@@ -68,7 +68,7 @@ class ConfusionMatrix(DocumentMetric):
             base2pred[base_ann].append(ann)
 
         # (gold_label, pred_label) -> count
-        counts = defaultdict(int)
+        counts: Dict[Tuple[str, str], int] = defaultdict(int)
         for base_ann in set(base2gold) | set(base2pred):
             gold_labels = [getattr(ann, self.label_field) for ann in base2gold[base_ann]]
             pred_labels = [getattr(ann, self.label_field) for ann in base2pred[base_ann]]
