@@ -50,11 +50,11 @@ def test_confusion_matrix(documents):
     assert dict(metric.counts) == {
         ("animal", "animal"): 1,
         ("animal", "cat"): 1,
-        ("MISSED", "company"): 1,
+        ("FALSE_POSITIVE", "company"): 1,
         ("company", "company"): 1,
     }
     assert metric.compute() == {
         "animal": {"animal": 1, "cat": 1},
-        "MISSED": {"company": 1},
+        "FALSE_POSITIVE": {"company": 1},
         "company": {"company": 1},
     }
