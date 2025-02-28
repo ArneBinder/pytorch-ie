@@ -115,5 +115,16 @@ class ConfusionMatrix(DocumentMetric):
             res[gold_label][pred_label] = self.counts[(gold_label, pred_label)]
 
         if self.show_as_markdown:
-            logger.info(f"\n{self.layer}:\n{pd.DataFrame(res).fillna(0).T.to_markdown()}")
+            res_df = pd.DataFrame(res).fillna(0)
+            # sort index and columns
+            columns_sorted = sorted([col for col in res_df.columns if col != self.na_label])
+            if self.na_label in res_df.columns:
+                columns_sorted = columns_sorted + [self.na_label]
+            index_sorted = sorted([idx for idx in res_df.index if idx != self.na_label])
+            if self.na_label in res_df.index:
+                index_sorted = index_sorted + [self.na_label]
+            res_df_sorted = res_df.loc[index_sorted, columns_sorted]
+
+            # show as markdown: index is gold, columns is prediction
+            logger.info(f"\n{self.layer}:\n{res_df_sorted.T.to_markdown()}")
         return res
