@@ -128,7 +128,7 @@ class ConfusionMatrix(DocumentMetric):
             res[gold_label][pred_label] = self.counts[(gold_label, pred_label)]
 
         if self.show_as_markdown:
-            # index is prediction, columns is gold
+            # index is prediction, columns is gold TODO: really, is this correct?
             res_df = pd.DataFrame(res).fillna(0)
             # sort index and columns
             gold_labels_sorted = sorted([col for col in res_df.columns if col != self.fp_label])
