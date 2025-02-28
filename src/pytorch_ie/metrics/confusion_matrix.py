@@ -110,7 +110,7 @@ class ConfusionMatrix(DocumentMetric):
 
     def _compute(self) -> Dict[str, Dict[str, int]]:
 
-        res: Dict[Tuple[str, str], int] = defaultdict(dict)
+        res: Dict[str, Dict[str, int]] = defaultdict(dict)
         for gold_label, pred_label in sorted(self.counts):
             res[gold_label][pred_label] = self.counts[(gold_label, pred_label)]
 
