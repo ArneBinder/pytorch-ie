@@ -102,8 +102,8 @@ class ConfusionMatrix(DocumentMetric):
     def _compute(self) -> Dict[str, Dict[str, int]]:
 
         res = defaultdict(dict)
-        for (gold_label, pred_label), count in self.counts.items():
-            res[gold_label][pred_label] = count
+        for gold_label, pred_label in sorted(self.counts):
+            res[gold_label][pred_label] = self.counts[(gold_label, pred_label)]
 
         if self.show_as_markdown:
             logger.info(f"\n{self.layer}:\n{pd.DataFrame(res).fillna(0).T.to_markdown()}")
