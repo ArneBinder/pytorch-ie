@@ -16,8 +16,8 @@ class ConfusionMatrix(DocumentMetric):
     Args:
         layer: The layer to compute the confusion matrix for.
         label_field: The field to use for the label. Defaults to "label".
-        fn_label: The label to use for false negative annotations. Defaults to "FALSE_NEGATIVE".
-        fp_label: The label to use for false positive annotations. Defaults to "FALSE_POSITIVE".
+        unassignable_label: The label to use for false negative annotations. Defaults to "UNASSIGNABLE".
+        undetected_label: The label to use for false positive annotations. Defaults to "UNDETECTED".
         strict: If True, raises an error if a base annotation has multiple gold labels. If False, logs a warning.
         show_as_markdown: If True, logs the confusion matrix as markdown on the console when calling compute().
         annotation_processor: A callable that processes the annotations before calculating the confusion matrix.
@@ -28,16 +28,16 @@ class ConfusionMatrix(DocumentMetric):
         layer: str,
         label_field: str = "label",
         show_as_markdown: bool = False,
-        fn_label: str = "FALSE_NEGATIVE",
-        fp_label: str = "FALSE_POSITIVE",
+        unassignable_label: str = "UNASSIGNABLE",
+        undetected_label: str = "UNDETECTED",
         strict: bool = True,
         annotation_processor: Optional[Union[Callable[[Annotation], Annotation], str]] = None,
     ):
         super().__init__()
         self.layer = layer
         self.label_field = label_field
-        self.fn_label = fn_label
-        self.fp_label = fp_label
+        self.unassignable_label = unassignable_label
+        self.undetected_label = undetected_label
         self.strict = strict
         self.show_as_markdown = show_as_markdown
         if isinstance(annotation_processor, str):
@@ -80,15 +80,15 @@ class ConfusionMatrix(DocumentMetric):
             gold_labels = [getattr(ann, self.label_field) for ann in base2gold[base_ann]]
             pred_labels = [getattr(ann, self.label_field) for ann in base2pred[base_ann]]
 
-            if self.fp_label in gold_labels:
+            if self.undetected_label in gold_labels:
                 raise ValueError(
-                    f"The gold annotation has the fp_label='{self.fp_label}' as label. "
-                    f"Set a different fp_label."
+                    f"The gold annotation has the label '{self.undetected_label}' for undetected instances. "
+                    f"Set a different undetected_label."
                 )
-            if self.fn_label in pred_labels:
+            if self.unassignable_label in pred_labels:
                 raise ValueError(
-                    f"The predicted annotation has the fn_label='{self.fn_label}' as label. "
-                    f"Set a different fn_label."
+                    f"The predicted annotation has the label '{self.unassignable_label}' for unassignable predictions. "
+                    f"Set a different unassignable_label."
                 )
 
             if len(gold_labels) > 1:
@@ -99,11 +99,13 @@ class ConfusionMatrix(DocumentMetric):
                     logger.warning(msg + " Skip this base annotation.")
                     continue
 
-            # TODO: is this logic correct?
+            # use placeholder labels for empty gold or prediction labels
             if len(gold_labels) == 0:
-                gold_labels.append(self.fp_label)
+                gold_labels.append(self.undetected_label)
             if len(pred_labels) == 0:
-                pred_labels.append(self.fn_label)
+                pred_labels.append(self.unassignable_label)
+
+            # main logic
             for gold_label in gold_labels:
                 for pred_label in pred_labels:
                     counts[(gold_label, pred_label)] += 1
@@ -129,23 +131,23 @@ class ConfusionMatrix(DocumentMetric):
 
         if self.show_as_markdown:
             res_df = pd.DataFrame(res).fillna(0)
-            # index is prediction, columns is gold TODO: really, is this correct?
+            # index is prediction, columns is gold
             gold_labels = res_df.columns
             pred_labels = res_df.index
 
-            # re-arrange index and columns: sort and put fp_label and fn_label at the end
+            # re-arrange index and columns: sort and put undetected_label and unassignable_label at the end
             gold_labels_sorted = sorted(
-                [gold_label for gold_label in gold_labels if gold_label != self.fp_label]
+                [gold_label for gold_label in gold_labels if gold_label != self.undetected_label]
             )
-            # re-add fp_label at the end, if it was in the gold labels
-            if self.fp_label in gold_labels:
-                gold_labels_sorted = gold_labels_sorted + [self.fp_label]
+            # re-add undetected_label at the end, if it was in the gold labels
+            if self.undetected_label in gold_labels:
+                gold_labels_sorted = gold_labels_sorted + [self.undetected_label]
             pred_labels_sorted = sorted(
-                [pred_label for pred_label in pred_labels if pred_label != self.fn_label]
+                [pred_label for pred_label in pred_labels if pred_label != self.unassignable_label]
             )
-            # re-add fn_label at the end, if it was in the pred labels
-            if self.fn_label in pred_labels:
-                pred_labels_sorted = pred_labels_sorted + [self.fn_label]
+            # re-add unassignable_label at the end, if it was in the pred labels
+            if self.unassignable_label in pred_labels:
+                pred_labels_sorted = pred_labels_sorted + [self.unassignable_label]
             res_df_sorted = res_df.loc[pred_labels_sorted, gold_labels_sorted]
 
             # transpose and show as markdown: index is now gold, columns is prediction
