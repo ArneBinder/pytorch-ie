@@ -96,7 +96,7 @@ class AutoTaskModule(PieTaskModuleHFHubMixin):
         return taskmodule
 
     @classmethod
-    def from_config(cls, config: dict, **kwargs) -> TaskModule:
+    def from_config(cls, config: dict, **kwargs) -> TaskModule:  # type: ignore
         """Build a task module from a config dict."""
         config = config.copy()
         class_name = config.pop(cls.config_type_key)

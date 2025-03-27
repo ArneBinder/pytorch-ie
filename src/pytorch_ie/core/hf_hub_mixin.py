@@ -350,7 +350,7 @@ class PieBaseHFHubMixin:
             )
 
     @classmethod
-    def from_config(cls, config: dict, **kwargs) -> "PieBaseHFHubMixin":
+    def from_config(cls: Type[T], config: dict, **kwargs) -> T:
         """
         Instantiate from a configuration object.
 
