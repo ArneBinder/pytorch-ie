@@ -462,9 +462,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
 
         config = (config or {}).copy()
         dict_update_nested(config, model_kwargs, override=config_override)
-        if cls.config_type_key is not None:
-            config.pop(cls.config_type_key)
-        model = cls(**config)
+        model = cls.from_config(config=config)
 
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
@@ -521,8 +519,5 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
     ) -> TTaskModule:
         config = (config or {}).copy()
         dict_update_nested(config, taskmodule_kwargs, override=config_override)
-        if cls.config_type_key is not None:
-            config.pop(cls.config_type_key)
-
-        taskmodule = cls(**config)
+        taskmodule = cls.from_config(config=config)
         return taskmodule

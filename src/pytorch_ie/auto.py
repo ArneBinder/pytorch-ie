@@ -41,9 +41,7 @@ class AutoModel(PieModelHFHubMixin):
 
         config = (config or {}).copy()
         dict_update_nested(config, model_kwargs, override=config_override)
-        class_name = config.pop(cls.config_type_key)
-        clazz = PyTorchIEModel.by_name(class_name)
-        model = clazz(**config)
+        model = cls.from_config(config, **model_kwargs)
 
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
@@ -95,9 +93,7 @@ class AutoTaskModule(PieTaskModuleHFHubMixin):
     ) -> TaskModule:
         config = (config or {}).copy()
         dict_update_nested(config, taskmodule_kwargs)
-        class_name = config.pop(cls.config_type_key)
-        clazz: Type[TaskModule] = TaskModule.by_name(class_name)
-        taskmodule = clazz(**config)
+        taskmodule = cls.from_config(config)
         taskmodule.post_prepare()
         return taskmodule
 
