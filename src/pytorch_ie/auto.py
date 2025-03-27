@@ -7,7 +7,11 @@ from huggingface_hub.constants import PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
 
 from pytorch_ie.core import PyTorchIEModel, TaskModule
-from pytorch_ie.core.hf_hub_mixin import PieModelHFHubMixin, PieTaskModuleHFHubMixin
+from pytorch_ie.core.hf_hub_mixin import (
+    PieModelHFHubMixin,
+    PieTaskModuleHFHubMixin,
+    dict_update_nested,
+)
 from pytorch_ie.pipeline import Pipeline
 
 
@@ -34,7 +38,7 @@ class AutoModel(PieModelHFHubMixin):
         """
 
         config = (config or {}).copy()
-        config.update(model_kwargs)
+        dict_update_nested(config, model_kwargs)
         class_name = config.pop(cls.config_type_key)
         clazz = PyTorchIEModel.by_name(class_name)
         model = clazz(**config)
@@ -87,7 +91,7 @@ class AutoTaskModule(PieTaskModuleHFHubMixin):
         **taskmodule_kwargs,
     ) -> TaskModule:
         config = (config or {}).copy()
-        config.update(taskmodule_kwargs)
+        dict_update_nested(config, taskmodule_kwargs)
         class_name = config.pop(cls.config_type_key)
         clazz: Type[TaskModule] = TaskModule.by_name(class_name)
         taskmodule = clazz(**config)

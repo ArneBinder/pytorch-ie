@@ -22,6 +22,26 @@ TASKMODULE_CONFIG_TYPE_KEY = "taskmodule_type"
 T = TypeVar("T", bound="PieBaseHFHubMixin")
 
 
+def dict_update_nested(d: dict, u: dict) -> None:
+    """
+    Update a dictionary with another dictionary, recursively.
+
+    Args:
+        d (`dict`):
+            The original dictionary to update.
+        u (`dict`):
+            The dictionary to use for the update.
+
+    Returns:
+        None
+    """
+    for k, v in u.items():
+        if isinstance(v, dict) and k in d:
+            dict_update_nested(d[k], v)
+        else:
+            d[k] = v
+
+
 class PieBaseHFHubMixin:
     """
     A generic mixin to integrate ANY machine learning framework with the Hub.
@@ -341,7 +361,7 @@ class PieBaseHFHubMixin:
                 Additional keyword arguments passed along to the specific model class.
         """
         config = config.copy()
-        config.update(kwargs)
+        dict_update_nested(config, kwargs)
         return cls(**config)
 
 
@@ -422,7 +442,7 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
     ) -> TModel:
 
         config = (config or {}).copy()
-        config.update(model_kwargs)
+        dict_update_nested(config, model_kwargs)
         if cls.config_type_key is not None:
             config.pop(cls.config_type_key)
         model = cls(**config)
@@ -480,7 +500,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         **taskmodule_kwargs,
     ) -> TTaskModule:
         config = (config or {}).copy()
-        config.update(taskmodule_kwargs)
+        dict_update_nested(config, taskmodule_kwargs)
         if cls.config_type_key is not None:
             config.pop(cls.config_type_key)
 
