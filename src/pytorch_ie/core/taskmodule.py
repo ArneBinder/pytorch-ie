@@ -155,16 +155,6 @@ class TaskModule(
         return config
 
     @classmethod
-    def _from_pretrained(
-        cls: Type["TaskModule"],
-        *args,
-        **kwargs,
-    ) -> "TaskModule":
-        taskmodule: TaskModule = super()._from_pretrained(*args, **kwargs)
-        taskmodule.post_prepare()
-        return taskmodule
-
-    @classmethod
     def _from_config(
         cls: Type["TaskModule"],
         config: Dict[str, Any],
