@@ -1,8 +1,4 @@
-import os
-from pathlib import Path
-from typing import Any, Dict, Optional, Type, Union
-
-from huggingface_hub.file_download import hf_hub_download
+from typing import Any, Dict, Optional, Type
 
 from pytorch_ie.core import PyTorchIEModel, TaskModule
 from pytorch_ie.core.hf_hub_mixin import (
