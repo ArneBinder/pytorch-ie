@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, Union
 
-import torch
-from huggingface_hub.constants import PYTORCH_WEIGHTS_NAME
 from huggingface_hub.file_download import hf_hub_download
 
 from pytorch_ie.core import PyTorchIEModel, TaskModule
