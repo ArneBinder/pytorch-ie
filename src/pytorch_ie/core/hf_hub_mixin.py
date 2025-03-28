@@ -37,6 +37,8 @@ def dict_update_nested(d: dict, u: dict) -> None:
     """
     for k, v in u.items():
         if isinstance(v, dict) and k in d:
+            if not isinstance(d[k], dict):
+                raise ValueError(f"Cannot merge {d[k]} and {v} because {d[k]} is not a dict.")
             dict_update_nested(d[k], v)
         else:
             d[k] = v
