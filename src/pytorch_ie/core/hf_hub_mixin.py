@@ -457,10 +457,10 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
-        **model_kwargs,
+        **kwargs,
     ) -> TModel:
 
-        model = cls.from_config(config=config or {}, **model_kwargs)
+        model = cls.from_config(config=config or {}, **kwargs)
 
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
@@ -512,7 +512,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
-        **taskmodule_kwargs,
+        **kwargs,
     ) -> TTaskModule:
-        taskmodule = cls.from_config(config=config or {}, **taskmodule_kwargs)
+        taskmodule = cls.from_config(config=config or {}, **kwargs)
         return taskmodule
