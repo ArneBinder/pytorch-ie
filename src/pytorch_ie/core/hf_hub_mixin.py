@@ -366,7 +366,9 @@ class PieBaseHFHubMixin:
         return cls._from_config(config=config, **kwargs)
 
     @classmethod
-    def _from_config(cls: Type[T], config: dict, **kwargs) -> T:
+    def _from_config(
+        cls: Type[T], config: dict, config_override: Optional[TOverride] = None, **kwargs
+    ) -> T:
         """
         Instantiate from a configuration object.
 
@@ -377,7 +379,7 @@ class PieBaseHFHubMixin:
                 Additional keyword arguments passed along to the specific model class.
         """
         config = config.copy()
-        config.update(kwargs)
+        dict_update_nested(config, kwargs, override=config_override)
         return cls(**config)
 
 
