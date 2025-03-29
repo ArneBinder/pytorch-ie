@@ -75,7 +75,7 @@ class PieBaseHFHubMixin:
         self._is_from_pretrained = is_from_pretrained
 
     @property
-    def is_from_pretrained(self):
+    def is_from_pretrained(self) -> bool:
         return self._is_from_pretrained
 
     def _config(self) -> Optional[Dict[str, Any]]:
@@ -350,7 +350,7 @@ class PieBaseHFHubMixin:
             )
 
     @classmethod
-    def from_config(cls, config: dict, **kwargs) -> "PieBaseHFHubMixin":
+    def from_config(cls: Type[T], config: dict, **kwargs) -> T:
         """
         Instantiate from a configuration object.
 
@@ -361,8 +361,9 @@ class PieBaseHFHubMixin:
                 Additional keyword arguments passed along to the specific model class.
         """
         config = config.copy()
-        # remove config_type_key entry, e.g. model_type, from config
+        # remove config_type_key entry, e.g. model_type, from config and kwargs, if present
         config.pop(cls.config_type_key, None)
+        kwargs.pop(cls.config_type_key, None)
         return cls._from_config(config=config, **kwargs)
 
     @classmethod
@@ -456,15 +457,10 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
-        config_override: Optional[TOverride] = None,
-        **model_kwargs,
+        **kwargs,
     ) -> TModel:
 
-        config = (config or {}).copy()
-        dict_update_nested(config, model_kwargs, override=config_override)
-        if cls.config_type_key is not None:
-            config.pop(cls.config_type_key)
-        model = cls(**config)
+        model = cls.from_config(config=config or {}, **kwargs)
 
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
@@ -498,7 +494,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _save_pretrained(self, save_directory):
+    def _save_pretrained(self, save_directory) -> None:
         return None
 
     @classmethod
@@ -516,13 +512,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
-        config_override: Optional[TOverride] = None,
-        **taskmodule_kwargs,
+        **kwargs,
     ) -> TTaskModule:
-        config = (config or {}).copy()
-        dict_update_nested(config, taskmodule_kwargs, override=config_override)
-        if cls.config_type_key is not None:
-            config.pop(cls.config_type_key)
-
-        taskmodule = cls(**config)
+        taskmodule = cls.from_config(config=config or {}, **kwargs)
         return taskmodule
