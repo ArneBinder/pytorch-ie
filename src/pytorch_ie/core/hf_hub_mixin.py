@@ -75,7 +75,7 @@ class PieBaseHFHubMixin:
         self._is_from_pretrained = is_from_pretrained
 
     @property
-    def is_from_pretrained(self):
+    def is_from_pretrained(self) -> bool:
         return self._is_from_pretrained
 
     def _config(self) -> Optional[Dict[str, Any]]:
@@ -494,7 +494,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _save_pretrained(self, save_directory):
+    def _save_pretrained(self, save_directory) -> None:
         return None
 
     @classmethod
