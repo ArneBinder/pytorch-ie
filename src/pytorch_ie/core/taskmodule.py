@@ -10,7 +10,7 @@ from torchmetrics import Metric
 from tqdm import tqdm
 
 from pytorch_ie.core.document import Annotation, Document
-from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin
+from pytorch_ie.core.hf_hub_mixin import PieTaskModuleHFHubMixin, TOverride
 from pytorch_ie.core.module_mixins import PreparableMixin, WithDocumentTypeMixin
 from pytorch_ie.core.registrable import Registrable
 
@@ -165,8 +165,15 @@ class TaskModule(
         return taskmodule
 
     @classmethod
-    def _from_config(cls: Type["TaskModule"], config: Dict[str, Any], **kwargs) -> "TaskModule":
-        taskmodule: TaskModule = super()._from_config(config, **kwargs)
+    def _from_config(
+        cls: Type["TaskModule"],
+        config: Dict[str, Any],
+        config_override: Optional[TOverride] = None,
+        **kwargs,
+    ) -> "TaskModule":
+        taskmodule: TaskModule = super()._from_config(
+            config, config_override=config_override, **kwargs
+        )
         taskmodule.post_prepare()
         return taskmodule
 
