@@ -20,9 +20,11 @@ TASKMODULE_CONFIG_TYPE_KEY = "taskmodule_type"
 
 # Generic variable that is either PieBaseHFHubMixin or a subclass thereof
 T = TypeVar("T", bound="PieBaseHFHubMixin")
+# recursive type: either bool or dict from str to this type again
+TOverride = Union[bool, Dict[str, "TOverride"]]
 
 
-def dict_update_nested(d: dict, u: dict) -> None:
+def dict_update_nested(d: dict, u: dict, override: Optional[TOverride] = None) -> None:
     """
     Update a dictionary with another dictionary, recursively.
 
@@ -31,15 +33,27 @@ def dict_update_nested(d: dict, u: dict) -> None:
             The original dictionary to update.
         u (`dict`):
             The dictionary to use for the update.
-
+        override (`bool` or `dict`, *optional*):
+            If `True`, override the original dictionary with the new one.
+            If `False`, do not override any keys, just return the original dictionary.
+            If `None`, merge the dictionaries recursively.
+            If a dictionary, recursively merge the dictionaries, using the provided dictionary as the override.
     Returns:
         None
     """
+    if isinstance(override, bool):
+        if override:
+            d.clear()
+            d.update(u)
+        return
+    if override is None:
+        override = {}
+
     for k, v in u.items():
         if isinstance(v, dict) and k in d:
             if not isinstance(d[k], dict):
                 raise ValueError(f"Cannot merge {d[k]} and {v} because {d[k]} is not a dict.")
-            dict_update_nested(d[k], v)
+            dict_update_nested(d[k], v, override=override.get(k))
         else:
             d[k] = v
 
@@ -440,11 +454,12 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
+        config_override: Optional[TOverride] = None,
         **model_kwargs,
     ) -> TModel:
 
         config = (config or {}).copy()
-        dict_update_nested(config, model_kwargs)
+        dict_update_nested(config, model_kwargs, override=config_override)
         if cls.config_type_key is not None:
             config.pop(cls.config_type_key)
         model = cls(**config)
@@ -499,10 +514,11 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
+        config_override: Optional[TOverride] = None,
         **taskmodule_kwargs,
     ) -> TTaskModule:
         config = (config or {}).copy()
-        dict_update_nested(config, taskmodule_kwargs)
+        dict_update_nested(config, taskmodule_kwargs, override=config_override)
         if cls.config_type_key is not None:
             config.pop(cls.config_type_key)
 
