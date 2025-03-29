@@ -361,8 +361,9 @@ class PieBaseHFHubMixin:
                 Additional keyword arguments passed along to the specific model class.
         """
         config = config.copy()
-        # remove config_type_key entry, e.g. model_type, from config
+        # remove config_type_key entry, e.g. model_type, from config and kwargs, if present
         config.pop(cls.config_type_key, None)
+        kwargs.pop(cls.config_type_key, None)
         return cls._from_config(config=config, **kwargs)
 
     @classmethod
@@ -456,13 +457,10 @@ class PieModelHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
-        config_override: Optional[TOverride] = None,
         **model_kwargs,
     ) -> TModel:
 
-        config = (config or {}).copy()
-        dict_update_nested(config, model_kwargs, override=config_override)
-        model = cls.from_config(config=config)
+        model = cls.from_config(config=config or {}, **model_kwargs)
 
         """Load Pytorch pretrained weights and return the loaded model."""
         if os.path.isdir(model_id):
@@ -514,10 +512,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         map_location: str = "cpu",
         strict: bool = False,
         config: Optional[dict] = None,
-        config_override: Optional[TOverride] = None,
         **taskmodule_kwargs,
     ) -> TTaskModule:
-        config = (config or {}).copy()
-        dict_update_nested(config, taskmodule_kwargs, override=config_override)
-        taskmodule = cls.from_config(config=config)
+        taskmodule = cls.from_config(config=config or {}, **taskmodule_kwargs)
         return taskmodule
