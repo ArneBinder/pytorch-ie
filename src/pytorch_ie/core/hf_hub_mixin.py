@@ -363,7 +363,7 @@ class PieBaseHFHubMixin:
                 Additional keyword arguments passed along to the specific model class.
         """
         config = config.copy()
-        dict_update_nested(config, kwargs)
+        config.update(kwargs)
         return cls(**config)
 
 
