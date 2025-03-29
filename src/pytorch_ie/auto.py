@@ -1,12 +1,7 @@
 from typing import Any, Dict, Optional, Type
 
 from pytorch_ie.core import PyTorchIEModel, TaskModule
-from pytorch_ie.core.hf_hub_mixin import (
-    PieModelHFHubMixin,
-    PieTaskModuleHFHubMixin,
-    TOverride,
-    dict_update_nested,
-)
+from pytorch_ie.core.hf_hub_mixin import PieModelHFHubMixin, PieTaskModuleHFHubMixin
 from pytorch_ie.pipeline import Pipeline
 
 
