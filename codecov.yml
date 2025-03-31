@@ -4,6 +4,7 @@ coverage:
         project:
             default:
                 target: auto
+                threshold: 1% # the leniency in hitting the target
         patch:
             default:
                 target: 80%
