@@ -514,5 +514,7 @@ class PieTaskModuleHFHubMixin(PieBaseHFHubMixin):
         config: Optional[dict] = None,
         **kwargs,
     ) -> TTaskModule:
+
         taskmodule = cls.from_config(config=config or {}, **kwargs)
+
         return taskmodule
