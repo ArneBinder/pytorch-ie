@@ -1,12 +1,24 @@
 import dataclasses
 import json
+from typing import Dict, Optional
 
 import pytest
+from pie_core import Annotation
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from tests import FIXTURES_ROOT
+
+
+def _test_annotation_reconstruction(
+    annotation: Annotation, annotation_store: Optional[Dict[int, Annotation]] = None
+):
+    ann_str = json.dumps(annotation.asdict())
+    annotation_reconstructed = type(annotation).fromdict(
+        json.loads(ann_str), annotation_store=annotation_store
+    )
+    assert annotation_reconstructed == annotation
 
 
 @dataclasses.dataclass

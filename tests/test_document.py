@@ -3,10 +3,10 @@ import re
 from typing import Any, Dict, List, Optional, Set
 
 import pytest
+from pie_core.document import Annotation, Document, _enumerate_dependencies
 
 from pytorch_ie.annotations import BinaryRelation, Label, LabeledSpan, Span
 from pytorch_ie.core import AnnotationLayer, annotation_field
-from pytorch_ie.core.document import Annotation, Document, _enumerate_dependencies
 from pytorch_ie.documents import (
     TextDocument,
     TextDocumentWithSpansBinaryRelationsAndLabeledPartitions,

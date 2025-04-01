@@ -39,6 +39,8 @@ fsspec = "<2023.9.0"
 # required for testing, but, strangely, tests fail, if just in dev-dependencies
 absl-py = "^1.0.0"
 pandas = "^2.0.0"
+# TODO: use release when available
+pie-core = {git = "git@github.com:ArneBinder/pie-core.git", branch="main"}
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"

@@ -1,7 +1,8 @@
 from collections import defaultdict
 from typing import Dict, Hashable, List, Optional, TypeVar
 
-from pytorch_ie.core.document import BaseAnnotationList, Document
+from pie_core.document import BaseAnnotationList, Document
+
 from pytorch_ie.documents import WithMetadata
 
 
