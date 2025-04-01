@@ -40,7 +40,7 @@ fsspec = "<2023.9.0"
 absl-py = "^1.0.0"
 pandas = "^2.0.0"
 # TODO: use release when available
-pie-core = {git = "git@github.com:ArneBinder/pie-core.git", rev="2745d4affdf21c5065f11d3a7ab054e22ca12d0a"}
+pie-core = {git = "git@github.com:ArneBinder/pie-core.git", branch="main"}
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
