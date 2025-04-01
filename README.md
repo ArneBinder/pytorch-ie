@@ -85,7 +85,7 @@ elements:
 
 ```python
 from typing import Optional
-from pytorch_ie.core import Document, AnnotationLayer, annotation_field
+from pytorch_ie import Document, AnnotationLayer, annotation_field
 from pytorch_ie.annotations import LabeledSpan, BinaryRelation, Label
 
 
@@ -110,7 +110,7 @@ targets by name from within the annotation, see below for an example.
 #### Annotations
 
 There are several predefined **annotation types** in `pytorch_ie.annotations`, however, feel free to define your own.
-Annotations have to be dataclasses that subclass `pytorch_ie.core.Annotation`. They also need to be hashable and
+Annotations have to be dataclasses that subclass `pytorch_ie.Annotation`. They also need to be hashable and
 immutable. The following is a simple example:
 
 ```python
@@ -318,9 +318,9 @@ for details.
 ```python
 from dataclasses import dataclass
 
+from pytorch_ie import AnnotationLayer, annotation_field
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.auto import AutoPipeline
-from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 
 
@@ -391,9 +391,9 @@ ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, n
 ```python
 from dataclasses import dataclass
 
+from pytorch_ie import AnnotationLayer, annotation_field
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.auto import AutoPipeline
-from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 
 

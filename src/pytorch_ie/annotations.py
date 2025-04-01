@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Optional, Tuple
 
-from pie_core.document import Annotation
+from pie_core import Annotation
 
 
 def _post_init_single_label(self):

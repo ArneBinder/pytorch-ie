@@ -13,13 +13,13 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Ty
 import numpy as np
 import torch
 import torch.nn.functional as F
+from pie_core import TaskEncoding, TaskModule
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
-from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import (
     TextDocument,
     TextDocumentWithLabeledSpans,

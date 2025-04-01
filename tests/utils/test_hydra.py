@@ -1,8 +1,8 @@
 from importlib import import_module
 
 import pytest
+from pie_core import Document
 
-from pytorch_ie.core import Document
 from pytorch_ie.documents import TextBasedDocument
 from pytorch_ie.utils.hydra import (
     InstantiationException,
@@ -73,7 +73,7 @@ def test_resolve_target_not_callable_with_full_key():
 def test_resolve_optional_document_type():
 
     assert resolve_optional_document_type(Document) == Document
-    assert resolve_optional_document_type("pytorch_ie.core.Document") == Document
+    assert resolve_optional_document_type("pie_core.Document") == Document
 
     assert resolve_optional_document_type(TextBasedDocument) == TextBasedDocument
     assert (

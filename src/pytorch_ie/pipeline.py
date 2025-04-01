@@ -8,15 +8,8 @@ from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, 
 import torch
 import tqdm
 from packaging import version
-from pie_core.document import Document
-from pie_core.model import PyTorchIEModel
-from pie_core.taskmodule import (
-    InplaceNotSupportedException,
-    TaskEncoding,
-    TaskEncodingDataset,
-    TaskModule,
-    TaskOutput,
-)
+from pie_core import Document, PyTorchIEModel, TaskEncoding, TaskModule
+from pie_core.taskmodule import InplaceNotSupportedException, TaskEncodingDataset, TaskOutput
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput

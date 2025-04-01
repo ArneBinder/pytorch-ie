@@ -4,9 +4,9 @@ from typing import Any, Dict
 
 import pytest
 import torch
+from pie_core import AnnotationLayer, Document, annotation_field
 from transformers import BatchEncoding
 
-from pytorch_ie import AnnotationLayer, Document, annotation_field
 from pytorch_ie.annotations import Label
 from pytorch_ie.taskmodules import SimpleTransformerTextClassificationTaskModule
 

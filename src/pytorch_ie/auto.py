@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 
-from pytorch_ie.core import AutoModel, AutoTaskModule
+from pie_core import AutoModel, AutoTaskModule
+
 from pytorch_ie.pipeline import Pipeline
 
 
