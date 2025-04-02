@@ -40,7 +40,7 @@ fsspec = "<2023.9.0"
 absl-py = "^1.0.0"
 pandas = "^2.0.0"
 # TODO: use release when available
-pie-core = {git = "git@github.com:ArneBinder/pie-core.git", branch="main"}
+pie-core = { git = "https://github.com/ArneBinder/pie-core.git", branch = "main" }
 
 [tool.poetry.group.dev]
 optional = true
