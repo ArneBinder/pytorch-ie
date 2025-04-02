@@ -1924,7 +1924,7 @@ pytorch-lightning = "^2.1.0"
 
 [package.source]
 type = "git"
-url = "git@github.com:ArneBinder/pie-core.git"
+url = "https://github.com/ArneBinder/pie-core.git"
 reference = "main"
 resolved_reference = "7ef8ba48a2b2f0efdd7bb37277613e7c6953b457"
 
@@ -3833,4 +3833,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "2187a068fff137658067c8e475071ca8c10610319e3dda38709bbd5c82a25607"
+content-hash = "1b8246961d46d3ad033db6b0f51d98f7e201b04419fcab0eec5926bea51de19e"
