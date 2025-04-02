@@ -1,10 +1,15 @@
+import logging
 from typing import Any, Dict, Optional
 
+# kept for backward compatibility
 from pie_core import AutoModel, AutoTaskModule
 
 from pytorch_ie.pipeline import Pipeline
 
+logger = logging.getLogger(__name__)
 
+
+# kept for backward compatibility
 class AutoPipeline:
     @staticmethod
     def from_pretrained(
@@ -21,10 +26,11 @@ class AutoPipeline:
         binary_output: bool = False,
         **kwargs,
     ) -> Pipeline:
-        taskmodule_kwargs = taskmodule_kwargs or {}
-        model_kwargs = model_kwargs or {}
+        logger.warning(
+            "pytorch_ie.AutoPipeline is deprecated. Use pytorch_ie.Pipeline.from_pretrained instead."
+        )
 
-        taskmodule = AutoTaskModule.from_pretrained(
+        return Pipeline.from_pretrained(
             pretrained_model_name_or_path=pretrained_model_name_or_path,
             force_download=force_download,
             resume_download=resume_download,
@@ -32,23 +38,8 @@ class AutoPipeline:
             use_auth_token=use_auth_token,
             cache_dir=cache_dir,
             local_files_only=local_files_only,
-            **taskmodule_kwargs,
-        )
-
-        model = AutoModel.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name_or_path,
-            force_download=force_download,
-            resume_download=resume_download,
-            proxies=proxies,
-            use_auth_token=use_auth_token,
-            cache_dir=cache_dir,
-            local_files_only=local_files_only,
-            **model_kwargs,
-        )
-
-        return Pipeline(
-            taskmodule=taskmodule,
-            model=model,
+            taskmodule_kwargs=taskmodule_kwargs or {},
+            model_kwargs=model_kwargs or {},
             device=device,
             binary_output=binary_output,
             **kwargs,
