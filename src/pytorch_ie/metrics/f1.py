@@ -42,9 +42,11 @@ class F1Metric(DocumentMetric):
         self.layer = layer
         self.label_field = label_field
         self.show_as_markdown = show_as_markdown
+        self.annotation_processor: Optional[Callable[[Annotation], Hashable]]
         if isinstance(annotation_processor, str):
-            annotation_processor = resolve_target(annotation_processor)
-        self.annotation_processor = annotation_processor
+            self.annotation_processor = resolve_target(annotation_processor)
+        else:
+            self.annotation_processor = annotation_processor
 
         self.per_label = labels is not None
         self.infer_labels = False
