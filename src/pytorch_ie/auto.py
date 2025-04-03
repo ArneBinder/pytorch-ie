@@ -4,9 +4,10 @@ from typing import Any, Dict, Optional
 # kept for backward compatibility
 from pie_core import AutoTaskModule
 
-# kept for backward compatibility
-from pytorch_ie.model_pytorch import AutoModel
 from pytorch_ie.pipeline import Pipeline
+
+# kept for backward compatibility
+from pytorch_ie.pytorch_model import AutoModel
 
 logger = logging.getLogger(__name__)
 
