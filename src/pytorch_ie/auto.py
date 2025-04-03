@@ -2,8 +2,10 @@ import logging
 from typing import Any, Dict, Optional
 
 # kept for backward compatibility
-from pie_core import AutoModel, AutoTaskModule
+from pie_core import AutoTaskModule
 
+# kept for backward compatibility
+from pytorch_ie.core.model import AutoModel
 from pytorch_ie.pipeline import Pipeline
 
 logger = logging.getLogger(__name__)
