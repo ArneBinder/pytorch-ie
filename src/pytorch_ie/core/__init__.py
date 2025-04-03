@@ -14,12 +14,15 @@ from pie_core.module_mixins import (
 from pie_core.statistic import DocumentStatistic
 from pie_core.taskmodule import AutoTaskModule, TaskEncoding, TaskModule
 
-from .model import AutoModel, PyTorchIEModel
+from pytorch_ie import pytorch_model
+from pytorch_ie.pytorch_model import AutoModel, PyTorchIEModel
 
 submodules = ["document", "taskmodule", "metric", "statistic"]
 for sub in submodules:
     module = getattr(pie_core, sub)
     sys.modules[f"{__name__}.{sub}"] = module
+
+sys.modules[f"{__name__}.model"] = pytorch_model
 
 # backwards compatibility
 AnnotationList = AnnotationLayer
