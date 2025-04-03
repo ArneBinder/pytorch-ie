@@ -3,7 +3,7 @@ import sys
 import pie_core
 from pie_core.document import Annotation, AnnotationLayer, Document, annotation_field
 from pie_core.metric import DocumentMetric
-from pie_core.model import PyTorchIEModel
+from pie_core.model import AutoModel, PyTorchIEModel
 from pie_core.module_mixins import (
     EnterDatasetDictMixin,
     EnterDatasetMixin,
@@ -13,7 +13,7 @@ from pie_core.module_mixins import (
     WithDocumentTypeMixin,
 )
 from pie_core.statistic import DocumentStatistic
-from pie_core.taskmodule import TaskEncoding, TaskModule
+from pie_core.taskmodule import AutoTaskModule, TaskEncoding, TaskModule
 
 submodules = ["document", "taskmodule", "metric", "model", "statistic"]
 for sub in submodules:
