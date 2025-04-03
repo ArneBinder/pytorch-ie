@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from pie_core import AutoTaskModule
 
 # kept for backward compatibility
-from pytorch_ie.core.model import AutoModel
+from pytorch_ie.model_pytorch import AutoModel
 from pytorch_ie.pipeline import Pipeline
 
 logger = logging.getLogger(__name__)
