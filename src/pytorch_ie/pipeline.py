@@ -8,13 +8,13 @@ from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, 
 import torch
 import tqdm
 from packaging import version
-from pie_core import AutoModel, AutoTaskModule
+from pie_core import AutoTaskModule
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
 from pytorch_ie.core.document import Document
-from pytorch_ie.core.model import PyTorchIEModel
+from pytorch_ie.core.model import AutoModel, PyTorchIEModel
 from pytorch_ie.core.taskmodule import (
     InplaceNotSupportedException,
     TaskEncoding,
