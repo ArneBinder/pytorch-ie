@@ -15,13 +15,12 @@ from transformers.utils import ModelOutput
 
 from pytorch_ie.core.document import Document
 from pytorch_ie.core.model import AutoModel, PyTorchIEModel
-from pytorch_ie.core.taskmodule import (
-    InplaceNotSupportedException,
-    TaskEncoding,
-    TaskEncodingDataset,
-    TaskModule,
-    TaskOutput,
-)
+from pytorch_ie.core.taskmodule import TaskEncoding, TaskEncodingDataset, TaskModule, TaskOutput
+
+
+class InplaceNotSupportedException(Exception):
+    pass
+
 
 logger = logging.getLogger(__name__)
 
