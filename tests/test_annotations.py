@@ -16,7 +16,7 @@ from pytorch_ie.annotations import (
     Span,
 )
 from pytorch_ie.documents import TextBasedDocument
-from tests.core.test_document import _test_annotation_reconstruction
+from tests.conftest import _test_annotation_reconstruction
 
 
 def test_label():
