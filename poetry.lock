@@ -1926,7 +1926,7 @@ pytorch-lightning = "^2.1.0"
 type = "git"
 url = "https://github.com/ArneBinder/pie-core.git"
 reference = "main"
-resolved_reference = "3eac563c84d7e573df129c54d17b6624e6012d7f"
+resolved_reference = "c21e992a330e955d729de698460c45ff7f9d12ed"
 
 [[package]]
 name = "platformdirs"

@@ -8,9 +8,9 @@ from pie_core.module_mixins import (
     EnterDatasetMixin,
     ExitDatasetDictMixin,
     ExitDatasetMixin,
-    PreparableMixin,
     WithDocumentTypeMixin,
 )
+from pie_core.preparable import PreparableMixin
 from pie_core.statistic import DocumentStatistic
 from pie_core.taskmodule import AutoTaskModule, TaskEncoding, TaskModule
 
