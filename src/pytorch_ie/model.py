@@ -1,8 +1,8 @@
 from typing import Any, Dict
 
 import torch
+from pie_core import Registrable
 from pie_core.hf_hub_mixin import PieModelHFHubMixin
-from pie_core.registrable import Registrable
 from pytorch_lightning import LightningModule
 
 
@@ -36,8 +36,7 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable):
         return decoded_outputs
 
 
-# TODO: rename to AutoPyTorchIEModel or AutoPyTorchModel
-class AutoModel(PieModelHFHubMixin):
+class AutoPyTorchIEModel(PieModelHFHubMixin):
 
     @classmethod
     def from_config(cls, config: dict, **kwargs) -> PyTorchIEModel:

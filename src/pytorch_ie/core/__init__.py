@@ -12,10 +12,16 @@ from pie_core.module_mixins import (
 )
 from pie_core.preparable import PreparableMixin
 from pie_core.statistic import DocumentStatistic
-from pie_core.taskmodule import AutoTaskModule, TaskEncoding, TaskModule
+from pie_core.taskencoding import (
+    IterableTaskEncodingDataset,
+    TaskEncoding,
+    TaskEncodingDataset,
+    TaskEncodingSequence,
+)
+from pie_core.taskmodule import TaskModule
 
 from pytorch_ie import model
-from pytorch_ie.model import AutoModel, PyTorchIEModel
+from pytorch_ie.model import PyTorchIEModel
 
 submodules = ["document", "taskmodule", "metric", "statistic"]
 for sub in submodules:
