@@ -1,8 +1,7 @@
 from typing import Any
 
 import torch
-from pie_core import Model
-from pie_core.auto import Auto
+from pie_core import Auto, Model
 from pytorch_lightning import LightningModule
 
 
