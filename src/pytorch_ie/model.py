@@ -2,11 +2,12 @@ from typing import Any, Dict
 
 import torch
 from pie_core import Registrable
+from pie_core.auto import Auto
 from pie_core.hf_hub_mixin import PieModelHFHubMixin
 from pytorch_lightning import LightningModule
 
 
-class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable):
+class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable["PyTorchIEModel"]):
 
     def save_model_file(self, model_file: str) -> None:
         """Save weights from a Pytorch model to a local directory."""
@@ -22,7 +23,7 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable):
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config() or {}
-        config[self.config_type_key] = PyTorchIEModel.name_for_object_class(self)
+        config[self.config_type_key] = self.base_class().name_for_object_class(self)
         # add all hparams
         config.update(self.hparams)
         return config
@@ -36,14 +37,6 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable):
         return decoded_outputs
 
 
-class AutoPyTorchIEModel(PieModelHFHubMixin):
+class AutoPyTorchIEModel(PieModelHFHubMixin, Auto[PyTorchIEModel]):
 
-    @classmethod
-    def from_config(cls, config: dict, **kwargs) -> PyTorchIEModel:
-        """Build a model from a config dict."""
-        config = config.copy()
-        class_name = config.pop(cls.config_type_key)
-        # the class name may be overridden by the kwargs
-        class_name = kwargs.pop(cls.config_type_key, class_name)
-        clazz = PyTorchIEModel.by_name(class_name)
-        return clazz._from_config(config, **kwargs)
+    BASE_CLASS = PyTorchIEModel
