@@ -1,13 +1,12 @@
-from typing import Any, Dict
+from typing import Any
 
 import torch
-from pie_core import Registrable
+from pie_core import Model
 from pie_core.auto import Auto
-from pie_core.hf_hub_mixin import PieModelHFHubMixin
 from pytorch_lightning import LightningModule
 
 
-class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable["PyTorchIEModel"]):
+class PyTorchIEModel(Model, LightningModule):
 
     def save_model_file(self, model_file: str) -> None:
         """Save weights from a Pytorch model to a local directory."""
@@ -21,13 +20,6 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable["PyTorchIE
         self.load_state_dict(state_dict, strict=strict)
         self.eval()
 
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config() or {}
-        config[self.config_type_key] = self.base_class().name_for_object_class(self)
-        # add all hparams
-        config.update(self.hparams)
-        return config
-
     def decode(self, inputs: Any, outputs: Any) -> Any:
         return outputs
 
@@ -37,6 +29,6 @@ class PyTorchIEModel(PieModelHFHubMixin, LightningModule, Registrable["PyTorchIE
         return decoded_outputs
 
 
-class AutoPyTorchIEModel(PieModelHFHubMixin, Auto[PyTorchIEModel]):
+class AutoPyTorchIEModel(Model, Auto[PyTorchIEModel]):
 
     BASE_CLASS = PyTorchIEModel
