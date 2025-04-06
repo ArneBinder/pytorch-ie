@@ -87,6 +87,55 @@ def test_auto_model_from_config():
     assert isinstance(model, MyTransformerSpanClassificationModel)
 
 
+def test_auto_model_full_cycle(tmp_path):
+
+    model = MyTransformerSpanClassificationModel(
+        model_name_or_path="prajjwal1/bert-tiny", num_classes=5
+    )
+    assert model._config() == {
+        "model_type": "MyTransformerSpanClassificationModel",
+        "model_name_or_path": "prajjwal1/bert-tiny",
+        "num_classes": 5,
+        "learning_rate": 1e-05,
+        "task_learning_rate": 0.0001,
+        "warmup_proportion": 0.1,
+        "ignore_index": 0,
+        "max_span_length": 8,
+        "span_length_embedding_dim": 150,
+    }
+
+    model.save_pretrained(save_directory=str(tmp_path))
+
+    model_loaded = AutoModel.from_pretrained(str(tmp_path))
+    assert isinstance(model_loaded, MyTransformerSpanClassificationModel)
+
+
+def test_auto_model_full_cycle_with_name(tmp_path):
+    @PyTorchIEModel.register("other_model")
+    class MyOtherTransformerSpanClassificationModel(TransformerSpanClassificationModel):
+        pass
+
+    model = MyOtherTransformerSpanClassificationModel(
+        model_name_or_path="prajjwal1/bert-tiny", num_classes=5
+    )
+    assert model._config() == {
+        "model_type": "other_model",
+        "model_name_or_path": "prajjwal1/bert-tiny",
+        "num_classes": 5,
+        "learning_rate": 1e-05,
+        "task_learning_rate": 0.0001,
+        "warmup_proportion": 0.1,
+        "ignore_index": 0,
+        "max_span_length": 8,
+        "span_length_embedding_dim": 150,
+    }
+
+    model.save_pretrained(save_directory=str(tmp_path))
+
+    model_loaded = AutoModel.from_pretrained(str(tmp_path))
+    assert isinstance(model_loaded, MyOtherTransformerSpanClassificationModel)
+
+
 @pytest.mark.slow
 def test_auto_pipeline():
     @dataclass
