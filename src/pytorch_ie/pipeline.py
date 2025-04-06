@@ -127,6 +127,13 @@ class Pipeline:
         taskmodule_kwargs = taskmodule_kwargs or {}
         model_kwargs = model_kwargs or {}
 
+        # TODO: Use AutoTaskModule.retrieve_config to check if a taskmodule config
+        # is available, and then:
+        #   - use AutoTaskModule.from_config to create the taskmodule (pass taskmodule_kwargs)
+        # If no config is available:
+        #   - raise an error if taskmodule_kwargs is not empty,
+        #   - raise an error if model.taskmodule is not available (after the model is created).
+        # Requires https://github.com/ArneBinder/pie-core/pull/28.
         taskmodule = AutoTaskModule.from_pretrained(
             pretrained_model_name_or_path=pretrained_model_name_or_path,
             force_download=force_download,
