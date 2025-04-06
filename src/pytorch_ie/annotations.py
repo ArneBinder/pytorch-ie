@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Tuple
 
-from pie_core.document import Annotation
+from pytorch_ie.core.document import Annotation
 
 
 @dataclass(frozen=True)
