@@ -29,6 +29,7 @@ classifiers = [
 "Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
 
 [tool.poetry.dependencies]
+pie-core = ">=0.1.0,<0.2.0"
 python = "^3.9"
 torch = ">=1.10"
 pytorch-lightning = "^2"
@@ -39,8 +40,6 @@ fsspec = "<2023.9.0"
 # required for testing, but, strangely, tests fail, if just in dev-dependencies
 absl-py = "^1.0.0"
 pandas = "^2.0.0"
-# TODO: use release when available
-pie-core = { git = "https://github.com/ArneBinder/pie-core.git", branch = "main" }
 
 [tool.poetry.group.dev]
 optional = true
