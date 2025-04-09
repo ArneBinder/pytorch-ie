@@ -35,7 +35,7 @@ def get_autocast_dtype(device_type: str):
         raise ValueError(f"Unsupported device type for half precision autocast: {device_type}")
 
 
-class Pipeline:
+class PyTorchIEPipeline:
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
     different pipelines.
@@ -123,7 +123,7 @@ class Pipeline:
         device: int = -1,
         binary_output: bool = False,
         **kwargs,
-    ) -> "Pipeline":
+    ) -> "PyTorchIEPipeline":
         taskmodule_kwargs = taskmodule_kwargs or {}
         model_kwargs = model_kwargs or {}
 
@@ -156,7 +156,7 @@ class Pipeline:
             **model_kwargs,
         )
 
-        return Pipeline(
+        return PyTorchIEPipeline(
             taskmodule=taskmodule,
             model=model,
             device=device,
