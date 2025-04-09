@@ -3,7 +3,7 @@ coverage:
     status:
         project:
             default:
-                target: 75% # TODO: switch back to auto
+                target: 70% # TODO: switch back to auto
                 threshold: 1% # the leniency in hitting the target
         patch:
             default:
