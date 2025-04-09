@@ -6,9 +6,7 @@ from pie_core import AutoTaskModule
 
 # backwards compatibility
 from pytorch_ie.model import AutoPyTorchIEModel as AutoModel
-
-# kept for backward compatibility
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +27,12 @@ class AutoPipeline:
         device: int = -1,
         binary_output: bool = False,
         **kwargs,
-    ) -> Pipeline:
+    ) -> PyTorchIEPipeline:
         logger.warning(
             "pytorch_ie.AutoPipeline is deprecated. Use pytorch_ie.Pipeline.from_pretrained instead."
         )
 
-        return Pipeline.from_pretrained(
+        return PyTorchIEPipeline.from_pretrained(
             pretrained_model_name_or_path=pretrained_model_name_or_path,
             force_download=force_download,
             resume_download=resume_download,

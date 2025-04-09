@@ -8,7 +8,7 @@ from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerTextClassificationModel
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
 
 
@@ -36,7 +36,7 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
             create_relation_candidates=True,
         )
         re_model = TransformerTextClassificationModel.from_pretrained(model_name_or_path)
-        pipeline = Pipeline(
+        pipeline = PyTorchIEPipeline(
             model=re_model,
             taskmodule=re_taskmodule,
             device=-1,
