@@ -5,7 +5,7 @@ from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 import pytorch_ie.models.modules.mlp
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
 )
@@ -87,7 +87,7 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inplace):
     document = documents[1]
-    pipeline = Pipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
+    pipeline = PyTorchIEPipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
     returned_document = pipeline(document, inplace=inplace)
 
@@ -104,7 +104,7 @@ def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inpl
 @pytest.mark.slow
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_documents(documents, prepared_taskmodule, mock_model, inplace):
-    pipeline = Pipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
+    pipeline = PyTorchIEPipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
     returned_documents = pipeline(documents, inplace=inplace)
 

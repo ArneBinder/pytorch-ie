@@ -7,7 +7,7 @@ from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 
@@ -30,7 +30,7 @@ def test_ner_span_classification(fast_dev_run, use_auto):
             model_name_or_path
         )
         ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-        ner_pipeline = Pipeline(
+        ner_pipeline = PyTorchIEPipeline(
             model=ner_model, taskmodule=ner_taskmodule, device=-1, fast_dev_run=fast_dev_run
         )
     assert ner_pipeline.taskmodule.is_from_pretrained
