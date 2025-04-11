@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 
 import pytest
+from pie_core import AutoAnnotationPipeline
 
-from pytorch_ie import PyTorchIEModel
+from pytorch_ie import PyTorchIEModel, PyTorchIEPipeline
 from pytorch_ie.annotations import LabeledSpan
 from pytorch_ie.auto import AutoModel, AutoPipeline, AutoTaskModule
 from pytorch_ie.core import AnnotationLayer, TaskModule, annotation_field
 from pytorch_ie.documents import TextDocument
+from pytorch_ie.model import AutoPyTorchIEModel
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
@@ -152,3 +154,37 @@ def test_auto_pipeline():
 
     entities = document.entities.predictions
     assert len(entities) == 3
+
+
+@pytest.mark.slow
+def test_auto_pipeline_full_cycle(tmp_path):
+    @dataclass
+    class ExampleDocument(TextDocument):
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+
+    # TODO: when @Model.register() is used instead of @PyTorchIEModel.register(),
+    #       this should be not necessary anymore and AutoAnnotationPipeline should be used directly
+    class AutoPyTorchIEPipeline(AutoAnnotationPipeline):
+        auto_model_class = AutoPyTorchIEModel
+
+    pipeline = PyTorchIEPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
+
+    document = ExampleDocument(
+        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
+    )
+
+    pipeline(document, num_workers=0)
+
+    entities = document.entities.predictions
+    assert len(entities) == 3
+
+    pipeline.save_pretrained(save_directory=str(tmp_path))
+
+    pipeline_loaded = AutoPyTorchIEPipeline.from_pretrained(str(tmp_path))
+    assert isinstance(pipeline_loaded, PyTorchIEPipeline)
+
+    document2 = ExampleDocument(text=document.text)
+    pipeline_loaded(document2, num_workers=0)
+    entities2 = document2.entities.predictions
+    assert len(entities2) == 3
+    assert entities2.resolve() == entities.resolve()
