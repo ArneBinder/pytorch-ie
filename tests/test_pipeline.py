@@ -1,9 +1,14 @@
+from dataclasses import dataclass
+
 import pytest
 import torch
 import transformers
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 import pytorch_ie.models.modules.mlp
+from pytorch_ie.annotations import LabeledSpan
+from pytorch_ie.core import AnnotationLayer, annotation_field
+from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.pipeline import PyTorchIEPipeline
 from pytorch_ie.taskmodules.transformer_span_classification import (
@@ -119,3 +124,36 @@ def test_pipeline_with_documents(documents, prepared_taskmodule, mock_model, inp
             assert not (id(returned_document) == id(document))
             assert not document.entities.predictions
             assert returned_document.entities.predictions
+
+
+@pytest.mark.slow
+def test_save_and_load_pipeline(tmp_path):
+    @dataclass
+    class ExampleDocument(TextDocument):
+        entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
+
+    pipeline = PyTorchIEPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
+
+    document = ExampleDocument(
+        "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, "
+        "general partner at SOSV and managing director of IndieBio."
+    )
+
+    pipeline(document, num_workers=0)
+
+    entities = document.entities.predictions
+    assert len(entities) == 3
+
+    pipeline.save_pretrained(save_directory=str(tmp_path))
+
+    pipeline_loaded = PyTorchIEPipeline.from_pretrained(str(tmp_path))
+    assert isinstance(pipeline_loaded, PyTorchIEPipeline)
+
+    assert pipeline_loaded.config == pipeline.config
+
+    document2 = ExampleDocument(text=document.text)
+
+    pipeline_loaded(document2, num_workers=0)
+    entities2 = document2.entities.predictions
+    assert len(entities2) == len(entities)
+    assert entities2.resolve() == entities.resolve()

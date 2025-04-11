@@ -6,7 +6,7 @@ from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSeq2SeqModel
-from pytorch_ie.pipeline import PyTorchIEPipeline
+from pytorch_ie.pipeline import Pipeline
 from pytorch_ie.taskmodules import TransformerSeq2SeqTaskModule
 
 
@@ -32,7 +32,7 @@ def test_re_generative():
         model_name_or_path=model_name_or_path,
     )
 
-    pipeline = PyTorchIEPipeline(model=model, taskmodule=taskmodule, device=-1)
+    pipeline = Pipeline(model=model, taskmodule=taskmodule, device=-1)
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
