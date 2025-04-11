@@ -1911,22 +1911,18 @@ flake8 = ">=5.0.0"
 
 [[package]]
 name = "pie-core"
-version = "0.1.0"
+version = "0.1.1"
 description = "Core modules of PyTorch-IE"
 optional = false
-python-versions = "^3.9"
-files = []
-develop = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "pie_core-0.1.1-py3-none-any.whl", hash = "sha256:ca322503802cd2776e2730caff2d23af72958e15e51e4b6f85f895448dac79a0"},
+    {file = "pie_core-0.1.1.tar.gz", hash = "sha256:18c04b71015f4605b8057efab6797b9d5a75f4911a44a9a491d8a701f22dd194"},
+]
 
 [package.dependencies]
 huggingface_hub = ">=0.23.4,<0.26.0"
-pytorch-lightning = "^2.1.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/ArneBinder/pie-core.git"
-reference = "main"
-resolved_reference = "edc7642dce9f8650855184a92c96e30eecba025b"
+pytorch-lightning = ">=2.1.0,<3.0.0"
 
 [[package]]
 name = "platformdirs"
@@ -3833,4 +3829,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "1b8246961d46d3ad033db6b0f51d98f7e201b04419fcab0eec5926bea51de19e"
+content-hash = "5ff9bf8f48c878d2f2c7ae20805c50f5017e4460008bbf1373e7d52ad76464c3"
