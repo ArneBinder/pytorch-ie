@@ -17,6 +17,11 @@ class PyTorchIEModel(Model, LightningModule):
     ) -> None:
         state_dict = torch.load(model_file, map_location=torch.device(map_location))
         self.load_state_dict(state_dict, strict=strict)
+        # The model is set in evaluation mode by default using `model.eval()`
+        # (dropout modules are deactivated). To train the model, you should first
+        # set it back in training mode with `model.train()`. This is especially
+        # important when using pytorch-lightning >= 2.2.0, as it maintains the
+        # training/evaluation state of the model when training via `fit()`.
         self.eval()
 
     def decode(self, inputs: Any, outputs: Any) -> Any:
