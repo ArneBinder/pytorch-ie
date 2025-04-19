@@ -354,12 +354,12 @@ To create the same pipeline as above without `AutoPipeline`
 
 ```python
 from pytorch_ie.auto import AutoTaskModule, AutoModel
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 
 model_name_or_path = "pie/example-ner-spanclf-conll03"
 ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
 ner_model = AutoModel.from_pretrained(model_name_or_path)
-ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
 
 </details>
@@ -370,14 +370,14 @@ Or, without `Auto` classes at all
 </summary>
 
 ```python
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 model_name_or_path = "pie/example-ner-spanclf-conll03"
 ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
 ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
 
 </details>
