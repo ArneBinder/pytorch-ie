@@ -63,7 +63,7 @@ class PyTorchIEPipeline(AnnotationPipeline[PyTorchIEModel, TaskModule]):
             :obj:`torch.float16` on supported devices.
     """
 
-    # TODO: This is required for backwards compatibility because all models so far are annotated with
+    # TODO: This is required for backward compatibility because all models so far are annotated with
     # @PyTorchIEModel.register(). However, this prevents AutoAnnotationPipeline.from_pretrained() and .from_config()
     # from working correctly because it still has auto_model_class = AutoModel. We could define a class
     # AutoPyTorchIEPipeline(AutoAnnotationPipeline) with auto_model_class = AutoPyTorchIEModel, but
@@ -425,4 +425,5 @@ class PyTorchIEPipeline(AnnotationPipeline[PyTorchIEModel, TaskModule]):
             return documents
 
 
+# kept for backward compatibility
 Pipeline = PyTorchIEPipeline

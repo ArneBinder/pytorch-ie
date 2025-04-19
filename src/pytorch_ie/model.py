@@ -33,6 +33,8 @@ class PyTorchIEModel(Model, LightningModule):
         return decoded_outputs
 
 
+# TODO: remove this class when all models are registered with @Model.register()
+#   also see notes in PyTorchIEPipeline
 class AutoPyTorchIEModel(Model, Auto[PyTorchIEModel]):
 
     BASE_CLASS = PyTorchIEModel
