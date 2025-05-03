@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 
 import torch
 from pie_core import Auto, Model
@@ -6,6 +6,12 @@ from pytorch_lightning import LightningModule
 
 
 class PyTorchIEModel(Model, LightningModule):
+
+    def _config(self) -> Dict[str, Any]:
+        config = super()._config() or {}
+        # add all hparams
+        config.update(self.hparams)
+        return config
 
     def save_model_file(self, model_file: str) -> None:
         """Save weights from a Pytorch model to a local directory."""
