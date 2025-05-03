@@ -2,7 +2,7 @@ import pytest
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, IterableDataset
 
-from pytorch_ie import TaskEncodingDataset
+from pytorch_ie import IterableTaskEncodingDataset, TaskEncodingDataset
 from pytorch_ie.models import TransformerTokenClassificationModel
 from pytorch_ie.taskmodules import TransformerTokenClassificationTaskModule
 
@@ -43,7 +43,10 @@ def test_transformer_token_classification(model, prepared_taskmodule, documents,
         document_batch_size=2,
         as_iterator=as_iterator,
     )
-    train_dataset = TaskEncodingDataset(train_encodings)
+    if as_iterator:
+        train_dataset = IterableTaskEncodingDataset(train_encodings)
+    else:
+        train_dataset = TaskEncodingDataset(train_encodings)
 
     train_dataloader = DataLoader(
         train_dataset,
