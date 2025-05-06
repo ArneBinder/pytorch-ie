@@ -6,6 +6,9 @@ from pytorch_lightning import LightningModule
 
 
 class PyTorchIEModel(Model, LightningModule):
+    def __init__(self, *args, is_from_pretrained: bool = False, **kwargs):
+        Model.__init__(self, is_from_pretrained=is_from_pretrained)
+        LightningModule.__init__(self, *args, **kwargs)
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config() or {}
