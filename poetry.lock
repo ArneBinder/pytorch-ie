@@ -1920,13 +1920,12 @@ develop = false
 
 [package.dependencies]
 huggingface_hub = ">=0.23.4,<0.26.0"
-pytorch-lightning = "^2.1.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/ArneBinder/pie-core.git"
 reference = "main"
-resolved_reference = "3f6b3a83016b62ba551a4de379cc8075a69f2157"
+resolved_reference = "0cd22a8ba83e94386c3fdf3acc3c435686b14021"
 
 [[package]]
 name = "platformdirs"
