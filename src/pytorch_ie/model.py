@@ -7,6 +7,10 @@ from pytorch_lightning import LightningModule
 
 class PyTorchIEModel(Model, LightningModule):
     def __init__(self, *args, is_from_pretrained: bool = False, **kwargs):
+        # We need to explicitly pass the is_from_pretrained argument to the Model class
+        # and the rest of the arguments to the LightningModule class because the mixins
+        # the Model is derived from (e.g. HFHubMixin) are now Protocols which does not allow
+        # for passing arguments through to the next constructor.
         Model.__init__(self, is_from_pretrained=is_from_pretrained)
         LightningModule.__init__(self, *args, **kwargs)
 
