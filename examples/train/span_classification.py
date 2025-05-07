@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 
+from pytorch_ie import TaskEncodingDataset
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
@@ -33,18 +34,18 @@ def main():
 
     task_module.prepare(train_docs)
 
-    train_dataset = task_module.encode(train_docs, encode_target=True, as_dataset=True)
-    val_dataset = task_module.encode(val_docs, encode_target=True, as_dataset=True)
+    train_encodings = task_module.encode(train_docs, encode_target=True)
+    val_encodings = task_module.encode(val_docs, encode_target=True)
 
     train_dataloader = DataLoader(
-        train_dataset,
+        TaskEncodingDataset(train_encodings),
         batch_size=batch_size,
         shuffle=True,
         collate_fn=task_module.collate,
     )
 
     val_dataloader = DataLoader(
-        val_dataset,
+        TaskEncodingDataset(val_encodings),
         batch_size=batch_size,
         shuffle=False,
         collate_fn=task_module.collate,
