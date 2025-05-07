@@ -1925,7 +1925,7 @@ huggingface_hub = ">=0.23.4,<0.26.0"
 type = "git"
 url = "https://github.com/ArneBinder/pie-core.git"
 reference = "main"
-resolved_reference = "e3086d48ff3ce19bb1f4792828b22a0c0ff4f182"
+resolved_reference = "a1074adb0b755b40713b43cd2c28e2bb20469c3d"
 
 [[package]]
 name = "platformdirs"
@@ -3832,4 +3832,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "4e136c66a399fe6f58e9022a2199625a2084449c1a2580179583126c028c155f"
+content-hash = "1b8246961d46d3ad033db6b0f51d98f7e201b04419fcab0eec5926bea51de19e"
