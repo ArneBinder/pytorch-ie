@@ -40,9 +40,11 @@ class ConfusionMatrix(DocumentMetric):
         self.undetected_label = undetected_label
         self.strict = strict
         self.show_as_markdown = show_as_markdown
+        self.annotation_processor: Optional[Callable[[Annotation], Annotation]]
         if isinstance(annotation_processor, str):
-            annotation_processor = resolve_target(annotation_processor)
-        self.annotation_processor = annotation_processor
+            self.annotation_processor = resolve_target(annotation_processor)
+        else:
+            self.annotation_processor = annotation_processor
 
     def reset(self):
         self.counts: Dict[Tuple[str, str], int] = defaultdict(int)

@@ -4,12 +4,8 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 
 from pytorch_ie.core import Document
-from pytorch_ie.core.taskmodule import (
-    IterableTaskEncodingDataset,
-    TaskEncoding,
-    TaskEncodingDataset,
-    TaskModule,
-)
+from pytorch_ie.core.taskmodule import TaskEncoding, TaskModule
+from pytorch_ie.dataset import IterableTaskEncodingDataset, TaskEncodingDataset
 
 DocumentType = TypeVar("DocumentType", bound=Document)
 InputEncoding = TypeVar("InputEncoding")
