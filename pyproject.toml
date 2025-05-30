@@ -40,7 +40,10 @@ fsspec = "<2023.9.0"
 absl-py = "^1.0.0"
 pandas = "^2.0.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"
 black = ">=21.12b0"
 coverage = {extras = ["toml"], version = ">=6.2"}
