@@ -1920,12 +1920,13 @@ develop = false
 
 [package.dependencies]
 huggingface_hub = ">=0.23.4,<0.26.0"
+torch = "^2.1.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/ArneBinder/pie-core.git"
 reference = "main"
-resolved_reference = "a1074adb0b755b40713b43cd2c28e2bb20469c3d"
+resolved_reference = "6db146548a3fe37cac12207390478d370961ea90"
 
 [[package]]
 name = "platformdirs"
