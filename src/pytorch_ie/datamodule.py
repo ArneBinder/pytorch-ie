@@ -65,18 +65,33 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
             ],
         ] = {}
 
+    def get_split_size(self, split: str) -> int:
+        data = self._data.get(split, None)
+        if data is None:
+            raise ValueError(f"can not get {split} size if setup() was not yet called")
+        if isinstance(data, IterableTaskEncodingDataset):
+            raise TypeError("IterableTaskEncodingDataset has no length")
+        return len(data)
+
     @property
     def num_train(self) -> int:
         if self.train_split is None:
-            raise ValueError("no train_split assigned")
-        data_train = self._data.get(self.train_split, None)
-        if data_train is None:
-            raise ValueError("can not get train size if setup() was not yet called")
-        if isinstance(data_train, IterableTaskEncodingDataset):
-            raise TypeError("IterableTaskEncodingDataset has no length")
-        return len(data_train)
+            raise ValueError("no train split assigned")
+        return self.get_split_size(self.train_split)
 
-    def setup(self, stage: str):
+    @property
+    def num_val(self) -> int:
+        if self.val_split is None:
+            raise ValueError("no val split assigned")
+        return self.get_split_size(self.val_split)
+
+    @property
+    def num_test(self) -> int:
+        if self.test_split is None:
+            raise ValueError("no test split assigned")
+        return self.get_split_size(self.test_split)
+
+    def setup(self, stage: str) -> None:
 
         if stage == "fit":
             split_names = [self.train_split, self.val_split]
@@ -112,7 +127,9 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
             raise ValueError(f"data for split={split} not available")
         return self._data[split]
 
-    def train_dataloader(self):
+    def train_dataloader(
+        self,
+    ) -> DataLoader[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         ds = self.data_split(self.train_split)
         return DataLoader(
             dataset=ds,
@@ -122,7 +139,9 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
             **self.dataloader_kwargs,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(
+        self,
+    ) -> DataLoader[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         return DataLoader(
             dataset=self.data_split(self.val_split),
             collate_fn=self.taskmodule.collate,
@@ -130,7 +149,9 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
             **self.dataloader_kwargs,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(
+        self,
+    ) -> DataLoader[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]]:
         return DataLoader(
             dataset=self.data_split(self.test_split),
             collate_fn=self.taskmodule.collate,
