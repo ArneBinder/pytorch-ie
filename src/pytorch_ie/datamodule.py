@@ -65,16 +65,31 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
             ],
         ] = {}
 
+    def get_split_size(self, split: str) -> int:
+        data = self._data.get(split, None)
+        if data is None:
+            raise ValueError(f"can not get {split} size if setup() was not yet called")
+        if isinstance(data, IterableTaskEncodingDataset):
+            raise TypeError("IterableTaskEncodingDataset has no length")
+        return len(data)
+
     @property
     def num_train(self) -> int:
         if self.train_split is None:
-            raise ValueError("no train_split assigned")
-        data_train = self._data.get(self.train_split, None)
-        if data_train is None:
-            raise ValueError("can not get train size if setup() was not yet called")
-        if isinstance(data_train, IterableTaskEncodingDataset):
-            raise TypeError("IterableTaskEncodingDataset has no length")
-        return len(data_train)
+            raise ValueError("no train split assigned")
+        return self.get_split_size(self.train_split)
+
+    @property
+    def num_val(self) -> int:
+        if self.val_split is None:
+            raise ValueError("no val split assigned")
+        return self.get_split_size(self.val_split)
+
+    @property
+    def num_test(self) -> int:
+        if self.test_split is None:
+            raise ValueError("no test split assigned")
+        return self.get_split_size(self.test_split)
 
     def setup(self, stage: str):
 
