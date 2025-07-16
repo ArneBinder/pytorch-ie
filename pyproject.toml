@@ -30,9 +30,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-#pie-core = ">=0.1.1,<0.2.0"
-# use main branch of https://github.com/ArneBinder/pie-core for now
-pie-core = {git = "https://github.com/ArneBinder/pie-core.git", branch = "main"}
+pie-core = ">=0.2.0,<0.3.0"
 torch = ">=1.10"
 pytorch-lightning = "^2"
 torchmetrics = "^1"

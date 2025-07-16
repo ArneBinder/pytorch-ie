@@ -6,6 +6,7 @@ from pytorch_lightning import LightningModule
 
 
 class PyTorchIEModel(Model, LightningModule):
+    weights_file_name = "pytorch_model.bin"
 
     def _config(self) -> Dict[str, Any]:
         config = super()._config() or {}
