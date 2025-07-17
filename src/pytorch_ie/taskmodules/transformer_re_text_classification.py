@@ -24,6 +24,7 @@ from typing import (
 
 import numpy as np
 import torch
+from pie_core import AnnotationLayer, Document, TaskEncoding, TaskModule
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
@@ -36,7 +37,6 @@ from pytorch_ie.annotations import (
     NaryRelation,
     Span,
 )
-from pytorch_ie.core import AnnotationLayer, Document, TaskEncoding, TaskModule
 from pytorch_ie.documents import (
     TextDocument,
     TextDocumentWithLabeledSpansAndBinaryRelations,
