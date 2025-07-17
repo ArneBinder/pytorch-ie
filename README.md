@@ -354,12 +354,12 @@ To create the same pipeline as above without `AutoPipeline`
 
 ```python
 from pytorch_ie.auto import AutoTaskModule, AutoModel
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 
 model_name_or_path = "pie/example-ner-spanclf-conll03"
 ner_taskmodule = AutoTaskModule.from_pretrained(model_name_or_path)
 ner_model = AutoModel.from_pretrained(model_name_or_path)
-ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
 
 </details>
@@ -370,14 +370,14 @@ Or, without `Auto` classes at all
 </summary>
 
 ```python
-from pytorch_ie.pipeline import Pipeline
+from pytorch_ie.pipeline import PyTorchIEPipeline
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 model_name_or_path = "pie/example-ner-spanclf-conll03"
 ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
 ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-ner_pipeline = Pipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
+ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
 ```
 
 </details>
@@ -442,6 +442,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 
 import datasets
+from pytorch_ie import TaskEncodingDataset
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
@@ -484,19 +485,19 @@ task_module.save_pretrained(model_output_path)
 
 # Use the taskmodule to encode the train and dev sets. This may use the text and
 # available annotations of the documents.
-train_dataset = task_module.encode(train_docs, encode_target=True, as_dataset=True)
-val_dataset = task_module.encode(val_docs, encode_target=True, as_dataset=True)
+train_encodings = task_module.encode(train_docs, encode_target=True)
+val_encodings = task_module.encode(val_docs, encode_target=True)
 
 # Create the dataloaders. Note that the taskmodule provides the collate function!
 train_dataloader = DataLoader(
-    train_dataset,
+    TaskEncodingDataset(train_encodings),
     batch_size=batch_size,
     shuffle=True,
     collate_fn=task_module.collate,
 )
 
 val_dataloader = DataLoader(
-    val_dataset,
+    TaskEncodingDataset(val_encodings),
     batch_size=batch_size,
     shuffle=False,
     collate_fn=task_module.collate,

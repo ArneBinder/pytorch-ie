@@ -30,6 +30,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pie-core = ">=0.2.0,<0.3.0"
 torch = ">=1.10"
 pytorch-lightning = "^2"
 torchmetrics = "^1"

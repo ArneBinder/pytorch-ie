@@ -8,19 +8,19 @@ from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, 
 import torch
 import tqdm
 from packaging import version
+from pie_core import AutoTaskModule
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
 from pytorch_ie.core.document import Document
-from pytorch_ie.core.model import PyTorchIEModel
-from pytorch_ie.core.taskmodule import (
-    InplaceNotSupportedException,
-    TaskEncoding,
-    TaskEncodingDataset,
-    TaskModule,
-    TaskOutput,
-)
+from pytorch_ie.core.taskmodule import TaskEncoding, TaskEncodingDataset, TaskModule, TaskOutput
+from pytorch_ie.model import AutoPyTorchIEModel, PyTorchIEModel
+
+
+class InplaceNotSupportedException(Exception):
+    pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def get_autocast_dtype(device_type: str):
         raise ValueError(f"Unsupported device type for half precision autocast: {device_type}")
 
 
-class Pipeline:
+class PyTorchIEPipeline:
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
     different pipelines.
@@ -62,17 +62,42 @@ class Pipeline:
             :obj:`torch.float16` on supported devices.
     """
 
+    # TODO 2: This is required for backward compatibility because all models so far are annotated with
+    # @PyTorchIEModel.register(). However, this prevents AutoAnnotationPipeline.from_pretrained() and .from_config()
+    # from working correctly because it still has auto_model_class = AutoModel. We could define a class
+    # AutoPyTorchIEPipeline(AutoAnnotationPipeline) with auto_model_class = AutoPyTorchIEModel, but
+    # this mitigates the purpose of the AutoModel class. In the future, we should remove this
+    # and register all models with @Model.register() instead (but this will break backwards compatibility).
+    # TODO 1: re-enable when deriving PyTorchIEPipeline from AnnotationPipeline
+    # auto_model_class = AutoPyTorchIEModel
+
     default_input_names = None
 
     def __init__(
         self,
+        # TODO 1: remove model and taskmodule from __init__ when deriving PyTorchIEPipeline from AnnotationPipeline
         model: PyTorchIEModel,
         taskmodule: TaskModule,
         device: Union[int, str] = "cpu",
         half_precision_model: bool = False,
         **kwargs,
     ):
+        (
+            self._preprocess_params,
+            self._dataloader_params,
+            self._forward_params,
+            self._postprocess_params,
+            remaining_kwargs,
+        ) = self._sanitize_parameters(**kwargs)
+
+        # TODO 1: re-enable and remove warning when deriving PyTorchIEPipeline from AnnotationPipeline
+        # we need to pass the remaining arguments (i.e., model, taskmodule, is_from_pretrained) to the parent class
+        # super().__init__(**remaining_kwargs)
+        if remaining_kwargs:
+            logger.warning(f"Ignoring remaining kwargs: {remaining_kwargs}")
+
         self.taskmodule = taskmodule
+
         device_str = (
             ("cpu" if device < 0 else f"cuda:{device}") if isinstance(device, int) else device
         )
@@ -85,13 +110,11 @@ class Pipeline:
             self.model = self.model.to(dtype=get_autocast_dtype(self.device.type))
 
         self.call_count = 0
-        (
-            self._preprocess_params,
-            self._dataloader_params,
-            self._forward_params,
-            self._postprocess_params,
-        ) = self._sanitize_parameters(**kwargs)
 
+        # TODO 1: remove this when deriving PyTorchIEPipeline from AnnotationPipeline
+        self.config: Dict[str, Any] = {}
+
+    # TODO 1: remove this method when deriving PyTorchIEPipeline from AnnotationPipeline
     def save_pretrained(self, save_directory: str):
         """
         Save the pipeline's model and taskmodule.
@@ -108,6 +131,56 @@ class Pipeline:
         self.model.save_pretrained(save_directory)
 
         self.taskmodule.save_pretrained(save_directory)
+
+    # TODO 1: remove this method when deriving PyTorchIEPipeline from AnnotationPipeline
+    @classmethod
+    def from_pretrained(
+        cls,
+        pretrained_model_name_or_path: str,
+        force_download: bool = False,
+        resume_download: bool = False,
+        proxies: Optional[Dict] = None,
+        use_auth_token: Optional[str] = None,
+        cache_dir: Optional[str] = None,
+        local_files_only: bool = False,
+        taskmodule_kwargs: Optional[Dict[str, Any]] = None,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        device: int = -1,
+        binary_output: bool = False,
+        **kwargs,
+    ) -> "PyTorchIEPipeline":
+        taskmodule_kwargs = taskmodule_kwargs or {}
+        model_kwargs = model_kwargs or {}
+
+        taskmodule = AutoTaskModule.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            force_download=force_download,
+            resume_download=resume_download,
+            proxies=proxies,
+            use_auth_token=use_auth_token,
+            cache_dir=cache_dir,
+            local_files_only=local_files_only,
+            **taskmodule_kwargs,
+        )
+
+        model = AutoPyTorchIEModel.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            force_download=force_download,
+            resume_download=resume_download,
+            proxies=proxies,
+            use_auth_token=use_auth_token,
+            cache_dir=cache_dir,
+            local_files_only=local_files_only,
+            **model_kwargs,
+        )
+
+        return cls(
+            taskmodule=taskmodule,
+            model=model,
+            device=device,
+            binary_output=binary_output,
+            **kwargs,
+        )
 
     def transform(self, X):
         """
@@ -186,7 +259,7 @@ class Pipeline:
 
     def _sanitize_parameters(
         self, **pipeline_parameters
-    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         _sanitize_parameters will be called with any excessive named arguments from either `__init__` or `__call__`
         methods. It should return 4 dictionaries of the resolved parameters used by the various `preprocess`,
@@ -204,24 +277,30 @@ class Pipeline:
         # set preprocess parameters
         for p_name in ["document_batch_size"]:
             if p_name in pipeline_parameters:
-                preprocess_parameters[p_name] = pipeline_parameters[p_name]
+                preprocess_parameters[p_name] = pipeline_parameters.pop(p_name)
 
         # set forward parameters
         for p_name in ["show_progress_bar", "fast_dev_run", "half_precision_ops"]:
             if p_name in pipeline_parameters:
-                forward_parameters[p_name] = pipeline_parameters[p_name]
+                forward_parameters[p_name] = pipeline_parameters.pop(p_name)
 
         # set dataloader parameters
         for p_name in ["batch_size", "num_workers"]:
             if p_name in pipeline_parameters:
-                dataloader_params[p_name] = pipeline_parameters[p_name]
+                dataloader_params[p_name] = pipeline_parameters.pop(p_name)
 
         # set postprocess parameters
         for p_name in ["inplace"]:
             if p_name in pipeline_parameters:
-                postprocess_parameters[p_name] = pipeline_parameters[p_name]
+                postprocess_parameters[p_name] = pipeline_parameters.pop(p_name)
 
-        return preprocess_parameters, dataloader_params, forward_parameters, postprocess_parameters
+        return (
+            preprocess_parameters,
+            dataloader_params,
+            forward_parameters,
+            postprocess_parameters,
+            pipeline_parameters,
+        )
 
     def preprocess(
         self,
@@ -355,13 +434,16 @@ class Pipeline:
             single document will be returned. If a list of documents was passed, a list of documents will be returned.
         """
         if args:
-            logger.warning(f"Ignoring args : {args}")
+            logger.warning(f"Ignoring args: {args}")
         (
             preprocess_params,
             dataloader_params,
             forward_params,
             postprocess_params,
+            remaining_kwargs,
         ) = self._sanitize_parameters(**kwargs)
+        if remaining_kwargs:
+            logger.warning(f"Ignoring remaining kwargs: {remaining_kwargs}")
 
         in_place: bool = postprocess_params.get("inplace", True)
         if in_place and not isinstance(documents, (MutableSequence, Document)):
@@ -422,3 +504,7 @@ class Pipeline:
             return documents[0]
         else:
             return documents
+
+
+# kept for backward compatibility
+Pipeline = PyTorchIEPipeline

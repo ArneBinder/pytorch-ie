@@ -17,6 +17,9 @@ from transformers import PreTrainedTokenizer
 
 from pytorch_ie.annotations import LabeledSpan, Span
 
+# TODO: most of this should be superseded by pie_modules.utils.span and pie_modules.utils.sequence_tagging,
+#  remove respective content
+
 TypedSpan = Tuple[int, Tuple[int, int]]
 TypedStringSpan = Tuple[str, Tuple[int, int]]
 
