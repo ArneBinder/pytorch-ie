@@ -3,8 +3,8 @@ from collections import defaultdict
 from typing import Callable, Dict, Optional, Tuple, Union
 
 import pandas as pd
+from pie_core import Annotation, Document, DocumentMetric
 
-from pytorch_ie.core import Annotation, Document, DocumentMetric
 from pytorch_ie.utils.hydra import resolve_target
 
 logger = logging.getLogger(__name__)

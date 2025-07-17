@@ -24,13 +24,13 @@ from typing import (
 
 import numpy as np
 import torch
+from pie_core import TaskEncoding, TaskModule
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import Label, MultiLabel
-from pytorch_ie.core import TaskEncoding, TaskModule
 from pytorch_ie.documents import TextDocument, TextDocumentWithLabel, TextDocumentWithMultiLabel
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 

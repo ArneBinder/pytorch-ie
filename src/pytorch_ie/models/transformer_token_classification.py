@@ -6,7 +6,7 @@ from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 from typing_extensions import TypeAlias
 
-from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.model import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 ModelInputType: TypeAlias = BatchEncoding

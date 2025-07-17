@@ -1,10 +1,9 @@
 from typing import Any, Dict, Generic, Iterator, Optional, Sequence, TypeVar, Union
 
+from pie_core import Document, TaskEncoding, TaskModule
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 
-from pytorch_ie.core import Document
-from pytorch_ie.core.taskmodule import TaskEncoding, TaskModule
 from pytorch_ie.dataset import IterableTaskEncodingDataset, TaskEncodingDataset
 
 DocumentType = TypeVar("DocumentType", bound=Document)

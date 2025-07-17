@@ -3,11 +3,11 @@ from dataclasses import dataclass
 import pytest
 import torch
 import transformers
+from pie_core import AnnotationLayer, annotation_field
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 import pytorch_ie.models.modules.mlp
 from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.pipeline import Pipeline

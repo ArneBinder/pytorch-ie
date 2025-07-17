@@ -8,7 +8,7 @@ from torch.optim import AdamW
 from transformers import AutoConfig, AutoModel, BatchEncoding, get_linear_schedule_with_warmup
 from typing_extensions import TypeAlias
 
-from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.model import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 from pytorch_ie.models.modules.mlp import MLP
 

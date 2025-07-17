@@ -3,9 +3,9 @@ import json
 from typing import Dict, Optional
 
 import pytest
+from pie_core import Annotation, AnnotationLayer, annotation_field
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
-from pytorch_ie.core import Annotation, AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 from tests import FIXTURES_ROOT
 

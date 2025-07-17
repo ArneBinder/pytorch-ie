@@ -5,7 +5,7 @@ from transformers import AutoConfig, AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 from typing_extensions import TypeAlias
 
-from pytorch_ie.core import PyTorchIEModel
+from pytorch_ie.model import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath
 
 ModelInputType: TypeAlias = BatchEncoding

@@ -1,6 +1,7 @@
 import dataclasses
 from typing import Any, Dict, Optional, Tuple
 
+from pie_core import AnnotationLayer, Document, annotation_field
 from typing_extensions import TypeAlias
 
 from pytorch_ie.annotations import (
@@ -11,7 +12,6 @@ from pytorch_ie.annotations import (
     MultiLabel,
     Span,
 )
-from pytorch_ie.core import AnnotationLayer, Document, annotation_field
 
 
 @dataclasses.dataclass

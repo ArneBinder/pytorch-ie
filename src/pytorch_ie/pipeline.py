@@ -3,24 +3,24 @@ import os
 import warnings
 from collections import UserDict
 from contextlib import contextmanager
-from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, TypeVar, Union
 
 import torch
 import tqdm
 from packaging import version
-from pie_core import AutoTaskModule
+from pie_core import AutoTaskModule, Document, TaskEncoding, TaskEncodingDataset, TaskModule
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
-from pytorch_ie.core.document import Document
-from pytorch_ie.core.taskmodule import TaskEncoding, TaskEncodingDataset, TaskModule, TaskOutput
 from pytorch_ie.model import AutoPyTorchIEModel, PyTorchIEModel
 
 
 class InplaceNotSupportedException(Exception):
     pass
 
+
+TaskOutput = TypeVar("TaskOutput")
 
 logger = logging.getLogger(__name__)
 
