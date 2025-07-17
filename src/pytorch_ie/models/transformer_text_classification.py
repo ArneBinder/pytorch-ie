@@ -2,12 +2,12 @@ import logging
 from typing import Any, Dict, MutableMapping, Optional, Tuple
 
 import torchmetrics
-from pie_core import PyTorchIEModel
 from torch import Tensor, nn
 from torch.optim import AdamW
 from transformers import AutoConfig, AutoModel, get_linear_schedule_with_warmup
 from typing_extensions import TypeAlias
 
+from pytorch_ie.model import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 ModelInputType: TypeAlias = MutableMapping[str, Any]
