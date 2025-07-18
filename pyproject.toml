@@ -89,10 +89,10 @@ known_first_party = ["pytorch_ie"]
 
 [tool.mypy]
 files = [
-    "pytorch_ie",
-    "examples",
+    "src",
     "tests",
-    "datasets"
+    "examples",
+    "docs/conf.py"
 ]
 warn_unreachable = false
 # warn_unreachable = true
