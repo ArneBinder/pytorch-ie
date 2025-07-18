@@ -71,9 +71,12 @@ xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
 sh = "^2"
 types-requests = "^2.27.7"
-nox = "^2023.4"
+nox = "^2024"
 nox-poetry = "^1"
 python-dotenv = "^0.20.0"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
 [tool.black]
 line-length = 99

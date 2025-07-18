@@ -52,10 +52,11 @@ jobs:
                   with open(os.environ["GITHUB_ENV"], mode="a") as io:
                       print(f"VIRTUALENV_PIP={pip.__version__}", file=io)
             - name: Install Poetry
-              run: |
-                  # pwd output: /home/runner/work/pytorch-ie/pytorch-ie
-                  pipx install --verbose --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt poetry
-                  poetry --version
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-in-project: true
+                  plugins: poetry-plugin-export
             - name: Install Nox
               run: |
                   pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox
@@ -116,9 +117,11 @@ jobs:
                   pip install --constraint=.github/workflows/constraints.txt pip
                   pip --version
             - name: Install Poetry
-              run: |
-                  pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt poetry
-                  poetry --version
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-in-project: true
+                  plugins: poetry-plugin-export
             - name: Install Nox
               run: |
                   pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox
