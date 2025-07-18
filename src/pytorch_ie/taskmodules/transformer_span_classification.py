@@ -109,11 +109,6 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
             )
             return None
 
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        return config
-
     def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels: Set[str] = set()
         for document in documents:
