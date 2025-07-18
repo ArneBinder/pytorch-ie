@@ -6,16 +6,16 @@
 [![License](https://img.shields.io/pypi/l/pytorch-ie)][license]
 
 [![Read the documentation at https://pytorch-ie.readthedocs.io/](https://img.shields.io/readthedocs/pytorch-ie/latest.svg?label=Read%20the%20Docs)][read the docs]
-[![Tests](https://github.com/christophalt/pytorch-ie/workflows/Tests/badge.svg)][tests]
-[![Codecov](https://codecov.io/gh/christophalt/pytorch-ie/branch/main/graph/badge.svg)][codecov]
+[![Tests](https://github.com/ArneBinder/pytorch-ie/workflows/Tests/badge.svg)][tests]
+[![Codecov](https://codecov.io/gh/ArneBinder/pytorch-ie/branch/main/graph/badge.svg)][codecov]
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)][pre-commit]
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)][black]
 
 [pypi status]: https://pypi.org/project/pytorch-ie/
 [read the docs]: https://pytorch-ie.readthedocs.io/
-[tests]: https://github.com/christophalt/pytorch-ie/actions?workflow=Tests
-[codecov]: https://app.codecov.io/gh/christophalt/pytorch-ie
+[tests]: https://github.com/ArneBinder/pytorch-ie/actions?workflow=Tests
+[codecov]: https://app.codecov.io/gh/ArneBinder/pytorch-ie
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
 
@@ -44,7 +44,7 @@ This is an experimental framework that aims to combine the lessons learned from 
 $ pip install pytorch-ie
 ```
 
-**For even faster prototyping with pre-defined, but fully configurable training pipelines and much more useful tooling, have a look into the [PyTorch-IE-Hydra-Template](https://github.com/ChristophAlt/pytorch-ie-hydra-template).**
+**For even faster prototyping with pre-defined, but fully configurable training pipelines and much more useful tooling, have a look into the [PyTorch-IE-Hydra-Template](https://github.com/ArneBinder/pytorch-ie-hydra-template-1).**
 
 ## 🥧 Concepts & Architecture
 
@@ -660,4 +660,4 @@ If you find the framework useful please consider citing it:
 }
 ```
 
-[license]: https://github.com/christophalt/pytorch-ie/blob/main/LICENSE
+[license]: https://github.com/ArneBinder/pytorch-ie/blob/main/LICENSE
