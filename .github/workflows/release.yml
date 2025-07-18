@@ -26,9 +26,10 @@ jobs:
                   pip install --constraint=.github/workflows/constraints.txt pip
                   pip --version
             - name: Install Poetry
-              run: |
-                  pip install --constraint=.github/workflows/constraints.txt poetry
-                  poetry --version
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-in-project: true
             - name: Check if there is a parent commit
               id: check-parent-commit
               run: |

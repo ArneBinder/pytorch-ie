@@ -117,9 +117,10 @@ jobs:
                   pip install --constraint=.github/workflows/constraints.txt pip
                   pip --version
             - name: Install Poetry
-              run: |
-                  pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt poetry
-                  poetry --version
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-in-project: true
             - name: Install Nox
               run: |
                   pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox
