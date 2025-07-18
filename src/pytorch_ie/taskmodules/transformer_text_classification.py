@@ -102,7 +102,8 @@ class TransformerTextClassificationTaskModule(TaskModuleType):
         self.label_to_verbalizer = label_to_verbalizer
         self.padding = padding
         self.truncation = truncation
-        self.label_to_id = label_to_id
+        if label_to_id is not None:
+            self.label_to_id = label_to_id
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
         self.multi_label = multi_label

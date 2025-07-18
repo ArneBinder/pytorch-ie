@@ -82,7 +82,8 @@ class TransformerSpanClassificationTaskModule(TaskModuleType):
         self.entity_annotation = entity_annotation
         self.single_sentence = single_sentence
         self.sentence_annotation = sentence_annotation
-        self.label_to_id = label_to_id
+        if label_to_id is not None:
+            self.label_to_id = label_to_id
         self.padding = padding
         self.truncation = truncation
         self.max_length = max_length

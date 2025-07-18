@@ -84,7 +84,8 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
         self.partition_annotation = partition_annotation
-        self.label_to_id = label_to_id
+        if label_to_id is not None:
+            self.label_to_id = label_to_id
         self.padding = padding
         self.truncation = truncation
         self.max_length = max_length
