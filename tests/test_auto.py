@@ -51,9 +51,9 @@ def test_auto_taskmodule_full_cycle_with_name(tmp_path):
     taskmodule = MyTransformerSpanClassificationTaskModule(
         tokenizer_name_or_path="bert-base-uncased"
     )
-    config = taskmodule._config()
-    assert config["taskmodule_type"] == "mytaskmodule"
     taskmodule.prepare([])
+    assert taskmodule.config["taskmodule_type"] == "mytaskmodule"
+
     taskmodule.save_pretrained(save_directory=str(tmp_path))
 
     taskmodule_loaded = AutoTaskModule.from_pretrained(str(tmp_path))
@@ -65,6 +65,7 @@ def test_auto_taskmodule_from_config():
     config = {
         "taskmodule_type": "MyTransformerSpanClassificationTaskModule",
         "tokenizer_name_or_path": "bert-base-uncased",
+        "label_to_id": {"O": 0, "MISC": 1, "ORG": 2, "PER": 3, "LOC": 4},
     }
     taskmodule = AutoTaskModule.from_config(config)
     assert isinstance(taskmodule, MyTransformerSpanClassificationTaskModule)

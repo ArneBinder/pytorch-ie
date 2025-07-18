@@ -59,6 +59,8 @@ logger = logging.getLogger(__name__)
 
 @TaskModule.register()
 class TransformerTokenClassificationTaskModule(TaskModuleType):
+    PREPARED_ATTRIBUTES = ["label_to_id"]
+
     def __init__(
         self,
         tokenizer_name_or_path: str,
@@ -82,8 +84,8 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
         self.entity_annotation = entity_annotation
         self.partition_annotation = partition_annotation
-        self.label_to_id = label_to_id or {}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
+        if label_to_id is not None:
+            self.label_to_id = label_to_id
         self.padding = padding
         self.truncation = truncation
         self.max_length = max_length
@@ -112,27 +114,22 @@ class TransformerTokenClassificationTaskModule(TaskModuleType):
             )
             return None
 
-    def _config(self) -> Dict[str, Any]:
-        config = super()._config()
-        config["label_to_id"] = self.label_to_id
-        return config
-
-    def prepare(self, documents: Sequence[TextDocument]) -> None:
+    def _prepare(self, documents: Sequence[TextDocument]) -> None:
         labels = set()
         for document in documents:
             entities: Sequence[LabeledSpan] = document[self.entity_annotation]
 
             for entity in entities:
                 labels.add(entity.label)
-                # labels.update(entity.label)
 
-        self.label_to_id["O"] = 0
+        self.label_to_id = {"O": 0}
         current_id = 1
         for label in sorted(labels):
             for prefix in ["B", "I"]:
                 self.label_to_id[f"{prefix}-{label}"] = current_id
                 current_id += 1
 
+    def _post_prepare(self):
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
 
     def encode_text(
