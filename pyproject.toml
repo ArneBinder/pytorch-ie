@@ -44,6 +44,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License"
 ]
 
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
+"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
+
 [tool.poetry.group.dev]
 optional = true
 
