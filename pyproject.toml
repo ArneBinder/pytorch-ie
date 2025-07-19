@@ -30,7 +30,8 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pie-core = ">=0.2.0,<0.3.0"
+#pie-core = ">=0.2.0,<0.3.0"
+pie-core = { git = "https://github.com/ArneBinder/pie-core.git", branch = "tests/annotation_pipeline" }
 torch = ">=1.10"
 pytorch-lightning = "^2"
 torchmetrics = "^1"
