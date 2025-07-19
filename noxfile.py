@@ -26,8 +26,7 @@ nox.options.sessions = (
     "pre-commit",
     # "safety",
     "mypy",
-    # TODO: switch back to "tests_not_slow" before merging to main
-    # "tests_not_slow",
+    "tests_not_slow",
     "tests",
     # "typeguard",
     "xdoctest",
