@@ -8,7 +8,7 @@ from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, 
 import torch
 import tqdm
 from packaging import version
-from pie_core import AutoTaskModule, Document, TaskEncoding, TaskEncodingDataset, TaskModule
+from pie_core import AnnotationPipeline, Document, TaskEncoding, TaskEncodingDataset, TaskModule
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
@@ -35,7 +35,8 @@ def get_autocast_dtype(device_type: str):
         raise ValueError(f"Unsupported device type for half precision autocast: {device_type}")
 
 
-class PyTorchIEPipeline:
+@AnnotationPipeline.register()
+class PyTorchIEPipeline(AnnotationPipeline[PyTorchIEModel, TaskModule]):
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
     different pipelines.
@@ -68,16 +69,12 @@ class PyTorchIEPipeline:
     # AutoPyTorchIEPipeline(AutoAnnotationPipeline) with auto_model_class = AutoPyTorchIEModel, but
     # this mitigates the purpose of the AutoModel class. In the future, we should remove this
     # and register all models with @Model.register() instead (but this will break backwards compatibility).
-    # TODO 1: re-enable when deriving PyTorchIEPipeline from AnnotationPipeline
-    # auto_model_class = AutoPyTorchIEModel
+    auto_model_class = AutoPyTorchIEModel
 
     default_input_names = None
 
     def __init__(
         self,
-        # TODO 1: remove model and taskmodule from __init__ when deriving PyTorchIEPipeline from AnnotationPipeline
-        model: PyTorchIEModel,
-        taskmodule: TaskModule,
         device: Union[int, str] = "cpu",
         half_precision_model: bool = False,
         **kwargs,
@@ -90,13 +87,8 @@ class PyTorchIEPipeline:
             remaining_kwargs,
         ) = self._sanitize_parameters(**kwargs)
 
-        # TODO 1: re-enable and remove warning when deriving PyTorchIEPipeline from AnnotationPipeline
         # we need to pass the remaining arguments (i.e., model, taskmodule, is_from_pretrained) to the parent class
-        # super().__init__(**remaining_kwargs)
-        if remaining_kwargs:
-            logger.warning(f"Ignoring remaining kwargs: {remaining_kwargs}")
-
-        self.taskmodule = taskmodule
+        super().__init__(**remaining_kwargs)
 
         device_str = (
             ("cpu" if device < 0 else f"cuda:{device}") if isinstance(device, int) else device
@@ -105,82 +97,11 @@ class PyTorchIEPipeline:
 
         # Module.to() returns just self, but moved to the device. This is not correctly
         # reflected in typing of PyTorch.
-        self.model: PyTorchIEModel = model.to(self.device)  # type: ignore
+        self.model: PyTorchIEModel = self.model.to(self.device)  # type: ignore
         if half_precision_model:
             self.model = self.model.to(dtype=get_autocast_dtype(self.device.type))
 
         self.call_count = 0
-
-        # TODO 1: remove this when deriving PyTorchIEPipeline from AnnotationPipeline
-        self.config: Dict[str, Any] = {}
-
-    # TODO 1: remove this method when deriving PyTorchIEPipeline from AnnotationPipeline
-    def save_pretrained(self, save_directory: str):
-        """
-        Save the pipeline's model and taskmodule.
-
-        Args:
-            save_directory (:obj:`str`):
-                A path to the directory where to saved. It will be created if it doesn't exist.
-        """
-        if os.path.isfile(save_directory):
-            logger.error(f"Provided path ({save_directory}) should be a directory, not a file")
-            return
-        os.makedirs(save_directory, exist_ok=True)
-
-        self.model.save_pretrained(save_directory)
-
-        self.taskmodule.save_pretrained(save_directory)
-
-    # TODO 1: remove this method when deriving PyTorchIEPipeline from AnnotationPipeline
-    @classmethod
-    def from_pretrained(
-        cls,
-        pretrained_model_name_or_path: str,
-        force_download: bool = False,
-        resume_download: bool = False,
-        proxies: Optional[Dict] = None,
-        use_auth_token: Optional[str] = None,
-        cache_dir: Optional[str] = None,
-        local_files_only: bool = False,
-        taskmodule_kwargs: Optional[Dict[str, Any]] = None,
-        model_kwargs: Optional[Dict[str, Any]] = None,
-        device: int = -1,
-        binary_output: bool = False,
-        **kwargs,
-    ) -> "PyTorchIEPipeline":
-        taskmodule_kwargs = taskmodule_kwargs or {}
-        model_kwargs = model_kwargs or {}
-
-        taskmodule = AutoTaskModule.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name_or_path,
-            force_download=force_download,
-            resume_download=resume_download,
-            proxies=proxies,
-            use_auth_token=use_auth_token,
-            cache_dir=cache_dir,
-            local_files_only=local_files_only,
-            **taskmodule_kwargs,
-        )
-
-        model = AutoPyTorchIEModel.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name_or_path,
-            force_download=force_download,
-            resume_download=resume_download,
-            proxies=proxies,
-            use_auth_token=use_auth_token,
-            cache_dir=cache_dir,
-            local_files_only=local_files_only,
-            **model_kwargs,
-        )
-
-        return cls(
-            taskmodule=taskmodule,
-            model=model,
-            device=device,
-            binary_output=binary_output,
-            **kwargs,
-        )
 
     def transform(self, X):
         """
