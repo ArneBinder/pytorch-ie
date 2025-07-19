@@ -30,6 +30,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pie-modules = {git = "https://github.com/ArneBinder/pie-modules", branch = "remove-pytorch_ie"}
 pie-core = ">=0.2.0,<0.3.0"
 torch = ">=1.10"
 pytorch-lightning = "^2"

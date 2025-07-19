@@ -2056,6 +2056,26 @@ huggingface_hub = ">=0.23.4,<0.26.0"
 torch = ">=2.1.0,<3.0.0"
 
 [[package]]
+name = "pie-modules"
+version = "0.15.9"
+description = "Utility modules for Python-IE"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+pandas = ">=2.0.3,<3.0.0"
+pie-core = ">=0.2.0,<0.3.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/ArneBinder/pie-modules"
+reference = "remove-pytorch_ie"
+resolved_reference = "6ddb6b4f055991f3111920bfbc3d34cdf8248058"
+
+[[package]]
 name = "platformdirs"
 version = "4.2.2"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
@@ -4048,4 +4068,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "4d5b9e8f9a2897b85fc40bd4148a74726636ce765be4571db74472a886f727d0"
+content-hash = "e3abc1c30948dee05da1c096336758d976d1483f14fb0092bad1e0311792210e"
