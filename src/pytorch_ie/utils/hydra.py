@@ -1,3 +1,4 @@
+# backwards compatibility
 from pie_core.utils.hydra import (
     InstantiationException,
     resolve_optional_document_type,
