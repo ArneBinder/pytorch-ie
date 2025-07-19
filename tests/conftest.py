@@ -1,9 +1,8 @@
 import dataclasses
 import json
-from typing import Dict, Optional
 
 import pytest
-from pie_core import Annotation, AnnotationLayer, annotation_field
+from pie_core import AnnotationLayer, annotation_field
 
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan, Span
 from pytorch_ie.documents import TextDocument
@@ -61,13 +60,3 @@ def documents(document_dataset):
 def test_documents(documents):
     assert len(documents) == 8
     assert all(isinstance(doc, TestDocument) for doc in documents)
-
-
-def _test_annotation_reconstruction(
-    annotation: Annotation, annotation_store: Optional[Dict[int, Annotation]] = None
-):
-    ann_str = json.dumps(annotation.asdict())
-    annotation_reconstructed = type(annotation).fromdict(
-        json.loads(ann_str), annotation_store=annotation_store
-    )
-    assert annotation_reconstructed == annotation
