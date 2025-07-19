@@ -16,7 +16,8 @@ jobs:
                 include:
                     - { python: "3.9", os: "ubuntu-latest", session: "pre-commit" }
                     - { python: "3.9", os: "ubuntu-latest", session: "mypy" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "tests_not_slow" }
+                    #- { python: "3.9", os: "ubuntu-latest", session: "tests_not_slow" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "tests" }
                     - { python: "3.9", os: "ubuntu-latest", session: "xdoctest" }
                     - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
                     # - { python: "3.9", os: "macos-latest", session: "tests_not_slow" }
@@ -86,7 +87,7 @@ jobs:
               run: |
                   nox --python=${{ matrix.python }}
             - name: Upload coverage data
-              if: always() && matrix.session == 'tests_not_slow'
+              if: always() && matrix.session == 'tests'
               uses: actions/upload-artifact@v4
               with:
                   name: coverage-data
