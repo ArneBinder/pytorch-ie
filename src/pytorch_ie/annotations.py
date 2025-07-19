@@ -1,4 +1,4 @@
-# backward compatibility imports for annotations
+# backward compatibility
 from pie_modules.annotations import (
     BinaryRelation,
     Label,

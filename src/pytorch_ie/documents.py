@@ -1,3 +1,4 @@
+# backwards compatibility
 from pie_modules.documents import (
     DocumentWithLabel,
     DocumentWithMultiLabel,
