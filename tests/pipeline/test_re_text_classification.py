@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from importlib.metadata import version
-from packaging.version import Version
+
 import pytest
 from pie_core import AnnotationLayer, annotation_field
+from packaging.version import Version
 
 from pytorch_ie import AutoPipeline
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
