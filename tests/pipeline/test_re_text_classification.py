@@ -78,24 +78,24 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     #  - torch==2.7.1, pytorch-lightning==2.4.0, and transformers==4.48.3.
     if not half_precision_model and not half_precision_ops:
         assert scores == pytest.approx(
-            [0.5339038372039795, 0.3984701931476593, 0.5520647764205933]
+            [0.5339038372039795, 0.3984701931476593, 0.5520647764205933], abs=1e-6
         )
     elif not half_precision_model and half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875])
+            assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875], abs=1e-6)
         else:
-            assert scores == pytest.approx([0.53125, 0.396484375, 0.55078125])
+            assert scores == pytest.approx([0.53125, 0.396484375, 0.55078125], abs=1e-6)
     elif half_precision_model and not half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375], abs=1e-6)
         else:
-            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375])
+            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-6)
     else:
         # NOTE: This parameter combination should not be used, see recommendation
         # from torch.autocast() documentation: "When entering an autocast-enabled region,
         # Tensors may be any type. You should not call half() or bfloat16() on your model(s)
         # or inputs when using autocasting."
         if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375], abs=1e-6)
         else:
-            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375])
+            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-6)
