@@ -92,10 +92,7 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         )
         assert half_precision_warning not in caplog.messages
     elif not half_precision_model and half_precision_ops:
-        if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53125, 0.396484375, 0.5546875], abs=1e-6)
-        else:
-            assert scores == pytest.approx([0.53125, 0.396484375, 0.5546875], abs=1e-6)
+        assert scores == pytest.approx([0.53125, 0.396484375, 0.5546875], abs=1e-6)
         assert half_precision_warning not in caplog.messages
     elif half_precision_model and not half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
