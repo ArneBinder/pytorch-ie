@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-
+from importlib.metadata import version
+from packaging.version import Version
 import pytest
 from pie_core import AnnotationLayer, annotation_field
 
@@ -76,11 +77,21 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
             [0.5339038372039795, 0.3984701931476593, 0.5520647764205933]
         )
     elif not half_precision_model and half_precision_ops:
-        assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875])
+        if Version(version("torch")) < Version("2.6"):
+            assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875])
+        else:
+            assert scores == pytest.approx([0.53125, 0.396484375, 0.55078125])
     elif half_precision_model and not half_precision_ops:
-        assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+        if Version(version("torch")) < Version("2.6"):
+            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+        else:
+            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375])
     else:
-        # NOTE: This should not be used, see recommendation from torch.autocast() documentation:
-        # "When entering an autocast-enabled region, Tensors may be any type. You should not call
-        # half() or bfloat16() on your model(s) or inputs when using autocasting."
-        assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+        # NOTE: This parameter combination should not be used, see recommendation
+        # from torch.autocast() documentation: "When entering an autocast-enabled region,
+        # Tensors may be any type. You should not call half() or bfloat16() on your model(s)
+        # or inputs when using autocasting."
+        if Version(version("torch")) < Version("2.6"):
+            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+        else:
+            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375])
