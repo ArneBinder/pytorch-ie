@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Sequence
 
 import pytest
 from pie_core import AnnotationLayer, annotation_field
@@ -71,4 +70,4 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     scores = [rel.score for rel in sorted_relations]
     # Note: The scores are quite low, because the model is trained with the old version for the taskmodule,
     # so the argument markers are not correct.
-    assert scores == pytest.approx([0.534, 0.398, 0.552], abs=1e-2)
+    assert scores == pytest.approx([0.5339038, 0.3984702, 0.5520648], abs=1e-2)
