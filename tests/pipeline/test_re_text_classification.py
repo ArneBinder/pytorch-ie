@@ -68,6 +68,18 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         ("org:top_members/employees", (("ORG", "IndieBio"), ("PER", "Po Bronson"))),
     ]
     scores = [rel.score for rel in sorted_relations]
-    # Note: The scores are quite low, because the model is trained with the old version for the taskmodule,
-    # so the argument markers are not correct.
-    assert scores == pytest.approx([0.5339038, 0.3984702, 0.5520648], abs=1e-2)
+    # General note: The scores are quite low, because the model is trained with the old version
+    # for the taskmodule, so the argument markers are not correct.
+    if not half_precision_model and not half_precision_ops:
+        assert scores == pytest.approx(
+            [0.5339038372039795, 0.3984701931476593, 0.5520647764205933]
+        )
+    elif not half_precision_model and half_precision_ops:
+        assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875])
+    elif half_precision_model and not half_precision_ops:
+        assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
+    else:
+        # NOTE: This should not be used, see recommendation from torch.autocast() documentation:
+        # "When entering an autocast-enabled region, Tensors may be any type. You should not call
+        # half() or bfloat16() on your model(s) or inputs when using autocasting."
+        assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375])
