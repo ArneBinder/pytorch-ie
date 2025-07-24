@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from importlib.metadata import version
 
 import pytest
+import torch
 from packaging.version import Version
 from pie_core import AnnotationLayer, annotation_field
 
@@ -11,6 +12,8 @@ from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerTextClassificationModel
 from pytorch_ie.pipeline import Pipeline
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
+
+torch.use_deterministic_algorithms(True)
 
 
 @dataclass
@@ -90,13 +93,13 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         assert half_precision_warning not in caplog.messages
     elif not half_precision_model and half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875], abs=1e-6)
+            assert scores == pytest.approx([0.53125, 0.396484375, 0.5546875], abs=1e-6)
         else:
-            assert scores == pytest.approx([0.53125, 0.396484375, 0.55078125], abs=1e-6)
+            assert scores == pytest.approx([0.53125, 0.396484375, 0.5546875], abs=1e-6)
         assert half_precision_warning not in caplog.messages
     elif half_precision_model and not half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375], abs=1e-6)
+            assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-6)
         else:
             assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-6)
         assert half_precision_warning not in caplog.messages
