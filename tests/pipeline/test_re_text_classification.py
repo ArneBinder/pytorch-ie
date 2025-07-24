@@ -72,7 +72,10 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     scores = [rel.score for rel in sorted_relations]
     # General note: The scores are quite low, because the model is trained with the old version
     # for the taskmodule, so the argument markers are not correct.
-    # Below scores were obtained with torch==2.3.0 and pytorch-lightning==2.2.5.
+    # Below scores for torch < 2.6 were obtained with:
+    #  - torch==2.3.0, pytorch-lightning==2.2.5, and transformers==4.41.1
+    # The scores for torch >= 2.6 were obtained with:
+    #  - torch==2.7.1, pytorch-lightning==2.4.0, and transformers==4.48.3.
     if not half_precision_model and not half_precision_ops:
         assert scores == pytest.approx(
             [0.5339038372039795, 0.3984701931476593, 0.5520647764205933]
