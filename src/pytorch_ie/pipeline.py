@@ -481,6 +481,17 @@ class PyTorchIEPipeline:
 
         show_progress_bar = forward_params.pop("show_progress_bar", False)
         half_precision_ops = forward_params.pop("half_precision_ops", False)
+
+        # Torch documentation recommends: "When entering an autocast-enabled region, Tensors may be any type.
+        # You should not call half() or bfloat16() on your model(s) or inputs when using autocasting."
+        # (see https://docs.pytorch.org/docs/stable/amp.html#torch.autocast). So show a warning in this case.
+        if half_precision_ops:
+            if self.model.dtype == get_autocast_dtype(self.device.type):
+                logger.warning(
+                    "Using half precision operations with a model already in half precision. "
+                    "This is not recommended, as it may lead to unexpected results."
+                )
+
         model_outputs: List = []
         with torch.no_grad():
             with torch.autocast(device_type=self.device.type, enabled=half_precision_ops):

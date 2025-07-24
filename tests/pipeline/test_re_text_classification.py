@@ -23,7 +23,7 @@ class ExampleDocument(TextDocument):
 @pytest.mark.parametrize("use_auto", [False, True])
 @pytest.mark.parametrize("half_precision_model", [False, True])
 @pytest.mark.parametrize("half_precision_ops", [False, True])
-def test_re_text_classification(use_auto, half_precision_model, half_precision_ops):
+def test_re_text_classification(use_auto, half_precision_model, half_precision_ops, caplog):
 
     # set up the pipeline
     model_name_or_path = "pie/example-re-textclf-tacred"
@@ -58,7 +58,8 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     document.entities.append(LabeledSpan(start=126, end=134, label="ORG"))
 
     # predict relations
-    pipeline(document, batch_size=2, half_precision_ops=half_precision_ops)
+    with caplog.at_level("WARNING"):
+        pipeline(document, batch_size=2, half_precision_ops=half_precision_ops)
 
     # sort to get deterministic order
     sorted_relations = sorted(document.relations.predictions)
@@ -69,6 +70,12 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         ("org:top_members/employees", (("ORG", "SOSV"), ("PER", "Po Bronson"))),
         ("org:top_members/employees", (("ORG", "IndieBio"), ("PER", "Po Bronson"))),
     ]
+
+    half_precision_warning = (
+        "Using half precision operations with a model already in half precision. "
+        "This is not recommended, as it may lead to unexpected results."
+    )
+
     scores = [rel.score for rel in sorted_relations]
     # General note: The scores are quite low, because the model is trained with the old version
     # for the taskmodule, so the argument markers are not correct.
@@ -80,22 +87,19 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         assert scores == pytest.approx(
             [0.5339038372039795, 0.3984701931476593, 0.5520647764205933], abs=1e-6
         )
+        assert half_precision_warning not in caplog.messages
     elif not half_precision_model and half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
             assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875], abs=1e-6)
         else:
             assert scores == pytest.approx([0.53125, 0.396484375, 0.55078125], abs=1e-6)
+        assert half_precision_warning not in caplog.messages
     elif half_precision_model and not half_precision_ops:
         if Version(version("torch")) < Version("2.6"):
             assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375], abs=1e-6)
         else:
             assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-6)
+        assert half_precision_warning not in caplog.messages
     else:
-        # NOTE: This parameter combination should not be used, see recommendation
-        # from torch.autocast() documentation: "When entering an autocast-enabled region,
-        # Tensors may be any type. You should not call half() or bfloat16() on your model(s)
-        # or inputs when using autocasting."
-        if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375], abs=1e-6)
-        else:
-            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-6)
+        # just check that we got the warning about half precision ops in combination with half precision model
+        assert half_precision_warning in caplog.messages
