@@ -23,6 +23,8 @@ class ExampleDocument(TextDocument):
 @pytest.mark.parametrize("half_precision_model", [False, True])
 @pytest.mark.parametrize("half_precision_ops", [False, True])
 def test_re_text_classification(use_auto, half_precision_model, half_precision_ops):
+
+    # set up the pipeline
     model_name_or_path = "pie/example-re-textclf-tacred"
     if use_auto:
         pipeline = AutoPipeline.from_pretrained(
@@ -45,39 +47,28 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     assert pipeline.taskmodule.is_from_pretrained
     assert pipeline.model.is_from_pretrained
 
+    # create a document with entities
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner "
         "at SOSV and managing director of IndieBio."
     )
+    document.entities.append(LabeledSpan(start=65, end=75, label="PER"))
+    document.entities.append(LabeledSpan(start=96, end=100, label="ORG"))
+    document.entities.append(LabeledSpan(start=126, end=134, label="ORG"))
 
-    for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
-        document.entities.append(LabeledSpan(start=start, end=end, label=label))
-
+    # predict relations
     pipeline(document, batch_size=2, half_precision_ops=half_precision_ops)
-    relations: Sequence[BinaryRelation] = document["relations"].predictions
-    assert len(relations) == 3
 
-    rels = sorted(relations, key=lambda rel: (rel.head.start + rel.tail.start) / 2)
+    # sort to get deterministic order
+    sorted_relations = sorted(document.relations.predictions)
 
+    # check the relations and their scores
+    assert [ann.resolve() for ann in sorted_relations] == [
+        ("per:employee_of", (("PER", "Po Bronson"), ("ORG", "IndieBio"))),
+        ("org:top_members/employees", (("ORG", "SOSV"), ("PER", "Po Bronson"))),
+        ("org:top_members/employees", (("ORG", "IndieBio"), ("PER", "Po Bronson"))),
+    ]
+    scores = [rel.score for rel in sorted_relations]
     # Note: The scores are quite low, because the model is trained with the old version for the taskmodule,
     # so the argument markers are not correct.
-    assert (str(rels[0].head), rels[0].label, str(rels[0].tail)) == (
-        "SOSV",
-        "org:top_members/employees",
-        "Po Bronson",
-    )
-    assert rels[0].score == pytest.approx(0.398, abs=1e-2)
-
-    assert (str(rels[1].head), rels[1].label, str(rels[1].tail)) == (
-        "Po Bronson",
-        "per:employee_of",
-        "IndieBio",
-    )
-    assert rels[1].score == pytest.approx(0.534, abs=1e-2)
-
-    assert (str(rels[2].head), rels[2].label, str(rels[2].tail)) == (
-        "IndieBio",
-        "org:top_members/employees",
-        "Po Bronson",
-    )
-    assert rels[2].score == pytest.approx(0.552, abs=1e-2)
+    assert scores == pytest.approx([0.534, 0.398, 0.552], abs=1e-2)
