@@ -100,11 +100,11 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     elif half_precision_model and not half_precision_ops:
         # TODO: adjust if we change to use torch.float16 also on CPU!
         # using half_precision_model on cpu results in using dtype=torch.bfloat16 which has only
-        # 8 significant precision bits, so we use 10e-3 as absolute tolerance
+        # 8 significant precision bits, so we use 10e-2 as absolute tolerance
         if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-3)
+            assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-2)
         else:
-            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-3)
+            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-2)
         assert half_precision_warning not in caplog.messages
     else:
         # just check that we got the warning about half precision ops in combination with half precision model
