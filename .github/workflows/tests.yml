@@ -25,45 +25,61 @@ jobs:
                     # - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
 
         env:
-            NOXSESSION: ${{ matrix.session }}
             FORCE_COLOR: "1"
             PRE_COMMIT_COLOR: "always"
 
         steps:
+            #----------------------------------------------
+            #       check-out repo and set-up python
+            #----------------------------------------------
             - name: Check out the repository
               uses: actions/checkout@v4
-
             - name: Set up Python ${{ matrix.python }}
+              id: setup-python
               uses: actions/setup-python@v5
               with:
                   python-version: ${{ matrix.python }}
-                  #   cache: pip
-                  #   cache-dependency-path: poetry.lock
 
-            - name: Upgrade pip
-              run: |
-                  pip install --constraint=.github/workflows/constraints.txt pip
-                  pip --version
-            - name: Upgrade pip in virtual environments
-              shell: python
-              run: |
-                  import os
-                  import pip
-                  with open(os.environ["GITHUB_ENV"], mode="a") as io:
-                      print(f"VIRTUALENV_PIP={pip.__version__}", file=io)
+            #----------------------------------------------
+            #  -----  install & configure poetry  -----
+            #----------------------------------------------
             - name: Install Poetry
               uses: snok/install-poetry@v1
               with:
                   version: latest
+                  virtualenvs-create: true
                   virtualenvs-in-project: true
+                  installer-parallel: true
                   plugins: poetry-plugin-export
-            - name: Install Nox
-              run: |
-                  pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox
-                  pipx inject --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox nox-poetry
-                  nox --version
+
+            #----------------------------------------------
+            #       load cached venv if cache exists
+            #----------------------------------------------
+            - name: Load cached venv
+              id: cached-poetry-dependencies
+              uses: actions/cache@v4
+              with:
+                  path: .venv
+                  key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+            #----------------------------------------------
+            # install dependencies if cache does not exist
+            #----------------------------------------------
+            - name: Install dependencies
+              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+              run: poetry install --with dev --no-interaction --no-root
+
+            #----------------------------------------------
+            # install root project, if required
+            #----------------------------------------------
+            - name: Install project
+              run: poetry install --no-interaction
+
+            #----------------------------------------------
+            #  -----  pre-commit session  -----
+            #----------------------------------------------
             - name: Compute pre-commit cache key
-              if: matrix.session == 'pre-commit'
+              if: always() && matrix.session == 'pre-commit'
               id: pre-commit-cache
               shell: python
               run: |
@@ -74,74 +90,49 @@ jobs:
                   digest = hashlib.sha256(payload).hexdigest()
                   result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
                   print("::set-output name=result::{}".format(result))
+
             - name: Restore pre-commit cache
               uses: actions/cache@v4
-              if: matrix.session == 'pre-commit'
+              if: always() && matrix.session == 'pre-commit'
               with:
                   path: ~/.cache/pre-commit
                   key: ${{ steps.pre-commit-cache.outputs.result }}-${{ hashFiles('.pre-commit-config.yaml') }}
                   restore-keys: |
                       ${{ steps.pre-commit-cache.outputs.result }}-
-            - name: Run Nox
-              run: |
-                  nox --python=${{ matrix.python }}
-            - name: Upload coverage data
+
+            - name: Run pre-commits
+              if: always() && matrix.session == 'pre-commit'
+              uses: pre-commit/action@v3.0.1
+              with:
+                  extra_args: --all-files --hook-stage=manual --show-diff-on-failure
+
+            #----------------------------------------------
+            #              run test suite
+            #----------------------------------------------
+            - name: Run tests with coverage
               if: always() && matrix.session == 'tests_not_slow'
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage-data
-                  include-hidden-files: true
-                  path: ".coverage.*"
-
-            - name: Upload documentation
-              if: matrix.session == 'docs-build'
-              uses: actions/upload-artifact@v4
-              with:
-                  name: docs
-                  path: docs/_build
-
-    coverage:
-        runs-on: ubuntu-latest
-        needs: tests
-        steps:
-            - name: Check out the repository
-              uses: actions/checkout@v4
-
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: "3.9"
-
-            - name: Upgrade pip
               run: |
-                  pip install --constraint=.github/workflows/constraints.txt pip
-                  pip --version
-            - name: Install Poetry
-              uses: snok/install-poetry@v1
-              with:
-                  version: latest
-                  virtualenvs-in-project: true
-                  plugins: poetry-plugin-export
-            - name: Install Nox
-              run: |
-                  pipx install --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox
-                  pipx inject --pip-args=--constraint=$(pwd)/.github/workflows/constraints.txt nox nox-poetry
-                  nox --version
-            - name: Download coverage data
-              uses: actions/download-artifact@v4
-              with:
-                  name: coverage-data
+                  source .venv/bin/activate
+                  pytest -m "not slow" --cov --cov-report term-missing --cov-report xml:coverage.xml
 
-            - name: Combine coverage data and display human readable report
-              run: |
-                  nox --session=coverage
-            - name: Create coverage report
-              run: |
-                  nox --session=coverage -- xml
+            #----------------------------------------------
+            #          upload coverage report
+            #----------------------------------------------
             - name: Upload coverage reports to Codecov
+              if: always() && matrix.session == 'tests_not_slow'
               uses: codecov/codecov-action@v4
               with:
                   files: ./coverage.xml
                   fail_ci_if_error: true
               env:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+            #----------------------------------------------
+            #              upload documentation
+            #----------------------------------------------
+            - name: Upload documentation
+              if: matrix.session == 'docs-build'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: docs
+                  path: docs/_build
