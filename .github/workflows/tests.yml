@@ -142,7 +142,7 @@ jobs:
               if: always() && matrix.session == 'xdoctest'
               run: |
                   source .venv/bin/activate
-                  python -m xdoctest --modname="pytorch-ie" --command=all --colored=1
+                  python -m xdoctest --modname="pytorch_ie" --command=all --colored=1
 
             #----------------------------------------------
             #   ------ Build the documentation ------
