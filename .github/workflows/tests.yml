@@ -101,14 +101,10 @@ jobs:
                   restore-keys: |
                       ${{ steps.pre-commit-cache.outputs.result }}-
 
-            - name: Activate virtual environment
-              if: always()
-              run: |
-                  source .venv/bin/activate
-
             - name: Run pre-commits
               if: always() && matrix.session == 'pre-commit'
               run: |
+                  source .venv/bin/activate
                   python -m pre_commit --all-files --hook-stage=manual --show-diff-on-failure
 
             #----------------------------------------------
@@ -117,6 +113,7 @@ jobs:
             - name: Run tests with coverage
               if: always() && matrix.session == 'tests_not_slow'
               run: |
+                  source .venv/bin/activate
                   pytest -m "not slow" --cov --cov-report term-missing --cov-report xml:coverage.xml
 
             #----------------------------------------------
