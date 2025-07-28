@@ -115,12 +115,20 @@ jobs:
               run: |
                   source .venv/bin/activate
                   coverage run --parallel -m pytest -m "not slow"
+            #----------------------------------------------
+            #          process coverage report
+            #----------------------------------------------
+            - name: Show coverage report
+              if: matrix.session == 'tests_not_slow'
+              run: |
+                  source .venv/bin/activate
                   coverage combine
+                  coverage report
                   coverage xml
-
             #----------------------------------------------
             #          upload coverage report
             #----------------------------------------------
+
             - name: Upload coverage reports to Codecov
               if: matrix.session == 'tests_not_slow'
               uses: codecov/codecov-action@v4
