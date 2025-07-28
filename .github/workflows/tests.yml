@@ -105,7 +105,7 @@ jobs:
               if: always() && matrix.session == 'pre-commit'
               run: |
                   source .venv/bin/activate
-                  python -m pre_commit --all-files --hook-stage=manual --show-diff-on-failure
+                  python -m pre_commit run all-files --hook-stage=manual --show-diff-on-failure
 
             #----------------------------------------------
             #              run test suite
