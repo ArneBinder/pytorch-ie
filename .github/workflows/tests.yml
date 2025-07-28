@@ -85,11 +85,12 @@ jobs:
               run: |
                   import hashlib
                   import sys
+                  import os
                   python = "py{}.{}".format(*sys.version_info[:2])
                   payload = sys.version.encode() + sys.executable.encode()
                   digest = hashlib.sha256(payload).hexdigest()
                   result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
-                  print("::set-output name=result::{}".format(result))
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write(f"result={result}\n")
 
             - name: Restore pre-commit cache
               uses: actions/cache@v4
@@ -100,11 +101,15 @@ jobs:
                   restore-keys: |
                       ${{ steps.pre-commit-cache.outputs.result }}-
 
+            - name: Activate virtual environment
+              if: always()
+              run: |
+                  source .venv/bin/activate
+
             - name: Run pre-commits
               if: always() && matrix.session == 'pre-commit'
-              uses: pre-commit/action@v3.0.1
-              with:
-                  extra_args: --all-files --hook-stage=manual --show-diff-on-failure
+              run: |
+                  python -m pre_commit --all-files --hook-stage=manual --show-diff-on-failure
 
             #----------------------------------------------
             #              run test suite
@@ -112,7 +117,6 @@ jobs:
             - name: Run tests with coverage
               if: always() && matrix.session == 'tests_not_slow'
               run: |
-                  source .venv/bin/activate
                   pytest -m "not slow" --cov --cov-report term-missing --cov-report xml:coverage.xml
 
             #----------------------------------------------
