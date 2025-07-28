@@ -114,7 +114,9 @@ jobs:
               if: always() && matrix.session == 'tests_not_slow'
               run: |
                   source .venv/bin/activate
-                  pytest -m "not slow" --cov --cov-report term-missing --cov-report xml:coverage.xml
+                  coverage run --parallel -m pytest -m "not slow"
+                  coverage combine
+                  coverage xml
 
             #----------------------------------------------
             #          upload coverage report
