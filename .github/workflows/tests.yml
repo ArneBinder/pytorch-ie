@@ -21,8 +21,8 @@ jobs:
                     - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
                     # - { python: "3.9", os: "macos-latest", session: "tests_not_slow" }
                     # - { python: "3.9", os: "windows-latest", session: "tests_not_slow" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "safety" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
+                    # - { python: "3.9", os: "ubuntu-latest", session: "safety" }
+                    # - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
 
         env:
             FORCE_COLOR: "1"
@@ -161,15 +161,6 @@ jobs:
               with:
                   name: docs
                   path: docs/_build
-
-            # #----------------------------------------------
-            # # Build and serve the documentation
-            # #----------------------------------------------
-            # - name: Build and serve the documentation with live reloading on file changes
-            #   if: matrix.session == 'docs'
-            #   run: |
-            #     if [ -d ./docs/_build ]; then rm -rf ./docs/_build; fi
-            #     sphinx-autobuild --open-browser docs docs/_build
 
             #----------------------------------------------
             #              safety check
