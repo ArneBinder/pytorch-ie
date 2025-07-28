@@ -105,7 +105,7 @@ jobs:
               if: always() && matrix.session == 'pre-commit'
               run: |
                   source .venv/bin/activate
-                  python -m pre_commit run all-files --hook-stage=manual --show-diff-on-failure
+                  python -m pre_commit run --all-files --hook-stage=manual --show-diff-on-failure
 
             #----------------------------------------------
             #              run test suite
@@ -120,7 +120,7 @@ jobs:
             #          upload coverage report
             #----------------------------------------------
             - name: Upload coverage reports to Codecov
-              if: always() && matrix.session == 'tests_not_slow'
+              if: matrix.session == 'tests_not_slow'
               uses: codecov/codecov-action@v4
               with:
                   files: ./coverage.xml
