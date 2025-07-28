@@ -115,28 +115,14 @@ jobs:
               run: |
                   source .venv/bin/activate
                   coverage run --parallel -m pytest -m "not slow"
-            #----------------------------------------------
-            #          process coverage report
-            #----------------------------------------------
-            - name: Show coverage report
-              if: matrix.session == 'tests_not_slow'
-              run: |
-                  source .venv/bin/activate
-                  coverage combine
-                  coverage report
-                  coverage xml
-            #----------------------------------------------
-            #          upload coverage report
-            #----------------------------------------------
 
-            - name: Upload coverage reports to Codecov
-              if: matrix.session == 'tests_not_slow'
-              uses: codecov/codecov-action@v4
+            - name: Upload coverage data
+              if: always() && matrix.session == 'tests_not_slow'
+              uses: actions/upload-artifact@v4
               with:
-                  files: ./coverage.xml
-                  fail_ci_if_error: true
-              env:
-                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+                  name: coverage-data
+                  include-hidden-files: true
+                  path: ".coverage.*"
 
             #----------------------------------------------
             #              upload documentation
@@ -147,3 +133,83 @@ jobs:
               with:
                   name: docs
                   path: docs/_build
+
+    coverage:
+        runs-on: ubuntu-latest
+        needs: tests
+        steps:
+            #----------------------------------------------
+            #       check-out repo and set-up python
+            #----------------------------------------------
+            - name: Check out the repository
+              uses: actions/checkout@v4
+            - name: Set up Python 3.9
+              id: setup-python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.9
+
+            #----------------------------------------------
+            #  -----  install & configure poetry  -----
+            #----------------------------------------------
+            - name: Install Poetry
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-create: true
+                  virtualenvs-in-project: true
+                  installer-parallel: true
+                  plugins: poetry-plugin-export
+
+            #----------------------------------------------
+            #       load cached venv if cache exists
+            #----------------------------------------------
+            - name: Load cached venv
+              id: cached-poetry-dependencies
+              uses: actions/cache@v4
+              with:
+                  path: .venv
+                  key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+            #----------------------------------------------
+            # install dependencies if cache does not exist
+            #----------------------------------------------
+            - name: Install dependencies
+              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+              run: poetry install --with dev --no-interaction --no-root
+
+            #----------------------------------------------
+            # install root project, if required
+            #----------------------------------------------
+            - name: Install project
+              run: poetry install --no-interaction
+
+            #----------------------------------------------
+            # download coverage data
+            #----------------------------------------------
+            - name: Download coverage data
+              uses: actions/download-artifact@v4
+              with:
+                  name: coverage-data
+
+            #----------------------------------------------
+            #          process coverage report
+            #----------------------------------------------
+            - name: Show coverage report
+              run: |
+                  source .venv/bin/activate
+                  coverage combine
+                  coverage report
+                  coverage xml
+
+            #----------------------------------------------
+            #          upload coverage report
+            #----------------------------------------------
+
+            - name: Upload coverage report to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  files: ./coverage.xml
+                  fail_ci_if_error: true
+              env:
+                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
