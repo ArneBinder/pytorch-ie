@@ -131,6 +131,7 @@ jobs:
             - name: Run typeguard check
               if: always() && matrix.session == 'typeguard'
               run: |
+                  source .venv/bin/activate
                   pytest --typeguard-packages="pytorch-ie"
 
             #----------------------------------------------
@@ -140,6 +141,7 @@ jobs:
             - name: Run examples with xdoctest
               if: always() && matrix.session == 'xdoctest'
               run: |
+                  source .venv/bin/activate
                   python -m xdoctest --modname="pytorch-ie" --command=all --colored=1
 
             #----------------------------------------------
@@ -149,6 +151,7 @@ jobs:
             - name: Build the documentation
               if: always() && matrix.session == 'docs-build'
               run: |
+                  source .venv/bin/activate
                   if [ -d ./docs/_build ]; then rm -rf ./docs/_build; fi
                   sphinx-build --color docs docs/_build
 
@@ -174,6 +177,7 @@ jobs:
             - name: Upload documentation
               if: matrix.session == 'safety'
               run: |
+                  source .venv/bin/activate
                   poetry export -f "requirements.txt" -o "requirements.txt"
                   safety check --full-report --file=requirements.txt
 
@@ -183,6 +187,7 @@ jobs:
             - name: Type-check using mypy
               if: matrix.session == 'mypy'
               run: |
+                  source .venv/bin/activate
                   mypy src tests examples "docs/conf.py"
 
     coverage:
