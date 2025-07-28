@@ -21,8 +21,8 @@ jobs:
                     - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
                     # - { python: "3.9", os: "macos-latest", session: "tests_not_slow" }
                     # - { python: "3.9", os: "windows-latest", session: "tests_not_slow" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "safety" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "safety" }
+                    - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
 
         env:
             FORCE_COLOR: "1"
@@ -125,14 +125,65 @@ jobs:
                   path: ".coverage.*"
 
             #----------------------------------------------
-            #              upload documentation
+            #   ------ Tests with Typeguard check -------
             #----------------------------------------------
+
+            - name: Run typeguard check
+              if: always() && matrix.session == 'typeguard'
+              run: |
+                  pytest --typeguard-packages="pytorch-ie"
+
+            #----------------------------------------------
+            #   ------ Run examples with xdoctest ------
+            #----------------------------------------------
+
+            - name: Run examples with xdoctest
+              if: always() && matrix.session == 'xdoctest'
+              run: |
+                  python -m xdoctest --modname="pytorch-ie" --command=all --colored=1
+
+            #----------------------------------------------
+            #   ------ Build the documentation ------
+            #----------------------------------------------
+
+            - name: Build the documentation
+              if: always() && matrix.session == 'docs-build'
+              run: |
+                  if [ -d ./docs/_build ]; then rm -rf ./docs/_build; fi
+                  sphinx-build --color docs docs/_build
+
             - name: Upload documentation
               if: matrix.session == 'docs-build'
               uses: actions/upload-artifact@v4
               with:
                   name: docs
                   path: docs/_build
+
+            # #----------------------------------------------
+            # # Build and serve the documentation
+            # #----------------------------------------------
+            # - name: Build and serve the documentation with live reloading on file changes
+            #   if: matrix.session == 'docs'
+            #   run: |
+            #     if [ -d ./docs/_build ]; then rm -rf ./docs/_build; fi
+            #     sphinx-autobuild --open-browser docs docs/_build
+
+            #----------------------------------------------
+            #              safety check
+            #----------------------------------------------
+            - name: Upload documentation
+              if: matrix.session == 'safety'
+              run: |
+                  poetry export -f "requirements.txt" -o "requirements.txt"
+                  safety check --full-report --file=requirements.txt
+
+            #----------------------------------------------
+            #              MyPy
+            #----------------------------------------------
+            - name: Type-check using mypy
+              if: matrix.session == 'mypy'
+              run: |
+                  mypy src tests examples "docs/conf.py"
 
     coverage:
         runs-on: ubuntu-latest
