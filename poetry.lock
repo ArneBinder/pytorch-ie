@@ -172,21 +172,6 @@ test = ["anyio[trio]", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypo
 trio = ["trio (>=0.23)"]
 
 [[package]]
-name = "argcomplete"
-version = "3.3.0"
-description = "Bash tab completion for argparse"
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-files = [
-    {file = "argcomplete-3.3.0-py3-none-any.whl", hash = "sha256:c168c3723482c031df3c207d4ba8fa702717ccb9fc0bfe4117166c1f537b4a54"},
-    {file = "argcomplete-3.3.0.tar.gz", hash = "sha256:fd03ff4a5b9e6580569d34b273f741e85cd9e072f3feeeee3eba4891c70eda62"},
-]
-
-[package.extras]
-test = ["coverage", "mypy", "pexpect", "ruff", "wheel"]
-
-[[package]]
 name = "async-timeout"
 version = "4.0.3"
 description = "Timeout context manager for asyncio programs"
@@ -342,32 +327,6 @@ colorama = ["colorama (>=0.4.3)"]
 d = ["aiohttp (>=3.7.4) ; sys_platform != \"win32\" or implementation_name != \"pypy\"", "aiohttp (>=3.7.4,!=3.9.0) ; sys_platform == \"win32\" and implementation_name == \"pypy\""]
 jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
-
-[[package]]
-name = "build"
-version = "1.2.2.post1"
-description = "A simple, correct Python build frontend"
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-files = [
-    {file = "build-1.2.2.post1-py3-none-any.whl", hash = "sha256:1d61c0887fa860c01971625baae8bdd338e517b836a2f70dd1f7aa3a6b2fc5b5"},
-    {file = "build-1.2.2.post1.tar.gz", hash = "sha256:b36993e92ca9375a219c99e606a122ff365a760a2d4bba0caa09bd5278b608b7"},
-]
-
-[package.dependencies]
-colorama = {version = "*", markers = "os_name == \"nt\""}
-importlib-metadata = {version = ">=4.6", markers = "python_full_version < \"3.10.2\""}
-packaging = ">=19.1"
-pyproject_hooks = "*"
-tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
-
-[package.extras]
-docs = ["furo (>=2023.08.17)", "sphinx (>=7.0,<8.0)", "sphinx-argparse-cli (>=1.5)", "sphinx-autodoc-typehints (>=1.10)", "sphinx-issues (>=3.0.0)"]
-test = ["build[uv,virtualenv]", "filelock (>=3)", "pytest (>=6.2.4)", "pytest-cov (>=2.12)", "pytest-mock (>=2)", "pytest-rerunfailures (>=9.1)", "pytest-xdist (>=1.34)", "setuptools (>=42.0.0) ; python_version < \"3.10\"", "setuptools (>=56.0.0) ; python_version == \"3.10\"", "setuptools (>=56.0.0) ; python_version == \"3.11\"", "setuptools (>=67.8.0) ; python_version >= \"3.12\"", "wheel (>=0.36.0)"]
-typing = ["build[uv]", "importlib-metadata (>=5.1)", "mypy (>=1.9.0,<1.10.0)", "tomli", "typing-extensions (>=3.7.4.3)"]
-uv = ["uv (>=0.1.18)"]
-virtualenv = ["virtualenv (>=20.0.35)"]
 
 [[package]]
 name = "certifi"
@@ -586,24 +545,6 @@ files = [
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
 markers = {main = "platform_system == \"Windows\""}
-
-[[package]]
-name = "colorlog"
-version = "6.8.2"
-description = "Add colours to the output of Python's logging module."
-optional = false
-python-versions = ">=3.6"
-groups = ["dev"]
-files = [
-    {file = "colorlog-6.8.2-py3-none-any.whl", hash = "sha256:4dcbb62368e2800cb3c5abd348da7e53f6c362dda502ec27c560b2e58a66bd33"},
-    {file = "colorlog-6.8.2.tar.gz", hash = "sha256:3e3e079a41feb5a1b64f978b5ea4f46040a94f11f0e8bbb8261e3dbbeca64d44"},
-]
-
-[package.dependencies]
-colorama = {version = "*", markers = "sys_platform == \"win32\""}
-
-[package.extras]
-development = ["black", "flake8", "mypy", "pytest", "types-colorama"]
 
 [[package]]
 name = "coverage"
@@ -1145,7 +1086,7 @@ description = "Read metadata from Python packages"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
-markers = "python_full_version < \"3.10.2\""
+markers = "python_version == \"3.9\""
 files = [
     {file = "importlib_metadata-7.1.0-py3-none-any.whl", hash = "sha256:30962b96c0c223483ed6cc7280e7f0199feb01a0e40cfae4d4450fc6fab1f570"},
     {file = "importlib_metadata-7.1.0.tar.gz", hash = "sha256:b78938b926ee8d5f020fc4772d487045805a55ddbad2ecf21c6d60938dc7fcd2"},
@@ -1659,47 +1600,6 @@ files = [
 
 [package.dependencies]
 setuptools = "*"
-
-[[package]]
-name = "nox"
-version = "2024.10.9"
-description = "Flexible test automation."
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-files = [
-    {file = "nox-2024.10.9-py3-none-any.whl", hash = "sha256:1d36f309a0a2a853e9bccb76bbef6bb118ba92fa92674d15604ca99adeb29eab"},
-    {file = "nox-2024.10.9.tar.gz", hash = "sha256:7aa9dc8d1c27e9f45ab046ffd1c3b2c4f7c91755304769df231308849ebded95"},
-]
-
-[package.dependencies]
-argcomplete = ">=1.9.4,<4"
-colorlog = ">=2.6.1,<7"
-packaging = ">=20.9"
-tomli = {version = ">=1", markers = "python_version < \"3.11\""}
-virtualenv = ">=20.14.1"
-
-[package.extras]
-tox-to-nox = ["jinja2", "tox"]
-uv = ["uv (>=0.1.6)"]
-
-[[package]]
-name = "nox-poetry"
-version = "1.2.0"
-description = "nox-poetry"
-optional = false
-python-versions = ">=3.9"
-groups = ["dev"]
-files = [
-    {file = "nox_poetry-1.2.0-py3-none-any.whl", hash = "sha256:266eea7a0ab3cad7f4121ecc05b76945036db3b67e6e347557f05010a18e2682"},
-    {file = "nox_poetry-1.2.0.tar.gz", hash = "sha256:2531a404e3a21eb73fc1a587a548506a8e2c4c1e6e7ef0c1d0d8d6453b7e5d26"},
-]
-
-[package.dependencies]
-build = ">=1.2"
-nox = ">=2020.8.22"
-packaging = ">=20.9"
-tomlkit = ">=0.7"
 
 [[package]]
 name = "numpy"
@@ -2304,18 +2204,6 @@ files = [
 
 [package.extras]
 windows-terminal = ["colorama (>=0.4.6)"]
-
-[[package]]
-name = "pyproject-hooks"
-version = "1.2.0"
-description = "Wrappers to call pyproject.toml-based build backend hooks."
-optional = false
-python-versions = ">=3.7"
-groups = ["dev"]
-files = [
-    {file = "pyproject_hooks-1.2.0-py3-none-any.whl", hash = "sha256:9e5c6bfa8dcc30091c74b0cf803c81fdd29d94f01992a7707bc97babb1141913"},
-    {file = "pyproject_hooks-1.2.0.tar.gz", hash = "sha256:1e859bd5c40fae9448642dd871adf459e5e2084186e8d2c2a79a824c970da1f8"},
-]
 
 [[package]]
 name = "pytest"
@@ -3381,18 +3269,6 @@ files = [
 ]
 
 [[package]]
-name = "tomlkit"
-version = "0.12.5"
-description = "Style preserving TOML library"
-optional = false
-python-versions = ">=3.7"
-groups = ["dev"]
-files = [
-    {file = "tomlkit-0.12.5-py3-none-any.whl", hash = "sha256:af914f5a9c59ed9d0762c7b64d3b5d5df007448eb9cd2edc8a46b1eafead172f"},
-    {file = "tomlkit-0.12.5.tar.gz", hash = "sha256:eef34fba39834d4d6b73c9ba7f3e4d1c417a4e56f89a7e96e090dd0d24b8fb3c"},
-]
-
-[[package]]
 name = "torch"
 version = "2.3.0"
 description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
@@ -4035,7 +3911,7 @@ description = "Backport of pathlib-compatible object wrapper for zip files"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
-markers = "python_full_version < \"3.10.2\""
+markers = "python_version == \"3.9\""
 files = [
     {file = "zipp-3.19.0-py3-none-any.whl", hash = "sha256:96dc6ad62f1441bcaccef23b274ec471518daf4fbbc580341204936a5a3dddec"},
     {file = "zipp-3.19.0.tar.gz", hash = "sha256:952df858fb3164426c976d9338d3961e8e8b3758e2e059e0f754b8c4262625ee"},
@@ -4048,4 +3924,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "4d5b9e8f9a2897b85fc40bd4148a74726636ce765be4571db74472a886f727d0"
+content-hash = "5ecfec3f3c32a41dd37ae2ddd3bc78686485152ecfbcf9a502c04164eaf222e8"
