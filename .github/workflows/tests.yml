@@ -16,7 +16,8 @@ jobs:
         steps:
             - name: Check out the repository
               uses: actions/checkout@v4
-            - uses: ./.github/actions/init-env
+            - name: Set up python environment
+              uses: ./.github/actions/init-env
               with:
                   os: "ubuntu-latest"
                   python: "3.9"
@@ -41,23 +42,8 @@ jobs:
               with:
                   os: ${{ matrix.os }}
                   python: ${{ matrix.python }}
-            - name: Run tests with coverage
+            - name: Run tests with coverage and typeguard
               uses: ./.github/actions/pytest
-
-    coverage:
-        name: Coverage
-        runs-on: "ubuntu-latest"
-        needs: pytest
-        steps:
-            - name: Check out the repository
-              uses: actions/checkout@v4
-            - name: Set up python environment
-              uses: ./.github/actions/init-env
-              with:
-                  os: "ubuntu-latest"
-                  python: "3.9"
-            - name: Create, show and upload coverage report
-              uses: ./.github/actions/coverage
               with:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -74,17 +60,3 @@ jobs:
     #               python: "3.9"
     #         - name: Run safety check on dependencies
     #           uses: ./.github/actions/safety
-
-    # typeguard:
-    #     name: Typeguard
-    #     runs-on: "ubuntu-latest"
-    #     steps:
-    #         - name: Check out the repository
-    #           uses: actions/checkout@v4
-    #         - name: Set up python environment
-    #           uses: ./.github/actions/init-env
-    #           with:
-    #               os: "ubuntu-latest"
-    #               python: "3.9"
-    #         - name: Run typeguard tests
-    #           uses: ./.github/actions/typeguard
