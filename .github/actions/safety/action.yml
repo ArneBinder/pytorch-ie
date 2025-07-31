@@ -5,7 +5,6 @@ runs:
     using: "composite"
     steps:
         - name: Upload documentation
-          if: matrix.session == 'safety'
           run: |
               source .venv/bin/activate
               poetry export -f "requirements.txt" -o "requirements.txt"
