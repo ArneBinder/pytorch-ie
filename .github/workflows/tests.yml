@@ -45,7 +45,7 @@ jobs:
               uses: ./.github/actions/pytest
 
     coverage:
-        name: Check coverage
+        name: Coverage
         runs-on: "ubuntu-latest"
         needs: pytest
         steps:
