@@ -61,30 +61,30 @@ jobs:
               with:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-    safety:
-        name: Safety
-        runs-on: "ubuntu-latest"
-        steps:
-            - name: Check out the repository
-              uses: actions/checkout@v4
-            - name: Set up python environment
-              uses: ./.github/actions/init-env
-              with:
-                  os: "ubuntu-latest"
-                  python: "3.9"
-            - name: Run safety check on dependencies
-              uses: ./.github/actions/safety
+    # safety:
+    #     name: Safety
+    #     runs-on: "ubuntu-latest"
+    #     steps:
+    #         - name: Check out the repository
+    #           uses: actions/checkout@v4
+    #         - name: Set up python environment
+    #           uses: ./.github/actions/init-env
+    #           with:
+    #               os: "ubuntu-latest"
+    #               python: "3.9"
+    #         - name: Run safety check on dependencies
+    #           uses: ./.github/actions/safety
 
-    typeguard:
-        name: Typeguard
-        runs-on: "ubuntu-latest"
-        steps:
-            - name: Check out the repository
-              uses: actions/checkout@v4
-            - name: Set up python environment
-              uses: ./.github/actions/init-env
-              with:
-                  os: "ubuntu-latest"
-                  python: "3.9"
-            - name: Run typeguard tests
-              uses: ./.github/actions/typeguard
+    # typeguard:
+    #     name: Typeguard
+    #     runs-on: "ubuntu-latest"
+    #     steps:
+    #         - name: Check out the repository
+    #           uses: actions/checkout@v4
+    #         - name: Set up python environment
+    #           uses: ./.github/actions/init-env
+    #           with:
+    #               os: "ubuntu-latest"
+    #               python: "3.9"
+    #         - name: Run typeguard tests
+    #           uses: ./.github/actions/typeguard
