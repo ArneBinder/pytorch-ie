@@ -1,0 +1,40 @@
+name: Pre-commit
+description: Run pre-commit check
+env:
+    PRE_COMMIT_COLOR: "always"
+
+runs:
+    using: "composite"
+    steps:
+        #----------------------------------------------
+        #    -----  Restore caches  -----
+        #----------------------------------------------
+        - name: Compute pre-commit cache key
+          id: pre-commit-cache
+          shell: python
+          run: |
+              import hashlib
+              import sys
+              import os
+              python = "py{}.{}".format(*sys.version_info[:2])
+              payload = sys.version.encode() + sys.executable.encode()
+              digest = hashlib.sha256(payload).hexdigest()
+              result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write(f"result={result}\n")
+
+        - name: Restore pre-commit cache
+          uses: actions/cache@v4
+          with:
+              path: ~/.cache/pre-commit
+              key: ${{ steps.pre-commit-cache.outputs.result }}-${{ hashFiles('.pre-commit-config.yaml') }}
+              restore-keys: |
+                  ${{ steps.pre-commit-cache.outputs.result }}-
+
+        #----------------------------------------------
+        #    -----  Run pre-commit  -----
+        #----------------------------------------------
+        - name: Run pre-commits
+          run: |
+              source .venv/bin/activate
+              python -m pre_commit run --all-files --show-diff-on-failure
+          shell: bash

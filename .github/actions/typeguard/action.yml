@@ -1,0 +1,12 @@
+name: Typeguard
+description: Run typeguard tests
+
+runs:
+    using: "composite"
+    steps:
+        - name: Run tests with typeguard check
+          if: always() && matrix.session == 'typeguard'
+          run: |
+              source .venv/bin/activate
+              pytest --typeguard-packages="pytorch-ie"
+          shell: bash

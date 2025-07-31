@@ -6,257 +6,85 @@ on:
     pull_request:
         branches: [main, "release/*"]
 
+env:
+    FORCE_COLOR: "1"
+
 jobs:
-    tests:
-        name: ${{ matrix.session }} ${{ matrix.python }} / ${{ matrix.os }}
+    pre-commit:
+        name: Pre-commit
+        runs-on: "ubuntu-latest"
+        steps:
+            - name: Check out the repository
+              uses: actions/checkout@v4
+            - uses: ./.github/actions/init-env
+              with:
+                  os: "ubuntu-latest"
+                  python: "3.9"
+            - name: Run pre-commits
+              uses: ./.github/actions/pre-commit
+
+    pytest:
+        name: Pytest ${{ matrix.python }} / ${{ matrix.os }}
         runs-on: ${{ matrix.os }}
         strategy:
             fail-fast: false
             matrix:
                 include:
-                    - { python: "3.9", os: "ubuntu-latest", session: "pre-commit" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "mypy" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "tests_not_slow" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "xdoctest" }
-                    - { python: "3.9", os: "ubuntu-latest", session: "docs-build" }
-                    # - { python: "3.9", os: "macos-latest", session: "tests_not_slow" }
-                    # - { python: "3.9", os: "windows-latest", session: "tests_not_slow" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "safety" }
-                    # - { python: "3.9", os: "ubuntu-latest", session: "typeguard" }
-
-        env:
-            FORCE_COLOR: "1"
-            PRE_COMMIT_COLOR: "always"
-
+                    - { python: "3.9", os: "ubuntu-latest" }
+                    # - { python: "3.9", os: "macos-latest" }
+                    # - { python: "3.9", os: "windows-latest" }
         steps:
-            #----------------------------------------------
-            #       check-out repo and set-up python
-            #----------------------------------------------
             - name: Check out the repository
               uses: actions/checkout@v4
-            - name: Set up Python ${{ matrix.python }}
-              id: setup-python
-              uses: actions/setup-python@v5
+            - name: Set up python environment
+              uses: ./.github/actions/init-env
               with:
-                  python-version: ${{ matrix.python }}
-
-            #----------------------------------------------
-            #  -----  install & configure poetry  -----
-            #----------------------------------------------
-            - name: Install Poetry
-              uses: snok/install-poetry@v1
-              with:
-                  version: latest
-                  virtualenvs-create: true
-                  virtualenvs-in-project: true
-                  installer-parallel: true
-                  plugins: poetry-plugin-export
-
-            #----------------------------------------------
-            #       load cached venv if cache exists
-            #----------------------------------------------
-            - name: Load cached venv
-              id: cached-poetry-dependencies
-              uses: actions/cache@v4
-              with:
-                  path: .venv
-                  key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-            #----------------------------------------------
-            # install dependencies if cache does not exist
-            #----------------------------------------------
-            - name: Install dependencies
-              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-              run: poetry install --with dev --no-interaction --no-root
-
-            #----------------------------------------------
-            # install root project, if required
-            #----------------------------------------------
-            - name: Install project
-              run: poetry install --no-interaction
-
-            #----------------------------------------------
-            #  -----  pre-commit session  -----
-            #----------------------------------------------
-            - name: Compute pre-commit cache key
-              if: always() && matrix.session == 'pre-commit'
-              id: pre-commit-cache
-              shell: python
-              run: |
-                  import hashlib
-                  import sys
-                  import os
-                  python = "py{}.{}".format(*sys.version_info[:2])
-                  payload = sys.version.encode() + sys.executable.encode()
-                  digest = hashlib.sha256(payload).hexdigest()
-                  result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write(f"result={result}\n")
-
-            - name: Restore pre-commit cache
-              uses: actions/cache@v4
-              if: always() && matrix.session == 'pre-commit'
-              with:
-                  path: ~/.cache/pre-commit
-                  key: ${{ steps.pre-commit-cache.outputs.result }}-${{ hashFiles('.pre-commit-config.yaml') }}
-                  restore-keys: |
-                      ${{ steps.pre-commit-cache.outputs.result }}-
-
-            - name: Run pre-commits
-              if: always() && matrix.session == 'pre-commit'
-              run: |
-                  source .venv/bin/activate
-                  python -m pre_commit run --all-files --hook-stage=manual --show-diff-on-failure
-
-            #----------------------------------------------
-            #              run test suite
-            #----------------------------------------------
+                  os: ${{ matrix.os }}
+                  python: ${{ matrix.python }}
             - name: Run tests with coverage
-              if: always() && matrix.session == 'tests_not_slow'
-              run: |
-                  source .venv/bin/activate
-                  coverage run --parallel -m pytest -m "not slow"
-
-            - name: Upload coverage data
-              if: always() && matrix.session == 'tests_not_slow'
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage-data
-                  include-hidden-files: true
-                  path: ".coverage.*"
-
-            #----------------------------------------------
-            #   ------ Tests with Typeguard check -------
-            #----------------------------------------------
-
-            - name: Run typeguard check
-              if: always() && matrix.session == 'typeguard'
-              run: |
-                  source .venv/bin/activate
-                  pytest --typeguard-packages="pytorch-ie"
-
-            #----------------------------------------------
-            #   ------ Run examples with xdoctest ------
-            #----------------------------------------------
-
-            - name: Run examples with xdoctest
-              if: always() && matrix.session == 'xdoctest'
-              run: |
-                  source .venv/bin/activate
-                  python -m xdoctest --modname="pytorch_ie" --command=all --colored=1
-
-            #----------------------------------------------
-            #   ------ Build the documentation ------
-            #----------------------------------------------
-
-            - name: Build the documentation
-              if: always() && matrix.session == 'docs-build'
-              run: |
-                  source .venv/bin/activate
-                  if [ -d ./docs/_build ]; then rm -rf ./docs/_build; fi
-                  sphinx-build --color docs docs/_build
-
-            - name: Upload documentation
-              if: matrix.session == 'docs-build'
-              uses: actions/upload-artifact@v4
-              with:
-                  name: docs
-                  path: docs/_build
-
-            #----------------------------------------------
-            #              safety check
-            #----------------------------------------------
-            - name: Upload documentation
-              if: matrix.session == 'safety'
-              run: |
-                  source .venv/bin/activate
-                  poetry export -f "requirements.txt" -o "requirements.txt"
-                  safety check --full-report --file=requirements.txt
-
-            #----------------------------------------------
-            #              MyPy
-            #----------------------------------------------
-            - name: Type-check using mypy
-              if: matrix.session == 'mypy'
-              run: |
-                  source .venv/bin/activate
-                  mypy src tests examples "docs/conf.py"
+              uses: ./.github/actions/pytest
 
     coverage:
-        runs-on: ubuntu-latest
-        needs: tests
+        name: Check coverage
+        runs-on: "ubuntu-latest"
+        needs: pytest
         steps:
-            #----------------------------------------------
-            #       check-out repo and set-up python
-            #----------------------------------------------
             - name: Check out the repository
               uses: actions/checkout@v4
-            - name: Set up Python 3.9
-              id: setup-python
-              uses: actions/setup-python@v5
+            - name: Set up python environment
+              uses: ./.github/actions/init-env
               with:
-                  python-version: 3.9
-
-            #----------------------------------------------
-            #  -----  install & configure poetry  -----
-            #----------------------------------------------
-            - name: Install Poetry
-              uses: snok/install-poetry@v1
+                  os: "ubuntu-latest"
+                  python: "3.9"
+            - name: Create, show and upload coverage report
+              uses: ./.github/actions/coverage
               with:
-                  version: latest
-                  virtualenvs-create: true
-                  virtualenvs-in-project: true
-                  installer-parallel: true
-                  plugins: poetry-plugin-export
-
-            #----------------------------------------------
-            #       load cached venv if cache exists
-            #----------------------------------------------
-            - name: Load cached venv
-              id: cached-poetry-dependencies
-              uses: actions/cache@v4
-              with:
-                  path: .venv
-                  key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-            #----------------------------------------------
-            # install dependencies if cache does not exist
-            #----------------------------------------------
-            - name: Install dependencies
-              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-              run: poetry install --with dev --no-interaction --no-root
-
-            #----------------------------------------------
-            # install root project, if required
-            #----------------------------------------------
-            - name: Install project
-              run: poetry install --no-interaction
-
-            #----------------------------------------------
-            # download coverage data
-            #----------------------------------------------
-            - name: Download coverage data
-              uses: actions/download-artifact@v4
-              with:
-                  name: coverage-data
-
-            #----------------------------------------------
-            #          process coverage report
-            #----------------------------------------------
-            - name: Show coverage report
-              run: |
-                  source .venv/bin/activate
-                  coverage combine
-                  coverage report
-                  coverage xml
-
-            #----------------------------------------------
-            #          upload coverage report
-            #----------------------------------------------
-
-            - name: Upload coverage report to Codecov
-              uses: codecov/codecov-action@v4
-              with:
-                  files: ./coverage.xml
-                  fail_ci_if_error: true
-              env:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    safety:
+        name: Safety
+        runs-on: "ubuntu-latest"
+        steps:
+            - name: Check out the repository
+              uses: actions/checkout@v4
+            - name: Set up python environment
+              uses: ./.github/actions/init-env
+              with:
+                  os: "ubuntu-latest"
+                  python: "3.9"
+            - name: Run safety check on dependencies
+              uses: ./.github/actions/safety
+
+    typeguard:
+        name: Typeguard
+        runs-on: "ubuntu-latest"
+        steps:
+            - name: Check out the repository
+              uses: actions/checkout@v4
+            - name: Set up python environment
+              uses: ./.github/actions/init-env
+              with:
+                  os: "ubuntu-latest"
+                  python: "3.9"
+            - name: Run typeguard tests
+              uses: ./.github/actions/typeguard

@@ -1,0 +1,20 @@
+name: Pytest
+description: Run tests with coverage
+
+runs:
+    using: "composite"
+    steps:
+        - name: Run tests with coverage
+          if: always() && matrix.session == 'tests_not_slow'
+          run: |
+              source .venv/bin/activate
+              coverage run --parallel -m pytest -m "not slow"
+          shell: bash
+
+        - name: Upload coverage data
+          if: always() && matrix.session == 'tests_not_slow'
+          uses: actions/upload-artifact@v4
+          with:
+              name: coverage-data
+              include-hidden-files: true
+              path: ".coverage.*"
