@@ -17,8 +17,6 @@ packages = [
 ]
 classifiers = [
     "Framework :: Pytest",
-    "Framework :: tox",
-    "Framework :: Sphinx",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "License :: OSI Approved :: MIT License"
@@ -118,7 +116,8 @@ markers = [
 addopts = [
     "--durations=0",
     "--strict-markers",
-    "--doctest-modules"
+    "--doctest-modules",
+    "-n=auto",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

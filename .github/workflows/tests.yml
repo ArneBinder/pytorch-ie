@@ -21,9 +21,30 @@ jobs:
               with:
                   os: "ubuntu-latest"
                   python: "3.9"
+            - name: Compute pre-commit cache key
+              id: pre-commit-cache
+              shell: python
+              run: |
+                  import hashlib
+                  import sys
+                  import os
+                  python = "py{}.{}".format(*sys.version_info[:2])
+                  payload = sys.version.encode() + sys.executable.encode()
+                  digest = hashlib.sha256(payload).hexdigest()
+                  result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write(f"result={result}\n")
+            - name: Restore pre-commit cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/pre-commit
+                  key: ${{ steps.pre-commit-cache.outputs.result }}-${{ hashFiles('.pre-commit-config.yaml') }}
+                  restore-keys: |
+                      ${{ steps.pre-commit-cache.outputs.result }}-
             - name: Run pre-commits
-              uses: ./.github/actions/pre-commit
-
+              run: |
+                  source .venv/bin/activate
+                  python -m pre_commit run --all-files --show-diff-on-failure
+              shell: bash
     pytest:
         name: Pytest ${{ matrix.python }} / ${{ matrix.os }}
         runs-on: ${{ matrix.os }}
@@ -42,9 +63,16 @@ jobs:
               with:
                   os: ${{ matrix.os }}
                   python: ${{ matrix.python }}
-            - name: Run tests with coverage and typeguard
-              uses: ./.github/actions/pytest
+            - name: Run tests with coverage
+              run: |
+                  source .venv/bin/activate
+                  pytest -m "not slow" --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
+            - name: Upload coverage report to Codecov
+              uses: codecov/codecov-action@v4
               with:
+                  files: ./coverage.xml
+                  fail_ci_if_error: true
+              env:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     # safety:
@@ -59,4 +87,7 @@ jobs:
     #               os: "ubuntu-latest"
     #               python: "3.9"
     #         - name: Run safety check on dependencies
-    #           uses: ./.github/actions/safety
+    #           run: |
+    #               source .venv/bin/activate
+    #               poetry export -f "requirements.txt" -o "requirements.txt"
+    #               safety check --full-report --file=requirements.txt

@@ -47,12 +47,12 @@ runs:
         #----------------------------------------------
         - name: Install dependencies
           if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-          run: poetry install --with dev --no-interaction --no-root
+          run: poetry sync --with dev --no-interaction --no-root
           shell: bash
 
         #----------------------------------------------
-        # install root project, if required
+        # install root project
         #----------------------------------------------
         - name: Install project
-          run: poetry install --no-interaction
+          run: poetry install --no-interaction --only-root
           shell: bash

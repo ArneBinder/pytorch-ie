@@ -7,7 +7,6 @@ repos:
             language: system
             types: [python]
             require_serial: true
-            args: ["--config=pyproject.toml"]
 
           - id: check-added-large-files
             name: Check for added large files
@@ -54,7 +53,7 @@ repos:
             require_serial: true
             language: system
             types_or: [cython, pyi, python]
-            args: ["--profile", "black", "--filter-files"]
+            args: ["--filter-files"]
 
           - id: pyupgrade
             name: pyupgrade
