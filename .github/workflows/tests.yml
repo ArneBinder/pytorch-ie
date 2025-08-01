@@ -74,20 +74,3 @@ jobs:
                   fail_ci_if_error: true
               env:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-    # safety:
-    #     name: Safety
-    #     runs-on: "ubuntu-latest"
-    #     steps:
-    #         - name: Check out the repository
-    #           uses: actions/checkout@v4
-    #         - name: Set up python environment
-    #           uses: ./.github/actions/init-env
-    #           with:
-    #               os: "ubuntu-latest"
-    #               python: "3.9"
-    #         - name: Run safety check on dependencies
-    #           run: |
-    #               source .venv/bin/activate
-    #               poetry export -f "requirements.txt" -o "requirements.txt"
-    #               safety check --full-report --file=requirements.txt

@@ -59,7 +59,6 @@ pre-commit = ">=2.16.0"
 pre-commit-hooks = ">=4.1.0"
 pytest = ">=6.2.5"
 pyupgrade = ">=2.29.1"
-safety = ">=1.10.3"
 typeguard = ">=2.13.3"
 myst-parser = {version = ">=0.16.1"}
 sh = "^2"
