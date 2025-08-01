@@ -2,16 +2,40 @@
 requires = ["poetry-core >=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "pytorch-ie"
 version = "0.31.10"
-description = "State-of-the-art Information Extraction in PyTorch"
+description  = "State-of-the-art Information Extraction in PyTorch"
+license = { text = "MIT" }
 readme = "README.md"
-authors = ["Christoph Alt <christoph.alt@posteo.de>"]
-license = "MIT"
+authors = [
+    {name = "Christoph Alt", email = "christoph.alt@posteo.de"},
+]
+# To support automatic classifiers based on dependencies and license see https://python-poetry.org/docs/pyproject/#classifiers
+dynamic = [ "classifiers" ]
+
+requires-python = "^3.9"
+dependencies = [
+    "pie-core >=0.2, <0.3",
+    "torch >=1.10",
+    "pytorch-lightning >=2, <3",
+    "torchmetrics >1, <2",
+    "transformers >=4.18, <5",
+    # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
+    "fsspec <2023.9.0",
+    # required for testing, but, strangely, tests fail, if just in dev-dependencies
+    "absl-py >=1.0.0, <2",
+    "pandas >=2.0.0, <3",
+]
+
+[project.urls]
 homepage = "https://github.com/christophalt/pytorch-ie"
 repository = "https://github.com/christophalt/pytorch-ie"
 documentation = "https://pytorch-ie.readthedocs.io"
+"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
+"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
+
+[tool.poetry]
 packages = [
     { include = "pytorch_ie", from = "src" },
 ]
@@ -21,23 +45,6 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "License :: OSI Approved :: MIT License"
 ]
-
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
-"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-pie-core = ">=0.2.0,<0.3.0"
-torch = ">=1.10"
-pytorch-lightning = "^2"
-torchmetrics = "^1"
-transformers = "^4.18"
-# pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
-fsspec = "<2023.9.0"
-# required for testing, but, strangely, tests fail, if just in dev-dependencies
-absl-py = "^1.0.0"
-pandas = "^2.0.0"
 
 [tool.poetry.group.dev]
 optional = true
@@ -60,7 +67,7 @@ pre-commit-hooks = ">=4.1.0"
 pytest = ">=6.2.5"
 pyupgrade = ">=2.29.1"
 typeguard = ">=2.13.3"
-myst-parser = {version = ">=0.16.1"}
+myst-parser = ">=0.16.1"
 sh = "^2"
 types-requests = "^2.27.7"
 python-dotenv = "^0.20.0"
