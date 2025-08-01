@@ -1,3 +1,5 @@
+# This action mostly follows steps decribed here https://github.com/marketplace/actions/install-poetry-action
+
 name: Init
 description: Set up python environment
 inputs:
