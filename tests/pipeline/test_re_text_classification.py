@@ -94,7 +94,7 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         assert half_precision_warning not in caplog.messages
     elif half_precision_model and not half_precision_ops:
         # set high tolerance for half precision model (i.e., model cast to half precision)
-        assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-2)
+        assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-6)
         assert half_precision_warning not in caplog.messages
     else:
         # just check that we got the warning about half precision ops in combination with half precision model
