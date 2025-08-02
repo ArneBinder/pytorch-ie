@@ -66,7 +66,12 @@ jobs:
             - name: Run tests with coverage
               run: |
                   source .venv/bin/activate
-                  pytest -m "not slow" --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
+                  # If this is a push to the main branch, run all tests (including slow ones). Otherwise, skip slow tests.
+                  if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+                      pytest --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
+                  else
+                      pytest -m "not slow" --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
+                  fi
             - name: Upload coverage report to Codecov
               uses: codecov/codecov-action@v4
               with:
