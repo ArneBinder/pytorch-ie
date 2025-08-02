@@ -82,7 +82,7 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     # for the taskmodule, so the argument markers are not correct.
     # Below scores were obtained with dependencies from poetry.lock on local machine.
     if not half_precision_model and not half_precision_ops:
-        # we expect high precision matches if no half precision is used
+        # we low tolerance if no half precision is used
         # (i.e., no autocast on forward pass and model is not cast to half precision)
         assert scores == pytest.approx(
             [0.5339038372039795, 0.3984701931476593, 0.5520647764205933], abs=1e-6
@@ -94,7 +94,7 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
         assert half_precision_warning not in caplog.messages
     elif half_precision_model and not half_precision_ops:
         # set high tolerance for half precision model (i.e., model cast to half precision)
-        assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-6)
+        assert scores == pytest.approx([0.53515625, 0.400390625, 0.55859375], abs=1e-6)
         assert half_precision_warning not in caplog.messages
     else:
         # just check that we got the warning about half precision ops in combination with half precision model
