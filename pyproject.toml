@@ -17,7 +17,7 @@ dynamic = [ "classifiers" ]
 
 requires-python = ">=3.9,<4.0"
 dependencies = [
-    "pie-core >=0.2, <0.3",
+    "pie-core @ git+https://github.com/ArneBinder/pie-core.git@tests/annotation_pipeline",
     "torch >=1.10",
     "pytorch-lightning >=2, <3",
     "torchmetrics >1, <2",
