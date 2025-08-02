@@ -1,0 +1,60 @@
+# This action mostly follows steps described here https://github.com/marketplace/actions/install-poetry-action
+
+name: Init
+description: Set up python environment
+inputs:
+    os:
+        type: string
+        required: true
+    python:
+        type: string
+        required: true
+
+runs:
+    using: "composite"
+    steps:
+        #----------------------------------------------
+        #       set-up python
+        #----------------------------------------------
+        - name: Set up Python ${{ inputs.python }}
+          id: setup-python
+          uses: actions/setup-python@v5
+          with:
+              python-version: ${{ inputs.python }}
+
+        #----------------------------------------------
+        #  -----  install & configure poetry  -----
+        #----------------------------------------------
+        - name: Install Poetry
+          uses: snok/install-poetry@v1
+          with:
+              version: latest
+              virtualenvs-create: true
+              virtualenvs-in-project: true
+              installer-parallel: true
+              plugins: poetry-plugin-export
+
+        #----------------------------------------------
+        #       load cached venv if cache exists
+        #----------------------------------------------
+        - name: Load cached venv
+          id: cached-poetry-dependencies
+          uses: actions/cache@v4
+          with:
+              path: .venv
+              key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+        #----------------------------------------------
+        # install dependencies if cache does not exist
+        #----------------------------------------------
+        - name: Install dependencies
+          if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+          run: poetry sync --with dev --no-interaction --no-root
+          shell: bash
+
+        #----------------------------------------------
+        # install root project
+        #----------------------------------------------
+        - name: Install project
+          run: poetry install --no-interaction --only-root
+          shell: bash

@@ -1,45 +1,50 @@
 [build-system]
-requires = ["poetry-core ~=1.6"]
+requires = ["poetry-core >=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "pytorch-ie"
 version = "0.31.10"
-description = "State-of-the-art Information Extraction in PyTorch"
+description  = "State-of-the-art Information Extraction in PyTorch"
+license = { text = "MIT" }
 readme = "README.md"
-authors = ["Christoph Alt <christoph.alt@posteo.de>"]
-license = "MIT"
+authors = [
+    {name = "Christoph Alt", email = "christoph.alt@posteo.de"},
+]
+# To support automatic classifiers based on dependencies and license see https://python-poetry.org/docs/pyproject/#classifiers
+dynamic = [ "classifiers" ]
+
+requires-python = "^3.9"
+dependencies = [
+    "pie-core >=0.2, <0.3",
+    "torch >=1.10",
+    "pytorch-lightning >=2, <3",
+    "torchmetrics >1, <2",
+    "transformers >=4.18, <5",
+    # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
+    "fsspec <2023.9.0",
+    # required for testing, but, strangely, tests fail, if just in dev-dependencies
+    "absl-py >=1.0.0, <2",
+    "pandas >=2.0.0, <3",
+]
+
+[project.urls]
 homepage = "https://github.com/christophalt/pytorch-ie"
 repository = "https://github.com/christophalt/pytorch-ie"
 documentation = "https://pytorch-ie.readthedocs.io"
+"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
+"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
+
+[tool.poetry]
 packages = [
     { include = "pytorch_ie", from = "src" },
 ]
 classifiers = [
     "Framework :: Pytest",
-    "Framework :: tox",
-    "Framework :: Sphinx",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "License :: OSI Approved :: MIT License"
 ]
-
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
-"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-pie-core = ">=0.2.0,<0.3.0"
-torch = ">=1.10"
-pytorch-lightning = "^2"
-torchmetrics = "^1"
-transformers = "^4.18"
-# pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
-fsspec = "<2023.9.0"
-# required for testing, but, strangely, tests fail, if just in dev-dependencies
-absl-py = "^1.0.0"
-pandas = "^2.0.0"
 
 [tool.poetry.group.dev]
 optional = true
@@ -47,7 +52,6 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"
 black = ">=21.12b0"
-coverage = {extras = ["toml"], version = ">=6.2"}
 darglint = ">=1.8.1"
 flake8 = ">=4.0.1"
 flake8-bandit = ">=2.1.2"
@@ -62,18 +66,13 @@ pre-commit = ">=2.16.0"
 pre-commit-hooks = ">=4.1.0"
 pytest = ">=6.2.5"
 pyupgrade = ">=2.29.1"
-safety = ">=1.10.3"
-sphinx = ">=4.3.2"
-sphinx-autobuild = ">=2021.3.14"
-sphinx-click = ">=3.0.2"
 typeguard = ">=2.13.3"
-xdoctest = {extras = ["colors"], version = ">=0.15.10"}
-myst-parser = {version = ">=0.16.1"}
+myst-parser = ">=0.16.1"
 sh = "^2"
 types-requests = "^2.27.7"
-nox = "^2024"
-nox-poetry = "^1"
 python-dotenv = "^0.20.0"
+pytest-xdist = "^3.8.0"
+pytest-cov = "^6.2.1"
 
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.8"
@@ -123,7 +122,8 @@ markers = [
 addopts = [
     "--durations=0",
     "--strict-markers",
-    "--doctest-modules"
+    "--doctest-modules",
+    "-n=auto",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

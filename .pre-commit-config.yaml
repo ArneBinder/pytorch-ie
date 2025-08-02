@@ -70,6 +70,14 @@ repos:
             types: [text]
             stages: [commit, push, manual]
 
+          - id: mypy
+            name: Type check with MyPy
+            entry: mypy
+            language: system
+            require_serial: true
+            types: [python]
+            args: ["--config=pyproject.toml"]
+
     - repo: https://github.com/pre-commit/mirrors-prettier
       rev: v2.5.1
       hooks:
