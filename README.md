@@ -573,42 +573,25 @@ NOTE: If the installation gets stuck, try if disabling experimental parallel ins
 
 ### Testing and code quality checks
 
-We use [Nox](https://nox.thea.codes/en/stable/) to execute any tests and code quality tooling in a reproducible way.
-
-To get a list of available toolchains, call:
+To run code quality checks and static type checking, call:
 
 ```bash
-poetry run nox -l
+pre-commit run -a
 ```
 
-To run a specific command from that list, call:
+To run all tests, call:
 
 ```bash
-poetry run nox -s <command>
+pytest
 ```
 
-Note: To run the nox commands in the same, reproducible setup that is specified by the lock file, we call them via
-`poetry run <nox-command>`.
-
-For instance, to run static type checking with `mypy`, call:
+The following commands run on GitHub CI (see [tests.yml](.github/workflows/tests.yml)), but can also be run locally:
 
 ```bash
-poetry run nox -s mypy-3.9
+pre-commit run -a
+# run tests *not marked as slow* with coverage and typeguard checks
+pytest -m "not slow" --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
 ```
-
-To run all commands that also run on GitHub CI, call:
-
-```bash
-poetry run nox
-```
-
-You can also start a shell with Poetry's virtual environment activated by calling:
-
-```bash
-poetry shell
-```
-
-This allows you to run above commands without the `poetry run` prefix.
 
 ### Updating Dependencies
 
