@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-from importlib.metadata import version
 
 import pytest
 import torch
-from packaging.version import Version
 from pie_core import AnnotationLayer, annotation_field
 
 from pytorch_ie import AutoPipeline
@@ -82,29 +80,20 @@ def test_re_text_classification(use_auto, half_precision_model, half_precision_o
     scores = [rel.score for rel in sorted_relations]
     # General note: The scores are quite low, because the model is trained with the old version
     # for the taskmodule, so the argument markers are not correct.
-    # Below scores for torch < 2.6 were obtained with:
-    #  - torch==2.3.0, pytorch-lightning==2.2.5, and transformers==4.41.1
-    # The scores for torch >= 2.6 were obtained with: TODO update this comment
-    #  - torch==2.7.1, pytorch-lightning==2.5.2, and transformers==4.48.3.
+    # Below scores were obtained with dependencies from poetry.lock on local machine.
     if not half_precision_model and not half_precision_ops:
         assert scores == pytest.approx(
             [0.5339038372039795, 0.3984701931476593, 0.5520647764205933], abs=1e-6
         )
         assert half_precision_warning not in caplog.messages
     elif not half_precision_model and half_precision_ops:
-        if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875], abs=1e-6)
-        else:
-            assert scores == pytest.approx([0.53125, 0.396484375, 0.55078125], abs=1e-6)
+        assert scores == pytest.approx([0.53125, 0.39453125, 0.5546875], abs=1e-6)
         assert half_precision_warning not in caplog.messages
     elif half_precision_model and not half_precision_ops:
         # TODO: adjust if we change to use torch.float16 also on CPU!
         # using half_precision_model on cpu results in using dtype=torch.bfloat16 which has only
         # 8 significant precision bits, so we use 10e-2 as absolute tolerance
-        if Version(version("torch")) < Version("2.6"):
-            assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-2)
-        else:
-            assert scores == pytest.approx([0.53125, 0.412109375, 0.55859375], abs=1e-2)
+        assert scores == pytest.approx([0.53515625, 0.400390625, 0.5546875], abs=1e-2)
         assert half_precision_warning not in caplog.messages
     else:
         # just check that we got the warning about half precision ops in combination with half precision model
