@@ -64,6 +64,7 @@ jobs:
                   user: __token__
                   password: ${{ secrets.TEST_PYPI_TOKEN }}
                   repository_url: https://test.pypi.org/legacy/
+                  verbose: true
 
             - name: Publish the release notes
               uses: release-drafter/release-drafter@v6.0.0
