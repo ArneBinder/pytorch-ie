@@ -1429,14 +1429,14 @@ files = [
 
 [[package]]
 name = "pie-core"
-version = "0.2.0"
+version = "0.2.1"
 description = "Core modules of PyTorch-IE"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "pie_core-0.2.0-py3-none-any.whl", hash = "sha256:8bb9740304c9b58246485c9170717d2b947d732d71d2a9d5176f8572d8b98b2a"},
-    {file = "pie_core-0.2.0.tar.gz", hash = "sha256:7e41cbe6b554285acbcae8822d84d97c19820ddd7b27dc9751349eb48bc61eb1"},
+    {file = "pie_core-0.2.1-py3-none-any.whl", hash = "sha256:16721576391807841eed81081c87801a77554c01d157d5b2a29ae328476254f7"},
+    {file = "pie_core-0.2.1.tar.gz", hash = "sha256:2f38e2660d7dba204d3c229cbd93490595b767c4986b68f02897756bff0b5901"},
 ]
 
 [package.dependencies]
@@ -2672,4 +2672,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<4.0"
-content-hash = "9800a74b0d13efad7f63c0f057560b7b0357b00b9610efb99b887d7f451c7aaa"
+content-hash = "848e046c36ad55987ac03b3e5e0b33a4a70443b4877b77ca87fbdd8983c7e2b5"
