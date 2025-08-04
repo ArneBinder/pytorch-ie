@@ -63,7 +63,15 @@ jobs:
               with:
                   os: ${{ matrix.os }}
                   python: ${{ matrix.python }}
-            - name: Run tests with coverage
+            # If this is a push to the main branch, run all tests (including slow ones).
+            - name: Run all tests with coverage
+              if: github.event_name == 'push' && github.ref_name == 'main'
+              run: |
+                  source .venv/bin/activate
+                  pytest --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
+            # Otherwise skip slow tests
+            - name: Run 'not slow' tests with coverage
+              if: github.event_name != 'push' || github.ref_name != 'main'
               run: |
                   source .venv/bin/activate
                   pytest -m "not slow" --cov --cov-report=xml:coverage.xml --cov-report=term-missing --typeguard-packages=pytorch-ie
