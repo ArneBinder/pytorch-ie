@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, Iterator, Optional, Sequence, TypeVar, Union
+from typing import Any, Dict, Generic, Iterable, Iterator, Optional, Sequence, TypeVar, Union
 
 from pie_core import Document, TaskEncoding, TaskModule
 from pytorch_lightning import LightningDataModule
@@ -86,6 +86,23 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
             raise ValueError("no test split assigned")
         return self.get_split_size(self.test_split)
 
+    def encode_documents(
+        self, documents: Iterable[DocumentType]
+    ) -> Union[TaskEncodingDataset, IterableTaskEncodingDataset]:
+        task_encodings = self.taskmodule.encode(
+            documents,
+            encode_target=True,
+            show_progress=self.show_progress_for_encode,
+        )
+        if isinstance(task_encodings, Sequence):
+            return TaskEncodingDataset(task_encodings)
+        elif isinstance(task_encodings, Iterator):
+            return IterableTaskEncodingDataset(task_encodings)
+        else:
+            raise TypeError(
+                f"task_encodings should be a Sequence or Iterator, but got {type(task_encodings)}"
+            )
+
     def setup(self, stage: str) -> None:
 
         if stage == "fit":
@@ -100,19 +117,8 @@ class PieDataModule(LightningDataModule, Generic[DocumentType, InputEncoding, Ta
         for split in split_names:
             if split is None or split not in self.dataset:
                 continue
-            task_encodings = self.taskmodule.encode(
-                self.dataset[split],
-                encode_target=True,
-                show_progress=self.show_progress_for_encode,
-            )
-            if isinstance(task_encodings, Sequence):
-                self._data[split] = TaskEncodingDataset(task_encodings)
-            elif isinstance(task_encodings, Iterator):
-                self._data[split] = IterableTaskEncodingDataset(task_encodings)
-            else:
-                raise TypeError(
-                    f"task_encodings should be a Sequence or Iterator, but got {type(task_encodings)}"
-                )
+
+            self._data[split] = self.encode_documents(self.dataset[split])
 
     def data_split(self, split: Optional[str] = None) -> Union[
         TaskEncodingDataset[TaskEncoding[DocumentType, InputEncoding, TargetEncoding]],
