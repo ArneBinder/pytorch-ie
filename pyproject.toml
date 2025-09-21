@@ -24,9 +24,6 @@ dependencies = [
     "transformers >=4.18, <5",
     # required for metrics: f1, confusion_matrix, and statsistics
     "pandas >=2.0.0, <3",
-    # TODO: move to pie-datasets!
-    # pin to version below 2023.9.0 because that causes problems when using load_dataset with local files (e.g. json)
-    "fsspec <2023.9.0",
 ]
 
 [project.urls]
