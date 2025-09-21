@@ -8,11 +8,12 @@ from typing import Any, Dict, List, MutableSequence, Optional, Sequence, Tuple, 
 import torch
 import tqdm
 from packaging import version
-from pie_core import AnnotationPipeline, Document, TaskEncoding, TaskEncodingDataset, TaskModule
+from pie_core import AnnotationPipeline, Document, TaskEncoding, TaskModule
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
+from pytorch_ie.dataset import TaskEncodingDataset
 from pytorch_ie.model import AutoPyTorchIEModel, PyTorchIEModel
 
 
