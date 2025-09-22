@@ -13,14 +13,14 @@ from typing import (
     Tuple,
 )
 
-# backwards compatibility imports from pie_modules.utils.span
-from pie_modules.utils.span import have_overlap as has_overlap
-from pie_modules.utils.span import is_contained_in
+# backwards compatibility imports from pie_documents.utils.span
+from pie_documents.utils.span import have_overlap as has_overlap
+from pie_documents.utils.span import is_contained_in
 from transformers import PreTrainedTokenizer
 
 from pytorch_ie.annotations import LabeledSpan, Span
 
-# TODO: most of this should be superseded by pie_modules.utils.sequence_tagging,
+# TODO: most of this should be superseded by pie_documents.utils.sequence_tagging,
 #  remove respective content
 
 TypedSpan = Tuple[int, Tuple[int, int]]

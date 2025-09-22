@@ -1,4 +1,4 @@
-from pie_modules.metrics.statistics import (
+from pie_documents.metrics.statistics import (
     DummyCollector,
     FieldLengthCollector,
     LabelCountCollector,

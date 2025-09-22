@@ -1,5 +1,5 @@
 # backward compatibility
-from pie_modules.annotations import (
+from pie_documents.annotations import (
     BinaryRelation,
     Label,
     LabeledMultiSpan,

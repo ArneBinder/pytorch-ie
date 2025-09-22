@@ -1,5 +1,5 @@
 # backwards compatibility
-from pie_modules.documents import (
+from pie_documents.documents import (
     DocumentWithLabel,
     DocumentWithMultiLabel,
     TextBasedDocument,
