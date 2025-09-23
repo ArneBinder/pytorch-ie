@@ -14,17 +14,17 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type, U
 import torch
 import torch.nn.functional as F
 from pie_core import TaskEncoding, TaskModule
+from pie_documents.annotations import LabeledSpan, Span
+from pie_documents.documents import (
+    TextDocument,
+    TextDocumentWithLabeledSpans,
+    TextDocumentWithLabeledSpansAndLabeledPartitions,
+)
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import LabeledSpan, Span
-from pytorch_ie.documents import (
-    TextDocument,
-    TextDocumentWithLabeledSpans,
-    TextDocumentWithLabeledSpansAndLabeledPartitions,
-)
 from pytorch_ie.models.transformer_token_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.utils.span import (
     bio_tags_to_spans,

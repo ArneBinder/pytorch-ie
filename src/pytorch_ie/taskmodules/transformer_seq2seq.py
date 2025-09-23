@@ -12,13 +12,13 @@ import re
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type, Union
 
 from pie_core import Annotation, TaskEncoding, TaskModule
+from pie_documents.annotations import BinaryRelation, LabeledSpan
+from pie_documents.documents import TextDocument, TextDocumentWithLabeledSpansAndBinaryRelations
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan
-from pytorch_ie.documents import TextDocument, TextDocumentWithLabeledSpansAndBinaryRelations
 from pytorch_ie.models.transformer_seq2seq import ModelOutputType, ModelStepInputType
 
 InputEncodingType: TypeAlias = Dict[str, Sequence[int]]

@@ -9,10 +9,8 @@ from pie_core import Annotation, Document
 from pie_core.document import BaseAnnotationList
 from pie_documents.annotations import Span
 from pie_documents.document.processing import text_based_document_to_token_based
-from pie_documents.documents import TextBasedDocument, TokenBasedDocument
+from pie_documents.documents import TextBasedDocument, TokenBasedDocument, WithMetadata
 from transformers import PreTrainedTokenizer
-
-from pytorch_ie.documents import WithMetadata
 
 logger = logging.getLogger(__name__)
 

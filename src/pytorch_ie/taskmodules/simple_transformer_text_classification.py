@@ -13,13 +13,13 @@ from typing import Any, Dict, Iterator, MutableMapping, Optional, Sequence, Tupl
 import numpy as np
 import torch
 from pie_core import TaskEncoding, TaskModule
+from pie_documents.annotations import Label
+from pie_documents.documents import TextDocumentWithLabel
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
 from typing_extensions import TypeAlias
 
-from pytorch_ie.annotations import Label
-from pytorch_ie.documents import TextDocumentWithLabel
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 
 logger = logging.getLogger(__name__)

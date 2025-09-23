@@ -25,6 +25,11 @@ from typing import (
 import numpy as np
 import torch
 from pie_core import AnnotationLayer, Document, TaskEncoding, TaskModule
+from pie_documents.documents import (
+    TextDocument,
+    TextDocumentWithLabeledSpansAndBinaryRelations,
+    TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions,
+)
 from transformers import AutoTokenizer
 from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils_base import TruncationStrategy
@@ -36,11 +41,6 @@ from pytorch_ie.annotations import (
     MultiLabeledBinaryRelation,
     NaryRelation,
     Span,
-)
-from pytorch_ie.documents import (
-    TextDocument,
-    TextDocumentWithLabeledSpansAndBinaryRelations,
-    TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions,
 )
 from pytorch_ie.models.transformer_text_classification import ModelOutputType, ModelStepInputType
 from pytorch_ie.taskmodules.interface import ChangesTokenizerVocabSize

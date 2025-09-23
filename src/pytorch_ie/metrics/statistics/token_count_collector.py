@@ -2,9 +2,8 @@ import logging
 from typing import Any, Dict, Optional, Type, Union
 
 from pie_core import Document, DocumentStatistic
+from pie_documents.documents import TextBasedDocument
 from transformers import AutoTokenizer, PreTrainedTokenizer
-
-from pytorch_ie.documents import TextBasedDocument
 
 logger = logging.getLogger(__name__)
 

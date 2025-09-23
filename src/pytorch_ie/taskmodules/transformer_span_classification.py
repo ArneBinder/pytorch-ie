@@ -14,18 +14,18 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from pie_core import TaskEncoding, TaskModule
-from transformers import AutoTokenizer
-from transformers.file_utils import PaddingStrategy
-from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
-from typing_extensions import TypeAlias
-
-from pytorch_ie.annotations import LabeledSpan, MultiLabeledSpan, Span
-from pytorch_ie.documents import (
+from pie_documents.annotations import LabeledSpan, MultiLabeledSpan, Span
+from pie_documents.documents import (
     TextDocument,
     TextDocumentWithLabeledSpans,
     TextDocumentWithLabeledSpansAndLabeledPartitions,
     TextDocumentWithLabeledSpansAndSentences,
 )
+from transformers import AutoTokenizer
+from transformers.file_utils import PaddingStrategy
+from transformers.tokenization_utils_base import BatchEncoding, TruncationStrategy
+from typing_extensions import TypeAlias
+
 from pytorch_ie.models.transformer_span_classification import ModelOutputType, ModelStepInputType
 
 InputEncodingType: TypeAlias = BatchEncoding
