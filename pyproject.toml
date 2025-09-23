@@ -15,7 +15,7 @@ authors = [
 # To support automatic classifiers based on dependencies and license see https://python-poetry.org/docs/pyproject/#classifiers
 dynamic = [ "classifiers" ]
 
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.10,<4.0"
 dependencies = [
     "pie-core >=0.2.1, <0.4.0",
     "pie-documents >=0.1.0, <0.2.0",
