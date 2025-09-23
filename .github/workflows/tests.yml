@@ -20,7 +20,7 @@ jobs:
               uses: ./.github/actions/init-env
               with:
                   os: "ubuntu-latest"
-                  python: "3.9"
+                  python: "3.10"
             - name: Compute pre-commit cache key
               id: pre-commit-cache
               shell: python
@@ -52,9 +52,9 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - { python: "3.9", os: "ubuntu-latest" }
-                    # - { python: "3.9", os: "macos-latest" }
-                    # - { python: "3.9", os: "windows-latest" }
+                    - { python: "3.10", os: "ubuntu-latest" }
+                    # - { python: "3.10", os: "macos-latest" }
+                    # - { python: "3.10", os: "windows-latest" }
         steps:
             - name: Check out the repository
               uses: actions/checkout@v4
