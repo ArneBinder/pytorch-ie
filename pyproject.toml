@@ -56,15 +56,12 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 
 # lazily imported packges
+# for taskmodule tests with collect statistics
 tabulate = "^0.9"
 # for TokenClassificationModelWithSeq2SeqEncoderAndCrf
 pytorch-crf = ">=0.7.2"
-# for rouge metric (tests only) and for NltkSentenceSplitter
+# for rouge metric
 nltk = "^3.9.1"
-# for NltkSentenceSplitter
-flair = "^0.13.1"
-# for SpansViaRelationMerger
-networkx = "^3.0.0"
 
 # testing utilities (with coverage and run-time type checking)
 pytest = ">=6.2.5"
