@@ -22,7 +22,10 @@ dependencies = [
     "torch >=1.10",
     "pytorch-lightning >=2, <3",
     "torchmetrics >1, <2",
-    "transformers >=4.18, <5",
+    # >=4.35 because of BartModelWithDecoderPositionIds,
+    # <4.37 because of generation config created from model config in BartAsPointerNetwork
+    # TODO: check the upper bound, since this should be already fixed (https://github.com/ArneBinder/pie-modules/pull/205)
+    "transformers >=4.35.0,<4.37.0",
 ]
 
 [project.urls]
@@ -51,7 +54,19 @@ classifiers = [
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-# testing (with coverage and run-time type checking)
+
+# lazily imported packges
+tabulate = "^0.9"
+# for TokenClassificationModelWithSeq2SeqEncoderAndCrf
+pytorch-crf = ">=0.7.2"
+# for rouge metric (tests only) and for NltkSentenceSplitter
+nltk = "^3.9.1"
+# for NltkSentenceSplitter
+flair = "^0.13.1"
+# for SpansViaRelationMerger
+networkx = "^3.0.0"
+
+# testing utilities (with coverage and run-time type checking)
 pytest = ">=6.2.5"
 pytest-xdist = "^3.8.0"
 pytest-cov = "^6.2.1"
@@ -59,6 +74,7 @@ typeguard = ">=2.13.3"
 sh = "^2"
 types-requests = "^2.27.7"
 python-dotenv = "^0.20.0"
+
 # code quality and static type checking (via pre-commit)
 pre-commit = ">=2.16.0"
 pre-commit-hooks = ">=4.1.0"
