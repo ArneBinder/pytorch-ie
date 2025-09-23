@@ -1,10 +1,20 @@
+import functools
+import json
+import logging
 from collections import defaultdict
-from typing import Dict, Hashable, List, Optional, TypeVar
+from copy import copy
+from typing import Callable, Dict, Hashable, Iterable, List, Optional, Type, TypeVar
 
-from pie_core import Document
+from pie_core import Annotation, Document
 from pie_core.document import BaseAnnotationList
+from pie_documents.annotations import Span
+from pie_documents.document.processing import text_based_document_to_token_based
+from pie_documents.documents import TextBasedDocument, TokenBasedDocument
+from transformers import PreTrainedTokenizer
 
 from pytorch_ie.documents import WithMetadata
+
+logger = logging.getLogger(__name__)
 
 
 def deduplicate_annotation_dicts(
@@ -134,3 +144,126 @@ def merge_annotations_from_documents(
             use_predictions=True,
         )
     return merged_document
+
+
+ToD = TypeVar("ToD", bound=TokenBasedDocument)
+
+
+def tokenize_document(
+    doc: TextBasedDocument,
+    tokenizer: PreTrainedTokenizer,
+    result_document_type: Type[ToD],
+    partition_layer: Optional[str] = None,
+    strip_spans: bool = False,
+    strict_span_conversion: bool = True,
+    added_annotations: Optional[List[Dict[str, Dict[Annotation, Annotation]]]] = None,
+    verbose: bool = True,
+    **tokenize_kwargs,
+) -> List[ToD]:
+    """Tokenize a document with a given tokenizer and return a list of token based documents. The
+    document is tokenized in partitions if a partition layer is provided. The annotations that
+    target the text are converted to target the tokens and also all dependent annotations are
+    converted.
+
+    Args:
+        doc (TextBasedDocument): The document to tokenize.
+        tokenizer (PreTrainedTokenizer): The tokenizer.
+        result_document_type (Type[ToD]): The exact type of the token based documents.
+        partition_layer (Optional[str], optional): The layer to use for partitioning the document. If None, the whole
+            document is tokenized. Defaults to None.
+        strip_spans (bool, optional): If True, strip the whitespace from the character spans before converting them to
+            token spans. Defaults to False.
+        strict_span_conversion (bool, optional): If True, raise an error if not all annotations can be converted to
+            token based documents. Defaults to True.
+        added_annotations (Optional[List[Dict[str, Dict[Annotation, Annotation]]]], optional): Pass an empty list to
+            collect the added annotations. Defaults to None.
+        verbose (bool, optional): If True, log warnings if annotations can not be converted. Defaults to True.
+
+    Returns:
+        List[ToD]: The token based documents of type result_document_type with the converted annotations.
+    """
+
+    added_annotation_lists: Dict[str, List[Annotation]] = defaultdict(list)
+    result = []
+    partitions: Iterable[Span]
+    if partition_layer is None:
+        partitions = [Span(start=0, end=len(doc.text))]
+    else:
+        partitions = doc[partition_layer]
+    for partition in partitions:
+        text = doc.text[partition.start : partition.end]
+        current_tokenize_kwargs = copy(tokenize_kwargs)
+        if "text" in tokenize_kwargs:
+            current_tokenize_kwargs["text_pair"] = text
+            sequence_index = 1
+        else:
+            current_tokenize_kwargs["text"] = text
+            sequence_index = 0
+        tokenized_text = tokenizer(**current_tokenize_kwargs)
+        for batch_encoding in tokenized_text.encodings:
+            token_offset_mapping = batch_encoding.offsets
+            char_to_token: Optional[Callable[[int], Optional[int]]]
+            char_to_token = functools.partial(
+                batch_encoding.char_to_token, sequence_index=sequence_index
+            )
+            token_offset_mapping = [
+                offsets if s_id == sequence_index else (0, 0)
+                for s_id, offsets in zip(batch_encoding.sequence_ids, token_offset_mapping)
+            ]
+            if partition.start > 0:
+                token_offset_mapping = [
+                    (start + partition.start, end + partition.start)
+                    for start, end in token_offset_mapping
+                ]
+                char_to_token = None
+            current_added_annotations: Dict[str, Dict[Annotation, Annotation]] = defaultdict(dict)
+            tokenized_document = text_based_document_to_token_based(
+                doc,
+                tokens=batch_encoding.tokens,
+                result_document_type=result_document_type,
+                token_offset_mapping=token_offset_mapping,
+                char_to_token=char_to_token,
+                strict_span_conversion=False,
+                strip_spans=strip_spans,
+                verbose=False,
+                added_annotations=current_added_annotations,
+            )
+            tokenized_document.metadata["tokenizer_encoding"] = batch_encoding
+            result.append(tokenized_document)
+            for k, v in current_added_annotations.items():
+                added_annotation_lists[k].extend(v)
+            if added_annotations is not None:
+                added_annotations.append(current_added_annotations)
+
+    missed_annotations = defaultdict(set)
+    if strict_span_conversion or verbose:
+        # We check the annotations with respect to the layers of the result_document_type.
+        # Note that the original document may have more layers, but since result documents
+        # are of type result_document_type, we only check the layers of this type.
+        for annotation_field in result_document_type.annotation_fields():
+            # do not check the partition layer because the partitions are not required later on
+            # and entries get quite probably removed when windowing is applied, so this just pollutes the logs
+            if annotation_field.name != partition_layer:
+                current_missed_annotations = set(doc[annotation_field.name]) - set(
+                    added_annotation_lists[annotation_field.name]
+                )
+                if len(current_missed_annotations) > 0:
+                    missed_annotations[annotation_field.name] = current_missed_annotations
+
+    if len(missed_annotations) > 0:
+        missed_annotations_simplified = {k: str(v) for k, v in missed_annotations.items()}
+        if strict_span_conversion:
+            raise ValueError(
+                f"could not convert all annotations from document with id={doc.id} to token based documents, "
+                f"but strict_span_conversion is True, so raise an error, "
+                f"missed annotations:\n{json.dumps(missed_annotations_simplified, sort_keys=True, indent=2)}"
+            )
+        else:
+            if verbose:
+                logger.warning(
+                    f"could not convert all annotations from document with id={doc.id} to token based documents, "
+                    f"missed annotations (disable this message with verbose=False):\n"
+                    f"{json.dumps(missed_annotations_simplified, sort_keys=True, indent=2)}"
+                )
+
+    return result
