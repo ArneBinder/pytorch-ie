@@ -1,17 +1,11 @@
 import re
-from typing import Any, Dict
 
 import numpy
 import pytest
 import torch
 
 from pytorch_ie.taskmodules import TransformerRETextClassificationTaskModule
-
-
-def _config_to_str(cfg: Dict[str, Any]) -> str:
-    result = "-".join([f"{k}={cfg[k]}" for k in sorted(cfg)])
-    return result
-
+from tests import _config_to_str
 
 CONFIGS = [
     {"add_type_to_marker": False, "append_markers": False},
@@ -567,7 +561,7 @@ def test_unbatch_output(prepared_taskmodule, model_output):
 
 @pytest.mark.parametrize("inplace", [False, True])
 def test_decode(prepared_taskmodule, documents, model_output, inplace):
-    documents = [documents[i] for i in [0, 1, 4]]
+    documents = [documents[i].copy() for i in [0, 1, 4]]
 
     encodings = prepared_taskmodule.encode(documents, encode_target=False)
     unbatched_outputs = prepared_taskmodule.unbatch_output(model_output)
