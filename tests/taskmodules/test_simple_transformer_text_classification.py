@@ -1,6 +1,5 @@
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, Dict
 
 import pytest
 import torch
@@ -9,13 +8,7 @@ from transformers import BatchEncoding
 from pytorch_ie import AnnotationLayer, Document, annotation_field
 from pytorch_ie.annotations import Label
 from pytorch_ie.taskmodules import SimpleTransformerTextClassificationTaskModule
-
-
-def _config_to_str(cfg: Dict[str, Any]) -> str:
-    # Converts a configuration dictionary to a string representation
-    result = "-".join([f"{k}={cfg[k]}" for k in sorted(cfg)])
-    return result
-
+from tests import _config_to_str
 
 CONFIGS = [
     {"max_length": 16},
@@ -299,7 +292,7 @@ def model_predict_output(batch, taskmodule):
     - Returns the model's output predictions.
 
     """
-    from pytorch_ie import TransformerTextClassificationModel
+    from pytorch_ie.models import TransformerTextClassificationModel
 
     model = TransformerTextClassificationModel(
         model_name_or_path="prajjwal1/bert-tiny",
