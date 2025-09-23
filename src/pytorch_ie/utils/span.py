@@ -13,11 +13,14 @@ from typing import (
     Tuple,
 )
 
+# backwards compatibility imports from pie_documents.utils.span
+from pie_documents.utils.span import have_overlap as has_overlap
+from pie_documents.utils.span import is_contained_in
 from transformers import PreTrainedTokenizer
 
 from pytorch_ie.annotations import LabeledSpan, Span
 
-# TODO: most of this should be superseded by pie_modules.utils.span and pie_modules.utils.sequence_tagging,
+# TODO: most of this should be superseded by pie_documents.utils.sequence_tagging,
 #  remove respective content
 
 TypedSpan = Tuple[int, Tuple[int, int]]
@@ -227,19 +230,6 @@ def get_token_slice(
     if start is None or before_end is None:
         return None
     return start, before_end + 1
-
-
-def is_contained_in(start_end: Tuple[int, int], other_start_end: Tuple[int, int]) -> bool:
-    return other_start_end[0] <= start_end[0] and start_end[1] <= other_start_end[1]
-
-
-def has_overlap(start_end: Tuple[int, int], other_start_end: Tuple[int, int]):
-    return (
-        start_end[0] <= other_start_end[0] < start_end[1]
-        or start_end[0] < other_start_end[1] <= start_end[1]
-        or other_start_end[0] <= start_end[0] < other_start_end[1]
-        or other_start_end[0] < start_end[1] <= other_start_end[1]
-    )
 
 
 def _char_to_token_mapper(

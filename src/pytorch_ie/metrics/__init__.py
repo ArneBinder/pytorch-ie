@@ -1,4 +1,2 @@
-from .confusion_matrix import ConfusionMatrix
-from .f1 import F1Metric
-
-__all__ = ["F1Metric", "ConfusionMatrix"]
+# backwards compatibility
+from pie_documents.metrics import ConfusionMatrix, F1Metric, SQuADF1

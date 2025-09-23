@@ -18,12 +18,11 @@ dynamic = [ "classifiers" ]
 requires-python = ">=3.9,<4.0"
 dependencies = [
     "pie-core >=0.2.1, <0.4.0",
+    "pie-documents >=0.1.0, <0.2.0",
     "torch >=1.10",
     "pytorch-lightning >=2, <3",
     "torchmetrics >1, <2",
     "transformers >=4.18, <5",
-    # required for metrics: f1, confusion_matrix, and statsistics
-    "pandas >=2.0.0, <3",
 ]
 
 [project.urls]
@@ -43,6 +42,10 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "License :: OSI Approved :: MIT License"
 ]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
+"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
 
 [tool.poetry.group.dev]
 optional = true
