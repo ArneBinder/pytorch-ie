@@ -1,3 +1,4 @@
+from .cross_text_binary_coref import CrossTextBinaryCorefTaskModule
 from .labeled_span_extraction_by_token_classification import (
     LabeledSpanExtractionByTokenClassificationTaskModule,
 )
@@ -22,4 +23,5 @@ __all__ = [
     "TextToTextTaskModule",
     "LabeledSpanExtractionByTokenClassificationTaskModule",
     "PointerNetworkTaskModuleForEnd2EndRE",
+    "CrossTextBinaryCorefTaskModule",
 ]

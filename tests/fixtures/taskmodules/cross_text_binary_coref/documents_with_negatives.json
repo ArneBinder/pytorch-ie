@@ -1,0 +1,792 @@
+[
+    {
+        "text_pair": "And she founded C.",
+        "text": "And she founded C.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Bob loves his cat.",
+        "text": "And she founded C.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": 2545181322977893893,
+                    "tail": -7091027580690283656,
+                    "label": "coref",
+                    "score": 0.0,
+                    "_id": -1763877672186772918
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Entity A works at B.",
+        "text": "And she founded C.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": 2545181322977893893,
+                    "tail": -177396764231138184,
+                    "label": "coref",
+                    "score": 1.0,
+                    "_id": 5113198133391321397
+                },
+                {
+                    "head": -2143209897469179365,
+                    "tail": 3188240167591245379,
+                    "label": "coref",
+                    "score": 0.0,
+                    "_id": -734219494647036300
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "She sleeps a lot.",
+        "text": "And she founded C.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "And she founded C.",
+        "text": "Bob loves his cat.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": -7091027580690283656,
+                    "tail": 2545181322977893893,
+                    "label": "coref",
+                    "score": 0.0,
+                    "_id": 4323963091729289163
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Bob loves his cat.",
+        "text": "Bob loves his cat.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Entity A works at B.",
+        "text": "Bob loves his cat.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": -7091027580690283656,
+                    "tail": -177396764231138184,
+                    "label": "coref",
+                    "score": 0.0,
+                    "_id": -4269111567075058761
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "She sleeps a lot.",
+        "text": "Bob loves his cat.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": -6613361595321704194,
+                    "tail": 2360667792531975882,
+                    "label": "coref",
+                    "score": 1.0,
+                    "_id": 8198921634551745514
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "And she founded C.",
+        "text": "Entity A works at B.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": -177396764231138184,
+                    "tail": 2545181322977893893,
+                    "label": "coref",
+                    "score": 1.0,
+                    "_id": -4710872194864906092
+                },
+                {
+                    "head": 3188240167591245379,
+                    "tail": -2143209897469179365,
+                    "label": "coref",
+                    "score": 0.0,
+                    "_id": 2636939255468582059
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Bob loves his cat.",
+        "text": "Entity A works at B.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": -177396764231138184,
+                    "tail": -7091027580690283656,
+                    "label": "coref",
+                    "score": 0.0,
+                    "_id": -1990964066152094896
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Entity A works at B.",
+        "text": "Entity A works at B.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "She sleeps a lot.",
+        "text": "Entity A works at B.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "And she founded C.",
+        "text": "She sleeps a lot.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 16,
+                    "end": 17,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": -2143209897469179365
+                },
+                {
+                    "start": 4,
+                    "end": 7,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": 2545181322977893893
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Bob loves his cat.",
+        "text": "She sleeps a lot.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -7091027580690283656
+                },
+                {
+                    "start": 10,
+                    "end": 17,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": -6613361595321704194
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [
+                {
+                    "head": 2360667792531975882,
+                    "tail": -6613361595321704194,
+                    "label": "coref",
+                    "score": 1.0,
+                    "_id": -571410837328299027
+                }
+            ],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "Entity A works at B.",
+        "text": "She sleeps a lot.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 18,
+                    "end": 19,
+                    "label": "COMPANY",
+                    "score": 1.0,
+                    "_id": 3188240167591245379
+                },
+                {
+                    "start": 0,
+                    "end": 8,
+                    "label": "PERSON",
+                    "score": 1.0,
+                    "_id": -177396764231138184
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    },
+    {
+        "text_pair": "She sleeps a lot.",
+        "text": "She sleeps a lot.",
+        "id": null,
+        "metadata": null,
+        "labeled_spans": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "labeled_spans_pair": {
+            "annotations": [
+                {
+                    "start": 0,
+                    "end": 3,
+                    "label": "ANIMAL",
+                    "score": 1.0,
+                    "_id": 2360667792531975882
+                }
+            ],
+            "predictions": []
+        },
+        "binary_coref_relations": {
+            "annotations": [],
+            "predictions": []
+        }
+    }
+]
