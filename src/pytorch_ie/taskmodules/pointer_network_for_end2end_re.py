@@ -97,8 +97,8 @@ class PointerNetworkTaskModuleForEnd2EndRE(
         self,
         tokenizer_name_or_path: str,
         # specific for this use case
-        document_type: str = "pytorch_ie.documents.TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions",
-        tokenized_document_type: str = "pie_modules.documents.TokenDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions",
+        document_type: str = "pie_documents.documents.TextDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions",
+        tokenized_document_type: str = "pie_documents.documents.TokenDocumentWithLabeledSpansBinaryRelationsAndLabeledPartitions",
         relation_layer_name: str = "binary_relations",
         add_reversed_relations: bool = False,
         symmetric_relations: Optional[List[str]] = None,
