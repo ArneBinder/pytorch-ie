@@ -1,5 +1,6 @@
 import dataclasses
 import json
+from importlib.util import find_spec
 
 import pytest
 from pie_core import AnnotationLayer, annotation_field
@@ -7,6 +8,8 @@ from pie_documents.annotations import BinaryRelation, LabeledSpan, Span
 from pie_documents.documents import TextDocument
 
 from tests import FIXTURES_ROOT
+
+_TABULATE_AVAILABLE = find_spec("tabulate") is not None
 
 
 @dataclasses.dataclass
