@@ -378,6 +378,9 @@ from pytorch_ie import PyTorchIEPipeline
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.documents import TextDocument
+# all models and taskmodules are registered and can be loaded via the Auto classes
+from pytorch_ie.models import *
+from pytorch_ie.taskmodules import *
 
 
 @dataclass
@@ -390,7 +393,11 @@ document = ExampleDocument(
     "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
 )
 
-re_pipeline = PyTorchIEPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
+re_pipeline = PyTorchIEPipeline.from_pretrained(
+    "pie/example-re-textclf-tacred",
+    taskmodule_kwargs=dict(create_relation_candidates=True),
+    device="cpu",
+)
 
 for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
     document.entities.append(LabeledSpan(start=start, end=end, label=label))
