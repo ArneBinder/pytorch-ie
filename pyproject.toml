@@ -29,11 +29,11 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://github.com/christophalt/pytorch-ie"
-repository = "https://github.com/christophalt/pytorch-ie"
+homepage = "https://github.com/arnebinder/pytorch-ie"
+repository = "https://github.com/arnebinder/pytorch-ie"
 documentation = "https://pytorch-ie.readthedocs.io"
-"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
-"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
+"Bug Tracker" = "https://github.com/arnebinder/pytorch-ie/issues"
+"Changelog" = "https://github.com/arnebinder/pytorch-ie/releases"
 
 [tool.poetry]
 packages = [
@@ -47,8 +47,8 @@ classifiers = [
 ]
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/christophalt/pytorch-ie/issues"
-"Changelog" = "https://github.com/christophalt/pytorch-ie/releases"
+"Bug Tracker" = "https://github.com/arnebinder/pytorch-ie/issues"
+"Changelog" = "https://github.com/arnebinder/pytorch-ie/releases"
 
 [tool.poetry.group.dev]
 optional = true
