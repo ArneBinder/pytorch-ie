@@ -88,7 +88,6 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
     )
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inplace):
     document = documents[1]
