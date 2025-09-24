@@ -88,6 +88,7 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inplace):
     # make a copy to ensure original documents are not modified in non-inplace mode
@@ -108,6 +109,7 @@ def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inpl
         assert returned_document.entities.predictions
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_documents(documents, prepared_taskmodule, mock_model, inplace):
     # make a copy to ensure original documents are not modified in non-inplace mode
