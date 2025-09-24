@@ -2,13 +2,13 @@ import logging
 from typing import MutableMapping, Optional, Tuple, Union
 
 import torch
+from pie_core import Model
 from pytorch_lightning.utilities.types import OptimizerLRScheduler
 from torch import FloatTensor, LongTensor
 from transformers import AutoConfig, AutoModelForTokenClassification, BatchEncoding
 from transformers.modeling_outputs import TokenClassifierOutput
 from typing_extensions import TypeAlias
 
-from pytorch_ie import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 from .common import ModelWithBoilerplate
@@ -25,7 +25,7 @@ StepOutputType: TypeAlias = FloatTensor
 logger = logging.getLogger(__name__)
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class SimpleTokenClassificationModel(
     ModelWithBoilerplate[InputType, OutputType, TargetType, StepOutputType],
     RequiresModelNameOrPath,

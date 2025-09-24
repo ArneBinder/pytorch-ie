@@ -3,7 +3,8 @@ from typing import Any, Dict, Iterable, Optional, Sequence, Tuple
 
 import torch
 import torchmetrics
-from torch import Tensor, nn
+from pie_core import Model
+from torch import nn
 from torch.optim import AdamW
 from transformers import AutoConfig, AutoModel, BatchEncoding, get_linear_schedule_with_warmup
 from typing_extensions import TypeAlias
@@ -29,7 +30,7 @@ TEST = "test"
 logger = logging.getLogger(__name__)
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class TransformerSpanClassificationModel(
     PyTorchIEModel, RequiresModelNameOrPath, RequiresNumClasses
 ):

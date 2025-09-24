@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, MutableMapping, Optional, Tuple
 
 import torchmetrics
+from pie_core import Model
 from torch import Tensor, nn
 from torch.optim import AdamW
 from transformers import AutoConfig, AutoModel, get_linear_schedule_with_warmup
@@ -25,7 +26,7 @@ TEST = "test"
 logger = logging.getLogger(__name__)
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class TransformerTextClassificationModel(
     PyTorchIEModel, RequiresModelNameOrPath, RequiresNumClasses
 ):

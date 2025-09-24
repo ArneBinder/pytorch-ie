@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from transformers.utils import ModelOutput
 
 from pytorch_ie.dataset import TaskEncodingDataset
-from pytorch_ie.model import AutoPyTorchIEModel, PyTorchIEModel
+from pytorch_ie.model import PyTorchIEModel
 
 
 class InplaceNotSupportedException(Exception):
@@ -36,7 +36,7 @@ def get_autocast_dtype(device_type: str):
         raise ValueError(f"Unsupported device type for half precision autocast: {device_type}")
 
 
-@AnnotationPipeline.register()
+@AnnotationPipeline.register(name="pytorch-ie")
 class PyTorchIEPipeline(AnnotationPipeline[PyTorchIEModel, TaskModule]):
     """
     The Pipeline class is the class from which all pipelines inherit. Refer to this class for methods shared across
@@ -63,14 +63,6 @@ class PyTorchIEPipeline(AnnotationPipeline[PyTorchIEModel, TaskModule]):
             the memory usage of the model. If set to :obj:`True`, the model will be cast to
             :obj:`torch.float16` on supported devices.
     """
-
-    # TODO: This is required for backward compatibility because all models so far are annotated with
-    # @PyTorchIEModel.register(). However, this prevents AutoAnnotationPipeline.from_pretrained() and .from_config()
-    # from working correctly because it still has auto_model_class = AutoModel. We could define a class
-    # AutoPyTorchIEPipeline(AutoAnnotationPipeline) with auto_model_class = AutoPyTorchIEModel, but
-    # this mitigates the purpose of the AutoModel class. In the future, we should remove this
-    # and register all models with @Model.register() instead (but this will break backwards compatibility).
-    auto_model_class = AutoPyTorchIEModel
 
     default_input_names = None
 
@@ -437,7 +429,3 @@ class PyTorchIEPipeline(AnnotationPipeline[PyTorchIEModel, TaskModule]):
             return documents[0]
         else:
             return documents
-
-
-# kept for backward compatibility
-Pipeline = PyTorchIEPipeline
