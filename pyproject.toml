@@ -21,7 +21,7 @@ dependencies = [
     "pie-documents >=0.1.0, <0.2.0",
     "torch >=1.10",
     "pytorch-lightning >=2, <3",
-    "torchmetrics >1, <2",
+    "torchmetrics[text] >=1.5, <2",
     # >=4.35 because of BartModelWithDecoderPositionIds,
     # <4.37 because of generation config created from model config in BartAsPointerNetwork
     # TODO: check the upper bound, since this should be already fixed (https://github.com/ArneBinder/pie-modules/pull/205)
@@ -60,8 +60,6 @@ optional = true
 tabulate = "^0.9"
 # for TokenClassificationModelWithSeq2SeqEncoderAndCrf
 pytorch-crf = ">=0.7.2"
-# for rouge metric
-nltk = "^3.9.1"
 
 # testing utilities (with coverage and run-time type checking)
 pytest = ">=6.2.5"
