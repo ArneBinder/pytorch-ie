@@ -90,7 +90,8 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
 
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inplace):
-    document = documents[1]
+    # make a copy to ensure original documents are not modified in non-inplace mode
+    document = documents[1].copy()
     pipeline = PyTorchIEPipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
     returned_document = pipeline(document, inplace=inplace)
