@@ -151,11 +151,10 @@ class PointerHead(torch.nn.Module):
 
         word_mapped_tokens = encoder_input_ids.gather(index=encoder_input_ids_index, dim=1)
 
-        decoder_input_ids: torch.LongTensor = torch.where(
+        decoder_input_ids = torch.where(
             mapping_token_mask, tag_mapped_tokens, word_mapped_tokens
-        ).to(
-            torch.long
-        )  # type: ignore[assignment]
+        ).to(torch.long)
+        assert isinstance(decoder_input_ids, torch.LongTensor)
 
         # Note: we do not need to explicitly handle the padding (via a decoder attention mask) because
         # it gets automatically mapped to the pad token id
@@ -191,12 +190,10 @@ class PointerHead(torch.nn.Module):
 
             # mask the padding tokens
             mask_invalid = input_ids.eq(self.pad_id)
-            all_position_ids_truncated_masked: (
-                torch.LongTensor
-            ) = all_position_ids_truncated.masked_fill(mask_invalid, 1).to(
-                torch.long
-            )  # type: ignore[assignment]
-
+            all_position_ids_truncated_masked = all_position_ids_truncated.masked_fill(
+                mask_invalid, 1
+            ).to(torch.long)
+            assert isinstance(all_position_ids_truncated_masked, torch.LongTensor)
             return all_position_ids_truncated_masked
         elif self.decoder_position_id_mode == "mapping":
             # we ignor the typing issue here because we ensure that the mapping is not None in the __init__

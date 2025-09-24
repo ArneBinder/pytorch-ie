@@ -241,9 +241,11 @@ class BartDecoderWithPositionIds(BartPreTrainedModel):
             input_shape = inputs_embeds.size()[:-1]
             # input = inputs_embeds[:, :, -1]
             # create dummy input_ids with correct shape for position embedding
-            input_ids = torch.zeros(
+            dummy_input_ids = torch.zeros(
                 input_shape, dtype=torch.long, device=inputs_embeds.device
-            )  # type: ignore[assignment]
+            )
+            assert isinstance(dummy_input_ids, torch.LongTensor)
+            input_ids = dummy_input_ids
 
         if input_ids is None or inputs_embeds is None:
             raise ValueError(

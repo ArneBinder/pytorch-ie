@@ -76,6 +76,9 @@ class PrecisionRecallAndF1ForLabeledAnnotations(MetricWithArbitraryCounts):
 
         if self.in_percent:
             result = {k: v * 100 for k, v in result.items()}
+
+        assert all(isinstance(v, FloatTensor) for v in result.values())
+        # we can not ensure the type of the whole dict, but value types are checked above
         return result  # type: ignore[return-value]
 
     def get_label(self, annotation: Annotation) -> Optional[str]:
@@ -115,6 +118,8 @@ class PrecisionRecallAndF1ForLabeledAnnotations(MetricWithArbitraryCounts):
                 device=self.device
             )
 
+        assert all(isinstance(v, LongTensor) for v in result.values())
+        # we can not ensure the type of the whole dict, but value types are checked above
         return result  # type: ignore[return-value]
 
     def compute(self) -> dict[str | None, dict[str, FloatTensor]]:
@@ -126,10 +131,13 @@ class PrecisionRecallAndF1ForLabeledAnnotations(MetricWithArbitraryCounts):
             }
             if len(result_without_micro) > 0:
                 sub_keys = list(result_without_micro.values())[0].keys()
-                result[self.key_macro] = {
-                    k: torch.stack([v[k] for v in result_without_micro.values()]).mean()  # type: ignore
+                macro_scores = {
+                    k: torch.stack([v[k] for v in result_without_micro.values()]).mean()
                     for k in sub_keys
                 }
+                assert all(isinstance(v, FloatTensor) for v in macro_scores.values())
+                # we can not ensure the type of the whole dict, but value types are checked above
+                result[self.key_macro] = macro_scores  # type: ignore[assignment]
 
         if self.prefix is not None:
             result = {f"{self.prefix}{k}": v for k, v in result.items()}

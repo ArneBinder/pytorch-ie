@@ -142,7 +142,8 @@ class SimpleGenerativeModel(
         # TODO: move into base model? or does this work for "all" generative models?
         # strip the bos_id
         if isinstance(outputs, torch.Tensor):
-            labels: LongTensor = outputs[:, 1:]  # type: ignore[assignment]
+            labels = outputs[:, 1:]
+            assert isinstance(labels, LongTensor)
             return {"labels": labels}
         else:
             raise ValueError(f"Unsupported output type: {type(outputs)}")
@@ -155,7 +156,8 @@ class SimpleGenerativeModel(
         # construct prediction from the model output
         logits = outputs.logits
         # get the indices (these are without the initial bos_ids, see above)
-        prediction: LongTensor = torch.argmax(logits, dim=-1)  # type: ignore[assignment]
+        prediction = torch.argmax(logits, dim=-1).to(torch.long)
+        assert isinstance(prediction, LongTensor)
         return {"labels": prediction}
 
     def configure_optimizers(self) -> OptimizerLRScheduler:

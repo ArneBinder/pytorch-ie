@@ -29,4 +29,6 @@ def get_first_occurrence_index(
     result = value_counts_to_end.eq(total_matches.unsqueeze(-1)).sum(dim=1) - 1
     # set result to seq_len if no match was found
     result[total_matches == 0] = tensor.size(1)
-    return result  # type: ignore[return-value]
+
+    assert isinstance(result, torch.LongTensor)
+    return result

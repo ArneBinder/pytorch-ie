@@ -275,14 +275,14 @@ class SequenceClassificationModelWithPooler(
         return nn.BCEWithLogitsLoss() if self.multi_label else nn.CrossEntropyLoss()
 
     def decode(self, inputs: InputType, outputs: OutputType) -> TargetType:
-        labels: LongTensor
-        probabilities: FloatTensor
         if not self.multi_label:
-            labels = torch.argmax(outputs.logits, dim=-1).to(torch.long)  # type: ignore[assignment]
-            probabilities = torch.softmax(outputs.logits, dim=-1)  # type: ignore[assignment]
+            labels = torch.argmax(outputs.logits, dim=-1).to(torch.long)
+            probabilities = torch.softmax(outputs.logits, dim=-1)
         else:
-            probabilities = torch.sigmoid(outputs.logits)  # type: ignore[assignment]
-            labels = (probabilities > self.multi_label_threshold).to(torch.long)  # type: ignore[assignment]
+            probabilities = torch.sigmoid(outputs.logits)
+            labels = (probabilities > self.multi_label_threshold).to(torch.long)
+        assert isinstance(probabilities, FloatTensor)
+        assert isinstance(labels, LongTensor)
         return {"labels": labels, "probabilities": probabilities}
 
 

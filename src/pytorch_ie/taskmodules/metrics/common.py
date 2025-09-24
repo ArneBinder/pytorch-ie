@@ -33,6 +33,7 @@ class MetricWithArbitraryCounts(Metric, ABC):
                     )
                 if not isinstance(v, LongTensor):
                     v = v.long()
+                assert isinstance(v, LongTensor)
                 key = k[len(key_prefix) :] or None
-                result[key] = v  # type: ignore[assignment]
+                result[key] = v
         return result

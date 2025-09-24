@@ -152,7 +152,6 @@ class TokenClassificationModelWithSeq2SeqEncoderAndCrf(
         attention_mask = inputs["attention_mask"]
         special_tokens_mask = inputs["special_tokens_mask"]
         attention_mask_bool = attention_mask.to(torch.bool)
-        tags_tensor: LongTensor
         if self.crf is not None:
             decoded_tags = self.crf.decode(emissions=logits, mask=attention_mask_bool)
             # pad the decoded tags to the length of the logits to have the same shape as when not using the crf
@@ -160,15 +159,17 @@ class TokenClassificationModelWithSeq2SeqEncoderAndCrf(
             padded_tags = [
                 tags + [self.label_pad_id] * (seq_len - len(tags)) for tags in decoded_tags
             ]
-            tags_tensor = torch.tensor(padded_tags, device=logits.device).to(torch.long)  # type: ignore[assignment]
+            tags_tensor = torch.tensor(padded_tags, device=logits.device).to(torch.long)
         else:
             # get the max index for each token from the logits
-            tags_tensor = torch.argmax(logits, dim=-1).to(torch.long)  # type: ignore[assignment]
+            tags_tensor = torch.argmax(logits, dim=-1).to(torch.long)
         # set the padding and special tokens to the label_pad_id
         mask = attention_mask_bool & ~special_tokens_mask.to(torch.bool)
-        tags_tensor = tags_tensor.masked_fill(~mask, self.label_pad_id)  # type: ignore[assignment]
-        probs: FloatTensor = torch.softmax(logits, dim=-1)  # type: ignore[assignment]
+        tags_tensor = tags_tensor.masked_fill(~mask, self.label_pad_id)
+        probs = torch.softmax(logits, dim=-1)
 
+        assert isinstance(tags_tensor, LongTensor)
+        assert isinstance(probs, FloatTensor)
         result["labels"] = tags_tensor
         # TODO: is it correct to use this also in the case of the crf?
         result["probabilities"] = probs

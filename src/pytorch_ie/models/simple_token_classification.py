@@ -90,9 +90,10 @@ class SimpleTokenClassificationModel(
         tags_tensor = tags_tensor.masked_fill(
             inputs["special_tokens_mask"] == 1, self.label_pad_id
         )
-        labels: LongTensor = tags_tensor.to(torch.long)  # type: ignore[assignment]
-        probabilities: FloatTensor = torch.softmax(outputs.logits, dim=-1)  # type: ignore[assignment]
-
+        labels = tags_tensor.to(torch.long)
+        probabilities = torch.softmax(outputs.logits, dim=-1)
+        assert isinstance(labels, LongTensor)
+        assert isinstance(probabilities, FloatTensor)
         return {"labels": labels, "probabilities": probabilities}
 
     def configure_optimizers(self) -> OptimizerLRScheduler:

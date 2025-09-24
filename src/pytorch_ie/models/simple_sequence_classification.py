@@ -113,8 +113,10 @@ class SimpleSequenceClassificationModel(
         return self.model(**kwargs)
 
     def decode(self, inputs: InputType, outputs: OutputType) -> TargetType:
-        labels: LongTensor = torch.argmax(outputs.logits, dim=-1).to(torch.long)  # type: ignore[assignment]
-        probabilities: FloatTensor = torch.softmax(outputs.logits, dim=-1)  # type: ignore[assignment]
+        labels = torch.argmax(outputs.logits, dim=-1).to(torch.long)
+        probabilities = torch.softmax(outputs.logits, dim=-1)
+        assert isinstance(labels, LongTensor)
+        assert isinstance(probabilities, FloatTensor)
         return {"labels": labels, "probabilities": probabilities}
 
     def configure_optimizers(self):
