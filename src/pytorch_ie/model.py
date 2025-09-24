@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 import torch
-from pie_core import Auto, Model
+from pie_core import Model
 from pytorch_lightning import LightningModule
 
 

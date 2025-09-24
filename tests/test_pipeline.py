@@ -4,12 +4,12 @@ import pytest
 import torch
 import transformers
 from pie_core import AnnotationLayer, annotation_field
+from pie_documents.annotations import LabeledSpan
+from pie_documents.documents import TextDocument
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 import pytorch_ie.models.modules.mlp
 from pytorch_ie import PyTorchIEPipeline
-from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.documents import TextDocument
 from pytorch_ie.models.transformer_span_classification import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules.transformer_span_classification import (
     TransformerSpanClassificationTaskModule,
