@@ -91,7 +91,10 @@ def mock_model(monkeypatch, documents, prepared_taskmodule):
 @pytest.mark.slow
 @pytest.mark.parametrize("inplace", [False, True])
 def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inplace):
-    document = documents[1]
+    # make a copy to ensure original documents are not modified in non-inplace mode
+    document = documents[1].copy()
+    assert len(document.entities.predictions) == 0, "Document should not have predictions yet"
+
     pipeline = PyTorchIEPipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
     returned_document = pipeline(document, inplace=inplace)
@@ -111,6 +114,10 @@ def test_pipeline_with_document(documents, prepared_taskmodule, mock_model, inpl
 def test_pipeline_with_documents(documents, prepared_taskmodule, mock_model, inplace):
     # make a copy to ensure original documents are not modified in non-inplace mode
     documents = [doc.copy() for doc in documents]
+    assert all(
+        len(doc.entities.predictions) == 0 for doc in documents
+    ), "Documents should not have predictions yet"
+
     pipeline = PyTorchIEPipeline(model=mock_model, taskmodule=prepared_taskmodule, device=-1)
 
     returned_documents = pipeline(documents, inplace=inplace)
