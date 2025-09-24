@@ -38,10 +38,3 @@ class PyTorchIEModel(Model, LightningModule):
         outputs = self(inputs, **kwargs)
         decoded_outputs = self.decode(inputs=inputs, outputs=outputs)
         return decoded_outputs
-
-
-# TODO: remove this class when all models are registered with @Model.register()
-#   also see notes in PyTorchIEPipeline
-class AutoPyTorchIEModel(Model, Auto[PyTorchIEModel]):
-
-    BASE_CLASS = PyTorchIEModel

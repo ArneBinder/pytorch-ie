@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
 import pytest
-from pie_core import AnnotationLayer, TaskModule, annotation_field
+from pie_core import AnnotationLayer, AutoAnnotationPipeline, Model, TaskModule, annotation_field
 
-from pytorch_ie import PyTorchIEModel, PyTorchIEPipeline
+from pytorch_ie import PyTorchIEPipeline
 from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.auto import AutoModel, AutoPipeline, AutoTaskModule
+from pytorch_ie.auto import AutoModel, AutoTaskModule
 from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
@@ -16,7 +16,7 @@ class MyTransformerSpanClassificationTaskModule(TransformerSpanClassificationTas
     pass
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class MyTransformerSpanClassificationModel(TransformerSpanClassificationModel):
     pass
 
@@ -112,7 +112,7 @@ def test_auto_model_full_cycle(tmp_path):
 
 
 def test_auto_model_full_cycle_with_name(tmp_path):
-    @PyTorchIEModel.register("other_model")
+    @Model.register("other_model")
     class MyOtherTransformerSpanClassificationModel(TransformerSpanClassificationModel):
         pass
 
@@ -143,7 +143,9 @@ def test_auto_pipeline():
     class ExampleDocument(TextDocument):
         entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
-    pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
+    pipeline = PyTorchIEPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
+    # TODO: this requires fix in pie_core.Auto.from_config to work when pipeline_type is passed, but not in the config
+    # pipeline = AutoAnnotationPipeline.from_pretrained("pie/example-ner-spanclf-conll03", pipeline_type="pytorch-ie")
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
@@ -161,7 +163,7 @@ def test_auto_pipeline_full_cycle(tmp_path):
     class ExampleDocument(TextDocument):
         entities: AnnotationLayer[LabeledSpan] = annotation_field(target="text")
 
-    pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
+    pipeline = PyTorchIEPipeline.from_pretrained("pie/example-ner-spanclf-conll03")
 
     document = ExampleDocument(
         "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
@@ -174,7 +176,7 @@ def test_auto_pipeline_full_cycle(tmp_path):
 
     pipeline.save_pretrained(save_directory=str(tmp_path))
 
-    pipeline_loaded = AutoPipeline.from_pretrained(str(tmp_path))
+    pipeline_loaded = PyTorchIEPipeline.from_pretrained(str(tmp_path))
     assert isinstance(pipeline_loaded, PyTorchIEPipeline)
 
     document2 = ExampleDocument(text=document.text)

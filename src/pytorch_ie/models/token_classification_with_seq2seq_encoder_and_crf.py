@@ -2,13 +2,13 @@ import logging
 from typing import Any, Dict, MutableMapping, Optional, Tuple, Union
 
 import torch
+from pie_core import Model
 from pytorch_lightning.utilities.types import OptimizerLRScheduler
 from torch import FloatTensor, LongTensor, nn
 from transformers import AutoConfig, AutoModel, BatchEncoding, get_linear_schedule_with_warmup
 from transformers.modeling_outputs import TokenClassifierOutput
 from typing_extensions import TypeAlias
 
-from pytorch_ie import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 from .common import ModelWithBoilerplate
@@ -34,7 +34,7 @@ HF_MODEL_TYPE_TO_CLASSIFIER_DROPOUT_ATTRIBUTE = {
 logger = logging.getLogger(__name__)
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class TokenClassificationModelWithSeq2SeqEncoderAndCrf(
     ModelWithBoilerplate[InputType, OutputType, TargetType, StepOutputType],
     RequiresNumClasses,

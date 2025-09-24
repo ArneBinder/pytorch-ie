@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 import torch
+from pie_core import Model
 from pie_core.utils.hydra import resolve_type
 from pytorch_lightning.utilities.types import OptimizerLRScheduler
 from torch import FloatTensor, LongTensor
@@ -10,8 +11,6 @@ from torch.optim import Optimizer
 from transformers import PreTrainedModel, SchedulerType, get_scheduler
 from transformers.modeling_outputs import Seq2SeqLMOutput
 from typing_extensions import TypeAlias
-
-from pytorch_ie import PyTorchIEModel
 
 from .common import ModelWithBoilerplate
 
@@ -26,7 +25,7 @@ StepInputType: TypeAlias = Tuple[InputType, TargetType]
 StepOutputType: TypeAlias = FloatTensor
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class SimpleGenerativeModel(
     ModelWithBoilerplate[InputType, OutputType, TargetType, StepOutputType],
 ):

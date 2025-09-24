@@ -14,6 +14,7 @@ from typing import (
 )
 
 import torch
+from pie_core import Model
 from torch import FloatTensor, LongTensor, nn
 from torch.nn import Parameter
 from torch.optim import AdamW
@@ -21,7 +22,6 @@ from transformers import AutoConfig, AutoModel, PreTrainedModel, get_linear_sche
 from transformers.modeling_outputs import SequenceClassifierOutput
 from typing_extensions import TypeAlias
 
-from pytorch_ie import PyTorchIEModel
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
 from .common import ModelWithBoilerplate
@@ -236,7 +236,7 @@ class SequenceClassificationModelWithPoolerBase(
             return optimizer
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class SequenceClassificationModelWithPooler(
     SequenceClassificationModelWithPoolerBase,
     RequiresNumClasses,
@@ -286,7 +286,7 @@ class SequenceClassificationModelWithPooler(
         return {"labels": labels, "probabilities": probabilities}
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class SequencePairSimilarityModelWithPooler(
     SequenceClassificationModelWithPoolerBase,
 ):

@@ -2,6 +2,7 @@ import logging
 from typing import Iterator, MutableMapping, Optional, Tuple, Union
 
 import torch.nn
+from pie_core import Model
 from torch import FloatTensor, LongTensor
 from torch.nn import Parameter
 from torch.optim import AdamW
@@ -13,7 +14,6 @@ from transformers import (
 from transformers.modeling_outputs import SequenceClassifierOutput
 from typing_extensions import TypeAlias
 
-from pytorch_ie import PyTorchIEModel
 from pytorch_ie.models.common import ModelWithBoilerplate
 from pytorch_ie.models.interface import RequiresModelNameOrPath, RequiresNumClasses
 
@@ -29,7 +29,7 @@ StepOutputType: TypeAlias = FloatTensor
 logger = logging.getLogger(__name__)
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class SimpleSequenceClassificationModel(
     ModelWithBoilerplate[InputType, OutputType, TargetType, StepOutputType],
     RequiresModelNameOrPath,

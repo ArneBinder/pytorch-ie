@@ -1,6 +1,7 @@
 from typing import Any, Tuple
 
 import torch
+from pie_core import Model
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, BatchEncoding
 from transformers.modeling_outputs import Seq2SeqLMOutput
 from typing_extensions import TypeAlias
@@ -14,7 +15,7 @@ ModelOutputType: TypeAlias = Seq2SeqLMOutput
 ModelStepInputType: TypeAlias = Tuple[ModelInputType]
 
 
-@PyTorchIEModel.register()
+@Model.register()
 class TransformerSeq2SeqModel(PyTorchIEModel, RequiresModelNameOrPath):
     def __init__(self, model_name_or_path: str, learning_rate: float = 1e-5, **kwargs) -> None:
         super().__init__(**kwargs)
