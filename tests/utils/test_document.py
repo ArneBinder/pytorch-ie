@@ -1,5 +1,6 @@
-from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.documents import TextDocumentWithLabeledSpans
+from pie_documents.annotations import LabeledSpan
+from pie_documents.documents import TextDocumentWithLabeledSpans
+
 from pytorch_ie.utils.document import merge_annotations_from_documents
 
 

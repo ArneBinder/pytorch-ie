@@ -1,8 +1,8 @@
 import numpy
 import pytest
 import torch
+from pie_core import TaskModule
 
-from pytorch_ie import TaskModule
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
 

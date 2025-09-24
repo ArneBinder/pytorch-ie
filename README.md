@@ -353,7 +353,7 @@ Under the hood, the following happens when calling `PyTorchIEPipeline.from_pretr
 </summary>
 
 ```python
-from pytorch_ie.auto import AutoTaskModule, AutoModel
+from pytorch_ie.core import AutoTaskModule, AutoModel
 from pytorch_ie.pipeline import PyTorchIEPipeline
 
 model_name_or_path = "pie/example-ner-spanclf-conll03"
@@ -375,8 +375,8 @@ ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, dev
 from dataclasses import dataclass
 
 from pytorch_ie import PyTorchIEPipeline
-from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.core import AnnotationLayer, annotation_field
+from pytorch_ie.annotations import BinaryRelation, LabeledSpan
 from pytorch_ie.documents import TextDocument
 
 

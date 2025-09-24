@@ -3,10 +3,10 @@ from dataclasses import dataclass
 
 import pytest
 import torch
+from pie_core import AnnotationLayer, Document, annotation_field
+from pie_documents.annotations import Label
 from transformers import BatchEncoding
 
-from pytorch_ie import AnnotationLayer, Document, annotation_field
-from pytorch_ie.annotations import Label
 from pytorch_ie.taskmodules import SimpleTransformerTextClassificationTaskModule
 from tests import _config_to_str
 

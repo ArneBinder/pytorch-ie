@@ -13,12 +13,12 @@ from typing import (
     Tuple,
 )
 
+from pie_documents.annotations import LabeledSpan, Span
+
 # backwards compatibility imports from pie_documents.utils.span
 from pie_documents.utils.span import have_overlap as has_overlap
 from pie_documents.utils.span import is_contained_in
 from transformers import PreTrainedTokenizer
-
-from pytorch_ie.annotations import LabeledSpan, Span
 
 # TODO: most of this should be superseded by pie_documents.utils.sequence_tagging,
 #  remove respective content

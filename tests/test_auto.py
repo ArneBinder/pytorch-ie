@@ -1,12 +1,19 @@
 from dataclasses import dataclass
 
 import pytest
-from pie_core import AnnotationLayer, AutoAnnotationPipeline, Model, TaskModule, annotation_field
+from pie_core import (
+    AnnotationLayer,
+    AutoAnnotationPipeline,
+    AutoModel,
+    AutoTaskModule,
+    Model,
+    TaskModule,
+    annotation_field,
+)
+from pie_documents.annotations import LabeledSpan
+from pie_documents.documents import TextDocument
 
 from pytorch_ie import PyTorchIEPipeline
-from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.auto import AutoModel, AutoTaskModule
-from pytorch_ie.documents import TextDocument
 from pytorch_ie.models import TransformerSpanClassificationModel
 from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
 
