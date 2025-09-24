@@ -318,8 +318,8 @@ for details.
 ```python
 from dataclasses import dataclass
 
+from pytorch_ie import PyTorchIEPipeline
 from pytorch_ie.annotations import LabeledSpan
-from pytorch_ie.auto import AutoPipeline
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 
@@ -334,7 +334,7 @@ document = ExampleDocument(
 )
 
 # see below for the long version
-ner_pipeline = AutoPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
+ner_pipeline = PyTorchIEPipeline.from_pretrained("pie/example-ner-spanclf-conll03", device=-1, num_workers=0)
 
 ner_pipeline(document)
 
@@ -349,7 +349,7 @@ for entity in document.entities.predictions:
 
 <details>
 <summary>
-To create the same pipeline as above without `AutoPipeline`
+Under the hood, the following happens when calling `PyTorchIEPipeline.from_pretrained`
 </summary>
 
 ```python
@@ -366,23 +366,6 @@ ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, dev
 
 <details>
 <summary>
-Or, without `Auto` classes at all
-</summary>
-
-```python
-from pytorch_ie.pipeline import PyTorchIEPipeline
-from pytorch_ie.models import TransformerSpanClassificationModel
-from pytorch_ie.taskmodules import TransformerSpanClassificationTaskModule
-
-model_name_or_path = "pie/example-ner-spanclf-conll03"
-ner_taskmodule = TransformerSpanClassificationTaskModule.from_pretrained(model_name_or_path)
-ner_model = TransformerSpanClassificationModel.from_pretrained(model_name_or_path)
-ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, device=-1, num_workers=0)
-```
-
-</details>
-<details>
-<summary>
 
 ### Text-classification-based Relation Extraction
 
@@ -391,8 +374,8 @@ ner_pipeline = PyTorchIEPipeline(model=ner_model, taskmodule=ner_taskmodule, dev
 ```python
 from dataclasses import dataclass
 
+from pytorch_ie import PyTorchIEPipeline
 from pytorch_ie.annotations import BinaryRelation, LabeledSpan
-from pytorch_ie.auto import AutoPipeline
 from pytorch_ie.core import AnnotationLayer, annotation_field
 from pytorch_ie.documents import TextDocument
 
@@ -407,7 +390,7 @@ document = ExampleDocument(
     "“Making a super tasty alt-chicken wing is only half of it,” said Po Bronson, general partner at SOSV and managing director of IndieBio."
 )
 
-re_pipeline = AutoPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
+re_pipeline = PyTorchIEPipeline.from_pretrained("pie/example-re-textclf-tacred", device=-1, num_workers=0)
 
 for start, end, label in [(65, 75, "PER"), (96, 100, "ORG"), (126, 134, "ORG")]:
     document.entities.append(LabeledSpan(start=start, end=end, label=label))
