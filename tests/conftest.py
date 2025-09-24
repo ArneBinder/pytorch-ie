@@ -1,5 +1,6 @@
 import dataclasses
 import json
+from importlib.util import find_spec
 
 import pytest
 from pie_core import AnnotationLayer, annotation_field
@@ -7,6 +8,8 @@ from pie_documents.annotations import BinaryRelation, LabeledSpan, Span
 from pie_documents.documents import TextDocument
 
 from tests import FIXTURES_ROOT
+
+_TABULATE_AVAILABLE = find_spec("tabulate") is not None
 
 
 @dataclasses.dataclass
@@ -42,7 +45,7 @@ def example_to_doc_dict(example):
     return doc.asdict()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def document_dataset():
     result = {}
     for path in (FIXTURES_ROOT / "datasets" / "json").iterdir():
@@ -52,7 +55,7 @@ def document_dataset():
     return result
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def documents(document_dataset):
     return document_dataset["train"]
 
